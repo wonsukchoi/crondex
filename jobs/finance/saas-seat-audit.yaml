@@ -1,0 +1,35 @@
+id: saas-seat-audit
+version: 1
+name: Team SaaS Seat Audit
+description: >
+  Flags team SaaS seats (Slack, Notion, GitHub, etc.) nobody's actually
+  used in a while. Use this if you suspect you're paying for seats of
+  people who left or tools nobody opens anymore.
+category: finance
+tags: [saas, seats, team, budget]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{seats_file}}; unused_days={{unused_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r tool owner cost last_active; do
+    last_epoch=$(date -j -f %Y-%m-%d "$last_active" +%s 2>/dev/null || date -d "$last_active" +%s);
+    days=$(( (today-last_epoch)/86400 ));
+    if [ "$days" -gt "$unused_days" ]; then echo "UNUSED SEAT: $tool - $owner (\$$cost/mo) - inactive $days days"; fi
+  done
+variables:
+  seats_file:
+    default: "./saas-seats.csv"
+    description: >
+      CSV with header "tool,seat_owner,monthly_cost,last_active_date"
+      (YYYY-MM-DD), one seat per row.
+  unused_days:
+    default: 30
+    description: Flag a seat if it hasn't been active in this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, deterministic. You maintain saas-seats.csv yourself (or
+  export last-active data from your SSO/IdP if it tracks that) — this job
+  only reads what's in the file, doesn't pull from any SaaS API.

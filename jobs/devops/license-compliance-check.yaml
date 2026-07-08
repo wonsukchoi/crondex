@@ -1,0 +1,31 @@
+id: license-compliance-check
+version: 1
+name: Dependency License Compliance Check
+description: >
+  Scans your dependencies for licenses you've flagged as risky (like GPL
+  or AGPL). Use this if you've ever shipped something and only later
+  found out a dependency's license doesn't play well with your product.
+category: devops
+tags: [license, compliance, dependencies]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  cd {{repo_path}} &&
+  if [ -f package.json ]; then
+    npx --yes license-checker --summary --excludePrivatePackages 2>/dev/null | grep -iE "{{flagged_licenses}}" && echo "^ flagged licenses found above" || echo "OK: no flagged licenses found";
+  else
+    echo "no package.json found — this job only supports npm/Node projects currently";
+  fi
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to check.
+  flagged_licenses:
+    default: "GPL|AGPL"
+    description: Regex alternation of license names to flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  npm/Node projects only (uses `npx license-checker`, downloads on first
+  run). For other ecosystems, swap in the equivalent tool
+  (pip-licenses, cargo-license, etc.) and adjust the command.

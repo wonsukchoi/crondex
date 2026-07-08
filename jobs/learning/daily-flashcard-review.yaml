@@ -1,0 +1,29 @@
+id: daily-flashcard-review
+version: 1
+name: Daily Flashcard Review
+description: >
+  Lists which flashcards are due for review today from a simple deck
+  file. Use this if you're learning something with spaced repetition but
+  don't want a whole separate app for it.
+category: learning
+tags: [learning, flashcards, spaced-repetition]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  deck={{deck_path}};
+  [ -f "$deck" ] || { echo "ERROR: $deck not found"; exit 1; };
+  today=$(date +%F);
+  due=$(awk -F, -v today="$today" 'NR>1 && $3<=today {print $1" -> "$2" (due "$3")"}' "$deck");
+  if [ -z "$due" ]; then echo "No cards due today.";
+  else echo "Cards due today:"; echo "$due"; fi
+variables:
+  deck_path:
+    default: "./flashcards.csv"
+    description: CSV with header "front,back,next_review_date" (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain flashcards.csv and update each card's
+  next_review_date yourself after reviewing — this is simple date-based
+  scheduling, not full SM-2 spaced repetition. This job only tells you
+  what's due, it doesn't reschedule cards for you.

@@ -1,0 +1,28 @@
+id: orphaned-branch-cleanup
+version: 1
+name: Orphaned Branch Cleanup
+description: >
+  Lists remote branches already merged into main that nobody's deleted
+  yet. Use this if your branch list has become a graveyard nobody wants
+  to clean up.
+category: devops
+tags: [git, cleanup, branches]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  cd {{repo_path}} && git fetch --prune >/dev/null 2>&1;
+  merged=$(git branch -r --merged {{base_branch}} | grep -v -E "(\*|{{base_branch}}$)" | sed 's#origin/##');
+  if [ -z "$merged" ]; then echo "OK: no merged branches to clean up";
+  else echo "Merged into {{base_branch}}, safe to delete:"; echo "$merged"; fi
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to check.
+  base_branch:
+    default: "main"
+    description: Branch to check merges against.
+compatible_agents: [generic, claude, codex]
+notes: >
+  List-only by design — never deletes anything. Review the list, then
+  `git push origin --delete <branch>` yourself for ones you actually want gone.

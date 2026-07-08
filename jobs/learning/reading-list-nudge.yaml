@@ -1,0 +1,25 @@
+id: reading-list-nudge
+version: 1
+name: Reading List Nudge
+description: >
+  Reminds you what's next on your reading list. Use this if you save
+  articles/books to "read later" and later never comes.
+category: learning
+tags: [learning, reading, reminder]
+schedule: "0 9 * * 6"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{reading_list_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  next=$(head -n 1 "$file");
+  if [ -z "$next" ]; then echo "Reading list is empty — nice work.";
+  else echo "Next up: $next"; fi
+variables:
+  reading_list_path:
+    default: "./reading-list.txt"
+    description: Plain text file, one item per line — the top line is treated as "next."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Suggests the top line only — remove an item from
+  reading-list.txt yourself once you've read it, or reorder to reprioritize.

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 24,
+  "count": 35,
   "jobs": [
     {
       "id": "backup-reminder",
@@ -130,6 +130,54 @@
       "path": "jobs/devops/cost-alert.yaml"
     },
     {
+      "id": "course-progress-checkin",
+      "version": 1,
+      "name": "Course Progress Check-in",
+      "description": "Compares your current chapter/lesson against a target date and tells you if you're on track or falling behind. Use this if you've ever signed up for a course and quietly stopped halfway through.",
+      "category": "learning",
+      "tags": [
+        "learning",
+        "goals",
+        "progress"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/learning/course-progress-checkin.yaml"
+    },
+    {
+      "id": "daily-flashcard-review",
+      "version": 1,
+      "name": "Daily Flashcard Review",
+      "description": "Lists which flashcards are due for review today from a simple deck file. Use this if you're learning something with spaced repetition but don't want a whole separate app for it.",
+      "category": "learning",
+      "tags": [
+        "learning",
+        "flashcards",
+        "spaced-repetition"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/learning/daily-flashcard-review.yaml"
+    },
+    {
       "id": "daily-standup-summary",
       "version": 1,
       "name": "Daily Standup Summary",
@@ -155,6 +203,30 @@
         "generic"
       ],
       "path": "jobs/productivity/daily-standup-summary.yaml"
+    },
+    {
+      "id": "db-backup-verify",
+      "version": 1,
+      "name": "Database Backup Restore Verification",
+      "description": "Actually restores your latest database backup to a throwaway database and checks it's queryable. Use this if `backup-reminder` isn't enough — a backup file existing doesn't mean it's actually restorable.",
+      "category": "devops",
+      "tags": [
+        "database",
+        "backup",
+        "postgres"
+      ],
+      "schedule": "0 5 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/db-backup-verify.yaml"
     },
     {
       "id": "dependency-audit",
@@ -256,6 +328,54 @@
       "path": "jobs/devops/env-drift-check.yaml"
     },
     {
+      "id": "failed-login-watch",
+      "version": 1,
+      "name": "Failed Login Watch",
+      "description": "Watches an auth log for a burst of failed login attempts and alerts if it crosses a threshold. Use this if you run a server exposed to SSH and want an early warning for brute-force attempts.",
+      "category": "security",
+      "tags": [
+        "security",
+        "auth",
+        "monitoring"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/failed-login-watch.yaml"
+    },
+    {
+      "id": "focus-block-reminder",
+      "version": 1,
+      "name": "Focus Block Reminder",
+      "description": "Nudges you to start a deep-work block at set times. Use this if your day fills up with reactive work and real focus time only happens by accident.",
+      "category": "productivity",
+      "tags": [
+        "focus",
+        "productivity",
+        "deep-work"
+      ],
+      "schedule": "0 9,14 * * 1-5",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/focus-block-reminder.yaml"
+    },
+    {
       "id": "habit-checkin",
       "version": 1,
       "name": "Daily Habit Check-in",
@@ -304,6 +424,30 @@
         "generic"
       ],
       "path": "jobs/productivity/inbox-triage.yaml"
+    },
+    {
+      "id": "license-compliance-check",
+      "version": 1,
+      "name": "Dependency License Compliance Check",
+      "description": "Scans your dependencies for licenses you've flagged as risky (like GPL or AGPL). Use this if you've ever shipped something and only later found out a dependency's license doesn't play well with your product.",
+      "category": "devops",
+      "tags": [
+        "license",
+        "compliance",
+        "dependencies"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/license-compliance-check.yaml"
     },
     {
       "id": "log-cleanup",
@@ -380,6 +524,78 @@
       "path": "jobs/finance/net-worth-snapshot.yaml"
     },
     {
+      "id": "open-port-check",
+      "version": 1,
+      "name": "Expected Open Ports Check",
+      "description": "Checks that the ports you expect to be open on a host actually are, and flags any that aren't. Use this if a service has ever silently stopped listening and you found out from a user instead of a monitor.",
+      "category": "security",
+      "tags": [
+        "security",
+        "network",
+        "ports"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/open-port-check.yaml"
+    },
+    {
+      "id": "orphaned-branch-cleanup",
+      "version": 1,
+      "name": "Orphaned Branch Cleanup",
+      "description": "Lists remote branches already merged into main that nobody's deleted yet. Use this if your branch list has become a graveyard nobody wants to clean up.",
+      "category": "devops",
+      "tags": [
+        "git",
+        "cleanup",
+        "branches"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/orphaned-branch-cleanup.yaml"
+    },
+    {
+      "id": "reading-list-nudge",
+      "version": 1,
+      "name": "Reading List Nudge",
+      "description": "Reminds you what's next on your reading list. Use this if you save articles/books to \"read later\" and later never comes.",
+      "category": "learning",
+      "tags": [
+        "learning",
+        "reading",
+        "reminder"
+      ],
+      "schedule": "0 9 * * 6",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/learning/reading-list-nudge.yaml"
+    },
+    {
       "id": "repo-health-check",
       "version": 1,
       "name": "Git Repo Health Check",
@@ -407,6 +623,31 @@
       "path": "jobs/devops/repo-health-check.yaml"
     },
     {
+      "id": "saas-seat-audit",
+      "version": 1,
+      "name": "Team SaaS Seat Audit",
+      "description": "Flags team SaaS seats (Slack, Notion, GitHub, etc.) nobody's actually used in a while. Use this if you suspect you're paying for seats of people who left or tools nobody opens anymore.",
+      "category": "finance",
+      "tags": [
+        "saas",
+        "seats",
+        "team",
+        "budget"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/saas-seat-audit.yaml"
+    },
+    {
       "id": "screen-time-check",
       "version": 1,
       "name": "Screen Time Check",
@@ -431,6 +672,30 @@
         "generic"
       ],
       "path": "jobs/personal/screen-time-check.yaml"
+    },
+    {
+      "id": "secrets-scan",
+      "version": 1,
+      "name": "Committed Secrets Scan",
+      "description": "Scans a repo for accidentally committed API keys, tokens, and private keys. Use this if you want a safety net for the \"oops, committed a key\" mistake everyone makes eventually.",
+      "category": "security",
+      "tags": [
+        "security",
+        "secrets",
+        "scanning"
+      ],
+      "schedule": "0 3 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/secrets-scan.yaml"
     },
     {
       "id": "social-mentions-watch",

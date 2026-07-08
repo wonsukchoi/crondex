@@ -1,0 +1,37 @@
+id: db-backup-verify
+version: 1
+name: Database Backup Restore Verification
+description: >
+  Actually restores your latest database backup to a throwaway database
+  and checks it's queryable. Use this if `backup-reminder` isn't enough —
+  a backup file existing doesn't mean it's actually restorable.
+category: devops
+tags: [database, backup, postgres]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  dump={{dump_path}}; scratch_db={{scratch_db_name}};
+  [ -f "$dump" ] || { echo "ERROR: $dump not found"; exit 1; };
+  command -v pg_restore >/dev/null 2>&1 || { echo "ERROR: pg_restore not installed"; exit 1; };
+  dropdb --if-exists "$scratch_db" 2>/dev/null;
+  createdb "$scratch_db" || { echo "ERROR: could not create scratch db $scratch_db"; exit 1; };
+  pg_restore -d "$scratch_db" "$dump" >/dev/null 2>&1;
+  count=$(psql -d "$scratch_db" -tAc "SELECT count(*) FROM {{checkpoint_table}}" 2>/dev/null);
+  dropdb --if-exists "$scratch_db" 2>/dev/null;
+  if [ -z "$count" ]; then echo "FAILED: restore or query failed on $dump"; exit 1;
+  else echo "OK: restored $dump, $checkpoint_table has $count rows"; fi
+variables:
+  dump_path:
+    default: "./backups/latest.dump"
+    description: Path to the pg_dump/pg_restore-format backup file.
+  scratch_db_name:
+    default: "backup_verify_scratch"
+    description: Throwaway database name used for the test restore (created and dropped each run).
+  checkpoint_table:
+    default: "users"
+    description: A table expected to have rows — used to confirm the restore actually worked.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Postgres-specific (pg_restore/psql/createdb/dropdb) — adapt the command
+  for other database engines. Needs CREATE/DROP DATABASE privileges.

@@ -60,7 +60,9 @@ crondex/
 │   ├── productivity/
 │   ├── personal/
 │   ├── content/
-│   └── finance/
+│   ├── finance/
+│   ├── security/
+│   └── learning/
 └── scripts/
     ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
     └── validate-jobs.js   validates every job against the schema
@@ -68,7 +70,7 @@ crondex/
 
 ## Available jobs
 
-24 jobs across 5 categories. Full details (description, tags, variables)
+35 jobs across 7 categories. Full details (description, tags, variables)
 live in `catalog.json` and each job's YAML file — run `crondex list` or
 browse `jobs/<category>/` for the plain-language rundown of each.
 
@@ -87,6 +89,9 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `docker-image-prune` | `0 4 * * *` | script |
 | `env-drift-check` | `0 8 * * *` | script |
 | `stale-dependency-pr-nudge` | `0 9 * * 1-5` | script |
+| `db-backup-verify` | `0 5 * * *` | script |
+| `license-compliance-check` | `0 8 * * 1` | script |
+| `orphaned-branch-cleanup` | `0 9 * * 1` | script |
 
 **productivity**
 
@@ -95,6 +100,7 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `daily-standup-summary` | `0 8 * * 1-5` | script + agent-prompt |
 | `inbox-triage` | `0 7,13 * * 1-5` | agent-prompt only |
 | `weekly-report` | `0 16 * * 5` | script + agent-prompt |
+| `focus-block-reminder` | `0 9,14 * * 1-5` | script |
 
 **personal**
 
@@ -120,6 +126,23 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 |---|---|---|
 | `subscription-audit` | `0 9 1 * *` | script |
 | `net-worth-snapshot` | `0 9 1 * *` | script |
+| `saas-seat-audit` | `0 9 1 * *` | script |
+
+**security**
+
+| id | schedule | modes |
+|---|---|---|
+| `secrets-scan` | `0 3 * * *` | script |
+| `open-port-check` | `0 */4 * * *` | script |
+| `failed-login-watch` | `*/15 * * * *` | script |
+
+**learning**
+
+| id | schedule | modes |
+|---|---|---|
+| `daily-flashcard-review` | `0 8 * * *` | script |
+| `reading-list-nudge` | `0 9 * * 6` | script |
+| `course-progress-checkin` | `0 9 * * 1` | script |
 
 ## How a job works
 

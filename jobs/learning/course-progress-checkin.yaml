@@ -1,0 +1,37 @@
+id: course-progress-checkin
+version: 1
+name: Course Progress Check-in
+description: >
+  Compares your current chapter/lesson against a target date and tells
+  you if you're on track or falling behind. Use this if you've ever
+  signed up for a course and quietly stopped halfway through.
+category: learning
+tags: [learning, goals, progress]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  current={{current_chapter}}; target={{target_chapter}}; target_date={{target_date}};
+  today_epoch=$(date +%s);
+  target_epoch=$(date -j -f %Y-%m-%d "$target_date" +%s 2>/dev/null || date -d "$target_date" +%s);
+  days_left=$(( (target_epoch-today_epoch)/86400 ));
+  chapters_left=$(( target - current ));
+  if [ "$chapters_left" -le 0 ]; then echo "OK: at or past target chapter $target already.";
+  elif [ "$days_left" -le 0 ]; then echo "OVERDUE: target date was $target_date, still $chapters_left chapter(s) to go.";
+  elif [ "$chapters_left" -gt "$days_left" ]; then echo "BEHIND: $chapters_left chapter(s) left, only $days_left day(s) until $target_date.";
+  else echo "ON TRACK: $chapters_left chapter(s) left, $days_left day(s) until $target_date."; fi
+variables:
+  current_chapter:
+    default: 1
+    description: Chapter/lesson number you're currently on — update this yourself as you progress.
+  target_chapter:
+    default: 10
+    description: Chapter/lesson number you want to finish by target_date.
+  target_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) you want to hit target_chapter by.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. "Behind/on track" is a rough linear heuristic (chapters-left
+  vs. days-left), not a real study-pace model. You update current_chapter
+  yourself as you go.

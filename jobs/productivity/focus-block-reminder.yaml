@@ -1,0 +1,25 @@
+id: focus-block-reminder
+version: 1
+name: Focus Block Reminder
+description: >
+  Nudges you to start a deep-work block at set times. Use this if your
+  day fills up with reactive work and real focus time only happens by
+  accident.
+category: productivity
+tags: [focus, productivity, deep-work]
+schedule: "0 9,14 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  echo "Focus block: {{block_minutes}} minutes on \"{{focus_task}}\" starting now. Silence notifications."
+variables:
+  focus_task:
+    default: "deep work"
+    description: What to focus on for this block.
+  block_minutes:
+    default: 50
+    description: Length of the focus block in minutes.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Purely a nudge — doesn't block notifications/apps itself;
+  pair with your OS's focus/DND mode if you want it enforced.

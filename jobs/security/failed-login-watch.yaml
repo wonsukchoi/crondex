@@ -1,0 +1,37 @@
+id: failed-login-watch
+version: 1
+name: Failed Login Watch
+description: >
+  Watches an auth log for a burst of failed login attempts and alerts if
+  it crosses a threshold. Use this if you run a server exposed to SSH and
+  want an early warning for brute-force attempts.
+category: security
+tags: [security, auth, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  log={{auth_log_path}}; state={{state_file}}; threshold={{fail_threshold}};
+  [ -f "$log" ] || { echo "ERROR: $log not found"; exit 1; };
+  total=$(grep -c "Failed password" "$log");
+  last=$(cat "$state" 2>/dev/null || echo 0);
+  new=$(( total - last ));
+  [ "$new" -lt 0 ] && new=0;
+  echo "$total" > "$state";
+  if [ "$new" -ge "$threshold" ]; then echo "WARNING: $new new failed login attempt(s) since last check (threshold $threshold)"; exit 1;
+  else echo "OK: $new new failed login attempt(s) since last check"; fi
+variables:
+  auth_log_path:
+    default: "/var/log/auth.log"
+    description: Path to the auth log to watch (Linux-style).
+  state_file:
+    default: "./.failed-login-watch-state"
+    description: File this job uses to remember the last count seen, so it only alerts on new failures.
+  fail_threshold:
+    default: 5
+    description: Alert if this many new failed attempts appear since the last check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Linux-oriented (/var/log/auth.log). On macOS, use
+  `log show --predicate 'eventMessage contains "authentication failure"'`
+  instead and adapt the command — this one won't work there as-is.

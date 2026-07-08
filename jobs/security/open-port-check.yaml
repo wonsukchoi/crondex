@@ -1,0 +1,36 @@
+id: open-port-check
+version: 1
+name: Expected Open Ports Check
+description: >
+  Checks that the ports you expect to be open on a host actually are, and
+  flags any that aren't. Use this if a service has ever silently stopped
+  listening and you found out from a user instead of a monitor.
+category: security
+tags: [security, network, ports]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  host={{host}}; fail=0;
+  for p in $(echo "{{expected_open_ports}}" | tr ',' ' '); do
+    if command -v nc >/dev/null 2>&1; then
+      nc -z -w2 "$host" "$p" 2>/dev/null && echo "OK: $host:$p open" || { echo "MISSING: $host:$p expected open but isn't"; fail=1; };
+    else
+      (echo > /dev/tcp/$host/$p) 2>/dev/null && echo "OK: $host:$p open" || { echo "MISSING: $host:$p expected open but isn't"; fail=1; };
+    fi
+  done;
+  exit $fail
+variables:
+  host:
+    default: "localhost"
+    description: Host to check.
+  expected_open_ports:
+    default: "22,80,443"
+    description: Comma-separated list of ports that should be open.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Checks only the ports you list — not a full port scan. Use
+  nmap for broader unexpected-open-port discovery. The nc branch (used on
+  virtually every system) is the tested path; the /dev/tcp fallback only
+  matters if nc is missing and requires bash specifically — it won't work
+  under dash/POSIX sh.

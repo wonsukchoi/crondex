@@ -7,7 +7,13 @@ category: devops
 tags: [security, dependencies, maintenance]
 schedule: "0 8 * * 1"
 timezone: "UTC"
-runner: agent-prompt
+runner: hybrid
+command: >
+  cd {{repo_path}} &&
+  if [ -f package.json ]; then npm audit;
+  elif [ -f requirements.txt ]; then pip-audit -r requirements.txt;
+  elif [ -f Cargo.toml ]; then cargo audit;
+  else echo "no supported manifest (package.json/requirements.txt/Cargo.toml) found"; fi
 prompt: |
   Run a dependency audit on the repo at {{repo_path}}.
   1. Detect the package manager(s) in use (npm/pnpm/yarn/pip/cargo/etc).
@@ -16,6 +22,9 @@ prompt: |
      days behind latest.
   4. Summarize findings in under 200 words with a prioritized action list.
   Do not modify any files — report only.
+script_note: >
+  `command` prints the raw audit tool output, zero tokens. `prompt` additionally
+  flags stale-but-not-vulnerable packages and ranks/prioritizes the findings for you.
 variables:
   repo_path:
     default: "."

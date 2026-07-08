@@ -26,14 +26,6 @@ let failed = 0;
 for (const file of walk(JOBS_DIR)) {
   const doc = yaml.load(readFileSync(file, "utf8"));
   const rel = relative(ROOT, file);
-  if (doc.runner === "agent-prompt" && !doc.prompt) {
-    console.error(`${rel}: runner is agent-prompt but no prompt set`);
-    failed++;
-  }
-  if (doc.runner === "shell" && !doc.command) {
-    console.error(`${rel}: runner is shell but no command set`);
-    failed++;
-  }
   if (!validate(doc)) {
     for (const err of validate.errors) {
       console.error(`${rel}: ${err.instancePath} ${err.message}`);

@@ -7,7 +7,11 @@ category: productivity
 tags: [reporting, weekly]
 schedule: "0 16 * * 5"
 timezone: "America/Los_Angeles"
-runner: agent-prompt
+runner: hybrid
+command: >
+  cd {{repo_path}} && echo "--- shortlog last {{lookback_days}}d ---" &&
+  git shortlog -sn --since="{{lookback_days}} days ago" &&
+  echo "--- commits ---" && git log --since="{{lookback_days}} days ago" --pretty=format:'%h %an %s'
 prompt: |
   Build a weekly report for {{project_name}} covering the last {{lookback_days}} days.
   1. Summarize merged PRs / commits in {{repo_path}}.
@@ -16,6 +20,9 @@ prompt: |
      connected.
   4. Write it as 4 sections: Shipped, In Progress, Blocked, Next Week.
   Keep the whole report under 300 words.
+script_note: >
+  `command` dumps raw commit/shortlog stats, zero tokens. `prompt` additionally
+  pulls tracker/metrics data and writes the narrative Shipped/In Progress/Blocked/Next Week report.
 variables:
   project_name:
     default: "this project"

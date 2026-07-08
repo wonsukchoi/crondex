@@ -28,8 +28,8 @@
     },
     "runner": {
       "type": "string",
-      "enum": ["agent-prompt", "shell"],
-      "description": "'agent-prompt' hands `prompt` to an LLM agent each run. 'shell' executes `command` directly."
+      "enum": ["agent-prompt", "shell", "hybrid"],
+      "description": "'agent-prompt' hands `prompt` to an LLM agent each run (uses tokens, richer output). 'shell' executes `command` directly (zero tokens). 'hybrid' ships both — pick `command` to save tokens or `prompt` for more detail/judgment."
     },
     "prompt": {
       "type": "string",
@@ -37,7 +37,11 @@
     },
     "command": {
       "type": "string",
-      "description": "Shell command to run, for runner: shell. Supports {{variable}} placeholders."
+      "description": "Shell command to run, for runner: shell or hybrid. Supports {{variable}} placeholders."
+    },
+    "script_note": {
+      "type": "string",
+      "description": "For hybrid jobs: what the zero-token `command` gives you vs. what only the LLM `prompt` mode adds (e.g. no narrative synthesis, no judgment calls)."
     },
     "variables": {
       "type": "object",
@@ -59,5 +63,19 @@
       }
     },
     "notes": { "type": "string" }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "runner": { "const": "agent-prompt" } } },
+      "then": { "required": ["prompt"] }
+    },
+    {
+      "if": { "properties": { "runner": { "const": "shell" } } },
+      "then": { "required": ["command"] }
+    },
+    {
+      "if": { "properties": { "runner": { "const": "hybrid" } } },
+      "then": { "required": ["prompt", "command"] }
+    }
+  ]
 }

@@ -32,15 +32,15 @@ crondex/
 
 ## Available jobs
 
-| id | category | schedule | runner |
+| id | category | schedule | modes |
 |---|---|---|---|
-| `dependency-audit` | devops | `0 8 * * 1` | agent-prompt |
-| `log-cleanup` | devops | `30 3 * * *` | shell |
-| `repo-health-check` | devops | `0 9 * * 1-5` | agent-prompt |
-| `backup-reminder` | devops | `0 9 * * *` | shell |
-| `daily-standup-summary` | productivity | `0 8 * * 1-5` | agent-prompt |
-| `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt |
-| `weekly-report` | productivity | `0 16 * * 5` | agent-prompt |
+| `dependency-audit` | devops | `0 8 * * 1` | script + agent-prompt |
+| `log-cleanup` | devops | `30 3 * * *` | script |
+| `repo-health-check` | devops | `0 9 * * 1-5` | script + agent-prompt |
+| `backup-reminder` | devops | `0 9 * * *` | script |
+| `daily-standup-summary` | productivity | `0 8 * * 1-5` | script + agent-prompt |
+| `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt only |
+| `weekly-report` | productivity | `0 16 * * 5` | script + agent-prompt |
 
 Full details (description, tags, variables) live in `catalog.json` and each
 job's YAML file.
@@ -49,9 +49,16 @@ job's YAML file.
 
 Every job is one YAML file with a `runner`:
 
+- **`shell`** — run `command` directly. Zero LLM tokens, deterministic, no
+  judgment calls.
 - **`agent-prompt`** — hand the `prompt` field to an LLM agent each run.
-  `{{placeholders}}` in the prompt resolve from `variables`.
-- **`shell`** — run `command` directly, no LLM needed.
+  Costs tokens, but can synthesize, prioritize, and draft prose.
+- **`hybrid`** — ships both. You (or your agent) pick per run: `command` to
+  save tokens and get raw data, or `prompt` when you want the LLM to
+  interpret it. `script_note` on the job explains exactly what you trade
+  away by choosing the script.
+
+`{{placeholders}}` in `command`/`prompt` resolve from `variables`.
 
 ```yaml
 id: dependency-audit
@@ -61,9 +68,12 @@ category: devops
 tags: [security, dependencies]
 schedule: "0 8 * * 1"        # standard 5-field cron
 timezone: "UTC"
-runner: agent-prompt
+runner: hybrid
+command: |
+  ...raw shell audit, zero tokens...
 prompt: |
-  ...instructions with {{repo_path}}...
+  ...instructions with {{repo_path}}, LLM synthesizes+prioritizes...
+script_note: what you lose by using `command` instead of `prompt`
 variables:
   repo_path:
     default: "."
@@ -75,9 +85,12 @@ Full spec: [`schema/job.schema.json`](schema/job.schema.json).
 
 ## Using a job
 
-1. Pick a job from `catalog.json`.
-2. Override any `variables` and `schedule` for your case.
-3. Hand `prompt` (or `command`) plus `schedule` to your scheduler — system
+1. Pick a job from `catalog.json` — check `modes` to see if it's script-only,
+   agent-prompt-only, or both.
+2. Decide script vs. agent-prompt if the job is `hybrid`: script saves
+   tokens, agent-prompt gives you more detail/judgment (see `script_note`).
+3. Override any `variables` and `schedule` for your case.
+4. Hand `command` or `prompt` plus `schedule` to your scheduler — system
    crontab, a hosted cron, or your agent's own scheduling mechanism. This
    repo defines *what* to run and *when*, not the executor.
 

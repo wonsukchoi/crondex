@@ -17,6 +17,12 @@ function walk(dir) {
   return out;
 }
 
+const MODES_BY_RUNNER = {
+  "agent-prompt": ["agent-prompt"],
+  shell: ["script"],
+  hybrid: ["script", "agent-prompt"],
+};
+
 const jobs = walk(JOBS_DIR)
   .map((file) => {
     const doc = yaml.load(readFileSync(file, "utf8"));
@@ -29,6 +35,7 @@ const jobs = walk(JOBS_DIR)
       schedule: doc.schedule,
       timezone: doc.timezone ?? null,
       runner: doc.runner,
+      modes: MODES_BY_RUNNER[doc.runner] ?? [],
       compatible_agents: doc.compatible_agents ?? [],
       path: relative(ROOT, file),
     };

@@ -7,7 +7,14 @@ category: devops
 tags: [git, ci, maintenance]
 schedule: "0 9 * * 1-5"
 timezone: "UTC"
-runner: agent-prompt
+runner: hybrid
+command: >
+  cd {{repo_path}} && now=$(date +%s) &&
+  echo "--- branches stale >{{stale_branch_days}}d ---" &&
+  git for-each-ref --format='%(committerdate:unix) %(refname:short)' refs/heads/ |
+    while read ts name; do age=$(( (now-ts)/86400 )); [ "$age" -gt {{stale_branch_days}} ] && echo "$name: ${age}d"; done;
+  echo "--- uncommitted changes ---"; git status --short;
+  command -v gh >/dev/null && { echo "--- open PRs ---"; gh pr list --state open; } || echo "(gh not installed, skipping PR check)"
 prompt: |
   Check the health of the repo at {{repo_path}}.
   1. List local/remote branches not touched in over {{stale_branch_days}} days.
@@ -15,6 +22,9 @@ prompt: |
   3. If a CI config exists, report the status of the last run on the default branch.
   4. List open PRs older than {{stale_pr_days}} days with no recent activity.
   Summarize as a short digest, most actionable item first.
+script_note: >
+  `command` prints raw stale-branch/status/PR-list data, zero tokens. `prompt`
+  additionally checks CI status and turns it into a prioritized digest.
 variables:
   repo_path:
     default: "."

@@ -7,7 +7,10 @@ category: productivity
 tags: [standup, reporting, daily]
 schedule: "0 8 * * 1-5"
 timezone: "America/Los_Angeles"
-runner: agent-prompt
+runner: hybrid
+command: >
+  cd {{repo_path}} && echo "--- commits last {{lookback_hours}}h ---" &&
+  git log --since="{{lookback_hours}} hours ago" --pretty=format:'%h %s'
 prompt: |
   Draft a standup update for {{person_name}}.
   1. Summarize commits and merged PRs from the last {{lookback_hours}} hours in
@@ -15,6 +18,9 @@ prompt: |
   2. List today's calendar events if a calendar source is connected.
   3. Ask the user (or infer from open tasks) what blockers to mention.
   Output exactly 3 lines: Yesterday / Today / Blockers.
+script_note: >
+  `command` dumps the raw commit log, zero tokens. `prompt` additionally pulls
+  calendar events, infers blockers, and writes the 3-line Yesterday/Today/Blockers format.
 variables:
   person_name:
     default: "me"

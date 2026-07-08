@@ -1,0 +1,33 @@
+id: quota-attainment-check
+version: 1
+name: Quota Attainment Check
+description: >
+  Compares a rep's closed-won revenue this period against their quota
+  pace and flags whether they're on track. Use this if a rep has ever
+  found out they missed quota only at the end of the quarter, instead of
+  with enough runway left to fix it.
+category: sales
+tags: [sales, quota, pipeline]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  closed=$(psql "{{database_url}}" -t -c "select coalesce(sum(amount),0) from deals where owner = '{{rep_name}}' and stage = 'closed_won' and closed_at >= date_trunc('quarter', current_date);");
+  quota={{quarterly_quota}};
+  pct=$(awk "BEGIN{printf \"%.0f\", ($closed/$quota)*100}");
+  echo "quota check for {{rep_name}}: closed \$$closed of \$$quota quarterly quota (${pct}%) so far"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  rep_name:
+    default: "rep-name"
+    description: Sales rep owner field to check.
+  quarterly_quota:
+    default: 100000
+    description: Quarterly quota amount for this rep.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Prints closed-won revenue vs. quota for the current quarter; the pacing
+  math (days elapsed vs. days in quarter) is left for you or your agent to
+  interpret since exact quarter boundaries vary by fiscal calendar.

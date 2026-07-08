@@ -1,0 +1,31 @@
+id: preventive-maintenance-due-check
+version: 1
+name: Preventive Maintenance Due Check
+description: >
+  Flags equipment coming due for scheduled preventive maintenance. Use
+  this if a machine has ever failed unexpectedly that would've been
+  caught by a PM visit nobody scheduled in time.
+category: manufacturing
+tags: [manufacturing, maintenance, equipment]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: equipment \"" $1 "\" PM due in " days_left " days (" $2 ")";
+    }
+  ' {{pm_schedule_csv}}
+variables:
+  pm_schedule_csv:
+    default: "pm-schedule.csv"
+    description: "CSV with header row, columns: equipment_id,next_pm_date(YYYY-MM-DD)."
+  warn_days:
+    default: 7
+    description: Days before the scheduled PM date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep pm-schedule.csv updated from your CMMS export or maintenance log before each run.

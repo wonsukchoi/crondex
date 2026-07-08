@@ -1,0 +1,31 @@
+id: sla-breach-warning
+version: 1
+name: SLA Breach Warning
+description: >
+  Flags open tickets that are about to breach their SLA, before they
+  actually do. Use this if a ticket has ever blown past its SLA with zero
+  warning because the only check was after the fact.
+category: support
+tags: [support, sla, tickets]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"status":"open"' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no tickets approaching SLA breach"; exit 0;
+  else echo "WARNING: $count ticket(s) within {{warn_minutes}} minutes of SLA breach at {{api_url}}"; exit 1; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?status=open&sla_remaining_lt_minutes=30"
+    description: Helpdesk API endpoint pre-filtered to tickets close to breaching SLA.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  warn_minutes:
+    default: 30
+    description: Minutes of SLA time remaining that counts as "about to breach", for labeling output.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Proactive counterpart to `ticket-backlog-aging-check` (which flags
+  tickets already past SLA) — point api_url at your helpdesk's filtered
+  search for tickets still within SLA but running low on time.

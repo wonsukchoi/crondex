@@ -1,0 +1,30 @@
+id: volunteer-hours-shortfall-check
+version: 1
+name: Volunteer Hours Shortfall Check
+description: >
+  Compares logged volunteer hours against a program's target and flags a
+  shortfall. Use this if a program has ever fallen behind on a grant's
+  volunteer-hour commitment without anyone noticing until the report was
+  due.
+category: nonprofit
+tags: [nonprofit, volunteers, programs]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  logged=$(awk -F, -v month="$(date +%Y-%m)" -v program="{{program_name}}" '$1 ~ month && $2 == program {sum += $3} END {print sum+0}' {{volunteer_hours_csv}});
+  target={{monthly_target_hours}};
+  if awk "BEGIN{exit !($logged < $target)}"; then echo "WARNING: {{program_name}} logged $logged of $target target hours this month"; exit 1;
+  else echo "OK: {{program_name}} logged $logged of $target target hours"; fi
+variables:
+  volunteer_hours_csv:
+    default: "volunteer-hours.csv"
+    description: "CSV with columns: month(YYYY-MM),program,hours."
+  program_name:
+    default: "your program"
+    description: Program name to check.
+  monthly_target_hours:
+    default: 100
+    description: Target volunteer hours for the program this month.
+compatible_agents: [generic, claude, codex]
+notes: Keep volunteer-hours.csv updated from your volunteer management system's export before each run.

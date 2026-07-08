@@ -1,0 +1,23 @@
+id: rent-payment-late-check
+version: 1
+name: Rent Payment Late Check
+description: >
+  Flags tenants whose rent is overdue past the grace period. Use this if
+  a late payment has ever gone unnoticed for weeks because nobody was
+  cross-checking the rent roll against the bank deposits.
+category: realestate
+tags: [realestate, rent, payments]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select tenant_name, unit, amount_due, due_date from rent_ledger where paid = false and due_date < current_date - interval '{{grace_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  grace_days:
+    default: 5
+    description: Days past due_date before a late payment is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `rent_ledger` table with `paid`, `due_date`, and `amount_due` columns — adjust the query to your property management system's schema.

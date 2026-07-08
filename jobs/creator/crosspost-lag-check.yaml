@@ -1,0 +1,35 @@
+id: crosspost-lag-check
+version: 1
+name: Crosspost Lag Check
+description: >
+  Checks that content published on your primary platform actually got
+  mirrored to your other channels. Use this if a video or post has ever
+  gone up on YouTube and just never made it to the other platforms because
+  crossposting was manual and someone forgot.
+category: creator
+tags: [content, crosspost, publishing]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare recent uploads on {{primary_platform}} against what's been
+  posted on {{secondary_platforms}} over the last {{lookback_days}} days.
+  1. List content published on {{primary_platform}} with no matching post
+     on one or more of {{secondary_platforms}} within {{max_lag_days}}
+     days of the original.
+  2. Report each gap with the platform(s) missing it.
+variables:
+  primary_platform:
+    default: "YouTube"
+    description: Your main publishing platform.
+  secondary_platforms:
+    default: "Instagram, TikTok, X"
+    description: Comma-separated list of platforms content should also land on.
+  lookback_days:
+    default: 14
+    description: How far back to check for crossposting gaps.
+  max_lag_days:
+    default: 3
+    description: Days after the original post before a missing crosspost counts as a gap.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — checking multiple platform APIs and matching content across them needs an agent, not a fixed query.

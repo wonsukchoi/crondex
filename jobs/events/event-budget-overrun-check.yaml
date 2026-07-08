@@ -1,0 +1,31 @@
+id: event-budget-overrun-check
+version: 1
+name: Event Budget Overrun Check
+description: >
+  Compares committed spend so far against the event budget and flags
+  overrun risk. Use this if an event has ever come in over budget because
+  nobody totaled up the vendor contracts until after the fact.
+category: events
+tags: [events, budget, planning]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  spent=$(awk -F, 'NR>1 {sum+=$2} END {print sum+0}' {{expenses_csv}});
+  budget={{budget_usd}};
+  if awk "BEGIN{exit !($spent >= $budget * {{warn_pct}} / 100)}"; then
+    echo "WARNING: committed spend \$$spent has hit ${warn_pct:-{{warn_pct}}}% of \$$budget budget";
+    exit 1;
+  else echo "OK: committed spend \$$spent of \$$budget budget"; fi
+variables:
+  expenses_csv:
+    default: "event-expenses.csv"
+    description: "CSV with header row, columns: line_item,amount."
+  budget_usd:
+    default: 10000
+    description: Total event budget in USD.
+  warn_pct:
+    default: 90
+    description: Percent of budget committed before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Keep event-expenses.csv updated as vendor contracts and deposits are committed, not just when invoices arrive.

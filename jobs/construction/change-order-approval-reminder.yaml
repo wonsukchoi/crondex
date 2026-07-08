@@ -1,0 +1,31 @@
+id: change-order-approval-reminder
+version: 1
+name: Change Order Approval Reminder
+description: >
+  Flags change orders that have been waiting on client sign-off too long.
+  Use this if work has ever stalled, or gone ahead unapproved, because a
+  change order sat in someone's inbox for weeks.
+category: construction
+tags: [construction, change-orders, approvals]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{stale_days}} '
+    NR>1 && $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline sent_ts; close(cmd);
+      days_waiting = int((today - sent_ts) / 86400);
+      if (days_waiting >= warn) print "WARNING: change order \"" $1 "\" pending " days_waiting " days (sent " $2 ")";
+    }
+  ' {{change_orders_csv}}
+variables:
+  change_orders_csv:
+    default: "change-orders.csv"
+    description: "CSV with header row, columns: description,sent_date(YYYY-MM-DD),status(pending/approved/rejected)."
+  stale_days:
+    default: 5
+    description: Days pending before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Keep change-orders.csv updated as change orders go out and come back signed.

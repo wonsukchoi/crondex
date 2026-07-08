@@ -1,0 +1,24 @@
+id: expiring-perishable-stock-check
+version: 1
+name: Expiring Perishable Stock Check
+description: >
+  Flags perishable inventory nearing its expiry date so it can be sold,
+  discounted, or used before it's wasted. Use this if stock has ever
+  expired on the shelf because nobody was tracking dates until it was too
+  late.
+category: inventory
+tags: [inventory, perishables, waste]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sku, quantity, expiry_date from inventory where expiry_date is not null and expiry_date <= current_date + interval '{{warn_days}} days' order by expiry_date;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the inventory database.
+  warn_days:
+    default: 5
+    description: Days before expiry_date to start flagging stock.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `inventory` table with a nullable `expiry_date` column — adjust the query to your schema.

@@ -1,0 +1,38 @@
+id: seo-rank-drop-watch
+version: 1
+name: SEO Keyword Rank Drop Watch
+description: >
+  Checks a tracked keyword's search ranking and flags a real drop. Use
+  this if a page has ever slipped off page one and nobody noticed until
+  organic traffic was already down for weeks.
+category: marketing
+tags: [seo, rankings, marketing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current search ranking for the keyword "{{keyword}}" targeting
+  {{target_url}}, via {{rank_source_hint}}.
+  1. Compare the current position to the baseline position of
+     {{baseline_position}}.
+  2. Flag a drop of {{drop_threshold_positions}} positions or more.
+  3. If dropped, note which competing URLs now outrank {{target_url}}, if
+     visible.
+variables:
+  keyword:
+    default: "your target keyword"
+    description: Keyword to track.
+  target_url:
+    default: "https://example.com/page"
+    description: URL you're tracking rank for.
+  rank_source_hint:
+    default: "a rank tracker (Ahrefs, SEMrush, Search Console) or a manual SERP check"
+    description: Where to check current rank.
+  baseline_position:
+    default: 5
+    description: Baseline ranking position to compare against.
+  drop_threshold_positions:
+    default: 5
+    description: Position drop that counts as a real regression.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — SERP position checking needs a rank-tracking API or live search, both of which vary by provider/region.

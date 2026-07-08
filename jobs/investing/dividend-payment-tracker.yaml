@@ -1,0 +1,34 @@
+id: dividend-payment-tracker
+version: 1
+name: Dividend Payment Tracker
+description: >
+  Checks that an expected dividend payment actually landed by its
+  scheduled pay date. Use this if a dividend has ever quietly not shown up
+  and it took weeks to notice something was wrong with a holding or
+  broker.
+category: investing
+tags: [investing, dividends, income]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" '
+    NR>1 && $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pay_ts; close(cmd);
+      if (pay_ts < today) print "WARNING: " $1 " dividend was due " $2 " and is still marked pending";
+    }
+  ' {{dividends_csv}}
+variables:
+  dividends_csv:
+    default: "dividends.csv"
+    description: "CSV with header row, columns: ticker,pay_date(YYYY-MM-DD),status(pending/received)."
+  warn_days:
+    default: 0
+    description: Unused placeholder kept for consistency with other date-check jobs; flags immediately once the pay date has passed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update dividends.csv to "received" once a payment lands (check your
+  brokerage statement) — this job only flags entries still marked
+  "pending" past their pay date.

@@ -1,0 +1,27 @@
+id: report-card-deadline-reminder
+version: 1
+name: Report Card Deadline Reminder
+description: >
+  Warns you before the grade submission deadline for report cards. Use
+  this if grades have ever gone in late because the cutoff snuck up
+  during the last busy week of the term.
+category: education
+tags: [education, grading, deadlines]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{grades_due_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{grades_due_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ] && [ "$days_left" -ge 0 ]; then echo "WARNING: grades due in $days_left days ({{grades_due_date}})"; exit 1;
+  else echo "OK: grades due in $days_left days"; fi
+variables:
+  grades_due_date:
+    default: "2026-12-15"
+    description: Grade submission deadline for this term (YYYY-MM-DD).
+  warn_days:
+    default: 5
+    description: Days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual grades_due_date input — update it each term based on the school's academic calendar.

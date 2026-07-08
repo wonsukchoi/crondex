@@ -1,0 +1,38 @@
+id: freight-rate-spike-watch
+version: 1
+name: Freight Rate Spike Watch
+description: >
+  Checks a freight lane's current quoted rate against your baseline and
+  flags a spike. Use this if a shipping rate has ever quietly doubled and
+  only got noticed when the invoice came in.
+category: logistics
+tags: [logistics, freight, rates]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current freight rate for the lane {{lane_description}} via
+  {{rate_source_hint}}.
+  1. Compare the current quote to the baseline rate of {{baseline_rate}}
+     per {{rate_unit}}.
+  2. Flag if it's {{spike_threshold_pct}}% or more above baseline.
+  3. Report the current rate, the delta, and if visible, the likely driver
+     (fuel surcharge, capacity crunch, seasonal demand).
+variables:
+  lane_description:
+    default: "Los Angeles, CA to Chicago, IL"
+    description: Origin/destination lane to check.
+  rate_source_hint:
+    default: "your freight broker or a rate index (DAT, Freightos)"
+    description: Where to check current freight rates.
+  baseline_rate:
+    default: 2.50
+    description: Baseline rate per unit to compare against.
+  rate_unit:
+    default: "mile"
+    description: Unit the rate is quoted in.
+  spike_threshold_pct:
+    default: 20
+    description: Percent above baseline that counts as a spike.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — freight rate sources vary (broker quotes, load boards, rate indices) and most don't expose a simple public API.

@@ -16,10 +16,29 @@ Give an agent the repo and a goal ("set up something that checks my repo
 health every morning") — it reads `catalog.json`, finds the closest match,
 adjusts `schedule`/`variables`, and wires it into whatever scheduler it has.
 
+## CLI
+
+Not yet published to the npm registry, so `npx crondex` doesn't resolve
+publicly yet — for now, run it from a clone:
+
+```bash
+git clone https://github.com/wonsukchoi/crondex.git && cd crondex
+node bin/crondex.js list                          # browse everything
+node bin/crondex.js list --category devops        # filter by category or --tag
+node bin/crondex.js show backup-reminder          # print one job's YAML
+node bin/crondex.js add backup-reminder --dest ./cron/backup-reminder.yaml
+```
+
+`add` copies the job's YAML as-is into your project — it's yours to edit
+from there, same as a `git clone` + copy, just one command. Once this is
+published, the same commands work via `npx crondex ...` with no clone
+needed.
+
 ## Layout
 
 ```
 crondex/
+├── bin/crondex.js         CLI: list / show / add
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/

@@ -57,7 +57,8 @@ crondex/
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/
 │   ├── devops/
-│   └── productivity/
+│   ├── productivity/
+│   └── personal/
 └── scripts/
     ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
     └── validate-jobs.js   validates every job against the schema
@@ -77,6 +78,9 @@ crondex/
 | `daily-standup-summary` | productivity | `0 8 * * 1-5` | script + agent-prompt |
 | `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt only |
 | `weekly-report` | productivity | `0 16 * * 5` | script + agent-prompt |
+| `bill-due-reminder` | personal | `0 9 * * *` | script |
+| `habit-checkin` | personal | `0 20 * * *` | script |
+| `meal-plan-reminder` | personal | `0 9 * * 0` | script + agent-prompt |
 
 Full details (description, tags, variables) live in `catalog.json` and each
 job's YAML file.

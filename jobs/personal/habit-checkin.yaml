@@ -1,0 +1,35 @@
+id: habit-checkin
+version: 1
+name: Daily Habit Check-in
+description: >
+  Reminds you to log a habit each day and reports your current streak.
+  Use this if you're trying to build a habit and want a daily nudge plus
+  a running streak count without a separate app.
+category: personal
+tags: [habit, streak, reminder]
+schedule: "0 20 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  log={{log_path}}; name="{{habit_name}}";
+  touch "$log";
+  today=$(date +%F);
+  streak=0; d="$today";
+  while grep -qx "$d" "$log" 2>/dev/null; do
+    streak=$((streak+1));
+    d=$(date -j -v-1d -f %F "$d" +%F 2>/dev/null || date -d "$d -1 day" +%F);
+  done;
+  if grep -qx "$today" "$log"; then echo "$name: already logged today. Streak: $streak day(s).";
+  else echo "REMINDER: log $name today to keep your streak (currently $streak day(s))."; fi
+variables:
+  habit_name:
+    default: "exercise"
+    description: What habit you're tracking, for the reminder text.
+  log_path:
+    default: "./habit-log.txt"
+    description: Plain text file with one YYYY-MM-DD line per day you completed the habit.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, deterministic. This job only reminds and reports the streak —
+  append today's date to log_path yourself (`date +%F >> log_path`) when
+  you actually complete the habit.

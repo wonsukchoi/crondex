@@ -1,0 +1,31 @@
+id: meal-plan-reminder
+version: 1
+name: Weekly Meal Plan Reminder
+description: >
+  Nudges you to plan the week's meals, and can draft a simple 7-day plan
+  plus grocery list for you. Use this if you dread the "what's for dinner"
+  question every night and want to decide once a week instead.
+category: personal
+tags: [meals, planning, household]
+schedule: "0 9 * * 0"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  echo "Reminder: plan meals for the week ({{household_size}} people, dietary preference: {{dietary_pref}})."
+prompt: |
+  Draft a simple 7-day dinner plan for {{household_size}} people with
+  dietary preference: {{dietary_pref}}.
+  1. One line per day, easy/quick recipes, minimal specialty ingredients.
+  2. End with a consolidated grocery list grouped by store section.
+script_note: >
+  `command` only prints a reminder to plan meals yourself, zero tokens.
+  `prompt` actually drafts the 7-day plan and grocery list for you.
+variables:
+  household_size:
+    default: 1
+    description: Number of people to plan meals for.
+  dietary_pref:
+    default: "no restrictions"
+    description: Dietary preference or restriction to plan around.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Schedule defaults to Sunday morning; adjust to whenever you actually grocery shop.

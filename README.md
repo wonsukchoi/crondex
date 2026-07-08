@@ -1,47 +1,56 @@
 # crondex
 
-A public, growing directory of pre-made cron jobs — written so any AI agent
+A public, growing directory of pre-made cron jobs — built so any AI agent
 (Claude, Codex, Hermes, OpenClaw, or a plain LLM with shell access) can pull
-one, tweak it, and schedule it. Start small, grow the catalog over time.
+one, tweak it, and schedule it. Clone it, grab a job, adjust the knobs, run it.
+
+## Quick start
+
+```bash
+git clone https://github.com/wonsukchoi/crondex.git
+cat crondex/catalog.json          # browse what's available
+cat crondex/jobs/devops/dependency-audit.yaml   # read one job
+```
+
+Give an agent the repo and a goal ("set up something that checks my repo
+health every morning") — it reads `catalog.json`, finds the closest match,
+adjusts `schedule`/`variables`, and wires it into whatever scheduler it has.
 
 ## Layout
 
 ```
 crondex/
-├── catalog.json          # generated index of every job — read this first
-├── schema/job.schema.json
+├── catalog.json           generated index of every job — read this first
+├── schema/job.schema.json spec every job file follows
 ├── jobs/
 │   ├── devops/
 │   └── productivity/
 └── scripts/
-    ├── build-catalog.js   # regenerates catalog.json from jobs/**/*.yaml
-    └── validate-jobs.js   # validates every job against the schema
+    ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
+    └── validate-jobs.js   validates every job against the schema
 ```
 
-## For an agent consuming this repo
+## Available jobs
 
-1. Fetch `catalog.json` — it lists every job's `id`, `name`, `description`,
-   `category`, `tags`, `schedule`, `runner`, and `path`. Pick by matching the
-   task you're asked to do against `description`/`tags`.
-2. Read the job file at `path` (a small YAML file).
-3. Adjust the fields you need — most jobs expose a `variables` block with
-   named, default-valued knobs so you rarely need to touch `prompt`/`command`
-   directly. Override `schedule` to fit the user's cadence.
-4. Wire the result into whatever your host uses to actually run cron
-   (system crontab, a hosted scheduler, this agent's own `/schedule`-style
-   mechanism, etc.) — this repo only defines *what* to run and *when*, not
-   the executor.
+| id | category | schedule | runner |
+|---|---|---|---|
+| `dependency-audit` | devops | `0 8 * * 1` | agent-prompt |
+| `log-cleanup` | devops | `30 3 * * *` | shell |
+| `repo-health-check` | devops | `0 9 * * 1-5` | agent-prompt |
+| `daily-standup-summary` | productivity | `0 8 * * 1-5` | agent-prompt |
+| `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt |
+| `weekly-report` | productivity | `0 16 * * 5` | agent-prompt |
 
-Each job has one of two `runner` types:
+Full details (description, tags, variables) live in `catalog.json` and each
+job's YAML file.
 
-- `agent-prompt` — hand the `prompt` field to an LLM agent each run.
-  Placeholders like `{{repo_path}}` get substituted from `variables`.
-- `shell` — run `command` directly, no LLM needed.
+## How a job works
 
-## Job format
+Every job is one YAML file with a `runner`:
 
-See [`schema/job.schema.json`](schema/job.schema.json) for the full spec.
-Every job is one YAML file:
+- **`agent-prompt`** — hand the `prompt` field to an LLM agent each run.
+  `{{placeholders}}` in the prompt resolve from `variables`.
+- **`shell`** — run `command` directly, no LLM needed.
 
 ```yaml
 id: dependency-audit
@@ -49,11 +58,11 @@ name: Dependency Vulnerability Audit
 description: ...
 category: devops
 tags: [security, dependencies]
-schedule: "0 8 * * 1"      # standard 5-field cron
+schedule: "0 8 * * 1"        # standard 5-field cron
 timezone: "UTC"
 runner: agent-prompt
 prompt: |
-  ...instructions with {{placeholders}}...
+  ...instructions with {{repo_path}}...
 variables:
   repo_path:
     default: "."
@@ -61,12 +70,23 @@ variables:
 compatible_agents: [claude, codex, hermes, openclaw, generic]
 ```
 
+Full spec: [`schema/job.schema.json`](schema/job.schema.json).
+
+## Using a job
+
+1. Pick a job from `catalog.json`.
+2. Override any `variables` and `schedule` for your case.
+3. Hand `prompt` (or `command`) plus `schedule` to your scheduler — system
+   crontab, a hosted cron, or your agent's own scheduling mechanism. This
+   repo defines *what* to run and *when*, not the executor.
+
 ## Contributing a job
 
-1. Add a YAML file under `jobs/<category>/<id>.yaml` matching the schema.
-2. `npm install` (once), then `npm run validate` to check it.
-3. `npm run build-catalog` to regenerate `catalog.json`.
-4. Open a PR.
+1. Add `jobs/<category>/<id>.yaml` matching the schema.
+2. `npm install` (once).
+3. `npm run validate` — checks it against the schema.
+4. `npm run build-catalog` — regenerates `catalog.json`.
+5. Open a PR.
 
-Categories grow as needed — don't over-plan the taxonomy up front, add a
-new folder when a job doesn't fit an existing one.
+New categories are just new folders — add one when a job doesn't fit an
+existing one, no need to pre-plan the taxonomy.

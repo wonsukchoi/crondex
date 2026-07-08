@@ -1,0 +1,34 @@
+id: subscription-audit
+version: 1
+name: Subscription Audit
+description: >
+  Flags recurring subscriptions you haven't actually used in a while.
+  Use this if you suspect you're paying for things you forgot to cancel.
+category: finance
+tags: [subscriptions, budget, finance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{subs_file}}; unused_days={{unused_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r name cost last_used; do
+    last_epoch=$(date -j -f %Y-%m-%d "$last_used" +%s 2>/dev/null || date -d "$last_used" +%s);
+    days=$(( (today-last_epoch)/86400 ));
+    if [ "$days" -gt "$unused_days" ]; then echo "UNUSED: $name (\$$cost/mo) — not used in $days days"; fi
+  done
+variables:
+  subs_file:
+    default: "./subscriptions.csv"
+    description: >
+      CSV with header "name,monthly_cost,last_used_date" (YYYY-MM-DD), one
+      subscription per row.
+  unused_days:
+    default: 30
+    description: Flag a subscription if it hasn't been used in this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, deterministic. You maintain subs_file yourself (update
+  last_used_date when you actually use each service) — this job only
+  reads what's in the file, doesn't pull from any bank or card statement.

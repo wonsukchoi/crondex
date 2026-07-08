@@ -1,0 +1,40 @@
+id: changelog-digest
+version: 1
+name: Changelog Digest
+description: >
+  Rolls up recent commits into a draft changelog entry your users could
+  actually read. Use this if you ship regularly but always write the
+  changelog as an afterthought (or skip it).
+category: content
+tags: [changelog, release, docs]
+schedule: "0 10 * * 5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  cd {{repo_path}} && last_tag=$(git describe --tags --abbrev=0 2>/dev/null);
+  if [ -n "$last_tag" ]; then echo "--- commits since $last_tag ---"; git log "$last_tag"..HEAD --pretty=format:'%h %s';
+  else echo "--- no tags found, showing last {{lookback_days}} days ---"; git log --since="{{lookback_days}} days ago" --pretty=format:'%h %s'; fi
+prompt: |
+  Draft a user-facing changelog entry for {{project_name}} covering commits
+  since the last release (or the last {{lookback_days}} days if no tags
+  exist) in {{repo_path}}.
+  1. Group into Added / Changed / Fixed.
+  2. Rewrite terse commit messages into plain language a user would
+     actually understand.
+  3. Skip purely internal commits (refactors, tests, CI) unless they're
+     user-visible.
+script_note: >
+  `command` dumps the raw commit log since the last tag, zero tokens.
+  `prompt` groups and rewrites it into an actual user-facing changelog entry.
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to pull history from.
+  project_name:
+    default: "this project"
+    description: Name to use in the changelog header.
+  lookback_days:
+    default: 14
+    description: Fallback window if the repo has no tags yet.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Schedule defaults to Friday; adjust to your release cadence.

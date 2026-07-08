@@ -58,7 +58,9 @@ crondex/
 ├── jobs/
 │   ├── devops/
 │   ├── productivity/
-│   └── personal/
+│   ├── personal/
+│   ├── content/
+│   └── finance/
 └── scripts/
     ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
     └── validate-jobs.js   validates every job against the schema
@@ -66,24 +68,58 @@ crondex/
 
 ## Available jobs
 
-| id | category | schedule | modes |
-|---|---|---|---|
-| `dependency-audit` | devops | `0 8 * * 1` | script + agent-prompt |
-| `log-cleanup` | devops | `30 3 * * *` | script |
-| `repo-health-check` | devops | `0 9 * * 1-5` | script + agent-prompt |
-| `backup-reminder` | devops | `0 9 * * *` | script |
-| `ssl-cert-expiry-check` | devops | `0 6 * * *` | script |
-| `uptime-ping-check` | devops | `*/15 * * * *` | script |
-| `cost-alert` | devops | `0 7 * * *` | script + agent-prompt |
-| `daily-standup-summary` | productivity | `0 8 * * 1-5` | script + agent-prompt |
-| `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt only |
-| `weekly-report` | productivity | `0 16 * * 5` | script + agent-prompt |
-| `bill-due-reminder` | personal | `0 9 * * *` | script |
-| `habit-checkin` | personal | `0 20 * * *` | script |
-| `meal-plan-reminder` | personal | `0 9 * * 0` | script + agent-prompt |
+24 jobs across 5 categories. Full details (description, tags, variables)
+live in `catalog.json` and each job's YAML file — run `crondex list` or
+browse `jobs/<category>/` for the plain-language rundown of each.
 
-Full details (description, tags, variables) live in `catalog.json` and each
-job's YAML file.
+**devops**
+
+| id | schedule | modes |
+|---|---|---|
+| `dependency-audit` | `0 8 * * 1` | script + agent-prompt |
+| `log-cleanup` | `30 3 * * *` | script |
+| `repo-health-check` | `0 9 * * 1-5` | script + agent-prompt |
+| `backup-reminder` | `0 9 * * *` | script |
+| `ssl-cert-expiry-check` | `0 6 * * *` | script |
+| `uptime-ping-check` | `*/15 * * * *` | script |
+| `cost-alert` | `0 7 * * *` | script + agent-prompt |
+| `disk-space-check` | `0 */6 * * *` | script |
+| `docker-image-prune` | `0 4 * * *` | script |
+| `env-drift-check` | `0 8 * * *` | script |
+| `stale-dependency-pr-nudge` | `0 9 * * 1-5` | script |
+
+**productivity**
+
+| id | schedule | modes |
+|---|---|---|
+| `daily-standup-summary` | `0 8 * * 1-5` | script + agent-prompt |
+| `inbox-triage` | `0 7,13 * * 1-5` | agent-prompt only |
+| `weekly-report` | `0 16 * * 5` | script + agent-prompt |
+
+**personal**
+
+| id | schedule | modes |
+|---|---|---|
+| `bill-due-reminder` | `0 9 * * *` | script |
+| `habit-checkin` | `0 20 * * *` | script |
+| `meal-plan-reminder` | `0 9 * * 0` | script + agent-prompt |
+| `water-intake-reminder` | `0 9,12,15,18 * * *` | script |
+| `screen-time-check` | `0 20 * * *` | agent-prompt only |
+
+**content**
+
+| id | schedule | modes |
+|---|---|---|
+| `changelog-digest` | `0 10 * * 5` | script + agent-prompt |
+| `broken-link-check` | `0 7 * * 1` | script |
+| `social-mentions-watch` | `0 9 * * *` | agent-prompt only |
+
+**finance**
+
+| id | schedule | modes |
+|---|---|---|
+| `subscription-audit` | `0 9 1 * *` | script |
+| `net-worth-snapshot` | `0 9 1 * *` | script |
 
 ## How a job works
 

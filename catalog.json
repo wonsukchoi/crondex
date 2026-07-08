@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 13,
+  "count": 24,
   "jobs": [
     {
       "id": "backup-reminder",
@@ -50,6 +50,57 @@
         "codex"
       ],
       "path": "jobs/personal/bill-due-reminder.yaml"
+    },
+    {
+      "id": "broken-link-check",
+      "version": 1,
+      "name": "Broken Link Check",
+      "description": "Checks a list of URLs and reports any that are dead. Use this if your site or docs have outbound/internal links that quietly rot over time.",
+      "category": "content",
+      "tags": [
+        "links",
+        "content",
+        "maintenance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/content/broken-link-check.yaml"
+    },
+    {
+      "id": "changelog-digest",
+      "version": 1,
+      "name": "Changelog Digest",
+      "description": "Rolls up recent commits into a draft changelog entry your users could actually read. Use this if you ship regularly but always write the changelog as an afterthought (or skip it).",
+      "category": "content",
+      "tags": [
+        "changelog",
+        "release",
+        "docs"
+      ],
+      "schedule": "0 10 * * 5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/content/changelog-digest.yaml"
     },
     {
       "id": "cost-alert",
@@ -131,6 +182,78 @@
         "generic"
       ],
       "path": "jobs/devops/dependency-audit.yaml"
+    },
+    {
+      "id": "disk-space-check",
+      "version": 1,
+      "name": "Disk Space Check",
+      "description": "Checks how full a disk/volume is and warns you before it fills up. Use this if you've ever had a server or laptop grind to a halt because disk usage crept up unnoticed.",
+      "category": "devops",
+      "tags": [
+        "disk",
+        "monitoring",
+        "maintenance"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/disk-space-check.yaml"
+    },
+    {
+      "id": "docker-image-prune",
+      "version": 1,
+      "name": "Docker Image & Container Prune",
+      "description": "Cleans up stopped containers and dangling Docker images so they don't quietly eat your disk. Use this if you run Docker locally or on a server and never remember to clean up after yourself.",
+      "category": "devops",
+      "tags": [
+        "docker",
+        "cleanup",
+        "disk-space"
+      ],
+      "schedule": "0 4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/docker-image-prune.yaml"
+    },
+    {
+      "id": "env-drift-check",
+      "version": 1,
+      "name": "Env File Drift Check",
+      "description": "Compares your .env against .env.example and flags keys that are missing or extra. Use this if you've ever deployed and hit a crash because a new required env var never got set.",
+      "category": "devops",
+      "tags": [
+        "config",
+        "env",
+        "drift"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/env-drift-check.yaml"
     },
     {
       "id": "habit-checkin",
@@ -233,6 +356,30 @@
       "path": "jobs/personal/meal-plan-reminder.yaml"
     },
     {
+      "id": "net-worth-snapshot",
+      "version": 1,
+      "name": "Net Worth Snapshot Reminder",
+      "description": "Reminds you to log your net worth each month and shows the trend from your last two entries. Use this if you want to track your finances over time but keep forgetting to actually sit down and do it.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "net-worth",
+        "tracking"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/net-worth-snapshot.yaml"
+    },
+    {
       "id": "repo-health-check",
       "version": 1,
       "name": "Git Repo Health Check",
@@ -260,6 +407,58 @@
       "path": "jobs/devops/repo-health-check.yaml"
     },
     {
+      "id": "screen-time-check",
+      "version": 1,
+      "name": "Screen Time Check",
+      "description": "Checks today's screen time against a goal and tells you if you're over. Use this if you're trying to cut down on screen time but never actually look at the stats your phone/laptop already collects.",
+      "category": "personal",
+      "tags": [
+        "health",
+        "screen-time",
+        "wellbeing"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/personal/screen-time-check.yaml"
+    },
+    {
+      "id": "social-mentions-watch",
+      "version": 1,
+      "name": "Social Mentions Watch",
+      "description": "Scans for recent mentions of your brand, product, or repo and summarizes them. Use this if you want to catch a complaint or bug report on social media before it turns into a bigger problem.",
+      "category": "content",
+      "tags": [
+        "social",
+        "mentions",
+        "monitoring"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/content/social-mentions-watch.yaml"
+    },
+    {
       "id": "ssl-cert-expiry-check",
       "version": 1,
       "name": "SSL Certificate Expiry Check",
@@ -285,6 +484,54 @@
       "path": "jobs/devops/ssl-cert-expiry-check.yaml"
     },
     {
+      "id": "stale-dependency-pr-nudge",
+      "version": 1,
+      "name": "Stale Dependency PR Nudge",
+      "description": "Lists open dependency-bump pull requests (from Dependabot/Renovate) that have been sitting for a while. Use this if automated PRs pile up and quietly go stale instead of getting merged or closed.",
+      "category": "devops",
+      "tags": [
+        "github",
+        "dependencies",
+        "pr"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/stale-dependency-pr-nudge.yaml"
+    },
+    {
+      "id": "subscription-audit",
+      "version": 1,
+      "name": "Subscription Audit",
+      "description": "Flags recurring subscriptions you haven't actually used in a while. Use this if you suspect you're paying for things you forgot to cancel.",
+      "category": "finance",
+      "tags": [
+        "subscriptions",
+        "budget",
+        "finance"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/subscription-audit.yaml"
+    },
+    {
       "id": "uptime-ping-check",
       "version": 1,
       "name": "Uptime Ping Check",
@@ -307,6 +554,30 @@
         "codex"
       ],
       "path": "jobs/devops/uptime-ping-check.yaml"
+    },
+    {
+      "id": "water-intake-reminder",
+      "version": 1,
+      "name": "Water Intake Reminder",
+      "description": "Nudges you to drink water a few times a day toward a daily goal. Use this if you sit at a desk all day and forget to drink water until you've got a headache.",
+      "category": "personal",
+      "tags": [
+        "health",
+        "hydration",
+        "reminder"
+      ],
+      "schedule": "0 9,12,15,18 * * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/personal/water-intake-reminder.yaml"
     },
     {
       "id": "weekly-report",

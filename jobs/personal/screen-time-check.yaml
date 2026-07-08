@@ -1,0 +1,27 @@
+id: screen-time-check
+version: 1
+name: Screen Time Check
+description: >
+  Checks today's screen time against a goal and tells you if you're over.
+  Use this if you're trying to cut down on screen time but never actually
+  look at the stats your phone/laptop already collects.
+category: personal
+tags: [health, screen-time, wellbeing]
+schedule: "0 20 * * *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check today's screen time against a {{daily_limit_hours}} hour goal.
+  1. Use whatever screen-time source you have access to (macOS Screen
+     Time, iOS Screen Time via Shortcuts, Android Digital Wellbeing,
+     RescueTime, etc.).
+  2. Report total screen time so far today vs. the goal.
+  3. If over goal, note the top 3 apps/categories driving it.
+variables:
+  daily_limit_hours:
+    default: 3
+    description: Daily screen time goal, in hours.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — screen-time data access is platform/tool
+  specific and usually needs OS-level permissions your agent may not have.

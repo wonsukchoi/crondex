@@ -1,0 +1,25 @@
+id: stale-dependency-pr-nudge
+version: 1
+name: Stale Dependency PR Nudge
+description: >
+  Lists open dependency-bump pull requests (from Dependabot/Renovate) that
+  have been sitting for a while. Use this if automated PRs pile up and
+  quietly go stale instead of getting merged or closed.
+category: devops
+tags: [github, dependencies, pr]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v gh >/dev/null 2>&1 || { echo "gh CLI not installed, skipping"; exit 0; };
+  cd {{repo_path}} && gh pr list --state open --json number,title,author,createdAt --jq \
+    '.[] | select(.author.login | test("dependabot|renovate"; "i")) | select((now - (.createdAt | fromdateiso8601)) > ({{stale_days}} * 86400)) | "#\(.number) \(.title) (opened \(.createdAt))"'
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to check.
+  stale_days:
+    default: 3
+    description: Flag dependency PRs open longer than this many days.
+compatible_agents: [generic, claude, codex]
+notes: Requires an authenticated `gh` CLI. Zero-token, read-only.

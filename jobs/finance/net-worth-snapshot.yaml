@@ -1,0 +1,33 @@
+id: net-worth-snapshot
+version: 1
+name: Net Worth Snapshot Reminder
+description: >
+  Reminds you to log your net worth each month and shows the trend from
+  your last two entries. Use this if you want to track your finances over
+  time but keep forgetting to actually sit down and do it.
+category: finance
+tags: [finance, net-worth, tracking]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{net_worth_csv}};
+  [ -f "$file" ] || echo "date,net_worth" > "$file";
+  today=$(date +%F);
+  if tail -n +2 "$file" | cut -d, -f1 | grep -qx "$today"; then
+    echo "Already logged today.";
+  else
+    echo "$today," >> "$file";
+    echo "REMINDER: fill in today's net worth in $file";
+  fi;
+  prev=$(tail -n 2 "$file" | head -n 1 | cut -d, -f2);
+  last=$(tail -n 1 "$file" | cut -d, -f2);
+  [ -n "$prev" ] && [ -n "$last" ] && echo "Last entry: $last (previous: $prev)"; true
+variables:
+  net_worth_csv:
+    default: "./net-worth.csv"
+    description: CSV log file, one row per month (date,net_worth).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Appends a blank row for you to fill in by hand — doesn't
+  pull balances from any bank automatically.

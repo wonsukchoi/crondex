@@ -1,0 +1,32 @@
+id: social-mentions-watch
+version: 1
+name: Social Mentions Watch
+description: >
+  Scans for recent mentions of your brand, product, or repo and summarizes
+  them. Use this if you want to catch a complaint or bug report on social
+  media before it turns into a bigger problem.
+category: content
+tags: [social, mentions, monitoring]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Search for mentions of "{{brand_or_repo}}" from the last {{lookback_hours}}
+  hours across whatever sources you have access to (X/Twitter, Reddit,
+  Hacker News, web search).
+  1. List each mention with source, link, and a one-line sentiment read
+     (positive/neutral/negative).
+  2. Flag anything that looks like a bug report, complaint, or something
+     needing a response.
+  3. If nothing found, just say so.
+variables:
+  brand_or_repo:
+    default: "your project"
+    description: Name, handle, or repo to search mentions of.
+  lookback_hours:
+    default: 24
+    description: Window of mentions to consider.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — needs whatever search/API access your agent has
+  (web search, X API, Reddit API, etc.); sources vary too much to script generically.

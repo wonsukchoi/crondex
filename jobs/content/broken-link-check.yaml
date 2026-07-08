@@ -1,0 +1,33 @@
+id: broken-link-check
+version: 1
+name: Broken Link Check
+description: >
+  Checks a list of URLs and reports any that are dead. Use this if your
+  site or docs have outbound/internal links that quietly rot over time.
+category: content
+tags: [links, content, maintenance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{urls_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  fail=0;
+  while IFS= read -r url; do
+    [ -z "$url" ] && continue;
+    code=$(curl -o /dev/null -s -w '%{http_code}' --max-time {{timeout_seconds}} "$url");
+    if [ "$code" -ge 400 ] || [ "$code" = "000" ]; then echo "BROKEN ($code): $url"; fail=1; fi
+  done < "$file";
+  [ "$fail" -eq 0 ] && echo "OK: all links responded successfully";
+  exit $fail
+variables:
+  urls_file:
+    default: "./links.txt"
+    description: Plain text file with one URL per line to check.
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait per URL before treating it as broken.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, deterministic. You maintain urls_file yourself (or generate
+  it from a sitemap) — this job only checks what's listed.

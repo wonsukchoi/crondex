@@ -1,0 +1,26 @@
+id: disk-space-check
+version: 1
+name: Disk Space Check
+description: >
+  Checks how full a disk/volume is and warns you before it fills up.
+  Use this if you've ever had a server or laptop grind to a halt because
+  disk usage crept up unnoticed.
+category: devops
+tags: [disk, monitoring, maintenance]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  path={{path}}; threshold={{threshold_pct}};
+  pct=$(df -P "$path" | awk 'NR==2 {gsub("%","",$5); print $5}');
+  if [ "$pct" -ge "$threshold" ]; then echo "WARNING: $path is ${pct}% full (threshold ${threshold}%)"; exit 1;
+  else echo "OK: $path is ${pct}% full"; fi
+variables:
+  path:
+    default: "/"
+    description: Mount point or path to check.
+  threshold_pct:
+    default: 85
+    description: Warn when usage reaches this percentage.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token, deterministic. Uses `df -P` for portable output across macOS/Linux.

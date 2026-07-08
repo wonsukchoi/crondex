@@ -1,0 +1,24 @@
+id: docker-image-prune
+version: 1
+name: Docker Image & Container Prune
+description: >
+  Cleans up stopped containers and dangling Docker images so they don't
+  quietly eat your disk. Use this if you run Docker locally or on a server
+  and never remember to clean up after yourself.
+category: devops
+tags: [docker, cleanup, disk-space]
+schedule: "0 4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v docker >/dev/null 2>&1 || { echo "docker not installed, skipping"; exit 0; };
+  docker container prune -f --filter "until={{until}}";
+  docker image prune -f --filter "until={{until}}"
+variables:
+  until:
+    default: "24h"
+    description: Only remove containers/images older than this (Docker duration syntax, e.g. "24h", "720h").
+compatible_agents: [generic, claude, codex]
+notes: >
+  Destructive by nature (removes stopped containers and dangling images) —
+  the `until` default of 24h protects anything recent. Widen with care.

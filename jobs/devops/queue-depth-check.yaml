@@ -1,0 +1,35 @@
+id: queue-depth-check
+version: 1
+name: Queue Depth Check
+description: >
+  Checks how backed up a job queue is and warns if it crosses a
+  threshold. Use this if a stuck worker has ever let a queue silently
+  balloon until someone noticed customers weren't getting emails.
+category: devops
+tags: [queue, redis, monitoring]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v redis-cli >/dev/null 2>&1 || { echo "ERROR: redis-cli not installed"; exit 1; };
+  depth=$(redis-cli -h {{redis_host}} -p {{redis_port}} llen {{queue_key}} 2>/dev/null);
+  if [ -z "$depth" ]; then echo "ERROR: could not read queue depth for {{queue_key}}"; exit 1;
+  elif [ "$depth" -ge {{threshold}} ]; then echo "WARNING: queue {{queue_key}} depth is $depth (threshold {{threshold}})"; exit 1;
+  else echo "OK: queue {{queue_key}} depth is $depth"; fi
+variables:
+  redis_host:
+    default: "localhost"
+    description: Redis host.
+  redis_port:
+    default: 6379
+    description: Redis port.
+  queue_key:
+    default: "jobs:pending"
+    description: Redis list key backing the queue.
+  threshold:
+    default: 1000
+    description: Warn if the queue depth reaches this many items.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Redis list-backed queues only (uses LLEN). Adapt the depth-check
+  command for RabbitMQ, SQS, or other queue systems.

@@ -1,0 +1,33 @@
+id: tax-deadline-reminder
+version: 1
+name: Tax Deadline Reminder
+description: >
+  Warns you ahead of upcoming tax deadlines you've listed. Use this if
+  quarterly estimated payments or annual filing dates have ever snuck
+  up on you.
+category: finance
+tags: [tax, deadlines, finance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{deadlines_file}}; warn={{warn_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r label due; do
+    [ -z "$due" ] && continue;
+    due_epoch=$(date -j -f %Y-%m-%d "$due" +%s 2>/dev/null || date -d "$due" +%s);
+    days=$(( (due_epoch-today)/86400 ));
+    if [ "$days" -ge 0 ] && [ "$days" -le "$warn" ]; then echo "REMINDER: $label due in $days day(s) ($due)"; fi
+  done
+variables:
+  deadlines_file:
+    default: "./tax-deadlines.csv"
+    description: CSV with header "label,date" (date is YYYY-MM-DD), one deadline per row.
+  warn_days:
+    default: 14
+    description: Start warning this many days before a deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain tax-deadlines.csv yourself with your actual
+  jurisdiction's dates — this job doesn't know tax law or deadlines on its own.

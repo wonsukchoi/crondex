@@ -1,0 +1,32 @@
+id: seo-meta-check
+version: 1
+name: SEO Meta Tag Check
+description: >
+  Checks a list of pages for missing title, meta description, and
+  Open Graph tags. Use this if pages have ever shipped without basic
+  SEO/social-preview tags because nobody double-checked.
+category: content
+tags: [seo, content, meta-tags]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{urls_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  while IFS= read -r url; do
+    [ -z "$url" ] && continue;
+    html=$(curl -sL --max-time 10 "$url");
+    missing="";
+    echo "$html" | grep -qi "<title>" || missing="$missing title";
+    echo "$html" | grep -qi 'name="description"' || missing="$missing meta-description";
+    echo "$html" | grep -qi 'property="og:title"' || missing="$missing og:title";
+    if [ -n "$missing" ]; then echo "MISSING on $url:$missing"; else echo "OK: $url"; fi
+  done < "$file"
+variables:
+  urls_file:
+    default: "./pages.txt"
+    description: Plain text file with one page URL per line to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Basic presence check only (does the tag exist), not content
+  quality — pair with a fuller SEO audit for anything deeper.

@@ -62,7 +62,8 @@ crondex/
 │   ├── content/
 │   ├── finance/
 │   ├── security/
-│   └── learning/
+│   ├── learning/
+│   └── team/
 └── scripts/
     ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
     └── validate-jobs.js   validates every job against the schema
@@ -70,7 +71,7 @@ crondex/
 
 ## Available jobs
 
-35 jobs across 7 categories. Full details (description, tags, variables)
+46 jobs across 8 categories. Full details (description, tags, variables)
 live in `catalog.json` and each job's YAML file — run `crondex list` or
 browse `jobs/<category>/` for the plain-language rundown of each.
 
@@ -92,6 +93,9 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `db-backup-verify` | `0 5 * * *` | script |
 | `license-compliance-check` | `0 8 * * 1` | script |
 | `orphaned-branch-cleanup` | `0 9 * * 1` | script |
+| `dns-record-check` | `0 */6 * * *` | script |
+| `queue-depth-check` | `*/10 * * * *` | script |
+| `api-rate-limit-check` | `*/15 * * * *` | script |
 
 **productivity**
 
@@ -119,6 +123,8 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `changelog-digest` | `0 10 * * 5` | script + agent-prompt |
 | `broken-link-check` | `0 7 * * 1` | script |
 | `social-mentions-watch` | `0 9 * * *` | agent-prompt only |
+| `seo-meta-check` | `0 7 * * 1` | script |
+| `rss-feed-validate` | `0 8 * * *` | script |
 
 **finance**
 
@@ -127,6 +133,8 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `subscription-audit` | `0 9 1 * *` | script |
 | `net-worth-snapshot` | `0 9 1 * *` | script |
 | `saas-seat-audit` | `0 9 1 * *` | script |
+| `invoice-overdue-check` | `0 9 * * *` | script |
+| `tax-deadline-reminder` | `0 9 * * *` | script |
 
 **security**
 
@@ -135,6 +143,8 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `secrets-scan` | `0 3 * * *` | script |
 | `open-port-check` | `0 */4 * * *` | script |
 | `failed-login-watch` | `*/15 * * * *` | script |
+| `sudo-usage-audit` | `0 * * * *` | script |
+| `firewall-rule-diff` | `0 6 * * *` | script |
 
 **learning**
 
@@ -143,6 +153,13 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `daily-flashcard-review` | `0 8 * * *` | script |
 | `reading-list-nudge` | `0 9 * * 6` | script |
 | `course-progress-checkin` | `0 9 * * 1` | script |
+
+**team**
+
+| id | schedule | modes |
+|---|---|---|
+| `1on1-prep-reminder` | `0 9 * * 3` | script |
+| `pto-balance-check` | `0 9 1 * *` | script |
 
 ## How a job works
 

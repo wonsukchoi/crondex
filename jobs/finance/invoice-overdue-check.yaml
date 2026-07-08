@@ -1,0 +1,32 @@
+id: invoice-overdue-check
+version: 1
+name: Invoice Overdue Check
+description: >
+  Flags invoices that are past due and still unpaid. Use this if you
+  freelance or run a small business and invoices have ever slipped
+  through the cracks.
+category: finance
+tags: [invoices, accounts-receivable, finance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{invoices_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r id client amount due paid; do
+    [ "$paid" = "yes" ] && continue;
+    due_epoch=$(date -j -f %Y-%m-%d "$due" +%s 2>/dev/null || date -d "$due" +%s);
+    days=$(( (today-due_epoch)/86400 ));
+    if [ "$days" -gt 0 ]; then echo "OVERDUE: invoice $id ($client, \$$amount) — $days day(s) past due ($due)"; fi
+  done
+variables:
+  invoices_file:
+    default: "./invoices.csv"
+    description: >
+      CSV with header "invoice_id,client,amount,due_date,paid"
+      (due_date is YYYY-MM-DD, paid is yes/no).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain invoices.csv yourself (mark paid=yes once
+  settled) — this doesn't connect to any billing/accounting system.

@@ -1,0 +1,33 @@
+id: pto-balance-check
+version: 1
+name: PTO Balance Check
+description: >
+  Warns you before unused PTO expires or resets. Use this if you've
+  ever lost vacation days because you forgot they don't roll over.
+category: team
+tags: [pto, vacation, team]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  expiry_epoch=$(date -j -f %Y-%m-%d "{{expiry_date}}" +%s 2>/dev/null || date -d "{{expiry_date}}" +%s);
+  days_left=$(( (expiry_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "note: expiry date has passed — update expiry_date for the next period.";
+  elif [ "$days_left" -le {{warn_days_before_expiry}} ] && [ {{pto_balance_hours}} -gt 0 ]; then
+    echo "REMINDER: {{pto_balance_hours}}h PTO expires in $days_left day(s) (on {{expiry_date}}) — use it or lose it.";
+  else echo "OK: {{pto_balance_hours}}h PTO, $days_left day(s) until expiry."; fi
+variables:
+  pto_balance_hours:
+    default: 40
+    description: Your current unused PTO balance, in hours — update this yourself as it changes.
+  expiry_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) this PTO expires or resets.
+  warn_days_before_expiry:
+    default: 30
+    description: Start warning this many days before expiry.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain pto_balance_hours and expiry_date yourself —
+  this doesn't pull from any HR system.

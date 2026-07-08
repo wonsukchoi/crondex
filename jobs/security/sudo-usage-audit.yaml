@@ -1,0 +1,35 @@
+id: sudo-usage-audit
+version: 1
+name: Sudo Usage Audit
+description: >
+  Reports new sudo commands run since the last check. Use this if you
+  want to notice unexpected privilege escalation on a shared or
+  internet-facing server.
+category: security
+tags: [security, sudo, audit]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  log={{auth_log_path}}; state={{state_file}};
+  [ -f "$log" ] || { echo "ERROR: $log not found"; exit 1; };
+  total=$(grep -c "sudo:.*COMMAND=" "$log");
+  last=$(cat "$state" 2>/dev/null || echo 0);
+  new=$(( total - last ));
+  [ "$new" -lt 0 ] && new=0;
+  echo "$total" > "$state";
+  if [ "$new" -gt 0 ]; then
+    echo "New sudo commands since last check ($new):";
+    grep "sudo:.*COMMAND=" "$log" | tail -n "$new";
+  else echo "OK: no new sudo usage since last check"; fi
+variables:
+  auth_log_path:
+    default: "/var/log/auth.log"
+    description: Path to the auth log (Linux-style).
+  state_file:
+    default: "./.sudo-audit-state"
+    description: File this job uses to remember the last count seen, so it only reports new entries.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Linux-oriented (/var/log/auth.log with sudo entries). On macOS use
+  `log show --predicate 'process == "sudo"'` instead and adapt the command.

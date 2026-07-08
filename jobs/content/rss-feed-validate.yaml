@@ -1,0 +1,32 @@
+id: rss-feed-validate
+version: 1
+name: RSS Feed Validation
+description: >
+  Checks your RSS/Atom feed is valid XML and shows the most recent
+  item's publish date. Use this if you've ever shipped a broken feed
+  and only found out when a reader's app stopped updating.
+category: content
+tags: [rss, feed, content]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  url={{feed_url}};
+  xml=$(curl -sL --max-time 10 "$url");
+  [ -z "$xml" ] && { echo "ERROR: could not fetch $url"; exit 1; };
+  if command -v xmllint >/dev/null 2>&1; then
+    echo "$xml" | xmllint --noout - 2>&1 && echo "OK: valid XML" || { echo "INVALID XML"; exit 1; };
+  else
+    echo "xmllint not installed, skipping strict XML validation";
+  fi;
+  pubdate=$(echo "$xml" | grep -oE "<pubDate>[^<]+</pubDate>" | head -n1 | sed 's/<[^>]*>//g');
+  echo "Most recent item pubDate: ${pubdate:-unknown}"
+variables:
+  feed_url:
+    default: "https://example.com/feed.xml"
+    description: URL of the RSS/Atom feed to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Only reports the latest pubDate for you to eyeball —
+  doesn't flag "stale" automatically since feed cadences vary too much
+  for one threshold. Install `xmllint` (libxml2) for strict validation.

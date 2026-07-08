@@ -1,0 +1,26 @@
+id: 1on1-prep-reminder
+version: 1
+name: 1:1 Prep Reminder
+description: >
+  Nudges you to prep talking points before a recurring 1:1 and shows
+  your last notes. Use this if you've ever walked into a 1:1 with
+  nothing prepared and just winged it.
+category: team
+tags: [1on1, meetings, team]
+schedule: "0 9 * * 3"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  echo "1:1 with {{person_name}} coming up. Jot down talking points.";
+  if [ -f "{{notes_file}}" ]; then echo "--- last notes ---"; tail -n 10 "{{notes_file}}"; fi
+variables:
+  person_name:
+    default: "your manager"
+    description: Who the 1:1 is with.
+  notes_file:
+    default: "./1on1-notes.txt"
+    description: Plain text file you append notes/action items to after each 1:1.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Adjust the schedule to match your actual 1:1 day/time —
+  the default (Wednesday morning) is just a placeholder.

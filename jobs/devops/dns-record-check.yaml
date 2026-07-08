@@ -1,0 +1,32 @@
+id: dns-record-check
+version: 1
+name: DNS Record Drift Check
+description: >
+  Checks that a DNS record still resolves to the value you expect, and
+  flags drift. Use this if you've ever had DNS quietly change (an
+  expired record, a misconfigured provider) and only found out when
+  something broke.
+category: devops
+tags: [dns, monitoring, drift]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  domain={{domain}}; type={{record_type}}; expected="{{expected_value}}";
+  command -v dig >/dev/null 2>&1 || { echo "ERROR: dig not installed"; exit 1; };
+  actual=$(dig +short "$domain" "$type" | tr '\n' ' ' | sed 's/ *$//');
+  if [ -z "$actual" ]; then echo "ERROR: no $type record found for $domain"; exit 1;
+  elif echo "$actual" | grep -qF "$expected"; then echo "OK: $domain $type matches expected ($actual)";
+  else echo "DRIFT: $domain $type is '$actual', expected to contain '$expected'"; exit 1; fi
+variables:
+  domain:
+    default: "example.com"
+    description: Domain to check.
+  record_type:
+    default: "A"
+    description: DNS record type (A, CNAME, TXT, MX, etc).
+  expected_value:
+    default: "93.184.216.34"
+    description: Value the record should contain — replace with your actual expected record.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token, deterministic. Requires `dig` (part of dnsutils/bind-tools).

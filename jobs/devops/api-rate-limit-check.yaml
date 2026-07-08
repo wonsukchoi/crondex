@@ -1,0 +1,31 @@
+id: api-rate-limit-check
+version: 1
+name: API Rate Limit Check
+description: >
+  Checks how many API requests you have left before hitting a rate
+  limit. Use this if you've ever gotten a 429 in production because
+  nobody was watching the remaining quota.
+category: devops
+tags: [api, rate-limit, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  url={{api_url}};
+  headers=$(curl -sI --max-time 10 "$url");
+  remaining=$(echo "$headers" | grep -i "^x-ratelimit-remaining:" | awk '{print $2}' | tr -d '\r');
+  if [ -z "$remaining" ]; then echo "no rate-limit headers found on $url (nothing to check, or a different header convention)"; exit 0;
+  elif [ "$remaining" -le {{warn_threshold}} ]; then echo "WARNING: $url has only $remaining requests remaining"; exit 1;
+  else echo "OK: $url has $remaining requests remaining"; fi
+variables:
+  api_url:
+    default: "https://api.example.com/status"
+    description: An endpoint on the API you want to watch — any request that returns rate-limit headers works.
+  warn_threshold:
+    default: 50
+    description: Warn if remaining requests drops to this or below.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the standard `X-RateLimit-Remaining` response header — adjust
+  the grep pattern if your API uses a different convention
+  (e.g. `RateLimit-Remaining`, a custom header).

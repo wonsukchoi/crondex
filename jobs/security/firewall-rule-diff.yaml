@@ -1,0 +1,30 @@
+id: firewall-rule-diff
+version: 1
+name: Firewall Rule Diff
+description: >
+  Diffs your current firewall rules against a saved baseline and flags
+  any drift. Use this if a firewall rule has ever changed without
+  anyone remembering who did it or why.
+category: security
+tags: [security, firewall, drift]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  baseline={{baseline_path}};
+  if command -v ufw >/dev/null 2>&1; then current=$(sudo ufw status verbose 2>/dev/null);
+  elif command -v iptables >/dev/null 2>&1; then current=$(sudo iptables -S 2>/dev/null);
+  else echo "ERROR: no supported firewall tool found (ufw/iptables)"; exit 1; fi;
+  if [ ! -f "$baseline" ]; then echo "$current" > "$baseline"; echo "no baseline found — saved current rules as the new baseline"; exit 0; fi;
+  if diff -q <(echo "$current") "$baseline" >/dev/null 2>&1; then echo "OK: firewall rules match baseline";
+  else echo "DRIFT: firewall rules differ from baseline:"; diff <(echo "$current") "$baseline"; exit 1; fi
+variables:
+  baseline_path:
+    default: "./firewall-baseline.txt"
+    description: File storing the known-good firewall rule snapshot.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires sudo access to read ufw/iptables rules (configure passwordless
+  sudo for this specific read-only command if running unattended). First
+  run saves the baseline; later runs diff against it. Requires bash
+  (process substitution).

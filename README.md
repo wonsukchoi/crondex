@@ -27,7 +27,15 @@ npx @wonsukchoi/crondex list                          # browse everything
 npx @wonsukchoi/crondex list --category devops        # filter by category or --tag
 npx @wonsukchoi/crondex show backup-reminder          # print one job's YAML
 npx @wonsukchoi/crondex add backup-reminder --dest ./cron/backup-reminder.yaml
+npx @wonsukchoi/crondex recommend "warn me before my SSL cert expires"
 ```
+
+`recommend` takes a free-text description of what you want and ranks the
+catalog against it (weighted keyword match over tags/name/id/category/
+description, zero tokens, no network call) — handy for an agent that just
+got asked "can you set up something for X" and needs to check whether a
+ready-made job already covers it before writing one from scratch. Add
+`--limit <n>` to control how many results come back (default 5).
 
 Or install once and drop the scope prefix on every call:
 
@@ -52,7 +60,7 @@ node bin/crondex.js list
 
 ```
 crondex/
-├── bin/crondex.js         CLI: list / show / add
+├── bin/crondex.js         CLI: list / show / add / recommend
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/

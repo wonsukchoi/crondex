@@ -30,12 +30,90 @@ Usage:
   crondex list [--category <name>] [--tag <name>]
   crondex show <id>
   crondex add <id> [--dest <path>]
+  crondex recommend "<what you want done>" [--limit <n>]
 
 Examples:
   crondex list --category devops
   crondex show dependency-audit
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
+  crondex recommend "warn me before my SSL cert expires"
 `);
+}
+
+const STOPWORDS = new Set([
+  "a", "an", "the", "to", "for", "of", "in", "on", "at", "by", "and", "or", "my", "me", "i",
+  "can", "you", "do", "does", "this", "that", "these", "those", "please", "want", "wants",
+  "wanted", "need", "needs", "help", "with", "is", "are", "be", "it", "so", "when", "should",
+  "could", "would", "how", "what", "which", "up", "down", "get", "make", "set", "just", "really",
+  "some", "something", "any", "want", "us", "our", "your", "yours", "if", "then", "than",
+]);
+
+function stem(word) {
+  if (word.length > 4 && word.endsWith("ies")) return word.slice(0, -3) + "y";
+  if (word.length > 4 && word.endsWith("es") && !word.endsWith("ses")) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+  return word;
+}
+
+function tokenize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/[\s-]+/)
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w))
+    .map(stem);
+}
+
+// id and name are near-duplicates of each other (id is just the slugified
+// name), so they're merged into one "title" field — otherwise a match on a
+// shared word like "water" gets weighted 3+3 instead of 3, which can outrank
+// a more specific job that only matches once via tags.
+const RECOMMEND_WEIGHTS = { tags: 4, title: 3, category: 2, description: 1 };
+
+function scoreJob(queryTokens, job) {
+  const fields = {
+    tags: job.tags.map((t) => stem(t.toLowerCase())),
+    title: [...new Set([...tokenize(job.name), ...tokenize(job.id.replace(/-/g, " "))])],
+    category: tokenize(job.category ?? ""),
+    description: tokenize(job.description ?? ""),
+  };
+  let score = 0;
+  const matched = new Set();
+  for (const qt of queryTokens) {
+    for (const [field, weight] of Object.entries(RECOMMEND_WEIGHTS)) {
+      if (fields[field].includes(qt)) {
+        score += weight;
+        matched.add(qt);
+      }
+    }
+  }
+  return { score, matchedTerms: [...matched] };
+}
+
+function recommend(queryText) {
+  const limit = Number(flag("limit")) || 5;
+  const queryTokens = tokenize(queryText);
+  if (!queryTokens.length) {
+    console.log("query too vague to match on — describe what you want the job to check or remind you about.");
+    return;
+  }
+  const ranked = CATALOG.jobs
+    .map((job) => ({ job, ...scoreJob(queryTokens, job) }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  if (!ranked.length) {
+    console.log(`no confident match for "${queryText}". Run "crondex list" to browse everything.`);
+    return;
+  }
+  console.log(`top match${ranked.length > 1 ? "es" : ""} for "${queryText}":`);
+  console.log();
+  for (const r of ranked) {
+    console.log(`${r.job.id}  [${r.job.category}]  score ${r.score}  (${r.job.modes.join(", ")})`);
+    console.log(`  ${r.job.description}`);
+    console.log(`  matched: ${r.matchedTerms.join(", ")}`);
+    console.log();
+  }
 }
 
 function catalogInfoLine() {
@@ -97,6 +175,13 @@ switch (cmd) {
       process.exit(1);
     }
     add(args[0]);
+    break;
+  case "recommend":
+    if (!args[0]) {
+      console.error('usage: crondex recommend "<what you want done>" [--limit <n>]');
+      process.exit(1);
+    }
+    recommend(args[0]);
     break;
   default:
     printHelp();

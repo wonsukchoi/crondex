@@ -1,0 +1,29 @@
+id: repo-health-check
+name: Git Repo Health Check
+description: >
+  Reviews a repo for stale branches, large uncommitted diffs, failing CI status,
+  and open PRs waiting on review, then reports a short digest.
+category: devops
+tags: [git, ci, maintenance]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the health of the repo at {{repo_path}}.
+  1. List local/remote branches not touched in over {{stale_branch_days}} days.
+  2. Flag any uncommitted changes sitting for more than a day.
+  3. If a CI config exists, report the status of the last run on the default branch.
+  4. List open PRs older than {{stale_pr_days}} days with no recent activity.
+  Summarize as a short digest, most actionable item first.
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to check.
+  stale_branch_days:
+    default: 30
+    description: Branches with no commits in this many days are flagged stale.
+  stale_pr_days:
+    default: 7
+    description: Open PRs with no activity in this many days are flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job. Needs `gh` CLI or equivalent for PR/CI data if available.

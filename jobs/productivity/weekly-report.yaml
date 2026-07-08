@@ -1,0 +1,30 @@
+id: weekly-report
+name: Weekly Progress Report
+description: >
+  Rolls up the week's commits, closed tasks, and metrics into a short report
+  suitable for a team update.
+category: productivity
+tags: [reporting, weekly]
+schedule: "0 16 * * 5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Build a weekly report for {{project_name}} covering the last {{lookback_days}} days.
+  1. Summarize merged PRs / commits in {{repo_path}}.
+  2. Summarize closed tasks/issues if a tracker is connected.
+  3. Note any metrics worth flagging (e.g. errors, usage) if a source is
+     connected.
+  4. Write it as 4 sections: Shipped, In Progress, Blocked, Next Week.
+  Keep the whole report under 300 words.
+variables:
+  project_name:
+    default: "this project"
+    description: Name to use in the report header.
+  repo_path:
+    default: "."
+    description: Repo to pull history from.
+  lookback_days:
+    default: 7
+    description: Rolling window the report covers.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Schedule for Friday afternoon by default; adjust `schedule` for your team's cadence.

@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/wonsukchoi/crondex/schema/job.schema.json",
+  "title": "Crondex Job",
+  "description": "One pre-made cron job any AI agent (Claude, Codex, Hermes, OpenClaw, etc.) can pull, adjust, and schedule.",
+  "type": "object",
+  "required": ["id", "name", "description", "schedule", "runner", "compatible_agents"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unique slug, matches filename without extension."
+    },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "category": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "schedule": {
+      "type": "string",
+      "description": "Standard 5-field cron expression, e.g. '0 9 * * 1-5'."
+    },
+    "timezone": {
+      "type": "string",
+      "description": "IANA timezone, e.g. 'America/Los_Angeles'. Defaults to system local time if omitted."
+    },
+    "runner": {
+      "type": "string",
+      "enum": ["agent-prompt", "shell"],
+      "description": "'agent-prompt' hands `prompt` to an LLM agent each run. 'shell' executes `command` directly."
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Task text given to the agent. Supports {{variable}} placeholders resolved from `variables`."
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell command to run, for runner: shell. Supports {{variable}} placeholders."
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["default"],
+        "properties": {
+          "default": {},
+          "description": { "type": "string" }
+        }
+      },
+      "description": "User-adjustable knobs, keyed by placeholder name."
+    },
+    "compatible_agents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["claude", "codex", "hermes", "openclaw", "generic"]
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

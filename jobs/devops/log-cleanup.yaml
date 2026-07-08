@@ -1,0 +1,23 @@
+id: log-cleanup
+name: Old Log File Cleanup
+description: >
+  Deletes log files older than a retention window to keep disk usage in check.
+category: devops
+tags: [housekeeping, disk-space]
+schedule: "30 3 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  find {{log_dir}} -type f -name "{{log_pattern}}" -mtime +{{retention_days}} -delete
+variables:
+  log_dir:
+    default: "./logs"
+    description: Directory to clean.
+  log_pattern:
+    default: "*.log"
+    description: Glob pattern for files to consider.
+  retention_days:
+    default: 14
+    description: Delete files last modified more than this many days ago.
+compatible_agents: [generic, claude, codex]
+notes: Destructive job — dry-run with `find ... -print` instead of `-delete` before first use.

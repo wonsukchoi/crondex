@@ -1,0 +1,27 @@
+id: dependency-audit
+name: Dependency Vulnerability Audit
+description: >
+  Scans project dependencies for known vulnerabilities and outdated packages,
+  then posts a short summary with recommended upgrades.
+category: devops
+tags: [security, dependencies, maintenance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Run a dependency audit on the repo at {{repo_path}}.
+  1. Detect the package manager(s) in use (npm/pnpm/yarn/pip/cargo/etc).
+  2. Run each manager's native audit command (e.g. `npm audit`, `pip-audit`).
+  3. List vulnerabilities by severity, and packages more than {{staleness_days}}
+     days behind latest.
+  4. Summarize findings in under 200 words with a prioritized action list.
+  Do not modify any files — report only.
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to audit.
+  staleness_days:
+    default: 180
+    description: Flag packages whose latest release is older than this many days behind current.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job. Safe to run unattended.

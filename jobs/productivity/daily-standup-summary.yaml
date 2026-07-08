@@ -1,0 +1,29 @@
+id: daily-standup-summary
+name: Daily Standup Summary
+description: >
+  Pulls yesterday's commits, closed tasks, and calendar for today, and drafts
+  a 3-line standup update (yesterday / today / blockers).
+category: productivity
+tags: [standup, reporting, daily]
+schedule: "0 8 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Draft a standup update for {{person_name}}.
+  1. Summarize commits and merged PRs from the last {{lookback_hours}} hours in
+     {{repo_path}}.
+  2. List today's calendar events if a calendar source is connected.
+  3. Ask the user (or infer from open tasks) what blockers to mention.
+  Output exactly 3 lines: Yesterday / Today / Blockers.
+variables:
+  person_name:
+    default: "me"
+    description: Name to use in the summary.
+  repo_path:
+    default: "."
+    description: Repo to pull commit history from.
+  lookback_hours:
+    default: 24
+    description: Window of history to summarize.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Pairs well with a Slack/email delivery step if the agent has that integration.

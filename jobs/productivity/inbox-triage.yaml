@@ -1,0 +1,26 @@
+id: inbox-triage
+name: Inbox Triage
+description: >
+  Scans unread email/messages, labels by urgency, and drafts short replies for
+  low-stakes ones for the user to approve.
+category: productivity
+tags: [email, triage, daily]
+schedule: "0 7,13 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Triage unread messages in {{inbox_source}} from the last {{lookback_hours}} hours.
+  1. Bucket each into: needs-reply-today, fyi-only, spam/newsletter.
+  2. For anything in needs-reply-today that looks routine (scheduling, simple
+     confirmations), draft a short reply but do NOT send — save as a draft.
+  3. Report counts per bucket and list the needs-reply-today items with a
+     one-line reason each.
+variables:
+  inbox_source:
+    default: "primary inbox"
+    description: Which inbox/connector to read from.
+  lookback_hours:
+    default: 18
+    description: Window of unread messages to consider.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Never auto-send. Draft-only by design — review before sending.

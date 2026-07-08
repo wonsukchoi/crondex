@@ -1,0 +1,61 @@
+# Contributing a job
+
+crondex is a directory, not a framework — a good contribution is one
+well-formed YAML file plus a regenerated catalog. That's it.
+
+## Steps
+
+1. Copy the template:
+   ```bash
+   cp templates/job.template.yaml jobs/<category>/<id>.yaml
+   ```
+   Use an existing category folder (`devops`, `productivity`) if your job
+   fits, or create a new one — don't pre-plan the taxonomy, just add a
+   folder when nothing existing fits.
+
+2. Fill in the fields. Read the comments in the template, or the full spec
+   at [`schema/job.schema.json`](schema/job.schema.json). Delete the
+   template's comment lines when done.
+
+3. Pick the right `runner`:
+   - **`shell`** — the job is fully scriptable, no judgment calls needed
+     (a health check, an expiry check, a cleanup). Zero tokens.
+   - **`agent-prompt`** — the job needs synthesis, prioritization, drafting,
+     or depends on a connector (email, calendar) too varied for one generic
+     script.
+   - **`hybrid`** — both a useful raw-data script *and* real value from an
+     LLM pass exist. Hybrid jobs must include `script_note`: one or two
+     sentences on what you lose by using `command` instead of `prompt`.
+
+4. If your job takes any tunable value (a path, a threshold, a name), put
+   it in `variables` with a sensible `default` — don't hardcode it into
+   `command`/`prompt`.
+
+5. Install deps once, then validate and rebuild the catalog:
+   ```bash
+   npm install
+   npm run validate        # checks your job against the schema
+   npm run build-catalog   # regenerates catalog.json — commit this too
+   ```
+
+6. Open a PR. CI re-runs both checks and fails if `catalog.json` is stale
+   or the job doesn't match the schema.
+
+## What makes a good job
+
+- **Narrow and nameable.** "check X, alert if Y" beats "monitor everything."
+- **Safe by default.** Destructive commands (deletes, sends, force-pushes)
+  need a `notes` callout, and ideally a dry-run variable or draft-only mode
+  (see `jobs/productivity/inbox-triage.yaml` for the draft-only pattern).
+- **Portable.** Don't assume a specific OS/shell beyond POSIX + common CLIs
+  (`curl`, `git`, `openssl`) unless you call that out in `notes`.
+- **Honest about token cost.** If you're not sure whether a script mode is
+  possible, look at how `jobs/devops/repo-health-check.yaml` or
+  `jobs/devops/cost-alert.yaml` split raw-data-only vs. LLM-interpreted.
+
+## Editing an existing job
+
+Same validate/build-catalog steps. If you change `prompt` or `command` in a
+way that changes behavior (not just wording), call it out in the PR
+description — agents that already scheduled the old version won't
+auto-pick-up the change.

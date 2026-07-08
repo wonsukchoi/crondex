@@ -99,11 +99,5 @@ Full spec: [`schema/job.schema.json`](schema/job.schema.json).
 
 ## Contributing a job
 
-1. Add `jobs/<category>/<id>.yaml` matching the schema.
-2. `npm install` (once).
-3. `npm run validate` — checks it against the schema.
-4. `npm run build-catalog` — regenerates `catalog.json`.
-5. Open a PR.
-
-New categories are just new folders — add one when a job doesn't fit an
-existing one, no need to pre-plan the taxonomy.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`,
+fill it in, `npm run validate && npm run build-catalog`, open a PR.

@@ -1,0 +1,46 @@
+# Copy this file to jobs/<category>/<id>.yaml and fill it in.
+# Full field spec: ../schema/job.schema.json
+# Delete any comment lines before submitting.
+
+id: your-job-id                 # slug, matches filename without extension: ^[a-z0-9]+(-[a-z0-9]+)*$
+name: Human-Readable Job Name
+description: >
+  One or two sentences: what this job does and why you'd want it.
+category: devops                # or productivity, or a new folder name
+tags: [tag-one, tag-two]
+schedule: "0 9 * * *"            # standard 5-field cron
+timezone: "UTC"                  # IANA tz, e.g. America/Los_Angeles
+
+# runner: pick one
+#   shell        — command only, zero tokens, deterministic. Use when the
+#                  check/action is fully scriptable and needs no judgment.
+#   agent-prompt — prompt only, costs tokens. Use when the job needs
+#                  synthesis, prioritization, drafting, or varies too much
+#                  by connector/provider for a generic script.
+#   hybrid       — both. Use when a raw-data script exists but an LLM pass
+#                  adds real value (interpretation, narrative, judgment).
+#                  Hybrid REQUIRES script_note explaining the tradeoff.
+runner: shell
+
+command: >
+  echo "replace with your shell command; supports {{variable}} placeholders"
+
+# prompt: |
+#   Only for runner: agent-prompt or hybrid.
+#   Task text handed to an LLM agent each run. Supports {{variable}}
+#   placeholders resolved from `variables` below.
+
+# script_note: >
+#   Only for runner: hybrid. One or two sentences: what `command` gives you
+#   for free vs. what only `prompt` adds (e.g. "no narrative synthesis").
+
+variables:
+  example_var:
+    default: "some-default"
+    description: What this variable controls.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Optional: caveats, prerequisites (e.g. requires `gh` CLI), safety notes
+  (e.g. destructive, draft-only, read-only).

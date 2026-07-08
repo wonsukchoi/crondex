@@ -4,12 +4,17 @@
   "title": "Crondex Job",
   "description": "One pre-made cron job any AI agent (Claude, Codex, Hermes, OpenClaw, etc.) can pull, adjust, and schedule.",
   "type": "object",
-  "required": ["id", "name", "description", "schedule", "runner", "compatible_agents"],
+  "required": ["id", "version", "name", "description", "schedule", "runner", "compatible_agents"],
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "Unique slug, matches filename without extension."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Bump when `prompt` or `command` behavior changes meaningfully, so agents that already scheduled this job know to re-check it. Do not bump for wording-only edits."
     },
     "name": { "type": "string" },
     "description": { "type": "string" },

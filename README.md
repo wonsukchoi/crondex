@@ -61,10 +61,14 @@ Every job is one YAML file with a `runner`:
   interpret it. `script_note` on the job explains exactly what you trade
   away by choosing the script.
 
-`{{placeholders}}` in `command`/`prompt` resolve from `variables`.
+`{{placeholders}}` in `command`/`prompt` resolve from `variables`. Each job
+also carries a `version` — bumped whenever `prompt`/`command` behavior
+changes, so if you've already scheduled a job elsewhere you can tell when
+the upstream copy has moved on without you.
 
 ```yaml
 id: dependency-audit
+version: 1
 name: Dependency Vulnerability Audit
 description: ...
 category: devops

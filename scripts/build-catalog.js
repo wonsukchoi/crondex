@@ -28,6 +28,7 @@ const jobs = walk(JOBS_DIR)
     const doc = yaml.load(readFileSync(file, "utf8"));
     return {
       id: doc.id,
+      version: doc.version,
       name: doc.name,
       description: doc.description?.trim(),
       category: doc.category,

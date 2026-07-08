@@ -55,7 +55,12 @@ well-formed YAML file plus a regenerated catalog. That's it.
 
 ## Editing an existing job
 
-Same validate/build-catalog steps. If you change `prompt` or `command` in a
-way that changes behavior (not just wording), call it out in the PR
-description — agents that already scheduled the old version won't
-auto-pick-up the change.
+Same validate/build-catalog steps, plus:
+
+- Bump `version` by 1 if you change `prompt` or `command` in a way that
+  changes behavior — different data pulled, different output, different
+  side effects. This is how an agent that already scheduled the old version
+  knows to re-check it.
+- Don't bump `version` for wording-only edits (typos, clarifying a
+  description, reformatting) that don't change what actually runs.
+- Call out the behavior change in the PR description either way.

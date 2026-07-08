@@ -52,3 +52,34 @@ const catalog = {
 
 writeFileSync(join(ROOT, "catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
 console.log(`wrote catalog.json with ${jobs.length} jobs`);
+
+const byCategory = new Map();
+for (const j of jobs) byCategory.set(j.category, (byCategory.get(j.category) ?? 0) + 1);
+const categories = [...byCategory.keys()].sort();
+
+const summaryLines = [
+  `${jobs.length} jobs across ${categories.length} categories:`,
+  "",
+  "| category | jobs |",
+  "|---|---|",
+  ...categories.map((c) => `| \`${c}\` | ${byCategory.get(c)} |`),
+];
+
+const README_PATH = join(ROOT, "README.md");
+const readme = readFileSync(README_PATH, "utf8");
+const BEGIN = "<!-- BEGIN JOB SUMMARY -->";
+const END = "<!-- END JOB SUMMARY -->";
+const start = readme.indexOf(BEGIN);
+const end = readme.indexOf(END);
+if (start === -1 || end === -1) {
+  console.warn(`could not find ${BEGIN} / ${END} markers in README.md — skipped summary sync`);
+} else {
+  const updated =
+    readme.slice(0, start + BEGIN.length) +
+    "\n" +
+    summaryLines.join("\n") +
+    "\n" +
+    readme.slice(end);
+  writeFileSync(README_PATH, updated);
+  console.log(`synced README.md job summary (${categories.length} categories)`);
+}

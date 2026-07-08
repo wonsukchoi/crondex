@@ -1,0 +1,31 @@
+id: flight-checkin-reminder
+version: 1
+name: Flight Check-in Reminder
+description: >
+  Reminds you when online check-in opens for an upcoming flight. Use
+  this if you've ever missed the good seats because check-in opened
+  while you were asleep.
+category: travel
+tags: [travel, flight, reminder]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  flight="{{flight_datetime}}"; hours_before={{checkin_hours_before}};
+  flight_epoch=$(date -j -f "%Y-%m-%d %H:%M" "$flight" +%s 2>/dev/null || date -d "$flight" +%s);
+  now_epoch=$(date +%s);
+  hours_left=$(( (flight_epoch-now_epoch)/3600 ));
+  if [ "$hours_left" -le 0 ]; then echo "note: flight time has passed — update flight_datetime for your next trip.";
+  elif [ "$hours_left" -le "$hours_before" ]; then echo "REMINDER: check in for your flight — departs in ${hours_left}h ($flight).";
+  else echo "OK: ${hours_left}h until flight ($flight), check-in opens around ${hours_before}h before departure."; fi
+variables:
+  flight_datetime:
+    default: "2026-12-31 08:00"
+    description: Flight departure date and time ("YYYY-MM-DD HH:MM", local to the schedule's timezone).
+  checkin_hours_before:
+    default: 24
+    description: How many hours before departure check-in typically opens for your airline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Runs hourly since it's a time-sensitive window — update
+  flight_datetime for each new trip.

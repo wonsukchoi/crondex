@@ -1,0 +1,30 @@
+id: plant-watering-reminder
+version: 1
+name: Plant Watering Reminder
+description: >
+  Reminds you to water a specific plant once it's due. Use this if
+  you've ever lost a plant to "I'll water it tomorrow."
+category: home
+tags: [home, plants, reminder]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_watered_date}}; interval={{water_interval_days}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge "$interval" ]; then echo "REMINDER: water {{plant_name}} ($days_since day(s) since last watering, every $interval day(s)).";
+  else echo "OK: {{plant_name}} watered $days_since day(s) ago, next due in $(( interval - days_since )) day(s)."; fi
+variables:
+  plant_name:
+    default: "your plant"
+    description: Which plant this reminder is for.
+  water_interval_days:
+    default: 7
+    description: How often to water it, in days.
+  last_watered_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last watered it — update this yourself.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. One job per plant — copy it and adjust plant_name/interval for each.

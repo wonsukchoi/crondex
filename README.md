@@ -63,7 +63,10 @@ crondex/
 │   ├── finance/
 │   ├── security/
 │   ├── learning/
-│   └── team/
+│   ├── team/
+│   ├── home/
+│   ├── travel/
+│   └── growth/
 └── scripts/
     ├── build-catalog.js   regenerates catalog.json from jobs/**/*.yaml
     └── validate-jobs.js   validates every job against the schema
@@ -71,7 +74,7 @@ crondex/
 
 ## Available jobs
 
-46 jobs across 8 categories. Full details (description, tags, variables)
+56 jobs across 11 categories. Full details (description, tags, variables)
 live in `catalog.json` and each job's YAML file — run `crondex list` or
 browse `jobs/<category>/` for the plain-language rundown of each.
 
@@ -125,6 +128,7 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `social-mentions-watch` | `0 9 * * *` | agent-prompt only |
 | `seo-meta-check` | `0 7 * * 1` | script |
 | `rss-feed-validate` | `0 8 * * *` | script |
+| `robots-txt-check` | `0 8 * * *` | script |
 
 **finance**
 
@@ -145,6 +149,7 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 | `failed-login-watch` | `*/15 * * * *` | script |
 | `sudo-usage-audit` | `0 * * * *` | script |
 | `firewall-rule-diff` | `0 6 * * *` | script |
+| `certificate-transparency-watch` | `0 */12 * * *` | script |
 
 **learning**
 
@@ -160,6 +165,29 @@ browse `jobs/<category>/` for the plain-language rundown of each.
 |---|---|---|
 | `1on1-prep-reminder` | `0 9 * * 3` | script |
 | `pto-balance-check` | `0 9 1 * *` | script |
+
+**home**
+
+| id | schedule | modes |
+|---|---|---|
+| `hvac-filter-reminder` | `0 9 1 * *` | script |
+| `smoke-detector-battery-check` | `0 9 1 * *` | script |
+| `plant-watering-reminder` | `0 9 * * *` | script |
+
+**travel**
+
+| id | schedule | modes |
+|---|---|---|
+| `passport-expiry-check` | `0 9 1 * *` | script |
+| `visa-expiry-check` | `0 9 1 * *` | script |
+| `flight-checkin-reminder` | `0 * * * *` | script |
+
+**growth**
+
+| id | schedule | modes |
+|---|---|---|
+| `review-request-nudge` | `0 9 * * *` | script |
+| `cart-abandonment-followup` | `0 10 * * *` | script + agent-prompt |
 
 ## How a job works
 

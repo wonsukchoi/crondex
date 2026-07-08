@@ -1,0 +1,29 @@
+id: hvac-filter-reminder
+version: 1
+name: HVAC Filter Change Reminder
+description: >
+  Reminds you to change your HVAC filter based on how long it's been.
+  Use this if you've ever found a filter so clogged you forgot it was
+  ever white.
+category: home
+tags: [home, hvac, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_changed_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: HVAC filter last changed $days_since day(s) ago (every ${interval} months) — change it.";
+  else echo "OK: filter changed $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_changed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last changed the filter — update this yourself.
+  interval_months:
+    default: 3
+    description: How often to change the filter, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_changed_date yourself each time you actually change it.

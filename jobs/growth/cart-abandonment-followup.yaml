@@ -1,0 +1,46 @@
+id: cart-abandonment-followup
+version: 1
+name: Cart Abandonment Follow-up
+description: >
+  Finds abandoned shopping carts old enough to follow up on, and can
+  draft the follow-up email for you. Use this if abandoned-cart
+  recovery is something you know you should do but never get to.
+category: growth
+tags: [growth, ecommerce, cart-recovery]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  file={{carts_file}}; wait_hours={{wait_hours}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  now=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r id email items abandoned followed; do
+    [ "$followed" = "yes" ] && continue;
+    a_epoch=$(date -d "$abandoned" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M" "$abandoned" +%s 2>/dev/null);
+    hours=$(( (now-a_epoch)/3600 ));
+    if [ "$hours" -ge "$wait_hours" ]; then echo "ABANDONED: cart $id ($email) - items: $items - ${hours}h ago"; fi
+  done
+prompt: |
+  Look at carts abandoned more than {{wait_hours}} hours ago in
+  {{carts_file}} (CSV: cart_id,customer_email,items,abandoned_at,followed_up).
+  For each one not yet followed up:
+  1. Draft a short, friendly follow-up email offering help or a gentle
+     nudge to complete checkout.
+  2. Keep it under 100 words, no hard-sell tone.
+script_note: >
+  `command` lists which carts are abandoned and old enough to follow up
+  on, zero tokens. `prompt` actually drafts the follow-up email copy for
+  each one.
+variables:
+  carts_file:
+    default: "./abandoned-carts.csv"
+    description: >
+      CSV with header "cart_id,customer_email,items,abandoned_at,followed_up"
+      (abandoned_at is "YYYY-MM-DD HH:MM", followed_up is yes/no).
+  wait_hours:
+    default: 24
+    description: Wait this many hours after abandonment before flagging for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  You maintain abandoned-carts.csv yourself (or export it from your store
+  platform) — mark followed_up=yes after sending.

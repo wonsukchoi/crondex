@@ -1,0 +1,29 @@
+id: smoke-detector-battery-check
+version: 1
+name: Smoke Detector Battery Check Reminder
+description: >
+  Reminds you to test/replace smoke detector batteries on a schedule.
+  Use this if the only time you think about smoke detectors is when one
+  starts chirping at 3am.
+category: home
+tags: [home, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: smoke detectors last tested $days_since day(s) ago (every ${interval} months) — test/replace batteries.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last tested/changed batteries — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_tested_date yourself each time you actually test.

@@ -1,0 +1,30 @@
+id: robots-txt-check
+version: 1
+name: Robots.txt Blanket-Block Check
+description: >
+  Checks that your robots.txt hasn't accidentally blocked every
+  crawler from your entire site. Use this if a robots.txt edit has
+  ever accidentally tanked your search traffic.
+category: content
+tags: [seo, robots, crawlability]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  url={{robots_url}};
+  body=$(curl -sL --max-time 10 "$url");
+  [ -z "$body" ] && { echo "ERROR: could not fetch $url"; exit 1; };
+  if echo "$body" | grep -qiE "^Disallow:[[:space:]]*/[[:space:]]*$"; then
+    echo "WARNING: $url has a blanket 'Disallow: /' — this blocks all crawlers from the whole site.";
+    exit 1;
+  else
+    echo "OK: no blanket disallow-all rule found in $url";
+  fi
+variables:
+  robots_url:
+    default: "https://example.com/robots.txt"
+    description: Full URL to your site's robots.txt.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Only checks for the "block everything" footgun, not full
+  robots.txt correctness.

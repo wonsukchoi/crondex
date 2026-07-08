@@ -1,0 +1,31 @@
+id: passport-expiry-check
+version: 1
+name: Passport Expiry Check
+description: >
+  Warns you before your passport expires — including the "6 months
+  validity required" rule many countries enforce at the border. Use
+  this if you've ever booked a trip and only checked your passport
+  date after buying the ticket.
+category: travel
+tags: [travel, passport, documents]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  expiry={{passport_expiry_date}}; warn_months={{warn_months}};
+  expiry_epoch=$(date -j -f %Y-%m-%d "$expiry" +%s 2>/dev/null || date -d "$expiry" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (expiry_epoch-today_epoch)/86400 ));
+  warn_days=$(( warn_months * 30 ));
+  if [ "$days_left" -le 0 ]; then echo "EXPIRED: passport expired on $expiry — renew immediately."; exit 1;
+  elif [ "$days_left" -le "$warn_days" ]; then echo "WARNING: passport expires in $days_left day(s) ($expiry) — many countries require ${warn_months} month(s) of remaining validity to enter."; exit 1;
+  else echo "OK: passport valid, $days_left day(s) until expiry ($expiry)."; fi
+variables:
+  passport_expiry_date:
+    default: "2030-01-01"
+    description: Date (YYYY-MM-DD) your passport expires.
+  warn_months:
+    default: 6
+    description: Start warning this many months before expiry (6 is the common border-entry rule).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Update passport_expiry_date after renewal.

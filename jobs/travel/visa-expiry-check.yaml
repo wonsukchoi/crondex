@@ -1,0 +1,32 @@
+id: visa-expiry-check
+version: 1
+name: Visa/Residency Document Expiry Check
+description: >
+  Warns you before a visa, residency permit, or similar document
+  expires. Use this if you're living or working abroad and a document
+  deadline has ever crept up on you.
+category: travel
+tags: [travel, visa, documents]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  name="{{doc_name}}"; expiry={{expiry_date}}; warn={{warn_days}};
+  expiry_epoch=$(date -j -f %Y-%m-%d "$expiry" +%s 2>/dev/null || date -d "$expiry" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (expiry_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "EXPIRED: $name expired on $expiry."; exit 1;
+  elif [ "$days_left" -le "$warn" ]; then echo "WARNING: $name expires in $days_left day(s) ($expiry)."; exit 1;
+  else echo "OK: $name valid, $days_left day(s) until expiry."; fi
+variables:
+  doc_name:
+    default: "visa"
+    description: What document this is (visa, residency permit, work permit, etc).
+  expiry_date:
+    default: "2027-01-01"
+    description: Date (YYYY-MM-DD) the document expires.
+  warn_days:
+    default: 30
+    description: Start warning this many days before expiry.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. One job per document — copy it and adjust for each document you're tracking.

@@ -1,0 +1,35 @@
+id: review-request-nudge
+version: 1
+name: Review Request Nudge
+description: >
+  Flags customers who bought a while ago and haven't been asked for a
+  review yet. Use this if review requests only happen when someone
+  remembers to send them.
+category: growth
+tags: [growth, reviews, ecommerce]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{orders_file}}; wait_days={{wait_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r id customer purchased requested; do
+    [ "$requested" = "yes" ] && continue;
+    p_epoch=$(date -j -f %Y-%m-%d "$purchased" +%s 2>/dev/null || date -d "$purchased" +%s);
+    days=$(( (today-p_epoch)/86400 ));
+    if [ "$days" -ge "$wait_days" ]; then echo "SEND REVIEW REQUEST: order $id ($customer), purchased $days day(s) ago"; fi
+  done
+variables:
+  orders_file:
+    default: "./orders.csv"
+    description: >
+      CSV with header "order_id,customer,purchase_date,review_requested"
+      (purchase_date is YYYY-MM-DD, review_requested is yes/no).
+  wait_days:
+    default: 7
+    description: Wait this many days after purchase before flagging for a review request.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain orders.csv yourself (mark review_requested=yes
+  after sending) — doesn't integrate with any store platform directly.

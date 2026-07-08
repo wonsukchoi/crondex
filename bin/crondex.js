@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
+const PKG = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 
 const [, , cmd, ...args] = process.argv;
 
@@ -37,12 +38,22 @@ Examples:
 `);
 }
 
+function catalogInfoLine() {
+  const viaNpx = process.env.npm_command === "exec";
+  const freshness = viaNpx
+    ? "running via npx — you're always on the latest catalog."
+    : "running from a local/global install — run `npm update -g crondex` (or re-pull) if new jobs seem missing.";
+  return `crondex v${PKG.version} — ${CATALOG.count} jobs. ${freshness}`;
+}
+
 function list() {
   const category = flag("category");
   const tag = flag("tag");
   const jobs = CATALOG.jobs.filter(
     (j) => (!category || j.category === category) && (!tag || j.tags.includes(tag))
   );
+  console.log(catalogInfoLine());
+  console.log();
   if (!jobs.length) {
     console.log("no jobs matched.");
     return;

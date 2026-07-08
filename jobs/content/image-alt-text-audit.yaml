@@ -1,0 +1,21 @@
+id: image-alt-text-audit
+version: 1
+name: Image Alt Text Audit
+description: >
+  Checks a page for images missing alt text. Use this if images have ever
+  shipped without alt text because nobody double-checked before merging.
+category: content
+tags: [seo, accessibility, images]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  count=$(curl -s {{page_url}} | grep -o '<img[^>]*>' | grep -cv 'alt=');
+  if [ "$count" -gt 0 ]; then echo "WARNING: $count image(s) missing alt text on {{page_url}}"; exit 1;
+  else echo "OK: all images on {{page_url}} have alt text"; fi
+variables:
+  page_url:
+    default: "https://example.com"
+    description: URL of the page to check.
+compatible_agents: [generic, claude, codex]
+notes: Flags images with no alt attribute at all — doesn't judge whether existing alt text is actually descriptive.

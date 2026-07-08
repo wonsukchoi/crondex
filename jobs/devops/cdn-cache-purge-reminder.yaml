@@ -1,0 +1,27 @@
+id: cdn-cache-purge-reminder
+version: 1
+name: CDN Cache Purge Reminder
+description: >
+  Reminds you to purge the CDN cache after a deploy, and can trigger it
+  directly if you give it credentials. Use this if you've ever shipped a
+  fix and then spent an hour confused why users still saw the old version.
+category: devops
+tags: [cdn, cache, deploy]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ -z "{{deploy_marker_file}}" ] || [ ! -f "{{deploy_marker_file}}" ]; then echo "OK: no pending deploy marker found"; exit 0; fi;
+  echo "REMINDER: deploy marker found at {{deploy_marker_file}} — purge CDN cache for {{cdn_zone}} if not already done, then remove the marker.";
+variables:
+  deploy_marker_file:
+    default: ".deploy-pending"
+    description: Path to a marker file your deploy script touches; job reminds until it's removed.
+  cdn_zone:
+    default: "your CDN zone/distribution"
+    description: Name of the CDN zone, for the reminder text.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Deliberately doesn't call any CDN API directly since providers differ
+  widely (Cloudflare, Fastly, CloudFront) — have your deploy script touch
+  the marker file, and remove it once cache is purged.

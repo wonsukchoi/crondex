@@ -1,0 +1,26 @@
+id: lapsed-donor-check
+version: 1
+name: Lapsed Donor Check
+description: >
+  Flags donors who gave before but haven't in a while, before they're
+  fully lost. Use this if lapsed-donor outreach only happens during the
+  annual campaign instead of catching people while it's still recoverable.
+category: nonprofit
+tags: [nonprofit, donors, fundraising]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, email, last_donation_at from donors where last_donation_at < now() - interval '{{lapsed_months}} months' and last_donation_at > now() - interval '{{lapsed_months}} months' - interval '90 days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the donor database.
+  lapsed_months:
+    default: 12
+    description: Months since last donation before a donor counts as lapsing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `donors` table with `last_donation_at` — the 90-day window
+  after the lapsed_months mark keeps this from re-flagging the same donor
+  every run indefinitely.

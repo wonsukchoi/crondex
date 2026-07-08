@@ -1,0 +1,38 @@
+id: waf-rule-change-watch
+version: 1
+name: WAF Rule Change Watch
+description: >
+  Diffs your current WAF rules against a saved baseline and flags drift.
+  Use this if a WAF rule has ever been loosened "just for testing" and
+  never put back.
+category: security
+tags: [security, waf, drift]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v aws >/dev/null 2>&1 || { echo "ERROR: aws CLI not installed"; exit 1; };
+  aws wafv2 get-web-acl --name {{web_acl_name}} --scope {{scope}} --id {{web_acl_id}} --query 'WebACL.Rules' --output json > /tmp/waf-current.json 2>/dev/null;
+  if [ ! -s /tmp/waf-current.json ]; then echo "ERROR: could not fetch WAF rules for {{web_acl_name}}"; exit 1; fi;
+  if [ -f {{baseline_file}} ]; then
+    if diff -q {{baseline_file}} /tmp/waf-current.json >/dev/null; then echo "OK: WAF rules match baseline";
+    else echo "DRIFT DETECTED in {{web_acl_name}} rules:"; diff {{baseline_file}} /tmp/waf-current.json; exit 1; fi
+  else
+    echo "no baseline at {{baseline_file}} yet — copying current rules as the new baseline";
+    cp /tmp/waf-current.json {{baseline_file}};
+  fi
+variables:
+  web_acl_name:
+    default: "your-web-acl"
+    description: Name of the AWS WAFv2 Web ACL to check.
+  web_acl_id:
+    default: "your-web-acl-id"
+    description: ID of the Web ACL.
+  scope:
+    default: "REGIONAL"
+    description: WAF scope, REGIONAL or CLOUDFRONT.
+  baseline_file:
+    default: "waf-baseline.json"
+    description: Path to the saved baseline rules file to diff against.
+compatible_agents: [generic, claude, codex]
+notes: Written for AWS WAFv2 — adapt the fetch command for Cloudflare, Azure Front Door, or other WAF providers.

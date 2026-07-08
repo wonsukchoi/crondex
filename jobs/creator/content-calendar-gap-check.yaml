@@ -1,0 +1,31 @@
+id: content-calendar-gap-check
+version: 1
+name: Content Calendar Gap Check
+description: >
+  Checks that you have something scheduled to post in the next few days.
+  Use this if your publishing cadence has ever quietly broken because
+  nothing was queued and nobody noticed until the gap already showed.
+category: creator
+tags: [content, calendar, publishing]
+schedule: "0 9 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  cutoff=$(( today + {{lookahead_days}} * 86400 ));
+  next_ts=$(awk -F, 'NR>1 {
+      cmd="date -d \"" $1 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $1 "\" +%s";
+      cmd | getline ts; close(cmd);
+      if (ts >= "'"$today"'") { print ts; exit }
+    }' {{schedule_csv}});
+  if [ -z "$next_ts" ] || [ "$next_ts" -gt "$cutoff" ]; then echo "WARNING: no post scheduled in the next {{lookahead_days}} days"; exit 1;
+  else echo "OK: next post is scheduled within {{lookahead_days}} days"; fi
+variables:
+  schedule_csv:
+    default: "content-calendar.csv"
+    description: "CSV with header row, columns: publish_date(YYYY-MM-DD),title,platform."
+  lookahead_days:
+    default: 3
+    description: Days ahead that must have at least one scheduled post.
+compatible_agents: [generic, claude, codex]
+notes: Reads a plain CSV export of your content calendar — point schedule_csv at wherever your planning tool exports to.

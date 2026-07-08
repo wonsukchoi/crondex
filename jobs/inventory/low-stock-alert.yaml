@@ -1,0 +1,20 @@
+id: low-stock-alert
+version: 1
+name: Low Stock Alert
+description: >
+  Checks inventory levels against a reorder point and flags SKUs running
+  low. Use this if you've ever gone out of stock on a bestseller because
+  nobody was watching the count.
+category: inventory
+tags: [inventory, stock, ecommerce]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sku, quantity, reorder_point from inventory where quantity <= reorder_point;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the inventory database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `inventory` table with `sku`, `quantity`, and `reorder_point` columns — adjust the query to your schema.

@@ -1,0 +1,32 @@
+id: log-forwarding-health-check
+version: 1
+name: Log Forwarding Health Check
+description: >
+  Checks that logs are still actually arriving at your log aggregator.
+  Use this if a log shipper has ever silently died and nobody found out
+  until they needed logs that were never collected.
+category: devops
+tags: [logging, monitoring, observability]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  last_ts=$(curl -s -H "Authorization: Bearer {{log_api_token}}" "{{log_query_api_url}}" | grep -o '"timestamp":"[^"]*"' | sort -r | head -n1 | cut -d'"' -f4);
+  if [ -z "$last_ts" ]; then echo "WARNING: no recent log entries found via {{log_query_api_url}}"; exit 1; fi;
+  last_epoch=$(date -d "$last_ts" +%s 2>/dev/null);
+  now_epoch=$(date +%s);
+  minutes_since=$(( (now_epoch - last_epoch) / 60 ));
+  if [ "$minutes_since" -ge "{{max_gap_minutes}}" ]; then echo "WARNING: no new logs in $minutes_since minutes (last at $last_ts)"; exit 1;
+  else echo "OK: most recent log entry $minutes_since minutes ago"; fi
+variables:
+  log_query_api_url:
+    default: "https://api.example-logs.com/query?limit=1&sort=desc"
+    description: Log aggregator API endpoint returning at least the most recent entry's timestamp.
+  log_api_token:
+    default: "your-api-token"
+    description: API token for the log aggregator.
+  max_gap_minutes:
+    default: 15
+    description: Minutes without a new log entry before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point log_query_api_url at your aggregator's (Datadog, Splunk, ELK) most-recent-entry query; adjust field names to match its response shape.

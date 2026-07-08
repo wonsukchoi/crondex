@@ -1,0 +1,34 @@
+id: customs-clearance-check
+version: 1
+name: Customs Clearance Check
+description: >
+  Flags a shipment that's been sitting in customs longer than expected.
+  Use this if a shipment has ever been stuck at the border for weeks
+  before anyone thought to follow up with the broker.
+category: logistics
+tags: [logistics, customs, shipping]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the customs clearance status of shipment {{shipment_id}} via
+  {{tracking_source_hint}}.
+  1. Determine how long it's been in a "customs hold" or equivalent
+     status.
+  2. If it's been more than {{warn_days}} days, flag it and note any
+     stated reason for the hold (missing documents, duties owed,
+     inspection) if visible.
+  3. Suggest the next action (contact broker, pay duties, provide
+     documents) based on the reason if known.
+variables:
+  shipment_id:
+    default: "your-shipment-id"
+    description: Shipment/tracking identifier to check.
+  tracking_source_hint:
+    default: "carrier tracking page or customs broker portal"
+    description: Where to check customs status for this shipment.
+  warn_days:
+    default: 5
+    description: Days in customs hold before it's flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — customs status pages/APIs vary by carrier and broker, and reason codes need interpretation.

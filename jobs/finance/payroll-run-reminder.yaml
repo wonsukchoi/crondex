@@ -1,0 +1,27 @@
+id: payroll-run-reminder
+version: 1
+name: Payroll Run Reminder
+description: >
+  Warns you before the payroll submission deadline so employees actually
+  get paid on time. Use this if payroll has ever run late because the
+  submission cutoff snuck up during a busy week.
+category: finance
+tags: [finance, payroll, deadlines]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  cutoff_ts=$(date -d "{{next_cutoff_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{next_cutoff_date}}" +%s);
+  days_left=$(( (cutoff_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ] && [ "$days_left" -ge 0 ]; then echo "WARNING: payroll submission cutoff in $days_left days ({{next_cutoff_date}})"; exit 1;
+  else echo "OK: payroll submission cutoff in $days_left days"; fi
+variables:
+  next_cutoff_date:
+    default: "2026-08-01"
+    description: Next payroll submission cutoff date (YYYY-MM-DD).
+  warn_days:
+    default: 2
+    description: Days before the cutoff to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual next_cutoff_date input — update it each pay cycle, or generate a recurring schedule externally if your payroll provider uses a fixed cadence.

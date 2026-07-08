@@ -1,0 +1,29 @@
+id: episode-publish-gap-check
+version: 1
+name: Podcast Episode Publish Gap Check
+description: >
+  Checks that a new episode has gone out recently and flags it if your
+  publish cadence has slipped. Use this if listeners have ever noticed a
+  gap in your feed before you did.
+category: podcast
+tags: [podcast, publishing, cadence]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  lastmod=$(curl -s {{feed_url}} | grep -o '<pubDate>[^<]*' | sed 's/<pubDate>//' | head -n1);
+  if [ -z "$lastmod" ]; then echo "WARNING: could not find any <pubDate> in {{feed_url}}"; exit 1; fi;
+  last_ts=$(date -d "$lastmod" +%s 2>/dev/null);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: last episode was $days_since days ago"; exit 1;
+  else echo "OK: last episode was $days_since days ago"; fi
+variables:
+  feed_url:
+    default: "https://example.com/podcast/feed.xml"
+    description: URL of the podcast's RSS feed.
+  max_gap_days:
+    default: 14
+    description: Days since the last episode before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Relies on the feed's <pubDate> being in a standard RFC 822 format, which most podcast hosts produce.

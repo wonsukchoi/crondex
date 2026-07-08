@@ -1,0 +1,30 @@
+id: rsvp-followup-reminder
+version: 1
+name: RSVP Follow-up Reminder
+description: >
+  Flags invitees who haven't RSVP'd as the event date gets close. Use this
+  if you've ever had to guess headcount because half the guest list never
+  replied and nobody chased them.
+category: events
+tags: [events, rsvp, planning]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  days_left=$(( (event_ts - today) / 86400 ));
+  if [ "$days_left" -gt "{{warn_days}}" ]; then echo "OK: event is $days_left days out, no follow-up needed yet"; exit 0; fi;
+  awk -F, 'NR>1 && $2 == "pending" {print "PENDING RSVP: " $1}' {{guest_list_csv}}
+variables:
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event (YYYY-MM-DD).
+  warn_days:
+    default: 14
+    description: Days before the event to start flagging pending RSVPs.
+  guest_list_csv:
+    default: "guest-list.csv"
+    description: "CSV with header row, columns: name,rsvp_status(pending/yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Keep guest-list.csv updated as RSVPs come in, or export it from your invite tool before each run.

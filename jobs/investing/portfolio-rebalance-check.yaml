@@ -1,0 +1,32 @@
+id: portfolio-rebalance-check
+version: 1
+name: Portfolio Rebalance Check
+description: >
+  Compares your current asset allocation to your target and flags drift
+  worth rebalancing. Use this if your portfolio only gets rebalanced
+  whenever you happen to remember to look.
+category: investing
+tags: [investing, portfolio, rebalancing]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check current portfolio allocation against the target allocation below.
+  Target: {{target_allocation}}
+  1. Pull current balances/allocation from {{brokerage_hint}} (or ask the
+     user for current values if no direct access).
+  2. Compute drift per asset class vs. target.
+  3. Flag any class drifted more than {{drift_threshold_pct}} percentage
+     points, and suggest the trade(s) to rebalance back.
+variables:
+  target_allocation:
+    default: "60% stocks / 30% bonds / 10% cash"
+    description: Your target allocation across asset classes.
+  brokerage_hint:
+    default: "your brokerage account"
+    description: Where portfolio balances live.
+  drift_threshold_pct:
+    default: 5
+    description: Percentage-point drift from target that triggers a rebalance flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — brokerage APIs vary widely and most require OAuth the agent may not have configured.

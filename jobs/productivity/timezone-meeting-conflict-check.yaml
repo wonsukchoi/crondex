@@ -1,0 +1,31 @@
+id: timezone-meeting-conflict-check
+version: 1
+name: Timezone Meeting Conflict Check
+description: >
+  Checks tomorrow's meetings against a remote teammate's working hours and
+  flags any that fall outside them. Use this if a meeting has ever gotten
+  scheduled at 11pm for someone across the world without anyone realizing.
+category: productivity
+tags: [calendar, timezone, meetings]
+schedule: "0 16 * * *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check tomorrow's calendar for meetings that include {{teammate_name}}
+  (timezone {{teammate_timezone}}, working hours {{working_hours}}).
+  1. Convert each meeting time to {{teammate_name}}'s local time.
+  2. Flag any meeting that falls outside their stated working hours.
+  3. Suggest an alternative time inside working hours for each flagged
+     meeting if the calendar shows open slots.
+variables:
+  teammate_name:
+    default: "your remote teammate"
+    description: Name of the teammate to check meetings against.
+  teammate_timezone:
+    default: "Europe/Berlin"
+    description: IANA timezone for the teammate.
+  working_hours:
+    default: "09:00-18:00"
+    description: The teammate's normal working hours, local time.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — calendar access and timezone-aware conflict detection need an agent with calendar-tool access.

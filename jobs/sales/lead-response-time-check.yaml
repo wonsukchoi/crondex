@@ -1,0 +1,23 @@
+id: lead-response-time-check
+version: 1
+name: Lead Response Time Check
+description: >
+  Flags new inbound leads that haven't gotten a first response within your
+  target window. Use this if you've ever lost a hot lead simply because
+  nobody replied fast enough.
+category: sales
+tags: [sales, leads, response-time]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, email, created_at from leads where first_response_at is null and created_at < now() - interval '{{max_response_minutes}} minutes';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the leads database.
+  max_response_minutes:
+    default: 30
+    description: Minutes a lead can go without a first response before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `leads` table with `created_at` and `first_response_at` columns — adjust the query to your CRM's schema.

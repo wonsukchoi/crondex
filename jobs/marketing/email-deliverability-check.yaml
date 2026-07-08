@@ -1,0 +1,37 @@
+id: email-deliverability-check
+version: 1
+name: Email Deliverability Check
+description: >
+  Checks recent bounce and spam-complaint rates for your email sends and
+  flags a spike. Use this if a deliverability problem has ever quietly
+  tanked open rates for a week before anyone checked the actual bounce
+  numbers.
+category: marketing
+tags: [marketing, email, deliverability]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{esp_api_token}}" "{{esp_stats_api_url}}");
+  bounce_rate=$(echo "$stats" | grep -o '"bounce_rate":[0-9.]*' | cut -d: -f2);
+  complaint_rate=$(echo "$stats" | grep -o '"complaint_rate":[0-9.]*' | cut -d: -f2);
+  if [ -z "$bounce_rate" ]; then echo "ERROR: could not fetch stats from {{esp_stats_api_url}}"; exit 1; fi;
+  flagged=0;
+  if awk "BEGIN{exit !($bounce_rate > {{max_bounce_pct}})}"; then echo "WARNING: bounce rate ${bounce_rate}% over threshold {{max_bounce_pct}}%"; flagged=1; fi;
+  if awk "BEGIN{exit !($complaint_rate > {{max_complaint_pct}})}"; then echo "WARNING: complaint rate ${complaint_rate}% over threshold {{max_complaint_pct}}%"; flagged=1; fi;
+  if [ "$flagged" -eq 0 ]; then echo "OK: bounce ${bounce_rate}%, complaint ${complaint_rate}%"; else exit 1; fi
+variables:
+  esp_stats_api_url:
+    default: "https://api.example-esp.com/stats/recent"
+    description: Email service provider stats API endpoint returning bounce_rate and complaint_rate.
+  esp_api_token:
+    default: "your-api-token"
+    description: API token for the email service provider.
+  max_bounce_pct:
+    default: 2
+    description: Bounce rate percent that triggers a warning.
+  max_complaint_pct:
+    default: 0.1
+    description: Spam complaint rate percent that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point esp_stats_api_url at your ESP's (SendGrid, Mailgun, Postmark) stats endpoint; adjust field names to match its response shape.

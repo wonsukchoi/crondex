@@ -1,0 +1,20 @@
+id: reservation-noshow-check
+version: 1
+name: Reservation No-show Check
+description: >
+  Checks yesterday's no-show rate against your normal baseline and flags a
+  spike. Use this if a run of no-shows has ever quietly hurt revenue for
+  days before anyone connected the pattern.
+category: hospitality
+tags: [hospitality, reservations, noshow]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select round(100.0 * sum(case when status = 'no_show' then 1 else 0 end) / count(*), 1) from reservations where reservation_date = current_date - interval '1 day';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the reservations database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `reservations` table with `status` and `reservation_date` columns — adjust the query for your reservation system's schema; compare the printed rate against your normal baseline manually.

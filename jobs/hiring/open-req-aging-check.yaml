@@ -1,0 +1,31 @@
+id: open-req-aging-check
+version: 1
+name: Open Req Aging Check
+description: >
+  Flags job requisitions that have been open too long without enough
+  candidates in the pipeline. Use this if a req has ever sat open for
+  months before anyone asked why it wasn't moving.
+category: hiring
+tags: [hiring, recruiting, requisitions]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review open job requisitions in {{ats_hint}}.
+  1. For each req open more than {{stale_days}} days, note days open and
+     current candidate count by stage.
+  2. Flag reqs with fewer than {{min_candidates}} active candidates as
+     needing sourcing attention.
+  3. Report the list ranked by days open, oldest first.
+variables:
+  ats_hint:
+    default: "your ATS (Greenhouse, Lever, Ashby)"
+    description: Name of the applicant tracking system in use.
+  stale_days:
+    default: 45
+    description: Days open before a req is flagged for review.
+  min_candidates:
+    default: 3
+    description: Minimum active candidates expected before a req is considered healthy.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — ATS APIs vary widely and most need OAuth the agent may not have configured.

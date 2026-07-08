@@ -1,0 +1,24 @@
+id: 2fa-enrollment-audit
+version: 1
+name: 2FA Enrollment Audit
+description: >
+  Checks which team members in your identity provider or GitHub org don't
+  have two-factor auth enabled. Use this if you've ever assumed everyone
+  had 2FA on until an incident review proved otherwise.
+category: security
+tags: [security, 2fa, access]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI not installed"; exit 1; };
+  gh api "orgs/{{org}}/members?filter=2fa_disabled" --jq '.[].login' > /tmp/2fa-disabled.txt 2>/dev/null;
+  count=$(wc -l < /tmp/2fa-disabled.txt | tr -d ' ');
+  if [ "$count" -eq 0 ]; then echo "OK: all org members have 2FA enabled";
+  else echo "WARNING: $count member(s) without 2FA:"; cat /tmp/2fa-disabled.txt; fi
+variables:
+  org:
+    default: "your-org"
+    description: GitHub organization login to audit.
+compatible_agents: [generic, claude, codex]
+notes: Requires gh CLI authenticated as an org owner/admin — the 2fa_disabled filter needs admin:org scope.

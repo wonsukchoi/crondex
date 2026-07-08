@@ -1,0 +1,32 @@
+id: csat-score-watch
+version: 1
+name: CSAT Score Watch
+description: >
+  Checks your recent customer satisfaction score and flags it if it drops
+  below your target. Use this if CSAT only gets looked at once a quarter,
+  by which point a bad week is old news.
+category: support
+tags: [support, csat, customer-satisfaction]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the CSAT (or equivalent satisfaction) score for the last
+  {{lookback_days}} days from {{csat_source_hint}}.
+  1. Compare it to the {{target_score}} target.
+  2. If below target, pull 2-3 representative low-scoring responses to
+     show what's driving it.
+  3. Report the score, trend vs. the prior period, and the drivers if
+     applicable, in under 150 words.
+variables:
+  csat_source_hint:
+    default: "helpdesk tool (Zendesk, Intercom, etc.)"
+    description: Where CSAT/satisfaction survey data lives.
+  lookback_days:
+    default: 7
+    description: Rolling window to evaluate.
+  target_score:
+    default: 90
+    description: Target CSAT score (percent or your tool's native scale).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — CSAT scoring and survey formats vary too much by helpdesk tool for a fixed command.

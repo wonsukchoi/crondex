@@ -1,0 +1,23 @@
+id: recurring-payment-failure-check
+version: 1
+name: Recurring Payment Failure Check
+description: >
+  Flags subscription charges that failed and haven't successfully retried
+  yet. Use this if a failed card has ever silently churned a customer
+  because nobody noticed the retry never succeeded.
+category: finance
+tags: [finance, billing, payments]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_email, amount, failed_at, retry_count from subscription_charges where status = 'failed' and retry_count >= {{max_retries}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the billing database.
+  max_retries:
+    default: 2
+    description: Retry count at or above which a failed charge is flagged for manual follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `subscription_charges` table with `status`, `retry_count`, and `failed_at` columns — adjust the query to your billing provider's schema or webhook log.

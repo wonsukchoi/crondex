@@ -1,0 +1,35 @@
+id: stale-deal-nudge
+version: 1
+name: Stale Deal Nudge
+description: >
+  Finds open pipeline deals nobody's touched in a while. Use this if deals
+  have ever quietly died in "in progress" because follow-up only happens
+  when someone remembers.
+category: sales
+tags: [sales, pipeline, crm]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select name, owner, last_activity_at from deals where stage not in ('closed_won','closed_lost') and last_activity_at < now() - interval '{{stale_days}} days';"
+prompt: |
+  Find open deals in {{crm_hint}} with no activity in the last
+  {{stale_days}} days.
+  1. List each deal with owner, stage, value, and days since last activity.
+  2. Draft a short follow-up nudge message for the owner of each, prompting
+     next-step action (call, email, or mark as closed-lost).
+script_note: >
+  `command` lists stale deals from Postgres with zero tokens. `prompt`
+  works with any CRM and also drafts the follow-up nudge per owner.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  crm_hint:
+    default: "your CRM (Salesforce, HubSpot, Pipedrive)"
+    description: Name of the CRM in use, for agent-prompt mode.
+  stale_days:
+    default: 14
+    description: Days without activity before a deal counts as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Script mode assumes a `deals` table with `stage`, `owner`, and `last_activity_at` columns — adjust the query to your schema.

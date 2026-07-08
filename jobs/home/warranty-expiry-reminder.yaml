@@ -1,0 +1,31 @@
+id: warranty-expiry-reminder
+version: 1
+name: Warranty Expiry Reminder
+description: >
+  Warns you before an appliance or product warranty expires. Use this if
+  you've ever discovered a warranty lapsed the week before whatever it
+  covered broke.
+category: home
+tags: [home, warranty, reminder]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: warranty for \"" $1 "\" expires in " days_left " days (" $2 ")";
+    }
+  ' {{warranties_csv}}
+variables:
+  warranties_csv:
+    default: "warranties.csv"
+    description: "CSV with header row, columns: item_name,expiry_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep warranties.csv updated whenever you buy something worth tracking — add the receipt/warranty end date at purchase time.

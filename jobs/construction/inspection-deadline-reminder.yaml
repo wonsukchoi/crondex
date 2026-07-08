@@ -1,0 +1,31 @@
+id: inspection-deadline-reminder
+version: 1
+name: Inspection Deadline Reminder
+description: >
+  Warns you before a scheduled inspection date, so the site is actually
+  ready. Use this if an inspector has ever shown up to a site that wasn't
+  prepped because the date snuck up on the crew.
+category: construction
+tags: [construction, inspection, scheduling]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline insp_ts; close(cmd);
+      days_left = int((insp_ts - today) / 86400);
+      if (days_left <= warn && days_left >= 0) print "WARNING: " $1 " inspection in " days_left " days (" $2 ")";
+    }
+  ' {{inspections_csv}}
+variables:
+  inspections_csv:
+    default: "inspections.csv"
+    description: "CSV with header row, columns: site_name,inspection_date(YYYY-MM-DD)."
+  warn_days:
+    default: 3
+    description: Days before the inspection to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep inspections.csv updated as inspections get scheduled with the local authority.

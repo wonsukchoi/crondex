@@ -1,0 +1,30 @@
+id: dependabot-alert-digest
+version: 1
+name: Dependabot Alert Digest
+description: >
+  Rolls up open Dependabot security alerts across a repo into one digest.
+  Use this if Dependabot alerts have ever piled up in a tab nobody checks
+  instead of getting triaged as they come in.
+category: security
+tags: [security, dependabot, github]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI not installed"; exit 1; };
+  count=$(gh api "repos/{{owner}}/{{repo}}/dependabot/alerts?state=open" --jq 'length' 2>/dev/null);
+  if [ -z "$count" ]; then echo "ERROR: could not fetch Dependabot alerts (check gh auth and repo access)"; exit 1;
+  elif [ "$count" -eq 0 ]; then echo "OK: no open Dependabot alerts";
+  else
+    echo "$count open Dependabot alert(s):";
+    gh api "repos/{{owner}}/{{repo}}/dependabot/alerts?state=open" --jq '.[] | "- " + .security_advisory.severity + ": " + .security_advisory.summary';
+  fi
+variables:
+  owner:
+    default: "your-org"
+    description: GitHub repo owner/org.
+  repo:
+    default: "your-repo"
+    description: GitHub repo name.
+compatible_agents: [generic, claude, codex]
+notes: Requires gh CLI authenticated with a token that has security_events read access on the repo.

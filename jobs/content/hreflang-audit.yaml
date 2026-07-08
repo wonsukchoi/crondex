@@ -1,0 +1,25 @@
+id: hreflang-audit
+version: 1
+name: Hreflang Audit
+description: >
+  Checks a page's hreflang tags for missing reciprocal links or obviously
+  wrong language/region codes. Use this if a hreflang mistake has ever
+  quietly sent the wrong country's visitors to the wrong language version.
+category: content
+tags: [seo, hreflang, international]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  tags=$(curl -s {{page_url}} | grep -o '<link[^>]*rel=["'"'"']alternate["'"'"'][^>]*hreflang=["'"'"'][^"'"'"']*["'"'"'][^>]*>');
+  if [ -z "$tags" ]; then echo "WARNING: no hreflang tags found on {{page_url}}"; exit 1; fi;
+  echo "$tags" | grep -o 'hreflang=["'"'"'][^"'"'"']*' | sed 's/hreflang=["'"'"']//' | while read -r code; do
+    echo "$code" | grep -qE '^[a-z]{2}(-[A-Z]{2})?$|^x-default$' || echo "WARNING: suspicious hreflang code \"$code\" on {{page_url}}";
+  done;
+  echo "OK: found $(echo "$tags" | wc -l | tr -d ' ') hreflang tag(s) — verify reciprocal links manually"
+variables:
+  page_url:
+    default: "https://example.com"
+    description: URL of the page to check.
+compatible_agents: [generic, claude, codex]
+notes: Flags malformed language/region codes and missing tags on this page only — checking reciprocal hreflang links across the whole site needs crawling every listed URL, which this job doesn't do.

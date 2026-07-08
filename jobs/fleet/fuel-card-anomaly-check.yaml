@@ -1,0 +1,37 @@
+id: fuel-card-anomaly-check
+version: 1
+name: Fuel Card Anomaly Check
+description: >
+  Flags fuel card transactions that look unusual (too large, too frequent,
+  or outside normal hours/locations). Use this if fuel card misuse has
+  ever gone unnoticed until the monthly statement showed up.
+category: fleet
+tags: [fleet, fuel-card, fraud]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review fuel card transactions from {{fuel_card_provider_hint}} for the
+  last 24 hours.
+  1. Flag transactions over {{max_transaction_usd}} USD.
+  2. Flag more than {{max_daily_transactions}} transactions on the same
+     card in one day.
+  3. Flag transactions outside typical operating hours ({{operating_hours}})
+     if timestamps are available.
+  4. Report flagged transactions with card holder, amount, time, and
+     location.
+variables:
+  fuel_card_provider_hint:
+    default: "your fuel card provider (WEX, Fuelman, etc.)"
+    description: Name of the fuel card provider/portal.
+  max_transaction_usd:
+    default: 150
+    description: Single-transaction amount that triggers a flag.
+  max_daily_transactions:
+    default: 2
+    description: Transactions per card per day that triggers a flag.
+  operating_hours:
+    default: "06:00-19:00"
+    description: Normal operating hours; transactions outside this window are flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — fuel card provider APIs/exports vary and flagging patterns benefits from judgment, not just fixed rules.

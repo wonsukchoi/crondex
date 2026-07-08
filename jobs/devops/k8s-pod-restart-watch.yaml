@@ -1,0 +1,26 @@
+id: k8s-pod-restart-watch
+version: 1
+name: Kubernetes Pod Restart Watch
+description: >
+  Checks for pods with a high restart count and flags them. Use this if a
+  crash-looping pod has ever burned through hours before anyone noticed
+  it wasn't actually staying up.
+category: devops
+tags: [kubernetes, pods, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl not installed"; exit 1; };
+  kubectl get pods -n {{namespace}} --no-headers 2>/dev/null | awk -v threshold={{threshold}} '
+    { restarts=$4+0; if (restarts >= threshold) print "WARNING: pod " $1 " has " restarts " restarts" }
+  '
+variables:
+  namespace:
+    default: "default"
+    description: Kubernetes namespace to check.
+  threshold:
+    default: 5
+    description: Restart count that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: Requires kubectl configured with a context pointing at the cluster; emits nothing if no pod is over threshold.

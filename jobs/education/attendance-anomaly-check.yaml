@@ -1,0 +1,33 @@
+id: attendance-anomaly-check
+version: 1
+name: Attendance Anomaly Check
+description: >
+  Flags students whose attendance has dropped sharply, before it becomes a
+  pattern nobody caught early. Use this if a student's attendance has ever
+  quietly fallen off and only got noticed at report-card time.
+category: education
+tags: [education, attendance, students]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review attendance records from {{sis_hint}} for the last
+  {{recent_weeks}} weeks.
+  1. Compare each student's recent attendance rate to their prior
+     baseline for the term.
+  2. Flag students with a drop of {{drop_threshold_pct}} percentage
+     points or more.
+  3. Report flagged students with their recent and baseline rates, so
+     follow-up (counselor, parent contact) can be prioritized.
+variables:
+  sis_hint:
+    default: "your student information system"
+    description: Where attendance data lives.
+  recent_weeks:
+    default: 2
+    description: Recent window to evaluate.
+  drop_threshold_pct:
+    default: 20
+    description: Percentage-point drop in attendance rate that counts as an anomaly.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — SIS platforms vary widely and most need OAuth or export access the agent may not have configured.

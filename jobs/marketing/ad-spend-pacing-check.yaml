@@ -1,0 +1,37 @@
+id: ad-spend-pacing-check
+version: 1
+name: Ad Spend Pacing Check
+description: >
+  Checks a campaign's spend so far against where it should be by this
+  point in the budget period, and flags over- or under-pacing. Use this
+  if a campaign has ever blown through its monthly budget in the first
+  two weeks because nobody was watching the burn rate.
+category: marketing
+tags: [marketing, ads, budget]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check spend for campaign {{campaign_name}} on {{ad_platform_hint}}.
+  1. Pull total spend so far this budget period against the
+     {{budget_usd}} budget.
+  2. Compute expected spend-to-date based on days elapsed vs. total days
+     in the period, and compare to actual.
+  3. Flag if pacing is more than {{pacing_threshold_pct}}% over or under
+     the expected pace.
+  4. Report actual vs. expected spend and the pacing delta.
+variables:
+  campaign_name:
+    default: "your campaign"
+    description: Name/ID of the ad campaign to check.
+  ad_platform_hint:
+    default: "Google Ads, Meta Ads, or similar"
+    description: Which ad platform the campaign runs on.
+  budget_usd:
+    default: 5000
+    description: Total budget for the period, in USD.
+  pacing_threshold_pct:
+    default: 15
+    description: Percent over/under expected pace that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — ad platform APIs need OAuth per-platform, and pacing math needs the campaign's period boundaries which vary by setup.

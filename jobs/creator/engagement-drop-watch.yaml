@@ -1,0 +1,36 @@
+id: engagement-drop-watch
+version: 1
+name: Engagement Drop Watch
+description: >
+  Compares recent post engagement to your baseline and flags a real drop.
+  Use this if you've ever kept posting into a falling algorithm curve for
+  weeks before noticing the numbers were down.
+category: creator
+tags: [content, engagement, social]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check engagement (likes, comments, shares, views — whatever the
+  platform reports) for posts on {{platform_hint}} over the last
+  {{recent_days}} days.
+  1. Compare average engagement rate to the prior {{baseline_days}}-day
+     baseline.
+  2. Flag a drop of {{drop_threshold_pct}}% or more.
+  3. If flagged, note anything that changed around the drop (posting time,
+     format, frequency) if it's visible from the data.
+variables:
+  platform_hint:
+    default: "your primary platform (YouTube, Instagram, TikTok, etc.)"
+    description: Which platform's analytics to check.
+  recent_days:
+    default: 7
+    description: Recent window to evaluate.
+  baseline_days:
+    default: 30
+    description: Prior window used as the baseline for comparison.
+  drop_threshold_pct:
+    default: 25
+    description: Percent drop in engagement rate that counts as a real decline.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — platform analytics APIs vary widely and most need OAuth the agent may not have configured.

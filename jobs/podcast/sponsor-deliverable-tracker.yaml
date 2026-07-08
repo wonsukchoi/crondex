@@ -1,0 +1,31 @@
+id: sponsor-deliverable-tracker
+version: 1
+name: Podcast Sponsor Deliverable Tracker
+description: >
+  Flags sponsor deliverables (read, mention, social post) coming due. Use
+  this if you've ever had a sponsor follow up asking where their promised
+  mention was.
+category: podcast
+tags: [podcast, sponsorship, deliverables]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn && days_left >= 0) print "WARNING: " $1 " deliverable (" $2 ") due in " days_left " days (" $3 ")";
+    }
+  ' {{sponsor_deliverables_csv}}
+variables:
+  sponsor_deliverables_csv:
+    default: "sponsor-deliverables.csv"
+    description: "CSV with header row, columns: sponsor_name,deliverable,due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 7
+    description: Days before due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep sponsor-deliverables.csv updated whenever a sponsorship deal is signed — one row per deliverable.

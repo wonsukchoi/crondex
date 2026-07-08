@@ -1,0 +1,31 @@
+id: tls-cipher-weak-check
+version: 1
+name: Weak TLS Cipher/Protocol Check
+description: >
+  Checks a host for weak TLS protocol versions or ciphers still enabled.
+  Use this if a legacy protocol has ever stayed enabled for "just in
+  case" long after every client that needed it was gone.
+category: security
+tags: [security, tls, ciphers]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v openssl >/dev/null 2>&1 || { echo "ERROR: openssl not installed"; exit 1; };
+  weak_found=0;
+  for proto in ssl3 tls1 tls1_1; do
+    if openssl s_client -connect {{host}}:{{port}} -$proto </dev/null 2>/dev/null | grep -q "Cipher is"; then
+      echo "WARNING: {{host}}:{{port}} accepts $proto";
+      weak_found=1;
+    fi;
+  done;
+  if [ "$weak_found" -eq 0 ]; then echo "OK: {{host}}:{{port}} does not accept SSLv3/TLS1.0/TLS1.1"; else exit 1; fi
+variables:
+  host:
+    default: "example.com"
+    description: Hostname to check.
+  port:
+    default: 443
+    description: Port to check.
+compatible_agents: [generic, claude, codex]
+notes: Requires an openssl build with legacy protocol support compiled in to actually detect them; a modern openssl that's dropped them entirely will just fail to connect either way (still safe).

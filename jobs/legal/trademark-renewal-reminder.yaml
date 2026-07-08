@@ -1,0 +1,30 @@
+id: trademark-renewal-reminder
+version: 1
+name: Trademark Renewal Reminder
+description: >
+  Warns you before a trademark registration's renewal deadline. Use this
+  if you've ever let a trademark lapse simply because the renewal date
+  wasn't on anyone's calendar.
+category: legal
+tags: [legal, trademark, ip]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{renewal_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{renewal_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: trademark {{mark_name}} renewal due in $days_left days ({{renewal_date}})"; exit 1;
+  else echo "OK: trademark {{mark_name}} renewal due in $days_left days"; fi
+variables:
+  mark_name:
+    default: "your trademark"
+    description: Name/identifier of the trademark to track.
+  renewal_date:
+    default: "2027-01-01"
+    description: Renewal deadline date (YYYY-MM-DD).
+  warn_days:
+    default: 90
+    description: Days before deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual renewal_date input — update after each renewal cycle; run one copy per registered mark/jurisdiction.

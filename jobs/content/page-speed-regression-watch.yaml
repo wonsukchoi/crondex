@@ -1,0 +1,26 @@
+id: page-speed-regression-watch
+version: 1
+name: Page Speed Regression Watch
+description: >
+  Checks a page's load time against a baseline and flags a real
+  regression. Use this if a page has ever gotten slowly, silently slower
+  release after release until it was a real problem.
+category: content
+tags: [performance, seo, monitoring]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  time_total=$(curl -s -o /dev/null -w '%{time_total}' {{page_url}});
+  if awk "BEGIN{exit !($time_total > {{threshold_seconds}})}"; then
+    echo "WARNING: {{page_url}} took ${time_total}s to load (threshold {{threshold_seconds}}s)"; exit 1;
+  else echo "OK: {{page_url}} loaded in ${time_total}s"; fi
+variables:
+  page_url:
+    default: "https://example.com"
+    description: URL of the page to check.
+  threshold_seconds:
+    default: 3
+    description: Load time in seconds beyond which to warn.
+compatible_agents: [generic, claude, codex]
+notes: Measures raw TTFB-through-download time via curl, not real browser rendering — use a synthetic monitoring tool for full Core Web Vitals.

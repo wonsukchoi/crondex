@@ -1,0 +1,23 @@
+id: candidate-followup-nudge
+version: 1
+name: Candidate Follow-up Nudge
+description: >
+  Flags interviewed candidates who haven't heard back in a while. Use this
+  if candidates have ever gone quiet after a final interview simply
+  because nobody circled back with a decision.
+category: hiring
+tags: [hiring, recruiting, candidates]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, stage, last_interview_at from candidates where stage not in ('hired','rejected') and last_interview_at < now() - interval '{{stale_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the candidates/ATS database.
+  stale_days:
+    default: 7
+    description: Days since last interview before a candidate is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `candidates` table with `stage` and `last_interview_at` columns — adjust the query to your ATS's schema or export.

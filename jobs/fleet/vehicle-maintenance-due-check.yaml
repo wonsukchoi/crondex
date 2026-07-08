@@ -1,0 +1,36 @@
+id: vehicle-maintenance-due-check
+version: 1
+name: Fleet Vehicle Maintenance Due Check
+description: >
+  Flags fleet vehicles due for scheduled maintenance by date or mileage.
+  Use this if a fleet vehicle has ever broken down on a job because its
+  service interval quietly passed.
+category: fleet
+tags: [fleet, vehicles, maintenance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn_days={{warn_days}} -v warn_miles={{warn_miles}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      miles_left = $4 - $3;
+      if (days_left <= warn_days || miles_left <= warn_miles)
+        print "WARNING: vehicle " $1 " due in " days_left " days or " miles_left " miles (service due " $2 " / " $4 " mi)";
+    }
+  ' {{fleet_csv}}
+variables:
+  fleet_csv:
+    default: "fleet-maintenance.csv"
+    description: "CSV with header row, columns: vehicle_id,next_service_date(YYYY-MM-DD),current_mileage,next_service_mileage."
+  warn_days:
+    default: 14
+    description: Days before the service date to start warning.
+  warn_miles:
+    default: 500
+    description: Miles remaining before the service mileage to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep fleet-maintenance.csv updated from odometer readings/telematics exports before each run.

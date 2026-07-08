@@ -1,0 +1,36 @@
+id: food-safety-temp-log-check
+version: 1
+name: Food Safety Temperature Log Check
+description: >
+  Checks that fridge/freezer temperature logs were actually recorded
+  today and flags any reading outside the safe range. Use this if a
+  temperature log has ever gone unfilled for a shift, or a unit drifted
+  out of range without anyone noticing until the food was already at risk.
+category: hospitality
+tags: [hospitality, food-safety, compliance]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  last_entry=$(awk -F, -v today="$today" '$1 ~ today {last=$0} END {print last}' {{temp_log_csv}});
+  if [ -z "$last_entry" ]; then echo "WARNING: no temperature log entry today for {{unit_name}}"; exit 1; fi;
+  temp=$(echo "$last_entry" | cut -d, -f3);
+  if awk "BEGIN{exit !($temp > {{max_temp_f}} || $temp < {{min_temp_f}})}"; then
+    echo "WARNING: {{unit_name}} reading ${temp}F is out of range ({{min_temp_f}}-{{max_temp_f}}F): $last_entry"; exit 1;
+  else echo "OK: {{unit_name}} last reading ${temp}F, in range"; fi
+variables:
+  unit_name:
+    default: "walk-in cooler"
+    description: Name of the unit being logged.
+  temp_log_csv:
+    default: "temp-log.csv"
+    description: "CSV with columns: date(YYYY-MM-DD HH:MM),unit,temp_f."
+  min_temp_f:
+    default: 33
+    description: Minimum safe temperature in Fahrenheit.
+  max_temp_f:
+    default: 40
+    description: Maximum safe temperature in Fahrenheit.
+compatible_agents: [generic, claude, codex]
+notes: Assumes manual or IoT-exported entries appended to temp-log.csv throughout the day — one job instance per unit tracked.

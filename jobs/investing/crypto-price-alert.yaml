@@ -1,0 +1,33 @@
+id: crypto-price-alert
+version: 1
+name: Crypto Price Alert
+description: >
+  Checks a crypto asset's price and alerts when it crosses a threshold you
+  set. Use this if you're waiting for a price target and don't want to
+  keep a tab open all day watching a chart.
+category: investing
+tags: [crypto, price, alert]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  price=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids={{coin_id}}&vs_currencies={{vs_currency}}" | grep -o '[0-9.]*' | head -n1);
+  if [ -z "$price" ]; then echo "ERROR: could not fetch price for {{coin_id}}"; exit 1; fi;
+  if awk "BEGIN{exit !($price {{comparison}} {{target_price}})}"; then
+    echo "ALERT: {{coin_id}} is $price {{vs_currency}} ({{comparison}} {{target_price}})";
+  else echo "OK: {{coin_id}} is $price {{vs_currency}}"; fi
+variables:
+  coin_id:
+    default: "bitcoin"
+    description: CoinGecko coin id (e.g. bitcoin, ethereum).
+  vs_currency:
+    default: "usd"
+    description: Currency to price against.
+  target_price:
+    default: 50000
+    description: Threshold price to compare against.
+  comparison:
+    default: ">="
+    description: "Comparison operator for triggering the alert: <=, >=, <, or >."
+compatible_agents: [generic, claude, codex]
+notes: Uses the free CoinGecko public API, no key required; rate-limited so avoid scheduling much tighter than every few minutes.

@@ -1,0 +1,23 @@
+id: assignment-grading-backlog-check
+version: 1
+name: Assignment Grading Backlog Check
+description: >
+  Checks how many submitted assignments are still ungraded and flags it if
+  the backlog is growing. Use this if grading has ever piled up for weeks
+  until students started asking where their grades were.
+category: education
+tags: [education, grading, backlog]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select course, count(*) from submissions where graded_at is null and submitted_at < now() - interval '{{stale_days}} days' group by course;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the LMS/gradebook database.
+  stale_days:
+    default: 3
+    description: Days a submission can sit ungraded before it's counted in the backlog.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `submissions` table with `graded_at` and `submitted_at` — adjust the query for your LMS's schema or export.

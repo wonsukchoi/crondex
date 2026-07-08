@@ -1,0 +1,38 @@
+id: shipment-delay-watch
+version: 1
+name: Shipment Delay Watch
+description: >
+  Checks a shipment's tracking status and flags it if it hasn't moved in a
+  while. Use this if a stuck shipment has ever gone unnoticed until a
+  customer asked where their order was.
+category: logistics
+tags: [logistics, shipping, tracking]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  status=$(curl -s -H "Authorization: Bearer {{carrier_api_token}}" "{{tracking_api_url}}" | grep -o '"status":"[^"]*"' | head -n1 | cut -d'"' -f4);
+  updated=$(curl -s -H "Authorization: Bearer {{carrier_api_token}}" "{{tracking_api_url}}" | grep -o '"updated_at":"[^"]*"' | head -n1 | cut -d'"' -f4);
+  if [ -z "$status" ]; then echo "ERROR: could not fetch tracking status from {{tracking_api_url}}"; exit 1; fi;
+  updated_ts=$(date -d "$updated" +%s 2>/dev/null);
+  now_ts=$(date +%s);
+  hours_stale=$(( (now_ts - updated_ts) / 3600 ));
+  if [ "$hours_stale" -ge "{{stale_hours}}" ] && [ "$status" != "delivered" ]; then
+    echo "WARNING: shipment {{shipment_id}} status \"$status\" hasn't updated in $hours_stale hours";
+    exit 1;
+  else echo "OK: shipment {{shipment_id}} status \"$status\", updated $hours_stale hours ago"; fi
+variables:
+  shipment_id:
+    default: "your-shipment-id"
+    description: Shipment/tracking identifier, for labeling output.
+  tracking_api_url:
+    default: "https://api.example-carrier.com/track/your-shipment-id"
+    description: Carrier tracking API endpoint returning status and updated_at.
+  carrier_api_token:
+    default: "your-api-token"
+    description: Bearer token for the carrier's tracking API.
+  stale_hours:
+    default: 48
+    description: Hours without a status update before it's flagged as delayed.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point tracking_api_url at your carrier or aggregator's (EasyPost, AfterShip, ShipEngine) tracking endpoint; adjust field names to match its response shape.

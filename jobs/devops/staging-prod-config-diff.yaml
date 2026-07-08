@@ -1,0 +1,32 @@
+id: staging-prod-config-diff
+version: 1
+name: Staging vs Production Config Diff
+description: >
+  Diffs environment variable keys between staging and production and
+  flags mismatches. Use this if staging and prod have ever quietly
+  drifted apart until a deploy broke only in one of them.
+category: devops
+tags: [config, environments, drift]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  staging_keys=$(cut -d= -f1 {{staging_env_file}} | grep -v '^#' | sort);
+  prod_keys=$(cut -d= -f1 {{prod_env_file}} | grep -v '^#' | sort);
+  only_staging=$(comm -23 <(echo "$staging_keys") <(echo "$prod_keys"));
+  only_prod=$(comm -13 <(echo "$staging_keys") <(echo "$prod_keys"));
+  if [ -n "$only_staging" ] || [ -n "$only_prod" ]; then
+    echo "DRIFT DETECTED:";
+    [ -n "$only_staging" ] && echo "only in staging: $only_staging";
+    [ -n "$only_prod" ] && echo "only in prod: $only_prod";
+    exit 1;
+  else echo "OK: staging and prod env keys match"; fi
+variables:
+  staging_env_file:
+    default: ".env.staging"
+    description: Path to the staging environment file (keys only compared, not values).
+  prod_env_file:
+    default: ".env.production"
+    description: Path to the production environment file.
+compatible_agents: [generic, claude, codex]
+notes: Compares key names only, never values, so secrets are never read or logged.

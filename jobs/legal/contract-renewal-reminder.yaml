@@ -1,0 +1,31 @@
+id: contract-renewal-reminder
+version: 1
+name: Contract Renewal Reminder
+description: >
+  Warns you before a vendor or customer contract auto-renews or expires.
+  Use this if a contract has ever auto-renewed for another year because
+  nobody flagged the cancellation window in time.
+category: legal
+tags: [legal, contracts, renewal]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline renew_ts; close(cmd);
+      days_left = int((renew_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $1 " renews/expires in " days_left " days (" $2 ")";
+    }
+  ' {{contracts_csv}}
+variables:
+  contracts_csv:
+    default: "contracts.csv"
+    description: "CSV with header row, columns: name,renewal_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before renewal/expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep contracts.csv updated manually or export it from your contract management tool before each run.

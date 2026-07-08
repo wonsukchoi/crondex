@@ -1,0 +1,30 @@
+id: ticket-backlog-aging-check
+version: 1
+name: Support Ticket Backlog Aging Check
+description: >
+  Checks how many open support tickets have sat unanswered past your SLA
+  window. Use this if tickets have ever quietly aged past their SLA
+  because the backlog view wasn't checked that day.
+category: support
+tags: [support, sla, tickets]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"status":"open"' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no aging open tickets found (or endpoint returned nothing)"; exit 0;
+  elif [ "$count" -ge "{{threshold}}" ]; then echo "WARNING: $count open tickets past SLA at {{api_url}}"; exit 1;
+  else echo "OK: $count open tickets past SLA (under threshold {{threshold}})"; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?status=open&age_gt_hours=24"
+    description: Helpdesk API endpoint pre-filtered to tickets past your SLA age.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  threshold:
+    default: 5
+    description: Number of aging open tickets that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point api_url at your helpdesk's (Zendesk, Intercom, Freshdesk) filtered ticket search endpoint; adjust the grep pattern to match its response shape.

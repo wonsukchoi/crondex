@@ -1,0 +1,38 @@
+id: inventory-count-discrepancy-check
+version: 1
+name: Inventory Count Discrepancy Check
+description: >
+  Compares a physical inventory count against system records and flags
+  mismatches worth investigating. Use this if shrinkage or data entry
+  errors have ever gone unnoticed until a full audit months later.
+category: inventory
+tags: [inventory, audit, discrepancy]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare the physical count file at {{physical_count_file}} against
+  system inventory records (query {{database_url}} or the inventory
+  system).
+  1. For each SKU, compute the difference between physical and system
+     quantity.
+  2. Flag any SKU with a discrepancy of {{threshold_units}} units or more,
+     or {{threshold_pct}}% of system quantity, whichever is smaller.
+  3. Report flagged SKUs ranked by discrepancy size, with a guess at
+     likely cause if the pattern suggests one (e.g. consistent
+     under-count of one category = possible shrinkage).
+variables:
+  physical_count_file:
+    default: "physical-count.csv"
+    description: CSV export of the physical count, columns sku,quantity.
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the system inventory database.
+  threshold_units:
+    default: 5
+    description: Absolute unit discrepancy that triggers a flag.
+  threshold_pct:
+    default: 10
+    description: Percent discrepancy that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — matching two data sources and judging what's a meaningful discrepancy needs an agent, not a fixed query.

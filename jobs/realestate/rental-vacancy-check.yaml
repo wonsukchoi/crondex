@@ -1,0 +1,30 @@
+id: rental-vacancy-check
+version: 1
+name: Rental Vacancy Check
+description: >
+  Flags a rental listing that's been vacant longer than expected. Use this
+  if a unit has ever sat empty for months while everyone assumed someone
+  else was handling the listing.
+category: realestate
+tags: [realestate, vacancy, listings]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  vacant_since_ts=$(date -d "{{vacant_since_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{vacant_since_date}}" +%s);
+  days_vacant=$(( (today - vacant_since_ts) / 86400 ));
+  if [ "$days_vacant" -ge "{{warn_days}}" ]; then echo "WARNING: {{property_name}} has been vacant $days_vacant days (since {{vacant_since_date}})"; exit 1;
+  else echo "OK: {{property_name}} vacant $days_vacant days"; fi
+variables:
+  property_name:
+    default: "your unit"
+    description: Name/address of the vacant property.
+  vacant_since_date:
+    default: "2026-06-01"
+    description: Date the unit became vacant (YYYY-MM-DD).
+  warn_days:
+    default: 30
+    description: Days vacant before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Manual vacant_since_date input — update it once the unit is leased, or when a new vacancy starts.

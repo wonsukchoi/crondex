@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 79,
+  "count": 132,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -28,6 +28,56 @@
       "path": "jobs/team/1on1-prep-reminder.yaml"
     },
     {
+      "id": "2fa-enrollment-audit",
+      "version": 1,
+      "name": "2FA Enrollment Audit",
+      "description": "Checks which team members in your identity provider or GitHub org don't have two-factor auth enabled. Use this if you've ever assumed everyone had 2FA on until an incident review proved otherwise.",
+      "category": "security",
+      "tags": [
+        "security",
+        "2fa",
+        "access"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/2fa-enrollment-audit.yaml"
+    },
+    {
+      "id": "ad-spend-pacing-check",
+      "version": 1,
+      "name": "Ad Spend Pacing Check",
+      "description": "Checks a campaign's spend so far against where it should be by this point in the budget period, and flags over- or under-pacing. Use this if a campaign has ever blown through its monthly budget in the first two weeks because nobody was watching the burn rate.",
+      "category": "marketing",
+      "tags": [
+        "marketing",
+        "ads",
+        "budget"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/marketing/ad-spend-pacing-check.yaml"
+    },
+    {
       "id": "api-rate-limit-check",
       "version": 1,
       "name": "API Rate Limit Check",
@@ -50,6 +100,56 @@
         "codex"
       ],
       "path": "jobs/devops/api-rate-limit-check.yaml"
+    },
+    {
+      "id": "assignment-grading-backlog-check",
+      "version": 1,
+      "name": "Assignment Grading Backlog Check",
+      "description": "Checks how many submitted assignments are still ungraded and flags it if the backlog is growing. Use this if grading has ever piled up for weeks until students started asking where their grades were.",
+      "category": "education",
+      "tags": [
+        "education",
+        "grading",
+        "backlog"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/education/assignment-grading-backlog-check.yaml"
+    },
+    {
+      "id": "attendance-anomaly-check",
+      "version": 1,
+      "name": "Attendance Anomaly Check",
+      "description": "Flags students whose attendance has dropped sharply, before it becomes a pattern nobody caught early. Use this if a student's attendance has ever quietly fallen off and only got noticed at report-card time.",
+      "category": "education",
+      "tags": [
+        "education",
+        "attendance",
+        "students"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/education/attendance-anomaly-check.yaml"
     },
     {
       "id": "backup-reminder",
@@ -174,6 +274,30 @@
       "path": "jobs/productivity/calendar-double-booking-check.yaml"
     },
     {
+      "id": "candidate-followup-nudge",
+      "version": 1,
+      "name": "Candidate Follow-up Nudge",
+      "description": "Flags interviewed candidates who haven't heard back in a while. Use this if candidates have ever gone quiet after a final interview simply because nobody circled back with a decision.",
+      "category": "hiring",
+      "tags": [
+        "hiring",
+        "recruiting",
+        "candidates"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hiring/candidate-followup-nudge.yaml"
+    },
+    {
       "id": "canonical-tag-check",
       "version": 1,
       "name": "Canonical Tag Check",
@@ -247,6 +371,30 @@
         "generic"
       ],
       "path": "jobs/growth/cart-abandonment-followup.yaml"
+    },
+    {
+      "id": "cdn-cache-purge-reminder",
+      "version": 1,
+      "name": "CDN Cache Purge Reminder",
+      "description": "Reminds you to purge the CDN cache after a deploy, and can trigger it directly if you give it credentials. Use this if you've ever shipped a fix and then spent an hour confused why users still saw the old version.",
+      "category": "devops",
+      "tags": [
+        "cdn",
+        "cache",
+        "deploy"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/cdn-cache-purge-reminder.yaml"
     },
     {
       "id": "cert-renewal-reminder",
@@ -350,6 +498,32 @@
       "path": "jobs/growth/churn-risk-watch.yaml"
     },
     {
+      "id": "ci-build-time-regression-watch",
+      "version": 1,
+      "name": "CI Build Time Regression Watch",
+      "description": "Compares recent CI build durations to a baseline and flags a real slowdown. Use this if build times have ever crept up gradually until a 30-second CI run became a 15-minute one.",
+      "category": "devops",
+      "tags": [
+        "ci",
+        "performance",
+        "build-time"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/devops/ci-build-time-regression-watch.yaml"
+    },
+    {
       "id": "conference-cfp-deadline-reminder",
       "version": 1,
       "name": "Conference CFP Deadline Reminder",
@@ -376,6 +550,54 @@
         "generic"
       ],
       "path": "jobs/learning/conference-cfp-deadline-reminder.yaml"
+    },
+    {
+      "id": "content-calendar-gap-check",
+      "version": 1,
+      "name": "Content Calendar Gap Check",
+      "description": "Checks that you have something scheduled to post in the next few days. Use this if your publishing cadence has ever quietly broken because nothing was queued and nobody noticed until the gap already showed.",
+      "category": "creator",
+      "tags": [
+        "content",
+        "calendar",
+        "publishing"
+      ],
+      "schedule": "0 9 * * 1,4",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/creator/content-calendar-gap-check.yaml"
+    },
+    {
+      "id": "contract-renewal-reminder",
+      "version": 1,
+      "name": "Contract Renewal Reminder",
+      "description": "Warns you before a vendor or customer contract auto-renews or expires. Use this if a contract has ever auto-renewed for another year because nobody flagged the cancellation window in time.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "contracts",
+        "renewal"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/contract-renewal-reminder.yaml"
     },
     {
       "id": "cost-alert",
@@ -427,6 +649,82 @@
         "codex"
       ],
       "path": "jobs/learning/course-progress-checkin.yaml"
+    },
+    {
+      "id": "crypto-price-alert",
+      "version": 1,
+      "name": "Crypto Price Alert",
+      "description": "Checks a crypto asset's price and alerts when it crosses a threshold you set. Use this if you're waiting for a price target and don't want to keep a tab open all day watching a chart.",
+      "category": "investing",
+      "tags": [
+        "crypto",
+        "price",
+        "alert"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/investing/crypto-price-alert.yaml"
+    },
+    {
+      "id": "csat-score-watch",
+      "version": 1,
+      "name": "CSAT Score Watch",
+      "description": "Checks your recent customer satisfaction score and flags it if it drops below your target. Use this if CSAT only gets looked at once a quarter, by which point a bad week is old news.",
+      "category": "support",
+      "tags": [
+        "support",
+        "csat",
+        "customer-satisfaction"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/support/csat-score-watch.yaml"
+    },
+    {
+      "id": "customs-clearance-check",
+      "version": 1,
+      "name": "Customs Clearance Check",
+      "description": "Flags a shipment that's been sitting in customs longer than expected. Use this if a shipment has ever been stuck at the border for weeks before anyone thought to follow up with the broker.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "customs",
+        "shipping"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/customs-clearance-check.yaml"
     },
     {
       "id": "cve-watch",
@@ -530,6 +828,30 @@
       "path": "jobs/devops/db-backup-verify.yaml"
     },
     {
+      "id": "dependabot-alert-digest",
+      "version": 1,
+      "name": "Dependabot Alert Digest",
+      "description": "Rolls up open Dependabot security alerts across a repo into one digest. Use this if Dependabot alerts have ever piled up in a tab nobody checks instead of getting triaged as they come in.",
+      "category": "security",
+      "tags": [
+        "security",
+        "dependabot",
+        "github"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/dependabot-alert-digest.yaml"
+    },
+    {
       "id": "dependency-audit",
       "version": 1,
       "name": "Dependency Vulnerability Audit",
@@ -629,6 +951,56 @@
       "path": "jobs/devops/docker-image-prune.yaml"
     },
     {
+      "id": "email-deliverability-check",
+      "version": 1,
+      "name": "Email Deliverability Check",
+      "description": "Checks recent bounce and spam-complaint rates for your email sends and flags a spike. Use this if a deliverability problem has ever quietly tanked open rates for a week before anyone checked the actual bounce numbers.",
+      "category": "marketing",
+      "tags": [
+        "marketing",
+        "email",
+        "deliverability"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/marketing/email-deliverability-check.yaml"
+    },
+    {
+      "id": "engagement-drop-watch",
+      "version": 1,
+      "name": "Engagement Drop Watch",
+      "description": "Compares recent post engagement to your baseline and flags a real drop. Use this if you've ever kept posting into a falling algorithm curve for weeks before noticing the numbers were down.",
+      "category": "creator",
+      "tags": [
+        "content",
+        "engagement",
+        "social"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/creator/engagement-drop-watch.yaml"
+    },
+    {
       "id": "env-drift-check",
       "version": 1,
       "name": "Env File Drift Check",
@@ -651,6 +1023,30 @@
         "codex"
       ],
       "path": "jobs/devops/env-drift-check.yaml"
+    },
+    {
+      "id": "episode-publish-gap-check",
+      "version": 1,
+      "name": "Podcast Episode Publish Gap Check",
+      "description": "Checks that a new episode has gone out recently and flags it if your publish cadence has slipped. Use this if listeners have ever noticed a gap in your feed before you did.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "publishing",
+        "cadence"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/episode-publish-gap-check.yaml"
     },
     {
       "id": "error-rate-spike-watch",
@@ -678,6 +1074,30 @@
         "generic"
       ],
       "path": "jobs/devops/error-rate-spike-watch.yaml"
+    },
+    {
+      "id": "expiring-api-key-rotation",
+      "version": 1,
+      "name": "Expiring API Key Rotation Reminder",
+      "description": "Warns you before a third-party API key or token you're tracking expires. Use this if an integration has ever gone down in production because a key expired and nobody rotated it in time.",
+      "category": "security",
+      "tags": [
+        "security",
+        "api-keys",
+        "rotation"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/expiring-api-key-rotation.yaml"
     },
     {
       "id": "failed-login-watch",
@@ -802,6 +1222,30 @@
       "path": "jobs/productivity/focus-block-reminder.yaml"
     },
     {
+      "id": "food-safety-temp-log-check",
+      "version": 1,
+      "name": "Food Safety Temperature Log Check",
+      "description": "Checks that fridge/freezer temperature logs were actually recorded today and flags any reading outside the safe range. Use this if a temperature log has ever gone unfilled for a shift, or a unit drifted out of range without anyone noticing until the food was already at risk.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "food-safety",
+        "compliance"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/food-safety-temp-log-check.yaml"
+    },
+    {
       "id": "frequent-flyer-miles-expiry",
       "version": 1,
       "name": "Frequent Flyer Miles Expiry Check",
@@ -825,6 +1269,32 @@
         "codex"
       ],
       "path": "jobs/travel/frequent-flyer-miles-expiry.yaml"
+    },
+    {
+      "id": "fuel-card-anomaly-check",
+      "version": 1,
+      "name": "Fuel Card Anomaly Check",
+      "description": "Flags fuel card transactions that look unusual (too large, too frequent, or outside normal hours/locations). Use this if fuel card misuse has ever gone unnoticed until the monthly statement showed up.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "fuel-card",
+        "fraud"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/fleet/fuel-card-anomaly-check.yaml"
     },
     {
       "id": "fx-rate-watch",
@@ -851,6 +1321,33 @@
       "path": "jobs/finance/fx-rate-watch.yaml"
     },
     {
+      "id": "grant-deadline-reminder",
+      "version": 1,
+      "name": "Grant Deadline Reminder",
+      "description": "Warns you before a grant application deadline, and can help draft the application. Use this if a funding opportunity has ever been missed simply because the deadline crept up during a busy week.",
+      "category": "nonprofit",
+      "tags": [
+        "nonprofit",
+        "grants",
+        "fundraising"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/nonprofit/grant-deadline-reminder.yaml"
+    },
+    {
       "id": "habit-checkin",
       "version": 1,
       "name": "Daily Habit Check-in",
@@ -873,6 +1370,30 @@
         "codex"
       ],
       "path": "jobs/personal/habit-checkin.yaml"
+    },
+    {
+      "id": "hreflang-audit",
+      "version": 1,
+      "name": "Hreflang Audit",
+      "description": "Checks a page's hreflang tags for missing reciprocal links or obviously wrong language/region codes. Use this if a hreflang mistake has ever quietly sent the wrong country's visitors to the wrong language version.",
+      "category": "content",
+      "tags": [
+        "seo",
+        "hreflang",
+        "international"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/content/hreflang-audit.yaml"
     },
     {
       "id": "hvac-filter-reminder",
@@ -924,6 +1445,30 @@
       "path": "jobs/security/iam-key-rotation-reminder.yaml"
     },
     {
+      "id": "image-alt-text-audit",
+      "version": 1,
+      "name": "Image Alt Text Audit",
+      "description": "Checks a page for images missing alt text. Use this if images have ever shipped without alt text because nobody double-checked before merging.",
+      "category": "content",
+      "tags": [
+        "seo",
+        "accessibility",
+        "images"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/content/image-alt-text-audit.yaml"
+    },
+    {
       "id": "inbox-triage",
       "version": 1,
       "name": "Inbox Triage",
@@ -950,6 +1495,56 @@
       "path": "jobs/productivity/inbox-triage.yaml"
     },
     {
+      "id": "inspection-deadline-reminder",
+      "version": 1,
+      "name": "Inspection Deadline Reminder",
+      "description": "Warns you before a scheduled inspection date, so the site is actually ready. Use this if an inspector has ever shown up to a site that wasn't prepped because the date snuck up on the crew.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "inspection",
+        "scheduling"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/inspection-deadline-reminder.yaml"
+    },
+    {
+      "id": "inventory-count-discrepancy-check",
+      "version": 1,
+      "name": "Inventory Count Discrepancy Check",
+      "description": "Compares a physical inventory count against system records and flags mismatches worth investigating. Use this if shrinkage or data entry errors have ever gone unnoticed until a full audit months later.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "audit",
+        "discrepancy"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/inventory/inventory-count-discrepancy-check.yaml"
+    },
+    {
       "id": "invoice-overdue-check",
       "version": 1,
       "name": "Invoice Overdue Check",
@@ -972,6 +1567,102 @@
         "codex"
       ],
       "path": "jobs/finance/invoice-overdue-check.yaml"
+    },
+    {
+      "id": "k8s-pod-restart-watch",
+      "version": 1,
+      "name": "Kubernetes Pod Restart Watch",
+      "description": "Checks for pods with a high restart count and flags them. Use this if a crash-looping pod has ever burned through hours before anyone noticed it wasn't actually staying up.",
+      "category": "devops",
+      "tags": [
+        "kubernetes",
+        "pods",
+        "monitoring"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/k8s-pod-restart-watch.yaml"
+    },
+    {
+      "id": "lapsed-donor-check",
+      "version": 1,
+      "name": "Lapsed Donor Check",
+      "description": "Flags donors who gave before but haven't in a while, before they're fully lost. Use this if lapsed-donor outreach only happens during the annual campaign instead of catching people while it's still recoverable.",
+      "category": "nonprofit",
+      "tags": [
+        "nonprofit",
+        "donors",
+        "fundraising"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/nonprofit/lapsed-donor-check.yaml"
+    },
+    {
+      "id": "lead-response-time-check",
+      "version": 1,
+      "name": "Lead Response Time Check",
+      "description": "Flags new inbound leads that haven't gotten a first response within your target window. Use this if you've ever lost a hot lead simply because nobody replied fast enough.",
+      "category": "sales",
+      "tags": [
+        "sales",
+        "leads",
+        "response-time"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/sales/lead-response-time-check.yaml"
+    },
+    {
+      "id": "lease-expiry-reminder",
+      "version": 1,
+      "name": "Lease Expiry Reminder",
+      "description": "Warns you before a lease ends so there's time to renew, renegotiate, or start looking. Use this if a lease has ever gone month-to-month, or ended, without anyone noticing the date was coming.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "lease",
+        "reminder"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/lease-expiry-reminder.yaml"
     },
     {
       "id": "license-compliance-check",
@@ -1019,6 +1710,54 @@
         "codex"
       ],
       "path": "jobs/devops/log-cleanup.yaml"
+    },
+    {
+      "id": "log-forwarding-health-check",
+      "version": 1,
+      "name": "Log Forwarding Health Check",
+      "description": "Checks that logs are still actually arriving at your log aggregator. Use this if a log shipper has ever silently died and nobody found out until they needed logs that were never collected.",
+      "category": "devops",
+      "tags": [
+        "logging",
+        "monitoring",
+        "observability"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/log-forwarding-health-check.yaml"
+    },
+    {
+      "id": "low-stock-alert",
+      "version": 1,
+      "name": "Low Stock Alert",
+      "description": "Checks inventory levels against a reorder point and flags SKUs running low. Use this if you've ever gone out of stock on a bestseller because nobody was watching the count.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "stock",
+        "ecommerce"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/low-stock-alert.yaml"
     },
     {
       "id": "meal-plan-reminder",
@@ -1144,6 +1883,32 @@
       "path": "jobs/security/open-port-check.yaml"
     },
     {
+      "id": "open-req-aging-check",
+      "version": 1,
+      "name": "Open Req Aging Check",
+      "description": "Flags job requisitions that have been open too long without enough candidates in the pipeline. Use this if a req has ever sat open for months before anyone asked why it wasn't moving.",
+      "category": "hiring",
+      "tags": [
+        "hiring",
+        "recruiting",
+        "requisitions"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hiring/open-req-aging-check.yaml"
+    },
+    {
       "id": "orphaned-branch-cleanup",
       "version": 1,
       "name": "Orphaned Branch Cleanup",
@@ -1166,6 +1931,30 @@
         "codex"
       ],
       "path": "jobs/devops/orphaned-branch-cleanup.yaml"
+    },
+    {
+      "id": "page-speed-regression-watch",
+      "version": 1,
+      "name": "Page Speed Regression Watch",
+      "description": "Checks a page's load time against a baseline and flags a real regression. Use this if a page has ever gotten slowly, silently slower release after release until it was a real problem.",
+      "category": "content",
+      "tags": [
+        "performance",
+        "seo",
+        "monitoring"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/content/page-speed-regression-watch.yaml"
     },
     {
       "id": "passport-expiry-check",
@@ -1192,6 +1981,54 @@
       "path": "jobs/travel/passport-expiry-check.yaml"
     },
     {
+      "id": "payroll-run-reminder",
+      "version": 1,
+      "name": "Payroll Run Reminder",
+      "description": "Warns you before the payroll submission deadline so employees actually get paid on time. Use this if payroll has ever run late because the submission cutoff snuck up during a busy week.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "payroll",
+        "deadlines"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/payroll-run-reminder.yaml"
+    },
+    {
+      "id": "permit-expiry-check",
+      "version": 1,
+      "name": "Building Permit Expiry Check",
+      "description": "Warns you before a building permit expires so work doesn't get caught without valid coverage. Use this if a permit has ever lapsed mid-project and forced a costly re-inspection or re-application.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "permits",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/permit-expiry-check.yaml"
+    },
+    {
       "id": "plant-watering-reminder",
       "version": 1,
       "name": "Plant Watering Reminder",
@@ -1216,6 +2053,56 @@
       "path": "jobs/home/plant-watering-reminder.yaml"
     },
     {
+      "id": "portfolio-rebalance-check",
+      "version": 1,
+      "name": "Portfolio Rebalance Check",
+      "description": "Compares your current asset allocation to your target and flags drift worth rebalancing. Use this if your portfolio only gets rebalanced whenever you happen to remember to look.",
+      "category": "investing",
+      "tags": [
+        "investing",
+        "portfolio",
+        "rebalancing"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/investing/portfolio-rebalance-check.yaml"
+    },
+    {
+      "id": "production-line-downtime-watch",
+      "version": 1,
+      "name": "Production Line Downtime Watch",
+      "description": "Checks how long a production line has been stopped and flags it once it crosses a threshold. Use this if a line has ever sat down far longer than anyone realized because the stoppage alert never made it to the right person.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "downtime",
+        "production"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/production-line-downtime-watch.yaml"
+    },
+    {
       "id": "pto-balance-check",
       "version": 1,
       "name": "PTO Balance Check",
@@ -1238,6 +2125,30 @@
         "codex"
       ],
       "path": "jobs/team/pto-balance-check.yaml"
+    },
+    {
+      "id": "quality-defect-rate-check",
+      "version": 1,
+      "name": "Quality Defect Rate Check",
+      "description": "Checks today's defect rate against a target and flags it if it's running high. Use this if a quality problem has ever run for a full shift before anyone pulled the numbers and noticed.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "quality",
+        "defects"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/quality-defect-rate-check.yaml"
     },
     {
       "id": "queue-depth-check",
@@ -1288,6 +2199,54 @@
       "path": "jobs/learning/reading-list-nudge.yaml"
     },
     {
+      "id": "recurring-payment-failure-check",
+      "version": 1,
+      "name": "Recurring Payment Failure Check",
+      "description": "Flags subscription charges that failed and haven't successfully retried yet. Use this if a failed card has ever silently churned a customer because nobody noticed the retry never succeeded.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "billing",
+        "payments"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/recurring-payment-failure-check.yaml"
+    },
+    {
+      "id": "rental-vacancy-check",
+      "version": 1,
+      "name": "Rental Vacancy Check",
+      "description": "Flags a rental listing that's been vacant longer than expected. Use this if a unit has ever sat empty for months while everyone assumed someone else was handling the listing.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "vacancy",
+        "listings"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/rental-vacancy-check.yaml"
+    },
+    {
       "id": "repo-health-check",
       "version": 1,
       "name": "Git Repo Health Check",
@@ -1313,6 +2272,30 @@
         "generic"
       ],
       "path": "jobs/devops/repo-health-check.yaml"
+    },
+    {
+      "id": "reservation-noshow-check",
+      "version": 1,
+      "name": "Reservation No-show Check",
+      "description": "Checks yesterday's no-show rate against your normal baseline and flags a spike. Use this if a run of no-shows has ever quietly hurt revenue for days before anyone connected the pattern.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "reservations",
+        "noshow"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/reservation-noshow-check.yaml"
     },
     {
       "id": "review-request-nudge",
@@ -1385,6 +2368,30 @@
         "codex"
       ],
       "path": "jobs/content/rss-feed-validate.yaml"
+    },
+    {
+      "id": "rsvp-followup-reminder",
+      "version": 1,
+      "name": "RSVP Follow-up Reminder",
+      "description": "Flags invitees who haven't RSVP'd as the event date gets close. Use this if you've ever had to guess headcount because half the guest list never replied and nobody chased them.",
+      "category": "events",
+      "tags": [
+        "events",
+        "rsvp",
+        "planning"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/events/rsvp-followup-reminder.yaml"
     },
     {
       "id": "s3-public-bucket-check",
@@ -1511,6 +2518,30 @@
       "path": "jobs/content/seo-meta-check.yaml"
     },
     {
+      "id": "shipment-delay-watch",
+      "version": 1,
+      "name": "Shipment Delay Watch",
+      "description": "Checks a shipment's tracking status and flags it if it hasn't moved in a while. Use this if a stuck shipment has ever gone unnoticed until a customer asked where their order was.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "shipping",
+        "tracking"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/shipment-delay-watch.yaml"
+    },
+    {
       "id": "sitemap-freshness-check",
       "version": 1,
       "name": "Sitemap Freshness Check",
@@ -1585,6 +2616,30 @@
       "path": "jobs/content/social-mentions-watch.yaml"
     },
     {
+      "id": "sponsor-deliverable-tracker",
+      "version": 1,
+      "name": "Podcast Sponsor Deliverable Tracker",
+      "description": "Flags sponsor deliverables (read, mention, social post) coming due. Use this if you've ever had a sponsor follow up asking where their promised mention was.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "sponsorship",
+        "deliverables"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/sponsor-deliverable-tracker.yaml"
+    },
+    {
       "id": "ssl-cert-expiry-check",
       "version": 1,
       "name": "SSL Certificate Expiry Check",
@@ -1608,6 +2663,57 @@
         "codex"
       ],
       "path": "jobs/devops/ssl-cert-expiry-check.yaml"
+    },
+    {
+      "id": "staging-prod-config-diff",
+      "version": 1,
+      "name": "Staging vs Production Config Diff",
+      "description": "Diffs environment variable keys between staging and production and flags mismatches. Use this if staging and prod have ever quietly drifted apart until a deploy broke only in one of them.",
+      "category": "devops",
+      "tags": [
+        "config",
+        "environments",
+        "drift"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/staging-prod-config-diff.yaml"
+    },
+    {
+      "id": "stale-deal-nudge",
+      "version": 1,
+      "name": "Stale Deal Nudge",
+      "description": "Finds open pipeline deals nobody's touched in a while. Use this if deals have ever quietly died in \"in progress\" because follow-up only happens when someone remembers.",
+      "category": "sales",
+      "tags": [
+        "sales",
+        "pipeline",
+        "crm"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/sales/stale-deal-nudge.yaml"
     },
     {
       "id": "stale-dependency-pr-nudge",
@@ -1804,6 +2910,104 @@
       "path": "jobs/devops/terraform-drift-check.yaml"
     },
     {
+      "id": "ticket-backlog-aging-check",
+      "version": 1,
+      "name": "Support Ticket Backlog Aging Check",
+      "description": "Checks how many open support tickets have sat unanswered past your SLA window. Use this if tickets have ever quietly aged past their SLA because the backlog view wasn't checked that day.",
+      "category": "support",
+      "tags": [
+        "support",
+        "sla",
+        "tickets"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/ticket-backlog-aging-check.yaml"
+    },
+    {
+      "id": "timezone-meeting-conflict-check",
+      "version": 1,
+      "name": "Timezone Meeting Conflict Check",
+      "description": "Checks tomorrow's meetings against a remote teammate's working hours and flags any that fall outside them. Use this if a meeting has ever gotten scheduled at 11pm for someone across the world without anyone realizing.",
+      "category": "productivity",
+      "tags": [
+        "calendar",
+        "timezone",
+        "meetings"
+      ],
+      "schedule": "0 16 * * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/productivity/timezone-meeting-conflict-check.yaml"
+    },
+    {
+      "id": "tls-cipher-weak-check",
+      "version": 1,
+      "name": "Weak TLS Cipher/Protocol Check",
+      "description": "Checks a host for weak TLS protocol versions or ciphers still enabled. Use this if a legacy protocol has ever stayed enabled for \"just in case\" long after every client that needed it was gone.",
+      "category": "security",
+      "tags": [
+        "security",
+        "tls",
+        "ciphers"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/tls-cipher-weak-check.yaml"
+    },
+    {
+      "id": "trademark-renewal-reminder",
+      "version": 1,
+      "name": "Trademark Renewal Reminder",
+      "description": "Warns you before a trademark registration's renewal deadline. Use this if you've ever let a trademark lapse simply because the renewal date wasn't on anyone's calendar.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "trademark",
+        "ip"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/trademark-renewal-reminder.yaml"
+    },
+    {
       "id": "travel-insurance-expiry-check",
       "version": 1,
       "name": "Travel Insurance Expiry Check",
@@ -1879,6 +3083,54 @@
       "path": "jobs/devops/uptime-ping-check.yaml"
     },
     {
+      "id": "vehicle-maintenance-due-check",
+      "version": 1,
+      "name": "Fleet Vehicle Maintenance Due Check",
+      "description": "Flags fleet vehicles due for scheduled maintenance by date or mileage. Use this if a fleet vehicle has ever broken down on a job because its service interval quietly passed.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "vehicles",
+        "maintenance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/vehicle-maintenance-due-check.yaml"
+    },
+    {
+      "id": "vendor-payment-deadline-reminder",
+      "version": 1,
+      "name": "Event Vendor Payment Deadline Reminder",
+      "description": "Warns you before a vendor deposit or balance payment for an event is due. Use this if a vendor has ever threatened to cancel because a payment deadline slipped past unnoticed.",
+      "category": "events",
+      "tags": [
+        "events",
+        "vendors",
+        "payments"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/events/vendor-payment-deadline-reminder.yaml"
+    },
+    {
       "id": "visa-expiry-check",
       "version": 1,
       "name": "Visa/Residency Document Expiry Check",
@@ -1901,6 +3153,54 @@
         "codex"
       ],
       "path": "jobs/travel/visa-expiry-check.yaml"
+    },
+    {
+      "id": "waf-rule-change-watch",
+      "version": 1,
+      "name": "WAF Rule Change Watch",
+      "description": "Diffs your current WAF rules against a saved baseline and flags drift. Use this if a WAF rule has ever been loosened \"just for testing\" and never put back.",
+      "category": "security",
+      "tags": [
+        "security",
+        "waf",
+        "drift"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/waf-rule-change-watch.yaml"
+    },
+    {
+      "id": "warranty-expiry-reminder",
+      "version": 1,
+      "name": "Warranty Expiry Reminder",
+      "description": "Warns you before an appliance or product warranty expires. Use this if you've ever discovered a warranty lapsed the week before whatever it covered broke.",
+      "category": "home",
+      "tags": [
+        "home",
+        "warranty",
+        "reminder"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/home/warranty-expiry-reminder.yaml"
     },
     {
       "id": "water-intake-reminder",

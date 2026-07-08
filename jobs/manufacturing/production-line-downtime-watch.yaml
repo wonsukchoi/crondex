@@ -1,0 +1,34 @@
+id: production-line-downtime-watch
+version: 1
+name: Production Line Downtime Watch
+description: >
+  Checks how long a production line has been stopped and flags it once it
+  crosses a threshold. Use this if a line has ever sat down far longer
+  than anyone realized because the stoppage alert never made it to the
+  right person.
+category: manufacturing
+tags: [manufacturing, downtime, production]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  status=$(curl -s "{{line_status_api_url}}" | grep -o '"status":"[^"]*"' | head -n1 | cut -d'"' -f4);
+  since=$(curl -s "{{line_status_api_url}}" | grep -o '"status_since":"[^"]*"' | head -n1 | cut -d'"' -f4);
+  if [ "$status" != "stopped" ]; then echo "OK: line {{line_id}} status is $status"; exit 0; fi;
+  since_ts=$(date -d "$since" +%s 2>/dev/null);
+  now_ts=$(date +%s);
+  minutes_down=$(( (now_ts - since_ts) / 60 ));
+  if [ "$minutes_down" -ge "{{threshold_minutes}}" ]; then echo "WARNING: line {{line_id}} stopped for $minutes_down minutes"; exit 1;
+  else echo "OK: line {{line_id}} stopped for $minutes_down minutes (under threshold)"; fi
+variables:
+  line_id:
+    default: "line-1"
+    description: Identifier of the production line, for labeling output.
+  line_status_api_url:
+    default: "https://api.example-mes.com/lines/line-1/status"
+    description: MES/SCADA API endpoint returning status and status_since fields.
+  threshold_minutes:
+    default: 30
+    description: Minutes stopped before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point line_status_api_url at your MES/SCADA system's status endpoint; adjust field names to match its response shape.

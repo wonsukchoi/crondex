@@ -1,0 +1,35 @@
+id: ci-build-time-regression-watch
+version: 1
+name: CI Build Time Regression Watch
+description: >
+  Compares recent CI build durations to a baseline and flags a real
+  slowdown. Use this if build times have ever crept up gradually until a
+  30-second CI run became a 15-minute one.
+category: devops
+tags: [ci, performance, build-time]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check recent CI run durations for {{repo_hint}} over the last
+  {{recent_runs}} runs on the main branch.
+  1. Compute the average duration and compare to the average of the prior
+     {{baseline_runs}} runs.
+  2. Flag a regression of {{threshold_pct}}% or more.
+  3. If flagged, note which stage/job grew the most, if that breakdown is
+     available.
+variables:
+  repo_hint:
+    default: "this repo's CI (GitHub Actions, CircleCI, etc.)"
+    description: Which repo and CI provider to check.
+  recent_runs:
+    default: 10
+    description: Number of recent runs to average for the current period.
+  baseline_runs:
+    default: 30
+    description: Number of prior runs to use as the baseline.
+  threshold_pct:
+    default: 30
+    description: Percent increase in average duration that counts as a regression.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — CI provider APIs vary, and per-stage timing breakdowns need provider-specific parsing.

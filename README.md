@@ -18,21 +18,35 @@ adjusts `schedule`/`variables`, and wires it into whatever scheduler it has.
 
 ## CLI
 
-Not yet published to the npm registry, so `npx crondex` doesn't resolve
-publicly yet — for now, run it from a clone:
+Published on npm as `@wonsukchoi/crondex` (the plain name `crondex` was
+blocked by npm's anti-typosquat check). The command itself is still
+`crondex` once installed — only the package name is scoped:
 
 ```bash
-git clone https://github.com/wonsukchoi/crondex.git && cd crondex
-node bin/crondex.js list                          # browse everything
-node bin/crondex.js list --category devops        # filter by category or --tag
-node bin/crondex.js show backup-reminder          # print one job's YAML
-node bin/crondex.js add backup-reminder --dest ./cron/backup-reminder.yaml
+npx @wonsukchoi/crondex list                          # browse everything
+npx @wonsukchoi/crondex list --category devops        # filter by category or --tag
+npx @wonsukchoi/crondex show backup-reminder          # print one job's YAML
+npx @wonsukchoi/crondex add backup-reminder --dest ./cron/backup-reminder.yaml
+```
+
+Or install once and drop the scope prefix on every call:
+
+```bash
+npm install -g @wonsukchoi/crondex
+crondex list
 ```
 
 `add` copies the job's YAML as-is into your project — it's yours to edit
-from there, same as a `git clone` + copy, just one command. Once this is
-published, the same commands work via `npx crondex ...` with no clone
-needed.
+from there. `npx` always pulls the latest published catalog; a global
+install needs `npm update -g @wonsukchoi/crondex` to see new jobs (`crondex
+list` prints a reminder either way).
+
+A clone works too, no npm required:
+
+```bash
+git clone https://github.com/wonsukchoi/crondex.git && cd crondex
+node bin/crondex.js list
+```
 
 ## Layout
 

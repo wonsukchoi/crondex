@@ -42,7 +42,7 @@ function catalogInfoLine() {
   const viaNpx = process.env.npm_command === "exec";
   const freshness = viaNpx
     ? "running via npx — you're always on the latest catalog."
-    : "running from a local/global install — run `npm update -g crondex` (or re-pull) if new jobs seem missing.";
+    : `running from a local/global install — run \`npm update -g ${PKG.name}\` (or re-pull) if new jobs seem missing.`;
   return `crondex v${PKG.version} — ${CATALOG.count} jobs. ${freshness}`;
 }
 

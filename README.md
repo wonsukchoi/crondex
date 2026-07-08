@@ -101,3 +101,7 @@ Full spec: [`schema/job.schema.json`](schema/job.schema.json).
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`,
 fill it in, `npm run validate && npm run build-catalog`, open a PR.
+
+## License
+
+[MIT](LICENSE)

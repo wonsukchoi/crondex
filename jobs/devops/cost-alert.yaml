@@ -1,0 +1,44 @@
+id: cost-alert
+name: Cloud/API Cost Alert
+description: >
+  Checks recent cloud or API spend against a budget and alerts if over or
+  trending to exceed it.
+category: devops
+tags: [cost, billing, budget]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if command -v aws >/dev/null 2>&1; then
+    start=$(date -d "-{{lookback_days}} days" +%Y-%m-%d 2>/dev/null || date -v-{{lookback_days}}d +%Y-%m-%d);
+    end=$(date +%Y-%m-%d);
+    aws ce get-cost-and-usage --time-period Start=$start,End=$end --granularity DAILY --metrics UnblendedCost 2>/dev/null || echo "aws cost explorer call failed (check credentials/permissions)";
+  elif command -v vercel >/dev/null 2>&1; then
+    vercel billing 2>/dev/null || echo "vercel CLI present but no billing subcommand available";
+  else
+    echo "no supported billing CLI found (aws/vercel) — use agent-prompt mode instead";
+  fi
+prompt: |
+  Check current spend for {{provider_hint}} covering the last {{lookback_days}} days.
+  1. Use whatever billing/cost API, CLI, or dashboard you have access to for this account.
+  2. Compare total spend to the {{budget_usd}} budget.
+  3. If over budget, or on pace to exceed it before the period ends, alert
+     with the overage amount and the top 3 cost drivers.
+  4. If under budget, report spend vs. budget in one line.
+script_note: >
+  `command` dumps raw provider CLI output (AWS/Vercel only) with no budget
+  comparison — parsing arbitrary billing JSON reliably in shell isn't
+  practical. `prompt` works with any provider your agent has access to and
+  does the budget comparison and driver breakdown.
+variables:
+  provider_hint:
+    default: "cloud provider"
+    description: Name the provider/account to check (e.g. "AWS", "Vercel", "OpenAI API").
+  budget_usd:
+    default: 100
+    description: Budget threshold in USD for the lookback window.
+  lookback_days:
+    default: 30
+    description: Rolling window of spend to evaluate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Script mode only covers AWS/Vercel CLIs out of the box; extend `command` for other providers as needed.

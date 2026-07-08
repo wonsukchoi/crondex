@@ -1,0 +1,30 @@
+id: ssl-cert-expiry-check
+name: SSL Certificate Expiry Check
+description: >
+  Checks a host's TLS certificate expiry date and alerts if it's expiring soon.
+category: devops
+tags: [ssl, tls, security, uptime]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  host={{host}}; port={{port}};
+  exp=$(echo | openssl s_client -servername "$host" -connect "$host:$port" 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2);
+  [ -z "$exp" ] && { echo "ERROR: could not fetch certificate for $host:$port"; exit 1; };
+  exp_epoch=$(date -d "$exp" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$exp" +%s);
+  now=$(date +%s);
+  days=$(( (exp_epoch-now)/86400 ));
+  if [ "$days" -lt {{warn_days}} ]; then echo "WARNING: $host cert expires in $days days ($exp)"; exit 1;
+  else echo "OK: $host cert expires in $days days ($exp)"; fi
+variables:
+  host:
+    default: "example.com"
+    description: Hostname to check.
+  port:
+    default: 443
+    description: Port the TLS service listens on.
+  warn_days:
+    default: 14
+    description: Alert if the cert expires within this many days.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token, deterministic — no LLM mode needed for a plain expiry check.

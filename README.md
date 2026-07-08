@@ -38,6 +38,9 @@ crondex/
 | `log-cleanup` | devops | `30 3 * * *` | script |
 | `repo-health-check` | devops | `0 9 * * 1-5` | script + agent-prompt |
 | `backup-reminder` | devops | `0 9 * * *` | script |
+| `ssl-cert-expiry-check` | devops | `0 6 * * *` | script |
+| `uptime-ping-check` | devops | `*/15 * * * *` | script |
+| `cost-alert` | devops | `0 7 * * *` | script + agent-prompt |
 | `daily-standup-summary` | productivity | `0 8 * * 1-5` | script + agent-prompt |
 | `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt only |
 | `weekly-report` | productivity | `0 16 * * 5` | script + agent-prompt |

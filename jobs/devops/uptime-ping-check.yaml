@@ -1,0 +1,23 @@
+id: uptime-ping-check
+name: Uptime Ping Check
+description: >
+  Pings a URL and alerts if it doesn't return a healthy status within a timeout.
+category: devops
+tags: [uptime, monitoring, reliability]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  url={{url}}; timeout={{timeout_seconds}};
+  code=$(curl -o /dev/null -s -w '%{http_code}' --max-time "$timeout" "$url");
+  if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then echo "OK: $url returned $code";
+  else echo "DOWN: $url returned $code"; exit 1; fi
+variables:
+  url:
+    default: "https://example.com"
+    description: URL to check.
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait for a response before treating it as down.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token, deterministic. Run at a tighter interval (e.g. every 5-15 min) for real monitoring.

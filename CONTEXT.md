@@ -1,12 +1,13 @@
 # Context
 
-**Current Task**: Building crondex — public directory of pre-made, agent-editable cron jobs (YAML + catalog.json + CLI), with npm publish as the next step.
+**Current Task**: Growing crondex's job catalog and CLI. Latest published: `@wonsukchoi/crondex@0.8.0`, 150 jobs across 29 categories (all ≥3 jobs deep).
 
 **Key Decisions**:
-- Jobs use `runner: shell | agent-prompt | hybrid` — hybrid ships both a zero-token script and an LLM prompt so users pick token cost vs. detail (see `script_note`).
-- `bin/crondex.js` CLI (list/show/add) is publish-ready; recommend `npx` over global install since it always pulls the latest catalog.
-- MIT licensed; CI validates jobs + catalog freshness on every push/PR.
+- `crondex recommend "<free text>"` added — zero-token weighted keyword match (tags/name+id/category/description) with naive plural stemming, for agents matching "can you do X" to an existing job before writing one from scratch.
+- `scripts/build-catalog.js` now also syncs the job-count/category table in README.md between `<!-- BEGIN/END JOB SUMMARY -->` markers — fixes a bug where the README sat stale at "56 jobs" through 3 catalog-growth commits.
+- Release pattern: add jobs -> `npm run build-catalog && npm run validate` -> commit -> bump `package.json` version -> `npm publish` (dry-run first).
 
 **Next Steps**:
-- npm login confirmed (user: wonsukchoi), name `crondex` is free on the registry — still need: flip `private: true` off in package.json, `npm publish --dry-run` to review, then real `npm publish` after explicit confirmation.
-- Consider adding content/personal job categories.
+- CONTRIBUTING.md / job template doesn't mention `recommend` yet — update if contributors need to know about it.
+- No test coverage beyond schema validation — fine for now (all jobs are inspectable shell/prompt text), revisit if `recommend`'s scoring logic grows more complex.
+- Could keep deepening thin categories or add new ones — no fixed target, driven by user ask each session.

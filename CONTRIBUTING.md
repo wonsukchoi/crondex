@@ -43,6 +43,10 @@ well-formed YAML file plus a regenerated catalog. That's it.
 
 ## What makes a good job
 
+- **Description written for a normal person, not an agent.** One sentence on
+  what it does, one on when you'd want it ("Use this if you ..."). No
+  jargon, no assuming the reader knows what cron is. This is the text
+  someone browsing the catalog actually reads to decide if a job is for them.
 - **Narrow and nameable.** "check X, alert if Y" beats "monitor everything."
 - **Safe by default.** Destructive commands (deletes, sends, force-pushes)
   need a `notes` callout, and ideally a dry-run variable or draft-only mode

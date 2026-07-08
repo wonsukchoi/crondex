@@ -1,0 +1,23 @@
+id: backup-reminder
+name: Backup Freshness Check
+description: >
+  Checks that a backup file/dir was updated recently and alerts if it's stale.
+category: devops
+tags: [backup, reliability, maintenance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  f={{backup_path}}; [ -e "$f" ] || { echo "MISSING: $f not found"; exit 1; };
+  age=$(( ( $(date +%s) - $(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f") ) / 86400 ));
+  if [ "$age" -gt {{max_age_days}} ]; then echo "STALE: $f last updated $age days ago"; exit 1;
+  else echo "OK: $f last updated $age days ago"; fi
+variables:
+  backup_path:
+    default: "./backups/latest.tar.gz"
+    description: File or directory to check the mtime of.
+  max_age_days:
+    default: 1
+    description: Alert if the backup is older than this many days.
+compatible_agents: [generic, claude, codex]
+notes: Exits non-zero on missing/stale so a scheduler can alert on failure. Adjust stat flag for Linux vs macOS if running raw (command above handles both).

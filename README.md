@@ -37,6 +37,7 @@ crondex/
 | `dependency-audit` | devops | `0 8 * * 1` | agent-prompt |
 | `log-cleanup` | devops | `30 3 * * *` | shell |
 | `repo-health-check` | devops | `0 9 * * 1-5` | agent-prompt |
+| `backup-reminder` | devops | `0 9 * * *` | shell |
 | `daily-standup-summary` | productivity | `0 8 * * 1-5` | agent-prompt |
 | `inbox-triage` | productivity | `0 7,13 * * 1-5` | agent-prompt |
 | `weekly-report` | productivity | `0 16 * * 5` | agent-prompt |

@@ -1,0 +1,30 @@
+id: frequent-flyer-miles-expiry
+version: 1
+name: Frequent Flyer Miles Expiry Check
+description: >
+  Warns you before frequent flyer miles or points expire from inactivity.
+  Use this if you've ever lost a stash of miles just because you didn't
+  fly or transact on the account in time.
+category: travel
+tags: [travel, miles, points, loyalty]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry_ts=$(date -d "{{expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{expiry_date}}" +%s);
+  days_left=$(( (expiry_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{program_name}} miles expire in $days_left days ({{expiry_date}})"; exit 1;
+  else echo "OK: {{program_name}} miles expire in $days_left days"; fi
+variables:
+  program_name:
+    default: "your airline program"
+    description: Name of the loyalty program.
+  expiry_date:
+    default: "2027-01-01"
+    description: Date the miles/points are set to expire (YYYY-MM-DD).
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Expiry date is a manual input since most loyalty programs don't expose it via a public API — update expiry_date after checking your account.

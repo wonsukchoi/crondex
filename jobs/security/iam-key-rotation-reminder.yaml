@@ -1,0 +1,27 @@
+id: iam-key-rotation-reminder
+version: 1
+name: IAM Key Rotation Reminder
+description: >
+  Checks how old your IAM access keys are and flags any past your rotation
+  age. Use this if you've ever found a years-old access key still active
+  because nobody was tracking key age.
+category: security
+tags: [security, iam, aws, rotation]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  aws iam list-users --query 'Users[].UserName' --output text | tr '\t' '\n' | while read -r user; do
+    aws iam list-access-keys --user-name "$user" --query 'AccessKeyMetadata[].[AccessKeyId,CreateDate]' --output text | while read -r key created; do
+      created_ts=$(date -d "$created" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "${created%+*}" +%s 2>/dev/null);
+      age_days=$(( (today - created_ts) / 86400 ));
+      if [ "$age_days" -ge "{{max_age_days}}" ]; then echo "WARNING: key $key for user $user is $age_days days old"; fi;
+    done;
+  done
+variables:
+  max_age_days:
+    default: 90
+    description: Key age in days before it's flagged for rotation.
+compatible_agents: [generic, claude, codex]
+notes: Requires AWS CLI with iam:ListUsers and iam:ListAccessKeys permissions.

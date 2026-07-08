@@ -1,0 +1,26 @@
+id: oncall-handoff-reminder
+version: 1
+name: On-call Handoff Reminder
+description: >
+  Nudges outgoing and incoming on-call to sync before the shift changes.
+  Use this if a handoff has ever happened silently and the new on-call
+  found out about an open incident from a page instead of a briefing.
+category: team
+tags: [oncall, handoff, team]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  echo "On-call handoff today: {{outgoing}} -> {{incoming}}. Sync on open incidents, recent alerts, and anything in-flight before {{handoff_time}}."
+variables:
+  outgoing:
+    default: "outgoing on-call"
+    description: Name of the person finishing their on-call shift.
+  incoming:
+    default: "incoming on-call"
+    description: Name of the person starting their on-call shift.
+  handoff_time:
+    default: "10:00"
+    description: Time the handoff should be complete by.
+compatible_agents: [generic, claude, codex]
+notes: Static reminder text — plug in your actual rotation (e.g. pull outgoing/incoming from PagerDuty) if you want it dynamic.

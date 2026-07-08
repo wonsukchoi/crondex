@@ -1,0 +1,43 @@
+id: error-rate-spike-watch
+version: 1
+name: Error Rate Spike Watch
+description: >
+  Checks your error tracker's recent error count against a threshold and
+  flags a spike. Use this if a bad deploy has ever quietly spiked errors
+  for hours before anyone noticed.
+category: devops
+tags: [errors, monitoring, alerting]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "{{sentry_project}}" ]; then
+    count=$(curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/{{sentry_org}}/{{sentry_project}}/events/?statsPeriod=15m" | grep -o '"id"' | wc -l | tr -d ' ');
+    if [ "$count" -ge "{{threshold}}" ]; then echo "WARNING: $count errors in last 15m (threshold {{threshold}})"; exit 1;
+    else echo "OK: $count errors in last 15m"; fi
+  else
+    echo "SENTRY_AUTH_TOKEN or sentry_project not set — use agent-prompt mode instead";
+  fi
+prompt: |
+  Check the error tracker (Sentry, Rollbar, Bugsnag, or whatever this
+  project uses) for {{sentry_project}} over the last 15 minutes.
+  1. Compare current error volume to the typical rate for this time of day.
+  2. If it's spiking (well above {{threshold}} events, or a clear anomaly
+     vs. baseline), alert with the top offending error and when it started.
+  3. If normal, report the count in one line.
+script_note: >
+  `command` only supports Sentry's REST API with a raw event count
+  threshold. `prompt` works with any error tracker and can reason about
+  baseline vs. anomaly instead of a flat threshold.
+variables:
+  sentry_org:
+    default: "your-org"
+    description: Sentry organization slug.
+  sentry_project:
+    default: "your-project"
+    description: Sentry project slug.
+  threshold:
+    default: 50
+    description: Error count in the window that counts as a spike.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Script mode needs SENTRY_AUTH_TOKEN in the environment; scoped read access to project events is enough.

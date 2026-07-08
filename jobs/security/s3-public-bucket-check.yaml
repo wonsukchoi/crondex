@@ -1,0 +1,20 @@
+id: s3-public-bucket-check
+version: 1
+name: S3 Public Bucket Check
+description: >
+  Checks your S3 buckets for public access and flags any that are exposed.
+  Use this if a misconfigured bucket policy has ever quietly made private
+  data public.
+category: security
+tags: [security, s3, aws, exposure]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  aws s3api list-buckets --query 'Buckets[].Name' --output text | tr '\t' '\n' | while read -r bucket; do
+    status=$(aws s3api get-public-access-block --bucket "$bucket" 2>/dev/null);
+    if [ -z "$status" ]; then echo "WARNING: $bucket has no public access block configured"; fi;
+  done
+variables: {}
+compatible_agents: [generic, claude, codex]
+notes: Requires AWS CLI configured with credentials that can call s3api list-buckets and get-public-access-block.

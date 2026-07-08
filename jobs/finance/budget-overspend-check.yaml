@@ -1,0 +1,29 @@
+id: budget-overspend-check
+version: 1
+name: Budget Overspend Check
+description: >
+  Compares this month's spend in a budget category against your limit and
+  warns if you're over. Use this if you set budgets once and then never
+  actually check them until the month's already blown.
+category: finance
+tags: [budget, spending, finance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  spent=$(awk -F, -v month="$(date +%Y-%m)" -v cat="{{category}}" '$1 ~ month && $2 == cat {sum += $3} END {print sum+0}' {{transactions_csv}});
+  limit={{budget_limit}};
+  if awk "BEGIN{exit !($spent >= $limit)}"; then echo "WARNING: {{category}} spend \$$spent has hit/exceeded budget \$$limit this month"; exit 1;
+  else echo "OK: {{category}} spend \$$spent, budget \$$limit"; fi
+variables:
+  transactions_csv:
+    default: "transactions.csv"
+    description: "CSV of transactions with columns: date(YYYY-MM-DD),category,amount."
+  category:
+    default: "dining"
+    description: Budget category to check.
+  budget_limit:
+    default: 300
+    description: Monthly budget limit for this category, in your currency.
+compatible_agents: [generic, claude, codex]
+notes: Expects a plain CSV export; point transactions_csv at wherever your bank/budgeting tool exports to.

@@ -1,0 +1,24 @@
+id: terraform-drift-check
+version: 1
+name: Terraform Drift Check
+description: >
+  Runs a Terraform plan and flags it if there's drift between your state
+  and actual infrastructure. Use this if you've ever had someone click
+  around in a cloud console and quietly break parity with your IaC.
+category: devops
+tags: [terraform, infrastructure, drift]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  cd {{terraform_dir}} && terraform plan -detailed-exitcode -no-color -input=false > /tmp/tf-plan.out 2>&1;
+  code=$?;
+  if [ "$code" -eq 2 ]; then echo "DRIFT DETECTED in {{terraform_dir}}:"; tail -n 40 /tmp/tf-plan.out; exit 1;
+  elif [ "$code" -eq 0 ]; then echo "OK: no drift in {{terraform_dir}}";
+  else echo "ERROR: terraform plan failed"; tail -n 40 /tmp/tf-plan.out; exit 1; fi
+variables:
+  terraform_dir:
+    default: "."
+    description: Path to the Terraform root module to check.
+compatible_agents: [generic, claude, codex]
+notes: Requires terraform CLI and valid provider credentials already configured in the environment.

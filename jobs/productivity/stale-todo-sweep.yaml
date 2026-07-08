@@ -1,0 +1,26 @@
+id: stale-todo-sweep
+version: 1
+name: Stale Todo Sweep
+description: >
+  Finds TODO/FIXME comments in your codebase that have sat untouched for a
+  long time, so you can decide whether to fix, ticket, or delete them. Use
+  this if TODO comments in this repo have basically become permanent decor.
+category: productivity
+tags: [todos, cleanup, code-hygiene]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  grep -rn "TODO\|FIXME" {{search_dir}} --include="*.{{ext}}" 2>/dev/null | while IFS=: read -r file line rest; do
+    last_change=$(git -C {{search_dir}} log -1 --format=%ar -- "$file" 2>/dev/null);
+    echo "$file:$line last touched $last_change: $rest"
+  done
+variables:
+  search_dir:
+    default: "."
+    description: Directory to search for TODO/FIXME comments.
+  ext:
+    default: "js"
+    description: File extension to search (single extension; run multiple copies for multiple languages).
+compatible_agents: [generic, claude, codex]
+notes: The "last touched" date reflects the file's last git change, not the specific TODO line — a big refactor nearby will reset the age even if the TODO itself is old.

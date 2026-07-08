@@ -1,0 +1,33 @@
+id: churn-risk-watch
+version: 1
+name: Churn Risk Watch
+description: >
+  Flags accounts whose usage has dropped off sharply, before they actually
+  cancel. Use this if you only ever find out someone churned after the
+  cancellation email arrives.
+category: growth
+tags: [growth, churn, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review usage/activity data (from {{analytics_hint}} or the database) for
+  paying accounts.
+  1. Compare each account's activity in the last {{recent_days}} days to
+     their prior baseline.
+  2. Flag accounts with a drop of {{drop_threshold_pct}}% or more as churn
+     risks.
+  3. Report the flagged accounts ranked by drop size, with their plan
+     value, so outreach can be prioritized.
+variables:
+  analytics_hint:
+    default: "product analytics tool (e.g. Mixpanel, PostHog, Amplitude)"
+    description: Where usage/activity data lives.
+  recent_days:
+    default: 14
+    description: Recent window to compare against baseline.
+  drop_threshold_pct:
+    default: 50
+    description: Percent drop in activity that counts as churn risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — "baseline vs. recent activity" needs querying an analytics source and judgment on what counts as a meaningful drop.

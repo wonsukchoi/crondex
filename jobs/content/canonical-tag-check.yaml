@@ -1,0 +1,25 @@
+id: canonical-tag-check
+version: 1
+name: Canonical Tag Check
+description: >
+  Checks a list of pages for missing or self-conflicting canonical tags.
+  Use this if a templating bug has ever pointed every page's canonical at
+  the homepage (or nowhere at all) without anyone noticing.
+category: content
+tags: [seo, canonical, content]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS= read -r url; do
+    [ -z "$url" ] && continue;
+    canonical=$(curl -s "$url" | grep -o '<link[^>]*rel=["'"'"']canonical["'"'"'][^>]*>' | grep -o 'href=["'"'"'][^"'"'"']*' | sed 's/href=["'"'"']//');
+    if [ -z "$canonical" ]; then echo "MISSING canonical: $url";
+    elif [ "$canonical" != "$url" ]; then echo "MISMATCH: $url -> $canonical"; fi;
+  done < {{url_list_file}}
+variables:
+  url_list_file:
+    default: "urls.txt"
+    description: Path to a file with one URL per line to check.
+compatible_agents: [generic, claude, codex]
+notes: Flags any canonical that doesn't exactly match the page URL — cross-check mismatches manually since some (e.g. tracking params stripped) are intentional.

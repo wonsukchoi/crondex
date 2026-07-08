@@ -1,0 +1,33 @@
+id: trial-expiring-nudge
+version: 1
+name: Trial Expiring Nudge
+description: >
+  Finds trial users about to expire who haven't upgraded yet, and can
+  draft the nudge email. Use this if trial-to-paid conversion nudges only
+  happen when someone remembers to send them.
+category: growth
+tags: [growth, trials, conversion]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select email, trial_ends_at from users where trial_ends_at between now() and now() + interval '{{lookahead_days}} days' and plan = 'trial';"
+prompt: |
+  Find users whose trial ends within the next {{lookahead_days}} days and
+  who haven't upgraded to a paid plan (query {{database_url}} or the
+  billing system).
+  1. List each user with their trial end date.
+  2. Draft a short, friendly nudge email for each, mentioning what they'd
+     lose access to and a clear upgrade link. Don't send — draft only.
+script_note: >
+  `command` lists trial-ending users from Postgres with zero tokens.
+  `prompt` also drafts the nudge email per user, which needs an LLM.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the users/billing database.
+  lookahead_days:
+    default: 3
+    description: How many days ahead to look for trial expirations.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Script mode assumes a `users` table with `trial_ends_at` and `plan` columns — adjust the query to your schema.

@@ -1,0 +1,22 @@
+id: team-anniversary-reminder
+version: 1
+name: Team Anniversary Reminder
+description: >
+  Reminds you about teammates' birthdays and work anniversaries coming up
+  this week. Use this if you've ever felt bad realizing a work anniversary
+  passed with zero acknowledgment.
+category: team
+tags: [team, birthdays, anniversaries]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%m-%d);
+  end=$(date -d "+7 days" +%m-%d 2>/dev/null || date -v+7d +%m-%d);
+  awk -F, -v today="$today" -v end="$end" '$2 >= today && $2 <= end {print "UPCOMING: " $1 " (" $3 ") on " $2}' {{roster_csv}}
+variables:
+  roster_csv:
+    default: "team-dates.csv"
+    description: "CSV with columns: name,date(MM-DD),type(birthday/anniversary)."
+compatible_agents: [generic, claude, codex]
+notes: Simple string comparison on MM-DD, so it doesn't handle windows spanning year-end (Dec into Jan) correctly — fine for most weeks.

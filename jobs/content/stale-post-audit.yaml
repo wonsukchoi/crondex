@@ -1,0 +1,28 @@
+id: stale-post-audit
+version: 1
+name: Stale Post Audit
+description: >
+  Flags published posts that haven't been touched in a long time, as
+  candidates for a refresh. Use this if old content quietly rots (dead
+  screenshots, outdated advice) while still ranking and getting traffic.
+category: content
+tags: [content, seo, maintenance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review posts/pages under {{content_dir}}.
+  1. For each, find the last modified date (git log or frontmatter date).
+  2. Flag any not updated in more than {{stale_months}} months.
+  3. For the flagged ones, note anything obviously outdated (broken
+     screenshots, version numbers, dead links) if visible in the content.
+  4. Report the list ranked oldest-first.
+variables:
+  content_dir:
+    default: "content/posts"
+    description: Directory containing published content.
+  stale_months:
+    default: 12
+    description: Months since last update before a post is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — "last modified" via git log is easy in shell, but judging what's outdated needs an agent reading the content.

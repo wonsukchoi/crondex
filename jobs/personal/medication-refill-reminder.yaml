@@ -1,0 +1,30 @@
+id: medication-refill-reminder
+version: 1
+name: Medication Refill Reminder
+description: >
+  Reminds you to refill a medication before you run out, based on how many
+  days of supply you have left. Use this if you've ever run out of a
+  prescription over a weekend when the pharmacy's closed.
+category: personal
+tags: [health, medication, reminder]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  runout_ts=$(date -d "{{runout_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{runout_date}}" +%s);
+  days_left=$(( (runout_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{medication_name}} runs out in $days_left days — refill now"; exit 1;
+  else echo "OK: {{medication_name}} has $days_left days left"; fi
+variables:
+  medication_name:
+    default: "your medication"
+    description: Name of the medication to track.
+  runout_date:
+    default: "2026-08-01"
+    description: Date the current supply runs out (YYYY-MM-DD).
+  warn_days:
+    default: 5
+    description: Days before running out to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual runout_date input — update it each time you fill the prescription.

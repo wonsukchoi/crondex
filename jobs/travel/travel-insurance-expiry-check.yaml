@@ -1,0 +1,26 @@
+id: travel-insurance-expiry-check
+version: 1
+name: Travel Insurance Expiry Check
+description: >
+  Warns you if you have an upcoming trip with no travel insurance policy
+  covering it, or a policy expiring before the trip ends. Use this if
+  you've ever booked a trip and only thought about insurance the night before.
+category: travel
+tags: [travel, insurance, documents]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  policy_end_ts=$(date -d "{{policy_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{policy_end_date}}" +%s);
+  trip_end_ts=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  if [ "$policy_end_ts" -lt "$trip_end_ts" ]; then echo "WARNING: travel insurance ends {{policy_end_date}}, before trip ends {{trip_end_date}}"; exit 1;
+  else echo "OK: travel insurance covers the full trip"; fi
+variables:
+  policy_end_date:
+    default: "2026-12-31"
+    description: Date your current travel insurance policy ends (YYYY-MM-DD).
+  trip_end_date:
+    default: "2026-12-31"
+    description: Date your upcoming trip ends (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: Manual date inputs — update policy_end_date and trip_end_date per trip since there's no standard API for insurance policies.

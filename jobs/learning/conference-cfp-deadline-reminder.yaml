@@ -1,0 +1,42 @@
+id: conference-cfp-deadline-reminder
+version: 1
+name: Conference CFP Deadline Reminder
+description: >
+  Warns you before a conference's call-for-papers deadline, and can help
+  draft your talk proposal. Use this if you've ever meant to submit a talk
+  and missed the CFP because you found out a week too late.
+category: learning
+tags: [learning, conference, cfp, career]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{cfp_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{cfp_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ] && [ "$days_left" -ge 0 ]; then echo "WARNING: {{conference_name}} CFP closes in $days_left days ({{cfp_deadline}})"; exit 1;
+  else echo "OK: {{conference_name}} CFP closes in $days_left days"; fi
+prompt: |
+  The CFP for {{conference_name}} closes on {{cfp_deadline}}. Compute days
+  remaining from today.
+  1. If within {{warn_days}} days, flag it clearly.
+  2. Help draft a talk proposal abstract based on {{topic_hint}} — title,
+     3-sentence abstract, and why it fits this conference's audience.
+script_note: >
+  `command` only checks the deadline and warns. `prompt` also drafts a
+  talk proposal abstract, which needs an LLM.
+variables:
+  conference_name:
+    default: "a conference"
+    description: Name of the conference.
+  cfp_deadline:
+    default: "2026-09-01"
+    description: CFP submission deadline (YYYY-MM-DD).
+  warn_days:
+    default: 14
+    description: Days before deadline to start warning.
+  topic_hint:
+    default: "a project or topic you've been working on"
+    description: What you'd want to talk about, for the draft abstract.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Manual cfp_deadline input — update per conference you're tracking.

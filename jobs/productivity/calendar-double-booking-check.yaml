@@ -1,0 +1,21 @@
+id: calendar-double-booking-check
+version: 1
+name: Calendar Double-Booking Check
+description: >
+  Checks today's calendar for overlapping meetings and flags them. Use
+  this if you've ever accepted two invites for the same slot and only
+  noticed when both started ringing.
+category: productivity
+tags: [calendar, meetings, productivity]
+schedule: "0 7 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check today's calendar for overlapping events.
+  1. List all meetings scheduled for today.
+  2. Flag any pair of events whose times overlap.
+  3. For each conflict, report both event names, times, and organizers so
+     it's obvious which one to decline or reschedule.
+variables: {}
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — calendar access is provider-specific (Google Calendar, Outlook, etc.) and typically needs an agent with calendar-tool access.

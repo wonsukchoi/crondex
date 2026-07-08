@@ -1,0 +1,33 @@
+id: fx-rate-watch
+version: 1
+name: FX Rate Watch
+description: >
+  Checks a currency pair's exchange rate and alerts when it crosses a
+  threshold you set. Use this if you're timing a transfer, payment, or
+  purchase around a favorable rate and don't want to check manually every day.
+category: finance
+tags: [finance, currency, fx]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  rate=$(curl -s "https://api.exchangerate.host/latest?base={{from_currency}}&symbols={{to_currency}}" | grep -o '"{{to_currency}}":[0-9.]*' | cut -d: -f2);
+  if [ -z "$rate" ]; then echo "ERROR: could not fetch rate for {{from_currency}}/{{to_currency}}"; exit 1; fi;
+  if awk "BEGIN{exit !($rate {{comparison}} {{target_rate}})}"; then
+    echo "ALERT: {{from_currency}}/{{to_currency}} is $rate ({{comparison}} {{target_rate}})";
+  else echo "OK: {{from_currency}}/{{to_currency}} is $rate"; fi
+variables:
+  from_currency:
+    default: "USD"
+    description: Base currency code.
+  to_currency:
+    default: "EUR"
+    description: Target currency code.
+  target_rate:
+    default: 0.95
+    description: Threshold rate to compare against.
+  comparison:
+    default: "<="
+    description: "Comparison operator for triggering the alert: <=, >=, <, or >."
+compatible_agents: [generic, claude, codex]
+notes: Uses the free exchangerate.host API; swap in another FX API if you need higher rate limits or historical accuracy.

@@ -1,0 +1,30 @@
+id: car-maintenance-due-reminder
+version: 1
+name: Car Maintenance Due Reminder
+description: >
+  Warns you when a car maintenance task (oil change, registration, etc.)
+  is coming due by date. Use this if you've ever found out your
+  registration expired because a sticker in the mail got ignored.
+category: home
+tags: [home, car, maintenance]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{due_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{due_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{task_name}} due in $days_left days ({{due_date}})"; exit 1;
+  else echo "OK: {{task_name}} due in $days_left days"; fi
+variables:
+  task_name:
+    default: "oil change"
+    description: Name of the maintenance task to track.
+  due_date:
+    default: "2026-09-01"
+    description: Date the task is due (YYYY-MM-DD).
+  warn_days:
+    default: 7
+    description: Days before due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: One task per job instance — schedule multiple copies with different task_name/due_date for oil change, registration, inspection, etc.

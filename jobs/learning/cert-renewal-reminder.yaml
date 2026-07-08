@@ -1,0 +1,30 @@
+id: cert-renewal-reminder
+version: 1
+name: Professional Certification Renewal Reminder
+description: >
+  Warns you before a professional certification expires or its renewal
+  window opens. Use this if you've ever let a cert lapse and had to retake
+  an exam that a renewal course would've avoided.
+category: learning
+tags: [learning, certification, renewal]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry_ts=$(date -d "{{expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{expiry_date}}" +%s);
+  days_left=$(( (expiry_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{cert_name}} expires in $days_left days ({{expiry_date}})"; exit 1;
+  else echo "OK: {{cert_name}} expires in $days_left days"; fi
+variables:
+  cert_name:
+    default: "your certification"
+    description: Name of the certification to track.
+  expiry_date:
+    default: "2027-01-01"
+    description: Certification expiry date (YYYY-MM-DD).
+  warn_days:
+    default: 60
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual expiry_date input — update after each renewal cycle.

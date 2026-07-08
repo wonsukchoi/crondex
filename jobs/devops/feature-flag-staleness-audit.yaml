@@ -1,0 +1,30 @@
+id: feature-flag-staleness-audit
+version: 1
+name: Feature Flag Staleness Audit
+description: >
+  Flags feature flags that have been at 100% (or 0%) rollout for a long
+  time and never cleaned up. Use this if your flag list has become a
+  graveyard of decisions nobody removed the scaffolding for.
+category: devops
+tags: [feature-flags, cleanup, tech-debt]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Audit feature flags in {{flag_provider_hint}} (or the flags config file
+  in this repo if flags are managed in code).
+  1. List flags that have been fully rolled out (100%) or fully killed (0%)
+     for more than {{stale_days}} days.
+  2. For each, note whether the flag and its dead branch are still
+     referenced in code.
+  3. Report the list, ranked by how long they've been stale, as candidates
+     for removal.
+variables:
+  flag_provider_hint:
+    default: "LaunchDarkly"
+    description: Name of the feature flag system/provider in use (e.g. LaunchDarkly, Unleash, in-repo config).
+  stale_days:
+    default: 60
+    description: Days at a terminal rollout state before a flag counts as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — flag providers have wildly different APIs, and "still referenced in code" needs a code-aware agent.

@@ -1,0 +1,31 @@
+id: sitemap-freshness-check
+version: 1
+name: Sitemap Freshness Check
+description: >
+  Checks that your sitemap.xml was actually regenerated recently and isn't
+  quietly stuck on an old snapshot. Use this if your sitemap is generated
+  by a build step that's ever silently failed or skipped.
+category: content
+tags: [seo, sitemap, freshness]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  lastmod=$(curl -s {{sitemap_url}} | grep -o '<lastmod>[^<]*' | sed 's/<lastmod>//' | sort -r | head -n1);
+  if [ -z "$lastmod" ]; then echo "WARNING: could not find any <lastmod> entries in {{sitemap_url}}"; exit 1;
+  else
+    lastmod_ts=$(date -d "$lastmod" +%s 2>/dev/null || date -jf "%Y-%m-%d" "${lastmod%%T*}" +%s 2>/dev/null);
+    now_ts=$(date +%s);
+    age_days=$(( (now_ts - lastmod_ts) / 86400 ));
+    if [ "$age_days" -ge "{{max_age_days}}" ]; then echo "WARNING: newest sitemap entry is $age_days days old"; exit 1;
+    else echo "OK: newest sitemap entry is $age_days days old"; fi
+  fi
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: URL of the sitemap to check.
+  max_age_days:
+    default: 14
+    description: Days since the newest lastmod entry before it's flagged stale.
+compatible_agents: [generic, claude, codex]
+notes: Assumes at least one <lastmod> tag exists in the sitemap; sitemap index files with nested sitemaps aren't followed.

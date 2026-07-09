@@ -1,0 +1,29 @@
+id: return-refund-backlog-check
+version: 1
+name: Return/Refund Backlog Check
+description: >
+  Checks how many return/refund requests are sitting unprocessed and flags
+  any past your stated turnaround time. Use this if refund complaints have
+  ever shown up in reviews before anyone internally noticed the backlog.
+category: ecommerce
+tags: [ecommerce, returns, refunds, backlog]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{store_platform}} for return/refund requests still open.
+  1. Total open requests, grouped by how long they've been open.
+  2. Flag any request older than {{turnaround_sla_days}} days as past SLA.
+  3. For past-SLA requests, draft a short customer-facing update
+     apologizing for the delay and giving a status/next step.
+  4. Summarize the most common return reason across the backlog, in case
+     it points to a product quality issue worth escalating.
+variables:
+  store_platform:
+    default: "your storefront/returns platform"
+    description: Name of the platform to check (e.g. "Shopify", "Loop Returns", "Happy Returns").
+  turnaround_sla_days:
+    default: 3
+    description: Your stated turnaround time for processing a return/refund.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review customer-facing messages before sending, especially any that touch on refund amounts or timing promises.

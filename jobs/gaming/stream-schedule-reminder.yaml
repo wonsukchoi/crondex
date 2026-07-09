@@ -1,0 +1,30 @@
+id: stream-schedule-reminder
+version: 1
+name: Stream Schedule Prep Reminder
+description: >
+  Reminds you before a scheduled stream and checks that your streaming
+  software/overlays are up to date. Use this if you've ever gone live late
+  because you were still fighting an OBS update mid-countdown.
+category: gaming
+tags: [streaming, schedule, obs, reminder]
+schedule: "0 * * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  now=$(date +%H:%M);
+  target="{{stream_time}}";
+  echo "Now: $now, next stream: $target on {{stream_days}}.";
+  if command -v obs >/dev/null 2>&1; then
+    obs --version 2>/dev/null || echo "OBS installed but version check failed";
+  else
+    echo "OBS CLI not found on PATH — check your streaming software manually.";
+  fi
+variables:
+  stream_time:
+    default: "18:00"
+    description: Scheduled stream start time (24h, local timezone).
+  stream_days:
+    default: "Mon/Wed/Fri"
+    description: Days you typically stream, for the reminder text.
+compatible_agents: [generic, claude, codex]
+notes: Runs hourly and just prints the target time for a human/agent to compare — wire it to your actual OBS/streaming software's API for a real go/no-go check if available.

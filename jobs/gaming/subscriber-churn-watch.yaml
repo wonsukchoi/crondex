@@ -1,0 +1,39 @@
+id: subscriber-churn-watch
+version: 1
+name: Subscriber/Follower Churn Watch
+description: >
+  Checks your channel's subscriber or follower count trend and flags a
+  meaningful drop so you can investigate before it becomes a pattern. Use
+  this if you've ever noticed a slow bleed of subscribers only after
+  checking your dashboard months later.
+category: gaming
+tags: [streaming, subscribers, churn, analytics]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check subscriber/follower counts for {{channel_name}} on
+  {{platform_name}} for the last {{lookback_weeks}} weeks (via any
+  analytics dashboard or API available).
+  1. Report week-over-week change in subscriber/follower count.
+  2. Flag if this week's net change is negative or more than
+     {{drop_threshold_pct}}% below the recent average.
+  3. If there's a drop, note anything that coincided with it (missed
+     stream days, controversial clip, platform-wide event) if that
+     information is available.
+  4. If growth is healthy, just report the trend in one line.
+variables:
+  channel_name:
+    default: "your channel"
+    description: Channel/handle to check.
+  platform_name:
+    default: "Twitch"
+    description: Platform to check (e.g. "Twitch", "YouTube", "Kick").
+  lookback_weeks:
+    default: 8
+    description: Weeks of history to establish a baseline trend.
+  drop_threshold_pct:
+    default: 15
+    description: Percentage drop below the recent average that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Depends on what the platform's API/dashboard exposes — some platforms require OAuth to pull subscriber history.

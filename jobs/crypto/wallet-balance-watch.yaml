@@ -1,0 +1,37 @@
+id: wallet-balance-watch
+version: 1
+name: Wallet Balance Watch
+description: >
+  Checks a public wallet address's balance and alerts if it drops below a
+  threshold, without needing any private key or exchange API access. Use
+  this if you've ever wanted a heads-up when a hot wallet's gas/funding
+  balance ran low.
+category: crypto
+tags: [crypto, wallet, balance, blockchain]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  balance=$(curl -s "{{rpc_endpoint}}" -X POST -H "Content-Type: application/json" \
+    --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["{{wallet_address}}","latest"],"id":1}' |
+    grep -o '"result":"0x[0-9a-fA-F]*"' | grep -o '0x[0-9a-fA-F]*');
+  if [ -n "$balance" ]; then
+    wei=$((16#${balance#0x}));
+    eth=$(awk -v w="$wei" 'BEGIN{printf "%.6f", w/1000000000000000000}');
+    echo "Balance for {{wallet_address}}: $eth ETH";
+    awk -v bal="$eth" -v min="{{min_balance_eth}}" 'BEGIN{if (bal+0 < min+0) print "LOW BALANCE ALERT: below " min " ETH threshold"}';
+  else
+    echo "Could not fetch balance — check RPC endpoint/address.";
+  fi
+variables:
+  rpc_endpoint:
+    default: "https://eth.llamarpc.com"
+    description: JSON-RPC endpoint for the chain to query (public endpoint by default).
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Public wallet address to monitor.
+  min_balance_eth:
+    default: 0.05
+    description: Balance threshold (in native token units) below which to alert.
+compatible_agents: [generic, claude, codex]
+notes: Read-only — public RPC calls only, no private key or signing involved. Swap the RPC endpoint and unit conversion for other EVM chains as needed.

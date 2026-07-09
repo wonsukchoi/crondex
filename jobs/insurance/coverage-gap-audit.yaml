@@ -1,0 +1,37 @@
+id: coverage-gap-audit
+version: 1
+name: Coverage Gap Audit
+description: >
+  Compares your current insurance policies against a standard coverage
+  checklist for your situation and flags anything missing or underinsured.
+  Use this if you've ever added a policy for one specific thing and never
+  circled back to check the overall picture still made sense.
+category: insurance
+tags: [insurance, coverage, audit, risk]
+schedule: "0 9 1 1,7 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the current policies listed: {{current_policies}}, for a
+  {{profile_type}} profile.
+  1. Compare against a standard coverage checklist for that profile type
+     (e.g. for a homeowner: dwelling, liability, flood/earthquake if
+     applicable, umbrella; for a small business: general liability,
+     property, cyber, workers' comp as relevant).
+  2. Flag anything commonly recommended that's missing entirely.
+  3. Flag any policy whose coverage limit looks low relative to
+     {{asset_value_estimate}} in assets/exposure, with a one-line reason.
+  4. This is a gap-finding pass, not financial/legal advice — say so, and
+     recommend confirming any changes with a licensed agent.
+variables:
+  current_policies:
+    default: "list your current policies and coverage limits here"
+    description: Summary of currently held policies and their limits.
+  profile_type:
+    default: "homeowner"
+    description: Who this audit is for (e.g. "homeowner", "renter", "small business", "landlord").
+  asset_value_estimate:
+    default: "not specified"
+    description: Rough total value of assets/exposure to size coverage against.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: General-knowledge gap-finding only — not a substitute for advice from a licensed insurance professional.

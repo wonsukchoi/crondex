@@ -1,0 +1,32 @@
+id: inventory-waste-log-review
+version: 1
+name: Inventory Waste Log Review
+description: >
+  Reviews the kitchen's waste log for the week and flags which items are
+  being tossed most, in case it's an over-ordering or portioning problem.
+  Use this if food cost keeps creeping up and nobody's sure why.
+category: restaurant
+tags: [inventory, waste, food-cost, kitchen]
+schedule: "0 10 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the waste log for the past {{lookback_days}} days from
+  {{waste_log_source}}.
+  1. Total waste by item (quantity and estimated cost if given).
+  2. Rank the top 5 items by wasted cost.
+  3. For each top item, note the most common waste reason logged (spoilage,
+     over-prep, returned order, etc.) if that field exists.
+  4. Flag any item where waste looks like it's trending up week over week,
+     not just a one-off bad night.
+  5. Suggest one concrete action per top item (reduce par level, tighten
+     portioning, adjust prep timing).
+variables:
+  waste_log_source:
+    default: "your POS/inventory system's waste log"
+    description: Where the waste log lives (e.g. "Toast waste tracking", "a shared spreadsheet").
+  lookback_days:
+    default: 7
+    description: How many days of waste log to review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Quality of the report depends entirely on how consistently staff logs waste — garbage in, garbage out.

@@ -1,0 +1,41 @@
+id: irrigation-schedule-check
+version: 1
+name: Irrigation Need Check
+description: >
+  Checks recent rainfall and forecast against a soil-moisture threshold to
+  tell you whether irrigation is actually needed today. Use this if you've
+  ever watered on a fixed schedule and either wasted water after rain or
+  under-watered during a dry stretch.
+category: agriculture
+tags: [irrigation, water, weather, crops]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check rainfall for the last {{lookback_days}} days and the forecast for
+  the next {{forecast_days}} days at latitude {{latitude}}, longitude
+  {{longitude}} (use any weather API available).
+  1. Sum recent rainfall (inches or mm) and note any significant rain
+     expected soon.
+  2. Compare against the crop's typical weekly water need of
+     {{weekly_need_inches}} inches.
+  3. Recommend: irrigate today, hold off (rain covers it), or irrigate
+     partially — with a one-line reason.
+variables:
+  latitude:
+    default: "40.0"
+    description: Latitude of the field.
+  longitude:
+    default: "-95.0"
+    description: Longitude of the field.
+  lookback_days:
+    default: 7
+    description: Days of rainfall history to sum.
+  forecast_days:
+    default: 3
+    description: Days of forecast to check before recommending irrigation.
+  weekly_need_inches:
+    default: 1.0
+    description: Approximate weekly water requirement for the crop in question.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A simple rainfall-vs-need heuristic — not a substitute for actual soil moisture sensors if you have them wired in.

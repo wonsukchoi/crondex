@@ -1,0 +1,29 @@
+id: health-inspection-prep-reminder
+version: 1
+name: Health Inspection Prep Reminder
+description: >
+  Reminds the team of the standard health-inspection checklist on a
+  recurring basis, not just when an inspection is imminent. Use this if
+  you've ever scrambled the morning an inspector showed up unannounced.
+category: restaurant
+tags: [compliance, health-inspection, checklist, kitchen]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  echo "Weekly health-inspection self-check ({{checklist_path}}):";
+  if [ -f "{{checklist_path}}" ]; then cat "{{checklist_path}}"; else
+  echo "- Fridge/freezer temps logged and in range";
+  echo "- Handwashing stations stocked (soap, towels, signage)";
+  echo "- Food storage labeled with dates, FIFO followed";
+  echo "- No bare-hand contact with ready-to-eat food";
+  echo "- Pest control log up to date";
+  echo "- Cleaning/sanitizing log current";
+  echo "- Employee health/illness policy posted";
+  fi
+variables:
+  checklist_path:
+    default: "./health-inspection-checklist.txt"
+    description: Optional path to your own custom checklist file; falls back to a standard baseline if not found.
+compatible_agents: [generic, claude, codex]
+notes: This is a recurring self-audit reminder, not a substitute for your local health department's actual requirements — adapt the checklist to your jurisdiction.

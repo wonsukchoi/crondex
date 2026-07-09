@@ -1,0 +1,38 @@
+id: abandoned-cart-recovery-check
+version: 1
+name: Abandoned Cart Recovery Check
+description: >
+  Reviews carts abandoned in the last day and drafts recovery emails for
+  ones above a minimum value, instead of relying only on your platform's
+  generic auto-recovery flow. Use this if you've ever suspected your
+  default abandoned-cart email is too generic to convert high-value carts.
+category: ecommerce
+tags: [ecommerce, cart-abandonment, recovery, sales]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{store_platform}} for carts abandoned in the last
+  {{lookback_hours}} hours with a value at or above ${{min_cart_value}}.
+  1. List each cart: items, value, and how long ago it was abandoned.
+  2. Draft a personalized recovery email per cart referencing the actual
+     items (not a generic template), with a mild incentive if
+     {{allow_discount}} is true.
+  3. Flag any cart abandoned at the payment step specifically — these
+     often indicate a checkout friction problem worth investigating
+     separately from lack of interest.
+variables:
+  store_platform:
+    default: "your storefront platform"
+    description: Name of the e-commerce platform (e.g. "Shopify", "WooCommerce", "BigCommerce").
+  lookback_hours:
+    default: 24
+    description: How far back to check for abandoned carts.
+  min_cart_value:
+    default: 50
+    description: Minimum cart value worth a personalized recovery attempt.
+  allow_discount:
+    default: false
+    description: Whether the draft email may offer a discount incentive.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before sending, and check your platform's marketing-consent rules before emailing anyone who didn't opt in.

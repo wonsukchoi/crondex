@@ -1,0 +1,49 @@
+id: smart-contract-upgrade-watch
+version: 1
+name: Smart Contract Upgrade/Deprecation Watch
+description: >
+  Watches a tracked smart contract's on-chain events and any linked
+  project announcements for upgrades, migrations, or deprecation notices.
+  Use this if a protocol you depend on has ever migrated to a new
+  contract address and you found out only after something broke.
+category: crypto
+tags: [crypto, smart-contract, upgrade, monitoring]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  curl -s "{{rpc_endpoint}}" -X POST -H "Content-Type: application/json" \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getCode\",\"params\":[\"{{contract_address}}\",\"latest\"],\"id\":1}" |
+    grep -o '"result":"0x[0-9a-fA-F]*"' | head -c 200
+prompt: |
+  Check contract {{contract_address}} on the relevant chain for recent
+  activity in the last {{lookback_hours}} hours (via a block explorer API
+  or RPC): new admin/upgrade events, proxy implementation changes, or
+  pause events.
+  Also check {{project_announcement_url}} for any migration or
+  deprecation announcement.
+  1. Report whether the contract's bytecode/implementation changed
+     recently (proxy upgrade) or an admin/ownership event fired.
+  2. Summarize any related announcement about migration, deprecation, or
+     a new contract address to switch to.
+  3. If nothing changed, say so in one line.
+script_note: >
+  `command` only confirms the contract still has code deployed at that
+  address — it can't detect proxy upgrades, admin events, or read
+  announcements. `prompt` checks actual upgrade/admin events and
+  cross-references project announcements.
+variables:
+  rpc_endpoint:
+    default: "https://eth.llamarpc.com"
+    description: JSON-RPC endpoint for the chain the contract lives on.
+  contract_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Contract address to monitor.
+  project_announcement_url:
+    default: "https://example.com/blog"
+    description: Project blog/changelog/Twitter URL to check for migration announcements.
+  lookback_hours:
+    default: 6
+    description: How far back to check for on-chain events.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — no private key involved. Proxy-upgrade detection depends on the contract following a common proxy pattern (e.g. EIP-1967); adapt for non-standard contracts.

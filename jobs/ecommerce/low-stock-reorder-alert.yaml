@@ -1,0 +1,33 @@
+id: low-stock-reorder-alert
+version: 1
+name: Low Stock Reorder Alert
+description: >
+  Checks inventory levels against a reorder threshold per SKU and flags
+  anything that needs restocking before it actually sells out. Use this if
+  a bestseller has ever gone out of stock because nobody was watching the
+  count.
+category: ecommerce
+tags: [ecommerce, inventory, stock, reorder]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{lead_time_days}}" '
+    NR==1 {next}
+    {
+      daily_velocity = $3 / 30;
+      days_of_stock = (daily_velocity > 0) ? $2 / daily_velocity : 9999;
+      if (days_of_stock <= days) {
+        printf "REORDER: %s — %d units left, ~%d days of stock at current velocity\n", $1, $2, days_of_stock;
+      }
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./inventory.csv"
+    description: "Path to a CSV with columns: sku,current_stock,units_sold_last_30_days."
+  lead_time_days:
+    default: 14
+    description: Supplier lead time in days — reorder when stock will run out before a new order could arrive.
+compatible_agents: [generic, claude, codex]
+notes: Velocity is a simple 30-day average — swap in a smarter forecast if your product has strong seasonality.

@@ -1,0 +1,35 @@
+id: new-hire-paperwork-check
+version: 1
+name: New Hire Paperwork Completion Check
+description: >
+  Checks which recently started employees still have incomplete
+  onboarding paperwork (I-9, tax forms, benefits enrollment, signed
+  handbook) and flags them before they become a compliance problem. Use
+  this if onboarding paperwork has ever slipped through the cracks past
+  the legal deadline.
+category: hr
+tags: [hr, onboarding, compliance, paperwork]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check onboarding status in {{hris_system}} for anyone who started in the
+  last {{lookback_days}} days.
+  1. For each new hire, list which required documents are still
+     incomplete: {{required_documents}}.
+  2. Flag anyone approaching or past a legal deadline (e.g. I-9 must be
+     completed within 3 business days of start in the US) as urgent.
+  3. Draft a reminder message to the employee and/or their manager for
+     each incomplete item.
+variables:
+  hris_system:
+    default: "your HRIS/onboarding system"
+    description: Name of the HR system to check (e.g. "BambooHR", "Rippling", "Gusto").
+  lookback_days:
+    default: 30
+    description: How far back to check for recent hires.
+  required_documents:
+    default: "I-9, W-4, direct deposit form, benefits enrollment, signed handbook acknowledgment"
+    description: Comma-separated list of documents your onboarding requires.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Legal deadlines for onboarding paperwork vary by country/jurisdiction — confirm the specifics for yours rather than relying on the example given.

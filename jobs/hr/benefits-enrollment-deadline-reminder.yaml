@@ -1,0 +1,34 @@
+id: benefits-enrollment-deadline-reminder
+version: 1
+name: Benefits Open Enrollment Deadline Reminder
+description: >
+  Counts down to the open-enrollment deadline and flags employees who
+  haven't submitted elections yet. Use this if open enrollment has ever
+  closed with people accidentally defaulting to no coverage or last
+  year's plan.
+category: hr
+tags: [hr, benefits, enrollment, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Open enrollment closes on {{enrollment_deadline}}. Check
+  {{benefits_system}} for who has and hasn't submitted elections yet.
+  1. Report days remaining until the deadline.
+  2. List employees with no submitted election.
+  3. If within {{final_warn_days}} days of the deadline, draft an urgent
+     reminder message to the non-responders and, separately, a summary
+     for HR of who still needs a nudge.
+  4. If the deadline has passed, report final completion rate instead.
+variables:
+  enrollment_deadline:
+    default: "YYYY-MM-DD"
+    description: Date open enrollment closes.
+  benefits_system:
+    default: "your benefits administration platform"
+    description: Name of the benefits/HRIS system to check.
+  final_warn_days:
+    default: 5
+    description: Days before deadline to switch from routine reminders to urgent ones.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review reminder messages before sending, especially anything framed as "urgent" to employees.

@@ -1,0 +1,41 @@
+id: weather-frost-alert
+version: 1
+name: Frost/Freeze Risk Alert
+description: >
+  Checks the forecast for your fields and warns if frost or freeze
+  temperatures are coming, so you have time to cover crops or run
+  frost-protection irrigation. Use this if a surprise cold snap has ever
+  cost you a harvest.
+category: agriculture
+tags: [weather, frost, crops, alert]
+schedule: "0 18 * * *"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  curl -s "https://api.open-meteo.com/v1/forecast?latitude={{latitude}}&longitude={{longitude}}&hourly=temperature_2m&forecast_days=2&temperature_unit=fahrenheit" |
+  grep -o '"temperature_2m":\[[^]]*\]' |
+  head -c 2000
+prompt: |
+  Fetch the next 48-hour hourly forecast for latitude {{latitude}}, longitude
+  {{longitude}} (use any weather API available).
+  1. Flag any hour where temperature is forecast at or below
+     {{frost_threshold_f}}°F.
+  2. Note the earliest and coldest such hour.
+  3. Give a plain recommendation: cover crops, run frost irrigation, or no
+     action needed, based on how low and how long the cold spell lasts.
+script_note: >
+  `command` dumps raw hourly temperature numbers with no threshold check or
+  recommendation — you'd still have to scan for the frost hours yourself.
+  `prompt` does the threshold comparison and gives an action recommendation.
+variables:
+  latitude:
+    default: "40.0"
+    description: Latitude of the field/farm location.
+  longitude:
+    default: "-95.0"
+    description: Longitude of the field/farm location.
+  frost_threshold_f:
+    default: 34
+    description: Temperature (°F) at or below which frost risk is a concern.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Uses the free Open-Meteo API in script mode (no key required); swap in your preferred ag-weather provider if you have one.

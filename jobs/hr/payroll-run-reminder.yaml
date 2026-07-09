@@ -1,0 +1,30 @@
+id: payroll-run-reminder
+version: 1
+name: Payroll Run Cutoff Reminder
+description: >
+  Reminds you before the payroll submission cutoff so timesheets and
+  changes get in on time. Use this if payroll has ever run late because a
+  timesheet or new-hire update missed the cutoff by a day.
+category: hr
+tags: [payroll, hr, reminder, deadline]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%d);
+  cutoff="{{cutoff_day_of_month}}";
+  if [ "$today" -ge $((cutoff - {{warn_days_before}})) ] && [ "$today" -le "$cutoff" ]; then
+    echo "PAYROLL CUTOFF APPROACHING: due on day $cutoff of this month, today is day $today.";
+    echo "Checklist: timesheets submitted, new hires entered, terminations processed, PTO adjustments logged.";
+  else
+    echo "No payroll cutoff in the warning window today.";
+  fi
+variables:
+  cutoff_day_of_month:
+    default: 25
+    description: Day of the month payroll submissions are due.
+  warn_days_before:
+    default: 3
+    description: How many days before the cutoff to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a fixed monthly cutoff day — adjust the command or add a variable if your payroll provider uses a different schedule (biweekly, semi-monthly).

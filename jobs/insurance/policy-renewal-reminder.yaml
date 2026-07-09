@@ -1,0 +1,35 @@
+id: policy-renewal-reminder
+version: 1
+name: Policy Renewal Reminder
+description: >
+  Warns you before an insurance policy's renewal date so you have time to
+  shop around or review coverage, instead of auto-renewing on autopilot.
+  Use this if you've ever realized a policy renewed months ago at a higher
+  rate without you noticing.
+category: insurance
+tags: [insurance, renewal, policy, reminder]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "RENEWAL DUE: %s renews %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{policies_csv_path}}"
+variables:
+  policies_csv_path:
+    default: "./insurance-policies.csv"
+    description: "Path to a CSV with columns: policy_name,renewal_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before renewal to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Maintain the CSV manually or export it from whatever policy-management tool/broker portal you use.

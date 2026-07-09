@@ -1,0 +1,36 @@
+id: equipment-maintenance-due-reminder
+version: 1
+name: Farm Equipment Maintenance Due Reminder
+description: >
+  Tracks engine hours or mileage against manufacturer service intervals for
+  tractors and other equipment, and warns when service is coming due. Use
+  this if equipment has ever broken down mid-season because a service
+  interval slipped by.
+category: agriculture
+tags: [equipment, maintenance, tractor, service]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{service_interval_hours}}" -v warn="{{warn_hours_before}}" '
+    NR==1 {next}
+    {
+      hours_since_service = $2 - $3;
+      hours_until_due = interval - hours_since_service;
+      if (hours_until_due <= warn) {
+        printf "DUE SOON: %s — %d hrs since last service, %d hrs until next service\n", $1, hours_since_service, hours_until_due;
+      }
+    }
+  ' "{{equipment_hours_csv_path}}"
+variables:
+  equipment_hours_csv_path:
+    default: "./equipment-hours.csv"
+    description: "Path to a CSV with columns: equipment_name,current_hours,last_service_hours."
+  service_interval_hours:
+    default: 250
+    description: Manufacturer-recommended engine hours between services.
+  warn_hours_before:
+    default: 25
+    description: How many hours before the interval to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a manually or telematics-updated CSV of current engine hours per machine — point it at whatever export your equipment's system provides.

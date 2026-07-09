@@ -1,0 +1,32 @@
+id: reservation-noshow-deposit-check
+version: 1
+name: Reservation No-Show Pattern Check
+description: >
+  Reviews recent reservation no-shows and flags parties/times where
+  no-shows cluster, so you know whether a deposit or confirmation-call
+  policy would help. Use this if a certain night or party size keeps
+  costing you empty tables.
+category: restaurant
+tags: [reservations, no-show, hospitality]
+schedule: "0 11 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull reservation data from {{reservation_system}} for the past
+  {{lookback_days}} days.
+  1. Calculate the overall no-show rate.
+  2. Break it down by day of week, time slot, and party size — flag any
+     segment with a no-show rate meaningfully above the overall average.
+  3. List repeat no-show guests (2+ in the window) by name/phone if
+     available.
+  4. Recommend whether a deposit or confirmation-text policy is warranted
+     for the flagged segments specifically, rather than restaurant-wide.
+variables:
+  reservation_system:
+    default: "your reservation platform"
+    description: Name of the reservation system (e.g. "OpenTable", "Resy", "Tock").
+  lookback_days:
+    default: 30
+    description: Window of reservation history to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — any policy change (deposits, blocklisting repeat no-shows) is a business decision for a human to make.

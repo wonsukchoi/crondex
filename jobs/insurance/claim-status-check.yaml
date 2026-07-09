@@ -1,0 +1,30 @@
+id: claim-status-check
+version: 1
+name: Open Claim Status Check
+description: >
+  Checks the status of any open insurance claims and flags ones that
+  haven't moved in a while. Use this if a claim has ever gone quiet for
+  weeks because nobody was following up with the adjuster.
+category: insurance
+tags: [insurance, claims, follow-up]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the status of each open claim listed: {{open_claims}} (via the
+  insurer's portal, email correspondence, or whatever access is
+  available).
+  1. Report current status and last update date for each.
+  2. Flag any claim with no status change in more than
+     {{stale_after_days}} days as needing follow-up.
+  3. Draft a short follow-up message to the adjuster for each stale claim,
+     referencing the claim number and asking for a status update.
+variables:
+  open_claims:
+    default: "list your open claim numbers here"
+    description: Comma-separated list of open claim numbers/references to track.
+  stale_after_days:
+    default: 14
+    description: Days without a status update before a claim counts as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before sending anything to an adjuster or insurer.

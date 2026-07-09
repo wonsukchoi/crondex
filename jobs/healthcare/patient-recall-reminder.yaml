@@ -1,0 +1,34 @@
+id: patient-recall-reminder
+version: 1
+name: Patient Recall Reminder
+description: >
+  Finds patients due (or overdue) for a routine checkup, cleaning, or
+  screening and lists them for outreach. Use this if recall/recare lists
+  pile up and patients quietly fall off the schedule for a year or more.
+category: healthcare
+tags: [patients, recall, checkup, outreach]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Check {{scheduling_system}} for patients whose last visit for
+  "{{recall_type}}" was more than {{recall_interval_months}} months ago and
+  who have no future appointment booked.
+  1. List each patient, their last visit date, and how overdue they are.
+  2. Sort by most overdue first.
+  3. Draft a short recall message per patient (or a template if the list is
+     long) inviting them to book.
+  4. Call out anyone more than double the recall interval overdue — these
+     are the ones most at risk of having left the practice entirely.
+variables:
+  scheduling_system:
+    default: "your scheduling/EHR system"
+    description: Name of the scheduling or EHR system to check.
+  recall_type:
+    default: "annual checkup"
+    description: What kind of visit this recall tracks (e.g. "dental cleaning", "annual physical", "eye exam").
+  recall_interval_months:
+    default: 12
+    description: How many months between visits before someone counts as due.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — outreach messages should be reviewed by staff before sending, and must follow your practice's patient communication/compliance policy.

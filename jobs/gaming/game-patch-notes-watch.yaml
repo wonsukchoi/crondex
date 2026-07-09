@@ -1,0 +1,39 @@
+id: game-patch-notes-watch
+version: 1
+name: Game Patch Notes Watch
+description: >
+  Checks whether any game you regularly stream or play competitively has
+  shipped a new patch, and summarizes what changed. Use this if you've
+  ever gone live only to discover mid-stream that a balance patch dropped
+  and your strategies are stale.
+category: gaming
+tags: [gaming, patch-notes, updates, competitive]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  for url in {{patch_notes_urls}}; do
+    echo "--- $url ---";
+    curl -s -A "Mozilla/5.0" "$url" | grep -io '<title>[^<]*</title>' | head -1;
+  done
+prompt: |
+  Check each of these patch-notes sources for updates published in the
+  last {{lookback_hours}} hours: {{patch_notes_urls}}.
+  1. For any source with a new patch, summarize the top 3-5 changes most
+     relevant to competitive play or content strategy (balance changes,
+     new content, meta-shifting changes) — skip pure bugfix trivia.
+  2. Note the patch version/date.
+  3. If nothing new, say so in one line per source.
+script_note: >
+  `command` just fetches each page's title to spot an update, with no
+  actual summary of what changed — you'd still have to read the patch
+  notes yourself. `prompt` reads and summarizes the meaningful changes.
+variables:
+  patch_notes_urls:
+    default: "https://www.leagueoflegends.com/en-us/news/tags/patch-notes/"
+    description: Space-separated list of patch-notes page URLs to watch.
+  lookback_hours:
+    default: 24
+    description: How recent a patch needs to be to count as "new."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Works best for games with a stable patch-notes URL/RSS feed; some publishers gate notes behind launcher clients instead of a webpage.

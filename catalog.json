@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 150,
+  "count": 174,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -52,6 +52,33 @@
       "path": "jobs/security/2fa-enrollment-audit.yaml"
     },
     {
+      "id": "abandoned-cart-recovery-check",
+      "version": 1,
+      "name": "Abandoned Cart Recovery Check",
+      "description": "Reviews carts abandoned in the last day and drafts recovery emails for ones above a minimum value, instead of relying only on your platform's generic auto-recovery flow. Use this if you've ever suspected your default abandoned-cart email is too generic to convert high-value carts.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "cart-abandonment",
+        "recovery",
+        "sales"
+      ],
+      "schedule": "0 10 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/ecommerce/abandoned-cart-recovery-check.yaml"
+    },
+    {
       "id": "ad-spend-pacing-check",
       "version": 1,
       "name": "Ad Spend Pacing Check",
@@ -100,6 +127,33 @@
         "codex"
       ],
       "path": "jobs/devops/api-rate-limit-check.yaml"
+    },
+    {
+      "id": "appointment-no-show-follow-up",
+      "version": 1,
+      "name": "Appointment No-Show Follow-Up",
+      "description": "Reviews yesterday's no-show appointments and drafts a follow-up message offering to rebook. Use this if you've ever let a missed appointment go quiet and lost the patient/client entirely instead of just rebooking them.",
+      "category": "healthcare",
+      "tags": [
+        "appointments",
+        "no-show",
+        "patients",
+        "scheduling"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/appointment-no-show-follow-up.yaml"
     },
     {
       "id": "assignment-grading-backlog-check",
@@ -174,6 +228,33 @@
         "codex"
       ],
       "path": "jobs/devops/backup-reminder.yaml"
+    },
+    {
+      "id": "benefits-enrollment-deadline-reminder",
+      "version": 1,
+      "name": "Benefits Open Enrollment Deadline Reminder",
+      "description": "Counts down to the open-enrollment deadline and flags employees who haven't submitted elections yet. Use this if open enrollment has ever closed with people accidentally defaulting to no coverage or last year's plan.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "benefits",
+        "enrollment",
+        "deadline"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hr/benefits-enrollment-deadline-reminder.yaml"
     },
     {
       "id": "bill-due-reminder",
@@ -548,6 +629,32 @@
       "path": "jobs/devops/ci-build-time-regression-watch.yaml"
     },
     {
+      "id": "claim-status-check",
+      "version": 1,
+      "name": "Open Claim Status Check",
+      "description": "Checks the status of any open insurance claims and flags ones that haven't moved in a while. Use this if a claim has ever gone quiet for weeks because nobody was following up with the adjuster.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "claims",
+        "follow-up"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/insurance/claim-status-check.yaml"
+    },
+    {
       "id": "conference-cfp-deadline-reminder",
       "version": 1,
       "name": "Conference CFP Deadline Reminder",
@@ -673,6 +780,33 @@
         "codex"
       ],
       "path": "jobs/learning/course-progress-checkin.yaml"
+    },
+    {
+      "id": "coverage-gap-audit",
+      "version": 1,
+      "name": "Coverage Gap Audit",
+      "description": "Compares your current insurance policies against a standard coverage checklist for your situation and flags anything missing or underinsured. Use this if you've ever added a policy for one specific thing and never circled back to check the overall picture still made sense.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "coverage",
+        "audit",
+        "risk"
+      ],
+      "schedule": "0 9 1 1,7 *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/insurance/coverage-gap-audit.yaml"
     },
     {
       "id": "crosspost-lag-check",
@@ -1123,6 +1257,31 @@
       "path": "jobs/podcast/episode-publish-gap-check.yaml"
     },
     {
+      "id": "equipment-maintenance-due-reminder",
+      "version": 1,
+      "name": "Farm Equipment Maintenance Due Reminder",
+      "description": "Tracks engine hours or mileage against manufacturer service intervals for tractors and other equipment, and warns when service is coming due. Use this if equipment has ever broken down mid-season because a service interval slipped by.",
+      "category": "agriculture",
+      "tags": [
+        "equipment",
+        "maintenance",
+        "tractor",
+        "service"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/agriculture/equipment-maintenance-due-reminder.yaml"
+    },
+    {
       "id": "error-rate-spike-watch",
       "version": 1,
       "name": "Error Rate Spike Watch",
@@ -1469,6 +1628,59 @@
       "path": "jobs/finance/fx-rate-watch.yaml"
     },
     {
+      "id": "game-patch-notes-watch",
+      "version": 1,
+      "name": "Game Patch Notes Watch",
+      "description": "Checks whether any game you regularly stream or play competitively has shipped a new patch, and summarizes what changed. Use this if you've ever gone live only to discover mid-stream that a balance patch dropped and your strategies are stale.",
+      "category": "gaming",
+      "tags": [
+        "gaming",
+        "patch-notes",
+        "updates",
+        "competitive"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/gaming/game-patch-notes-watch.yaml"
+    },
+    {
+      "id": "gas-price-alert",
+      "version": 1,
+      "name": "Gas Price Alert",
+      "description": "Checks current network gas price and alerts when it drops below your target, so you can time a planned transaction instead of overpaying during a busy window. Use this if you've ever paid 5x normal gas because you executed at a random moment instead of waiting.",
+      "category": "crypto",
+      "tags": [
+        "crypto",
+        "gas",
+        "ethereum",
+        "blockchain"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/crypto/gas-price-alert.yaml"
+    },
+    {
       "id": "grant-deadline-reminder",
       "version": 1,
       "name": "Grant Deadline Reminder",
@@ -1566,6 +1778,31 @@
         "codex"
       ],
       "path": "jobs/hospitality/health-inspection-due-reminder.yaml"
+    },
+    {
+      "id": "health-inspection-prep-reminder",
+      "version": 1,
+      "name": "Health Inspection Prep Reminder",
+      "description": "Reminds the team of the standard health-inspection checklist on a recurring basis, not just when an inspection is imminent. Use this if you've ever scrambled the morning an inspector showed up unannounced.",
+      "category": "restaurant",
+      "tags": [
+        "compliance",
+        "health-inspection",
+        "checklist",
+        "kitchen"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/health-inspection-prep-reminder.yaml"
     },
     {
       "id": "hreflang-audit",
@@ -1741,6 +1978,33 @@
       "path": "jobs/inventory/inventory-count-discrepancy-check.yaml"
     },
     {
+      "id": "inventory-waste-log-review",
+      "version": 1,
+      "name": "Inventory Waste Log Review",
+      "description": "Reviews the kitchen's waste log for the week and flags which items are being tossed most, in case it's an over-ordering or portioning problem. Use this if food cost keeps creeping up and nobody's sure why.",
+      "category": "restaurant",
+      "tags": [
+        "inventory",
+        "waste",
+        "food-cost",
+        "kitchen"
+      ],
+      "schedule": "0 10 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/inventory-waste-log-review.yaml"
+    },
+    {
       "id": "invoice-overdue-check",
       "version": 1,
       "name": "Invoice Overdue Check",
@@ -1763,6 +2027,33 @@
         "codex"
       ],
       "path": "jobs/finance/invoice-overdue-check.yaml"
+    },
+    {
+      "id": "irrigation-schedule-check",
+      "version": 1,
+      "name": "Irrigation Need Check",
+      "description": "Checks recent rainfall and forecast against a soil-moisture threshold to tell you whether irrigation is actually needed today. Use this if you've ever watered on a fixed schedule and either wasted water after rain or under-watered during a dry stretch.",
+      "category": "agriculture",
+      "tags": [
+        "irrigation",
+        "water",
+        "weather",
+        "crops"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "America/Chicago",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/agriculture/irrigation-schedule-check.yaml"
     },
     {
       "id": "k8s-pod-restart-watch",
@@ -1885,6 +2176,31 @@
       "path": "jobs/devops/license-compliance-check.yaml"
     },
     {
+      "id": "license-credential-expiry-check",
+      "version": 1,
+      "name": "Staff License/Credential Expiry Check",
+      "description": "Checks a tracked list of staff licenses, certifications, or credentials (e.g. nursing license, CPR cert, DEA registration) and warns before any expire. Use this if you've ever had a provider accidentally see patients on a lapsed license or certification.",
+      "category": "healthcare",
+      "tags": [
+        "compliance",
+        "licensing",
+        "credentials",
+        "staff"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/license-credential-expiry-check.yaml"
+    },
+    {
       "id": "log-cleanup",
       "version": 1,
       "name": "Old Log File Cleanup",
@@ -1954,6 +2270,31 @@
         "codex"
       ],
       "path": "jobs/inventory/low-stock-alert.yaml"
+    },
+    {
+      "id": "low-stock-reorder-alert",
+      "version": 1,
+      "name": "Low Stock Reorder Alert",
+      "description": "Checks inventory levels against a reorder threshold per SKU and flags anything that needs restocking before it actually sells out. Use this if a bestseller has ever gone out of stock because nobody was watching the count.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "inventory",
+        "stock",
+        "reorder"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/low-stock-reorder-alert.yaml"
     },
     {
       "id": "meal-plan-reminder",
@@ -2053,6 +2394,33 @@
         "codex"
       ],
       "path": "jobs/finance/net-worth-snapshot.yaml"
+    },
+    {
+      "id": "new-hire-paperwork-check",
+      "version": 1,
+      "name": "New Hire Paperwork Completion Check",
+      "description": "Checks which recently started employees still have incomplete onboarding paperwork (I-9, tax forms, benefits enrollment, signed handbook) and flags them before they become a compliance problem. Use this if onboarding paperwork has ever slipped through the cracks past the legal deadline.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "onboarding",
+        "compliance",
+        "paperwork"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hr/new-hire-paperwork-check.yaml"
     },
     {
       "id": "offer-expiry-reminder",
@@ -2225,6 +2593,33 @@
       "path": "jobs/travel/passport-expiry-check.yaml"
     },
     {
+      "id": "patient-recall-reminder",
+      "version": 1,
+      "name": "Patient Recall Reminder",
+      "description": "Finds patients due (or overdue) for a routine checkup, cleaning, or screening and lists them for outreach. Use this if recall/recare lists pile up and patients quietly fall off the schedule for a year or more.",
+      "category": "healthcare",
+      "tags": [
+        "patients",
+        "recall",
+        "checkup",
+        "outreach"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/patient-recall-reminder.yaml"
+    },
+    {
       "id": "payroll-run-reminder",
       "version": 1,
       "name": "Payroll Run Reminder",
@@ -2247,6 +2642,31 @@
         "codex"
       ],
       "path": "jobs/finance/payroll-run-reminder.yaml"
+    },
+    {
+      "id": "payroll-run-reminder",
+      "version": 1,
+      "name": "Payroll Run Cutoff Reminder",
+      "description": "Reminds you before the payroll submission cutoff so timesheets and changes get in on time. Use this if payroll has ever run late because a timesheet or new-hire update missed the cutoff by a day.",
+      "category": "hr",
+      "tags": [
+        "payroll",
+        "hr",
+        "reminder",
+        "deadline"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hr/payroll-run-reminder.yaml"
     },
     {
       "id": "permit-expiry-check",
@@ -2295,6 +2715,31 @@
         "codex"
       ],
       "path": "jobs/home/plant-watering-reminder.yaml"
+    },
+    {
+      "id": "policy-renewal-reminder",
+      "version": 1,
+      "name": "Policy Renewal Reminder",
+      "description": "Warns you before an insurance policy's renewal date so you have time to shop around or review coverage, instead of auto-renewing on autopilot. Use this if you've ever realized a policy renewed months ago at a higher rate without you noticing.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "renewal",
+        "policy",
+        "reminder"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/policy-renewal-reminder.yaml"
     },
     {
       "id": "portfolio-rebalance-check",
@@ -2638,6 +3083,59 @@
       "path": "jobs/hospitality/reservation-noshow-check.yaml"
     },
     {
+      "id": "reservation-noshow-deposit-check",
+      "version": 1,
+      "name": "Reservation No-Show Pattern Check",
+      "description": "Reviews recent reservation no-shows and flags parties/times where no-shows cluster, so you know whether a deposit or confirmation-call policy would help. Use this if a certain night or party size keeps costing you empty tables.",
+      "category": "restaurant",
+      "tags": [
+        "reservations",
+        "no-show",
+        "hospitality"
+      ],
+      "schedule": "0 11 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/reservation-noshow-deposit-check.yaml"
+    },
+    {
+      "id": "return-refund-backlog-check",
+      "version": 1,
+      "name": "Return/Refund Backlog Check",
+      "description": "Checks how many return/refund requests are sitting unprocessed and flags any past your stated turnaround time. Use this if refund complaints have ever shown up in reviews before anyone internally noticed the backlog.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "returns",
+        "refunds",
+        "backlog"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/ecommerce/return-refund-backlog-check.yaml"
+    },
+    {
       "id": "review-request-nudge",
       "version": 1,
       "name": "Review Request Nudge",
@@ -2956,6 +3454,34 @@
       "path": "jobs/support/sla-breach-warning.yaml"
     },
     {
+      "id": "smart-contract-upgrade-watch",
+      "version": 1,
+      "name": "Smart Contract Upgrade/Deprecation Watch",
+      "description": "Watches a tracked smart contract's on-chain events and any linked project announcements for upgrades, migrations, or deprecation notices. Use this if a protocol you depend on has ever migrated to a new contract address and you found out only after something broke.",
+      "category": "crypto",
+      "tags": [
+        "crypto",
+        "smart-contract",
+        "upgrade",
+        "monitoring"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/crypto/smart-contract-upgrade-watch.yaml"
+    },
+    {
       "id": "smoke-detector-battery-check",
       "version": 1,
       "name": "Smoke Detector Battery Check Reminder",
@@ -3178,6 +3704,58 @@
         "codex"
       ],
       "path": "jobs/productivity/stale-todo-sweep.yaml"
+    },
+    {
+      "id": "stream-schedule-reminder",
+      "version": 1,
+      "name": "Stream Schedule Prep Reminder",
+      "description": "Reminds you before a scheduled stream and checks that your streaming software/overlays are up to date. Use this if you've ever gone live late because you were still fighting an OBS update mid-countdown.",
+      "category": "gaming",
+      "tags": [
+        "streaming",
+        "schedule",
+        "obs",
+        "reminder"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "America/Los_Angeles",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/gaming/stream-schedule-reminder.yaml"
+    },
+    {
+      "id": "subscriber-churn-watch",
+      "version": 1,
+      "name": "Subscriber/Follower Churn Watch",
+      "description": "Checks your channel's subscriber or follower count trend and flags a meaningful drop so you can investigate before it becomes a pattern. Use this if you've ever noticed a slow bleed of subscribers only after checking your dashboard months later.",
+      "category": "gaming",
+      "tags": [
+        "streaming",
+        "subscribers",
+        "churn",
+        "analytics"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/Los_Angeles",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/gaming/subscriber-churn-watch.yaml"
     },
     {
       "id": "subscription-audit",
@@ -3617,6 +4195,31 @@
       "path": "jobs/security/waf-rule-change-watch.yaml"
     },
     {
+      "id": "wallet-balance-watch",
+      "version": 1,
+      "name": "Wallet Balance Watch",
+      "description": "Checks a public wallet address's balance and alerts if it drops below a threshold, without needing any private key or exchange API access. Use this if you've ever wanted a heads-up when a hot wallet's gas/funding balance ran low.",
+      "category": "crypto",
+      "tags": [
+        "crypto",
+        "wallet",
+        "balance",
+        "blockchain"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/crypto/wallet-balance-watch.yaml"
+    },
+    {
       "id": "warranty-expiry-reminder",
       "version": 1,
       "name": "Warranty Expiry Reminder",
@@ -3663,6 +4266,34 @@
         "codex"
       ],
       "path": "jobs/personal/water-intake-reminder.yaml"
+    },
+    {
+      "id": "weather-frost-alert",
+      "version": 1,
+      "name": "Frost/Freeze Risk Alert",
+      "description": "Checks the forecast for your fields and warns if frost or freeze temperatures are coming, so you have time to cover crops or run frost-protection irrigation. Use this if a surprise cold snap has ever cost you a harvest.",
+      "category": "agriculture",
+      "tags": [
+        "weather",
+        "frost",
+        "crops",
+        "alert"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "America/Chicago",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/agriculture/weather-frost-alert.yaml"
     },
     {
       "id": "weekly-report",

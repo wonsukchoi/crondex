@@ -1,0 +1,32 @@
+id: appointment-no-show-follow-up
+version: 1
+name: Appointment No-Show Follow-Up
+description: >
+  Reviews yesterday's no-show appointments and drafts a follow-up message
+  offering to rebook. Use this if you've ever let a missed appointment go
+  quiet and lost the patient/client entirely instead of just rebooking them.
+category: healthcare
+tags: [appointments, no-show, patients, scheduling]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull yesterday's appointments from {{scheduling_system}} and find any marked
+  no-show or cancelled-late.
+  1. For each, note the patient/client name, appointment type, and provider.
+  2. Draft a short, warm follow-up message (SMS or email length) offering to
+     rebook, without shaming them for missing it.
+  3. Flag anyone with 2+ no-shows in the last {{lookback_days}} days
+     separately — practices often want a different (firmer) policy for
+     repeat no-shows.
+  4. Output as a list ready for staff to review and send — do not send
+     anything automatically.
+variables:
+  scheduling_system:
+    default: "your scheduling/EHR system"
+    description: Name of the scheduling or EHR system to check (e.g. "Epic", "Calendly", "SimplePractice").
+  lookback_days:
+    default: 90
+    description: Window to check for repeat no-show patterns.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — never send messages automatically. Confirm HIPAA/compliance rules for your practice before wiring this to an agent with system access.

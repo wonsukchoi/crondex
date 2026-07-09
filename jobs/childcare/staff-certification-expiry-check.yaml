@@ -1,0 +1,35 @@
+id: staff-certification-expiry-check
+version: 1
+name: Childcare Staff Certification Expiry Check
+description: >
+  Checks staff CPR/first-aid and other required childcare certifications
+  and warns before any expire. Use this if a licensing inspection has ever
+  been the first place a lapsed certification got noticed, instead of
+  catching it with time to renew.
+category: childcare
+tags: [childcare, staff, certification, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "EXPIRING: %s — %s expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{staff_certs_csv_path}}"
+variables:
+  staff_certs_csv_path:
+    default: "./staff-certifications.csv"
+    description: "Path to a CSV with columns: staff_name,cert_type (e.g. CPR, first-aid, mandated reporter),expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before a certification expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Required certification types vary by state/licensing body — confirm your jurisdiction's list rather than assuming CPR/first-aid is the whole requirement.

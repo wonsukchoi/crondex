@@ -1,0 +1,36 @@
+id: facility-cleaning-log-check
+version: 1
+name: Facility Cleaning Log Check
+description: >
+  Checks that scheduled cleaning tasks (equipment wipe-down, locker rooms,
+  floors) were actually logged as done today. Use this if a cleaning
+  checklist has ever gone unfilled for a shift because it lived on a
+  clipboard nobody was checking.
+category: fitness
+tags: [fitness, cleaning, facility, compliance]
+schedule: "0 21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  missing=$(awk -F',' -v today="$today" -v tasks="{{required_tasks}}" '
+    BEGIN { n = split(tasks, req, ","); }
+    $2 == today { done[$1] = 1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        t = req[i];
+        gsub(/^ +| +$/, "", t);
+        if (!(t in done)) print "NOT LOGGED TODAY: " t;
+      }
+    }
+  ' "{{cleaning_log_csv_path}}");
+  if [ -n "$missing" ]; then echo "$missing"; exit 1; else echo "OK: all required cleaning tasks logged today"; fi
+variables:
+  cleaning_log_csv_path:
+    default: "./cleaning-log.csv"
+    description: "Path to a CSV with columns: task_name,completed_date (YYYY-MM-DD)."
+  required_tasks:
+    default: "equipment wipe-down, locker rooms, floors, restrooms"
+    description: Comma-separated list of tasks that must be logged each day.
+compatible_agents: [generic, claude, codex]
+notes: Only as reliable as whoever fills in the log — pair with a physical walk-through periodically to spot-check that logged-done actually means done.

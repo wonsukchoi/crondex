@@ -1,0 +1,30 @@
+id: surgery-prep-check
+version: 1
+name: Surgery Prep Check
+description: >
+  Checks tomorrow's scheduled surgeries for missing pre-op bloodwork or
+  signed consent forms. Use this if a surgery has ever had to be
+  rescheduled the morning of because consent wasn't signed or bloodwork
+  hadn't been run, and nobody checked the night before.
+category: veterinary
+tags: [veterinary, surgery, pre-op, consent]
+schedule: "0 17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  tomorrow=$(date -d "+1 day" +%Y-%m-%d 2>/dev/null || date -v+1d +%Y-%m-%d);
+  awk -F',' -v tomorrow="$tomorrow" '
+    NR==1 {next}
+    $2 == tomorrow {
+      missing = "";
+      if ($3 != "done") missing = missing " bloodwork";
+      if ($4 != "signed") missing = missing " consent";
+      if (missing != "") printf "NOT READY: %s (%s) — missing:%s\n", $1, $5, missing;
+    }
+  ' "{{surgery_schedule_csv_path}}"
+variables:
+  surgery_schedule_csv_path:
+    default: "./surgery-schedule.csv"
+    description: "Path to a CSV with columns: pet_name,surgery_date (YYYY-MM-DD),bloodwork_status (done/pending),consent_status (signed/pending),owner_name."
+compatible_agents: [generic, claude, codex]
+notes: Run this the evening before so there's still time to call the owner and get bloodwork done or consent signed before the surgery slot.

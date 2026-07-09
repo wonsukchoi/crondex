@@ -1,0 +1,35 @@
+id: cycle-count-schedule-check
+version: 1
+name: Cycle Count Schedule Adherence Check
+description: >
+  Checks whether scheduled cycle counts actually happened on time, zone by
+  zone. Use this if a cycle count program has ever quietly stopped
+  happening for a whole section of the warehouse because nobody was
+  tracking adherence to the schedule itself, only the count results.
+category: warehousing
+tags: [warehousing, cycle-count, schedule, inventory]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{overdue_after_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_count_epoch; close(cmd);
+      age_days = (today - last_count_epoch) / 86400;
+      if (age_days >= days) {
+        printf "OVERDUE: zone %s — last counted %s (%d days ago)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{cycle_count_log_csv_path}}"
+variables:
+  cycle_count_log_csv_path:
+    default: "./cycle-count-log.csv"
+    description: "Path to a CSV with columns: zone_name,last_count_date (YYYY-MM-DD)."
+  overdue_after_days:
+    default: 30
+    description: Days since the last cycle count before a zone counts as overdue for its next one.
+compatible_agents: [generic, claude, codex]
+notes: This checks schedule adherence only — pair with `inventory-count-discrepancy-check` for what the counts themselves turn up.

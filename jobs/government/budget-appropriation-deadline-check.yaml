@@ -1,0 +1,35 @@
+id: budget-appropriation-deadline-check
+version: 1
+name: Budget Appropriation Submission Deadline Check
+description: >
+  Warns you before an agency's budget appropriation submission is due.
+  Use this if a department has ever missed its window to request funding
+  for the next cycle because the internal deadline snuck up during budget
+  season chaos.
+category: government
+tags: [government, budget, appropriation, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "SUBMISSION DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{budget_deadlines_csv_path}}"
+variables:
+  budget_deadlines_csv_path:
+    default: "./budget-deadlines.csv"
+    description: "Path to a CSV with columns: department_name,submission_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 21
+    description: How many days before the submission deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep department names distinct if you're tracking multiple agencies' cycles in one CSV — otherwise run one instance of this job per department.

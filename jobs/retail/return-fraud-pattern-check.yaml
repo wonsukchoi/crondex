@@ -1,0 +1,39 @@
+id: return-fraud-pattern-check
+version: 1
+name: Return Fraud Pattern Check
+description: >
+  Checks recent returns for patterns that look like abuse — the same
+  customer returning unusually often, or a spike in receiptless returns —
+  instead of treating every return as an isolated, no-questions-asked
+  event. Use this if return fraud has ever quietly eaten margin for
+  months because nobody was looking at returns in aggregate.
+category: retail
+tags: [retail, returns, fraud, loss-prevention]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_returns="{{max_returns_per_customer}}" '
+    NR==1 {next}
+    { count[$2]++; if ($3 == "no-receipt") noreceipt++; total++ }
+    END {
+      for (cust in count) {
+        if (count[cust] >= max_returns) {
+          printf "FREQUENT RETURNER: %s — %d returns in the period\n", cust, count[cust];
+        }
+      }
+      if (total > 0) {
+        pct = (noreceipt / total) * 100;
+        printf "no-receipt returns: %.0f%% of %d total\n", pct, total;
+      }
+    }
+  ' "{{returns_csv_path}}"
+variables:
+  returns_csv_path:
+    default: "./returns-log.csv"
+    description: "Path to a CSV with columns: return_id,customer_identifier,receipt_status (receipt/no-receipt) — one row per return in the period."
+  max_returns_per_customer:
+    default: 5
+    description: Number of returns from the same customer in the period that counts as worth a closer look.
+compatible_agents: [generic, claude, codex]
+notes: A flagged pattern is a prompt to look closer, not proof of fraud — plenty of frequent returners are just picky shoppers, not scammers.

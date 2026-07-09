@@ -1,0 +1,36 @@
+id: gift-card-liability-reconciliation-check
+version: 1
+name: Gift Card Liability Reconciliation Check
+description: >
+  Compares your POS's outstanding gift card balance against your
+  accounting ledger and flags a mismatch. Use this if outstanding gift
+  card liability has ever drifted out of sync with your books for months
+  before anyone reconciled it at year-end and found a gap.
+category: retail
+tags: [retail, gift-cards, reconciliation, finance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  pos="{{pos_outstanding_balance_usd}}";
+  ledger="{{ledger_outstanding_balance_usd}}";
+  tolerance="{{tolerance_usd}}";
+  diff=$(awk -v p="$pos" -v l="$ledger" 'BEGIN{d=p-l; if (d<0) d=-d; printf "%.2f", d}');
+  if awk -v d="$diff" -v t="$tolerance" 'BEGIN{exit !(d > t)}'; then
+    echo "MISMATCH: POS shows \$$pos outstanding, ledger shows \$$ledger (diff \$$diff)";
+    exit 1;
+  else
+    echo "OK: POS and ledger outstanding gift card balances match within tolerance";
+  fi
+variables:
+  pos_outstanding_balance_usd:
+    default: 0
+    description: Total outstanding gift card balance per your POS system's report.
+  ledger_outstanding_balance_usd:
+    default: 0
+    description: Total outstanding gift card liability per your accounting ledger.
+  tolerance_usd:
+    default: 25.00
+    description: Acceptable discrepancy in dollars before flagging.
+compatible_agents: [generic, claude, codex]
+notes: A growing gap over several months usually points at a systemic sync issue between POS and accounting, not a one-time error — worth escalating rather than just re-running this each month.

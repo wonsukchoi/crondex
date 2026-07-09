@@ -1,0 +1,35 @@
+id: enrollment-waitlist-followup-check
+version: 1
+name: Enrollment Waitlist Follow-Up Check
+description: >
+  Flags waitlisted families who haven't been contacted in a while, so a
+  spot doesn't go unfilled because nobody worked down the list. Use this
+  if an opening has ever sat empty for weeks while a waitlisted family who
+  would've taken it never got a call.
+category: childcare
+tags: [childcare, waitlist, enrollment, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{stale_after_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "waiting" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_contact_epoch; close(cmd);
+      age_days = (today - last_contact_epoch) / 86400;
+      if (age_days >= days) {
+        printf "STALE: %s — last contacted %s (%d days ago)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{waitlist_csv_path}}"
+variables:
+  waitlist_csv_path:
+    default: "./enrollment-waitlist.csv"
+    description: "Path to a CSV with columns: family_name,last_contacted_date (YYYY-MM-DD),status (waiting/enrolled/withdrawn)."
+  stale_after_days:
+    default: 30
+    description: Days since last contact before a waitlisted family counts as due for a check-in.
+compatible_agents: [generic, claude, codex]
+notes: A family that's gone quiet on a stale waitlist entry may have already enrolled elsewhere — a check-in also keeps the waitlist itself accurate.

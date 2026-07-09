@@ -1,0 +1,36 @@
+id: estimate-approval-followup-check
+version: 1
+name: Repair Estimate Approval Follow-Up Check
+description: >
+  Flags repair estimates sent to a customer that haven't been approved
+  yet, so the car doesn't sit untouched while a text goes unanswered. Use
+  this if a vehicle has ever taken up a bay for days because nobody
+  followed up on an estimate the customer never actually saw or responded
+  to.
+category: automotive
+tags: [automotive, repair-shop, estimate, followup]
+schedule: "0 9,15 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v hours="{{followup_after_hours}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      age_hours = (today - sent_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "NO RESPONSE: RO %s — estimate sent %s (%d hrs ago)\n", $1, $2, age_hours;
+      }
+    }
+  ' "{{estimates_csv_path}}"
+variables:
+  estimates_csv_path:
+    default: "./repair-estimates.csv"
+    description: "Path to a CSV with columns: ro_number,sent_at (YYYY-MM-DD HH:MM),status (pending/approved/declined)."
+  followup_after_hours:
+    default: 24
+    description: Hours an estimate can sit with no response before it counts as needing a follow-up call.
+compatible_agents: [generic, claude, codex]
+notes: Follow up by phone or text once flagged — this job only surfaces the gap, it doesn't contact the customer.

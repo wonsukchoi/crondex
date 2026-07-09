@@ -1,0 +1,36 @@
+id: forklift-inspection-check
+version: 1
+name: Forklift Daily Safety Inspection Check
+description: >
+  Checks that each forklift's required daily pre-use inspection was
+  actually logged today. Use this if a forklift has ever been operated
+  on a shift with no inspection logged, which is exactly what an OSHA
+  audit will ask to see records of.
+category: warehousing
+tags: [warehousing, forklift, safety, compliance]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  missing=$(awk -F',' -v today="$today" -v fleet="{{forklift_ids}}" '
+    BEGIN { n = split(fleet, ids, ","); }
+    $2 == today { logged[$1] = 1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        id = ids[i];
+        gsub(/^ +| +$/, "", id);
+        if (!(id in logged)) print "NOT INSPECTED TODAY: " id;
+      }
+    }
+  ' "{{inspection_log_csv_path}}");
+  if [ -n "$missing" ]; then echo "$missing"; exit 1; else echo "OK: all forklifts inspected today"; fi
+variables:
+  inspection_log_csv_path:
+    default: "./forklift-inspection-log.csv"
+    description: "Path to a CSV with columns: forklift_id,inspection_date (YYYY-MM-DD)."
+  forklift_ids:
+    default: "FL-1,FL-2"
+    description: Comma-separated list of forklift IDs that must each have a logged inspection today.
+compatible_agents: [generic, claude, codex]
+notes: A forklift with a failed inspection item should be pulled from service immediately — this job only checks that the inspection was logged, not what it found.

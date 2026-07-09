@@ -1,0 +1,35 @@
+id: vehicle-pickup-reminder
+version: 1
+name: Finished Vehicle Pickup Reminder
+description: >
+  Flags vehicles marked ready for pickup that the customer hasn't
+  collected yet, so the lot doesn't fill up with finished cars nobody's
+  chasing. Use this if a completed car has ever sat in the lot for a week
+  because the "ready" call was made once and then forgotten.
+category: automotive
+tags: [automotive, repair-shop, pickup, customer]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "ready" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline ready_epoch; close(cmd);
+      age_days = (today - ready_epoch) / 86400;
+      if (age_days >= days) {
+        printf "NOT PICKED UP: RO %s — ready since %s (%d days)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{repair_orders_csv_path}}"
+variables:
+  repair_orders_csv_path:
+    default: "./repair-orders-status.csv"
+    description: "Path to a CSV with columns: ro_number,ready_date (YYYY-MM-DD),status (ready/picked-up)."
+  warn_days_before:
+    default: 2
+    description: Days a finished vehicle can sit before it counts as overdue for pickup.
+compatible_agents: [generic, claude, codex]
+notes: A car sitting too long after completion can also mean unpaid storage/labor charges piling up — worth a call, not just a lot walk-through.

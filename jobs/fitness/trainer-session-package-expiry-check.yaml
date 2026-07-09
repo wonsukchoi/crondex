@@ -1,0 +1,35 @@
+id: trainer-session-package-expiry-check
+version: 1
+name: Trainer Session Package Expiry Check
+description: >
+  Flags members with a paid personal-training session package that's
+  expiring soon with sessions still unused. Use this if a client has ever
+  paid for ten sessions, used three, and let the rest expire because
+  nobody nudged them to book before the window closed.
+category: fitness
+tags: [fitness, personal-training, sessions, expiry]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 > 0 {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "EXPIRING: %s — %d session(s) left, expires %s (%d days)\n", $1, $4, $3, diff_days;
+      }
+    }
+  ' "{{packages_csv_path}}"
+variables:
+  packages_csv_path:
+    default: "./training-packages.csv"
+    description: "Path to a CSV with columns: member_name,package_size,expiry_date (YYYY-MM-DD),sessions_remaining."
+  warn_days_before:
+    default: 14
+    description: How many days before expiry to start warning, while there's still time to book remaining sessions.
+compatible_agents: [generic, claude, codex]
+notes: An expiring package with several sessions left is also a good moment to offer an extension or renewal, not just a "use it or lose it" notice.

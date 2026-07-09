@@ -1,0 +1,39 @@
+id: public-meeting-notice-compliance-check
+version: 1
+name: Public Meeting Notice Compliance Check
+description: >
+  Checks that an upcoming public meeting's notice was posted with enough
+  lead time to meet open-meetings law requirements. Use this if a meeting
+  has ever gotten challenged, or had to be redone, because notice went out
+  a day late.
+category: government
+tags: [government, open-meetings, notice, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  meeting_epoch=$(date -d "{{meeting_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{meeting_date}}" +%s);
+  now_epoch=$(date +%s);
+  days_until=$(( (meeting_epoch - now_epoch) / 86400 ));
+  if [ ! -f "{{notice_posted_marker}}" ]; then
+    if [ "$days_until" -le "{{required_notice_days}}" ]; then
+      echo "COMPLIANCE RISK: meeting on {{meeting_date}} is in $days_until days with no notice-posted marker found (requires {{required_notice_days}} days notice)";
+      exit 1;
+    else
+      echo "OK: meeting is $days_until days out, still within the notice window";
+    fi
+  else
+    echo "OK: notice marker found for meeting on {{meeting_date}}";
+  fi
+variables:
+  meeting_date:
+    default: "YYYY-MM-DD"
+    description: Date of the upcoming public meeting.
+  required_notice_days:
+    default: 3
+    description: Minimum days of advance notice required by your jurisdiction's open-meetings law.
+  notice_posted_marker:
+    default: "./notice-posted.marker"
+    description: Path to a file you create once notice has actually been posted (physically and/or online) — its existence is the "done" signal.
+compatible_agents: [generic, claude, codex]
+notes: Required notice periods and posting locations vary significantly by state/locality — confirm your specific statute rather than relying on the example default.

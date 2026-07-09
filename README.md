@@ -91,13 +91,13 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-257 jobs across 44 categories:
+271 jobs across 44 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agriculture` | 5 | Farm operations — weather risk, irrigation, equipment, market prices. |
-| `automotive` | 3 | Repair shop workflow — repair orders, parts, loaners. |
-| `childcare` | 3 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `automotive` | 5 | Repair shop workflow — repair orders, parts, loaners. |
+| `childcare` | 5 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `construction` | 5 | Job site compliance — permits, inspections, change orders, rentals. |
 | `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `creator` | 5 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
@@ -107,10 +107,10 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `education` | 5 | Classroom ops — grading, attendance, deadlines, permission slips. |
 | `events` | 5 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `finance` | 10 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
-| `fitness` | 3 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fitness` | 5 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 5 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
 | `gaming` | 5 | Streaming and community server ops — schedules, patches, tournaments. |
-| `government` | 3 | Public-sector ops — records requests, permits, constituent casework. |
+| `government` | 5 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 5 | Lifecycle marketing — churn, trials, onboarding, reviews. |
 | `healthcare` | 5 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 5 | Recruiting pipeline — candidates, offers, interviews, reqs. |
@@ -131,14 +131,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
 | `realestate` | 5 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 5 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
-| `retail` | 3 | Store ops — till reconciliation, opening checklist, scheduling. |
+| `retail` | 5 | Store ops — till reconciliation, opening checklist, scheduling. |
 | `sales` | 5 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
 | `support` | 5 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 5 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `travel` | 5 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `veterinary` | 3 | Clinic ops for animals — vaccines, controlled substances, boarding. |
-| `warehousing` | 3 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |
+| `veterinary` | 5 | Clinic ops for animals — vaccines, controlled substances, boarding. |
+| `warehousing` | 5 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |
 <!-- END JOB SUMMARY -->
 
 ---

@@ -1,0 +1,46 @@
+id: appointment-no-show-tracker
+version: 1
+name: Appointment No-Show & Late-Cancel Tracker
+description: >
+  Flags clients who no-showed or cancelled late in the past window so front
+  desk can follow up or apply a policy. Use this if a chair or treatment
+  room has ever sat empty because a client skipped without warning and
+  nobody noticed the pattern until it kept happening.
+category: spa
+tags: [spa, appointments, no-show, front-desk]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{lookback_days}}" -v threshold="{{repeat_threshold}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - appt_epoch) / 86400;
+      if (diff_days >= 0 && diff_days <= days && ($3 == "no-show" || $3 == "late-cancel")) {
+        count[$1]++;
+        printf "FLAGGED: %s — %s on %s\n", $1, $3, $2;
+      }
+    }
+    END {
+      for (client in count) {
+        if (count[client] >= threshold) {
+          printf "REPEAT OFFENDER: %s — %d no-show/late-cancel(s) in last %d days\n", client, count[client], days;
+        }
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./appointments.csv"
+    description: "Path to a CSV with columns: client_name,appointment_date (YYYY-MM-DD),status (no-show,late-cancel,completed,etc)."
+  lookback_days:
+    default: 30
+    description: How many days back to scan for no-shows and late cancels.
+  repeat_threshold:
+    default: 2
+    description: Number of no-show/late-cancel incidents in the lookback window before flagging a client as a repeat offender.
+compatible_agents: [generic, claude, codex]
+notes: Repeat offenders are good candidates for a deposit-required or confirm-by-text policy before their next booking.

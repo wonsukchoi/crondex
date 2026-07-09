@@ -1,0 +1,36 @@
+id: circuit-provisioning-order-aging
+version: 1
+name: Circuit Provisioning Order Aging Check
+description: >
+  Flags circuit orders that were placed but never activated within a
+  target number of days. Use this if a provisioning order has ever sat
+  in limbo for weeks because the install date fell through the cracks
+  between sales, the carrier, and the field tech.
+category: telecom
+tags: [telecom, provisioning, circuits, orders]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_to_activate}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline order_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - order_epoch) / 86400;
+      if (age_days >= max_days) {
+        printf "AGING ORDER: %s ordered %s (%d days ago), still not activated\n", $1, $2, age_days;
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./provisioning-orders.csv"
+    description: "Path to a CSV with columns: order_id,order_date (YYYY-MM-DD),activated_date (blank if not yet activated)."
+  max_days_to_activate:
+    default: 21
+    description: Days after order date to flag as aging if still not activated.
+compatible_agents: [generic, claude, codex]
+notes: Assumes order/activation dates are updated in the CSV from your provisioning ticketing system.

@@ -1,0 +1,33 @@
+id: royalty-statement-due-check
+version: 1
+name: Royalty Statement Due Check
+description: >
+  Warns you before a royalty statement and payment is due to an author or
+  co-author. Use this if a royalty statement has ever gone out late (or
+  didn't go out at all) because the payout schedule wasn't tracked anywhere.
+category: publishing
+tags: [publishing, royalties, authors, payments]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: royalty statement for \"" $1 "\" due in " days_left " days (" $2 ")";
+    }
+  ' "{{royalty_schedule_csv}}"
+variables:
+  royalty_schedule_csv:
+    default: "./royalty-schedule.csv"
+    description: "CSV with header row, columns: author_or_title,statement_due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: Days before a statement due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Most contracts pay semiannually or quarterly on fixed dates — keep
+  royalty-schedule.csv in sync with each contract's payout cadence.

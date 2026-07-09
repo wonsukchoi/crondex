@@ -1,0 +1,33 @@
+id: safety-inspection-due-reminder
+version: 1
+name: Health & Safety Inspection Due Reminder
+description: >
+  Warns before a health department, board-of-cosmetology, or fire/safety
+  inspection is expected, based on your jurisdiction's typical interval.
+  Use this if an inspector has ever shown up to a treatment room that
+  wasn't ready because nobody was tracking when the last inspection
+  happened.
+category: spa
+tags: [spa, compliance, inspection, safety]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  last_ts=$(date -d "{{last_inspection_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{last_inspection_date}}" +%s);
+  days_since=$(( (today - last_ts) / 86400 ));
+  days_left=$(( {{typical_interval_days}} - days_since ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: next inspection likely due within $days_left days (last was {{last_inspection_date}})"; exit 1;
+  else echo "OK: next inspection likely due in about $days_left days"; fi
+variables:
+  last_inspection_date:
+    default: "2026-01-01"
+    description: Date of the last health/safety/board inspection (YYYY-MM-DD).
+  typical_interval_days:
+    default: 365
+    description: Typical number of days between inspections in your jurisdiction.
+  warn_days:
+    default: 21
+    description: Days before the estimated next inspection to start warning.
+compatible_agents: [generic, claude, codex]
+notes: This is an estimate based on your jurisdiction's typical cadence, not a confirmed scheduled date — most boards don't publish inspection dates in advance.

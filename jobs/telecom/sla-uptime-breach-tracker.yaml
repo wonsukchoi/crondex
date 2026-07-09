@@ -1,0 +1,36 @@
+id: sla-uptime-breach-tracker
+version: 1
+name: SLA Uptime Breach Tracker
+description: >
+  Compares each customer's measured monthly uptime percentage against
+  their contracted SLA and flags anyone below threshold. Use this if
+  you've ever missed an SLA credit obligation because nobody totaled up
+  the downtime minutes until the customer's lawyer did.
+category: telecom
+tags: [telecom, sla, uptime, contracts]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v default_sla="{{default_sla_pct}}" '
+    NR==1 {next}
+    {
+      customer=$1; measured=$2; contracted=$3;
+      if (contracted == "") contracted = default_sla;
+      if (measured+0 < contracted+0) {
+        printf "SLA BREACH: %s measured %.3f%% uptime, contracted %.3f%%\n", customer, measured, contracted;
+      }
+    }
+  ' "{{uptime_csv_path}}"
+variables:
+  uptime_csv_path:
+    default: "./customer-uptime.csv"
+    description: "Path to a CSV with columns: customer,measured_uptime_pct,contracted_sla_pct (contracted column may be blank to use the default)."
+  default_sla_pct:
+    default: 99.9
+    description: Fallback contracted SLA percentage when a row doesn't specify one.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes measured uptime is exported monthly from your NMS/monitoring
+  platform into the CSV before this runs. Read-only — does not issue
+  SLA credits, just flags who owes one.

@@ -1,0 +1,35 @@
+id: license-renewal-tracker
+version: 1
+name: Esthetician/Cosmetologist License Renewal Tracker
+description: >
+  Warns before a staff member's state license, certification, or
+  continuing-education deadline lapses. Use this if a technician has ever
+  shown up ready to work a shift, only to discover their license expired
+  last month and they can't legally touch a client.
+category: spa
+tags: [spa, licensing, compliance, staff]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "LICENSE EXPIRING: %s (%s) — expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{licenses_csv_path}}"
+variables:
+  licenses_csv_path:
+    default: "./staff-licenses.csv"
+    description: "Path to a CSV with columns: staff_name,license_type,expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before expiry to start warning, leaving time to complete renewal or CE hours.
+compatible_agents: [generic, claude, codex]
+notes: A lapsed license can be a licensing-board violation for both the technician and the business, so warn early enough to complete any required CE hours.

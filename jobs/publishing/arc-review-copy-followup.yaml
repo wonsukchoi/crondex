@@ -1,0 +1,35 @@
+id: arc-review-copy-followup
+version: 1
+name: ARC Review Copy Followup
+description: >
+  Flags reviewers, bloggers, or media contacts who received an advance
+  review copy (ARC) but haven't posted or filed a review within a set
+  window, so a nudge can go out before the publication date. Use this if
+  ARCs have ever been sent out and quietly forgotten with no review to show
+  for them.
+category: publishing
+tags: [publishing, arc, review-copies, marketing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v follow={{followup_days}} '
+    NR>1 && $4 == "no" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline sent_ts; close(cmd);
+      days_since = int((today - sent_ts) / 86400);
+      if (days_since >= follow) print "FOLLOW UP: " $2 " received ARC for \"" $1 "\" " days_since " days ago, no review posted";
+    }
+  ' "{{arc_recipients_csv}}"
+variables:
+  arc_recipients_csv:
+    default: "./arc-recipients.csv"
+    description: "CSV with header row, columns: title,recipient,sent_date(YYYY-MM-DD),review_posted(yes|no)."
+  followup_days:
+    default: 21
+    description: Days after sending an ARC to wait before flagging a followup nudge.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Mark review_posted=yes in arc-recipients.csv as reviews come in so they
+  stop being flagged. Pair with your publicist's contact list export.

@@ -1,0 +1,35 @@
+id: unpaid-invoice-aging-check
+version: 1
+name: Unpaid Invoice Aging Check
+description: >
+  Checks invoices issued after completed jobs against their due date
+  and flags any going unpaid past your collection threshold. Use this
+  if cash has ever gotten tight because completed jobs sat uncollected
+  for weeks with nobody following up on payment.
+category: fieldservice
+tags: [fieldservice, invoicing, collections, aging]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_overdue}}" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= max_days) {
+        printf "AGING: invoice %s for %s — $%s, due %s (%d days overdue)\n", $1, $2, $5, $3, overdue_days;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,customer_name,due_date (YYYY-MM-DD),status (unpaid/paid),amount."
+  max_days_overdue:
+    default: 14
+    description: Days past the due date before an unpaid invoice is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Send a payment reminder or call the customer once flagged — this job only surfaces the aging balance, it doesn't send anything.

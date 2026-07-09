@@ -1,0 +1,35 @@
+id: rights-license-expiry-check
+version: 1
+name: Rights and License Expiry Check
+description: >
+  Warns you before a granted or acquired rights/licensing deal (foreign
+  rights, film/TV options, audio, translation) expires or comes up for
+  renewal. Use this if a rights deal has ever lapsed silently because the
+  expiry date only lived in the signed contract's PDF.
+category: publishing
+tags: [publishing, rights, licensing, contracts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $2 " rights for \"" $1 "\" expire in " days_left " days (" $3 ")";
+    }
+  ' "{{rights_csv}}"
+variables:
+  rights_csv:
+    default: "./rights-licenses.csv"
+    description: "CSV with header row, columns: title,rights_type(foreign|film|audio|translation|other),expiry_date(YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before a rights expiry date to start warning, so renegotiation or renewal can start in time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers both rights you've acquired (e.g. translation rights into a
+  language) and rights you've granted out (e.g. a film option). Keep
+  rights-licenses.csv updated from your contracts database.

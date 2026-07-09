@@ -1,0 +1,26 @@
+id: retail-product-low-stock-check
+version: 1
+name: Retail Product Low-Stock Check
+description: >
+  Scans your retail/backbar inventory log and flags skincare, haircare, or
+  nail products at or below reorder point. Use this if a stylist or
+  esthetician has ever reached for a product mid-service and found the
+  shelf empty because nobody was watching the count.
+category: spa
+tags: [spa, retail, inventory, restock]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2 <= $3 {
+      printf "LOW STOCK: %s — %d on hand, reorder point %d\n", $1, $2, $3;
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./retail-inventory.csv"
+    description: "Path to a CSV with columns: product_name,quantity_on_hand,reorder_point."
+compatible_agents: [generic, claude, codex]
+notes: Pair the reorder point with your supplier's typical lead time so you never hit zero mid-service.

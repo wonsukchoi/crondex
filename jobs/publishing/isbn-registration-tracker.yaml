@@ -1,0 +1,35 @@
+id: isbn-registration-tracker
+version: 1
+name: ISBN Registration Tracker
+description: >
+  Flags upcoming titles that don't yet have an ISBN assigned and registered
+  with the relevant agency, checked against their planned publication date.
+  Use this if a title has ever hit its pub date without an ISBN because
+  registration wasn't started early enough.
+category: publishing
+tags: [publishing, isbn, metadata, pre-press]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead={{lead_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_left = int((pub_ts - today) / 86400);
+      if ($3 == "" && days_left <= lead) print "MISSING ISBN: \"" $1 "\" publishes in " days_left " days (" $2 ") — no ISBN registered";
+    }
+  ' "{{titles_csv}}"
+variables:
+  titles_csv:
+    default: "./upcoming-titles.csv"
+    description: "CSV with header row, columns: title,pub_date(YYYY-MM-DD),isbn(blank if not yet assigned)."
+  lead_days:
+    default: 60
+    description: Days before publication to start warning if an ISBN is still missing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update upcoming-titles.csv as soon as an ISBN is assigned so the title
+  drops off the warning list. Registration lead time varies by agency, so
+  set lead_days to comfortably exceed your agency's typical turnaround.

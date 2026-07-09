@@ -1,0 +1,34 @@
+id: manuscript-deadline-tracker
+version: 1
+name: Manuscript Deadline Tracker
+description: >
+  Flags manuscript milestones (first draft, revisions, final delivery) coming
+  due from authors or editors. Use this if a book has ever slipped its
+  production schedule because a manuscript deadline only lived in an email
+  thread nobody rechecked.
+category: publishing
+tags: [publishing, manuscripts, authors, deadlines]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "DUE SOON: \"" $1 "\" (" $2 ") milestone due in " days_left " days (" $3 ")";
+    }
+  ' "{{manuscripts_csv}}"
+variables:
+  manuscripts_csv:
+    default: "./manuscripts.csv"
+    description: "CSV with header row, columns: title,milestone(draft|revision|final),due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 7
+    description: Days before a milestone due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Keep manuscripts.csv updated with each title's next milestone as it's
+  scheduled or renegotiated with the author/editor.

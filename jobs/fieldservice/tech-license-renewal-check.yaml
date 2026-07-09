@@ -1,0 +1,36 @@
+id: tech-license-renewal-check
+version: 1
+name: Tech License & Certification Renewal Check
+description: >
+  Checks technician licenses and certifications (EPA 608, journeyman
+  electrician, plumbing license) against their expiration date and
+  flags any expiring soon. Use this if a tech has ever been pulled off
+  a job, or a permit rejected, because their certification quietly
+  lapsed without anyone tracking the renewal date.
+category: fieldservice
+tags: [fieldservice, license, certification, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= warn) {
+        printf "RENEWAL NEEDED: %s — %s expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{tech_certifications_csv_path}}"
+variables:
+  tech_certifications_csv_path:
+    default: "./tech-certifications.csv"
+    description: "Path to a CSV with columns: tech_name,certification_type,expiration_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: Days before expiration to start warning, giving time to renew.
+compatible_agents: [generic, claude, codex]
+notes: Confirm renewal requirements with the issuing body (EPA, state licensing board) — this job only tracks the date, it doesn't file anything.

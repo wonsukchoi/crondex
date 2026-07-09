@@ -1,0 +1,45 @@
+id: cpe-firmware-update-tracker
+version: 1
+name: CPE Firmware/Warranty Update Tracker
+description: >
+  Checks deployed customer-premises equipment against current firmware
+  versions and warranty expiry dates, flagging anything out of date or
+  soon out of warranty. Use this if a modem or router has ever been
+  running years-old firmware with a known vulnerability because nobody
+  was tracking the fleet's patch level.
+category: telecom
+tags: [telecom, cpe, firmware, warranty]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target_fw="{{target_firmware_version}}" -v warn_days="{{warranty_warn_days}}" '
+    NR==1 {next}
+    {
+      device=$1; fw=$2; warranty_end=$3;
+      if (fw != target_fw) {
+        printf "OUTDATED FIRMWARE: %s running %s, target is %s\n", device, fw, target_fw;
+      }
+      if (warranty_end != "") {
+        cmd = "date -d \"" warranty_end "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" warranty_end "\" +%s 2>/dev/null";
+        cmd | getline end_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        diff_days = (end_epoch - now_epoch) / 86400;
+        if (diff_days <= warn_days) {
+          printf "WARRANTY EXPIRING: %s warranty ends %s (%d days)\n", device, warranty_end, diff_days;
+        }
+      }
+    }
+  ' "{{cpe_inventory_csv_path}}"
+variables:
+  cpe_inventory_csv_path:
+    default: "./cpe-inventory.csv"
+    description: "Path to a CSV with columns: device_id,firmware_version,warranty_end_date (YYYY-MM-DD, blank if unknown)."
+  target_firmware_version:
+    default: "1.0.0"
+    description: The firmware version the fleet should be running.
+  warranty_warn_days:
+    default: 30
+    description: Days before warranty expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes CPE inventory is exported from your provisioning/asset system into the CSV before this runs.

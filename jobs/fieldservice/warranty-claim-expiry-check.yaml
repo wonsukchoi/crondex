@@ -1,0 +1,35 @@
+id: warranty-claim-expiry-check
+version: 1
+name: Warranty Claim Expiry Check
+description: >
+  Checks open equipment warranty claims (HVAC units, water heaters,
+  appliances) against the manufacturer's filing deadline and flags any
+  about to lapse unfiled. Use this if a claim has ever been denied
+  because it was submitted a day after the manufacturer's window closed.
+category: fieldservice
+tags: [fieldservice, warranty, claims, deadline]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left <= warn) {
+        printf "EXPIRING: claim %s for job %s — due %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{warranty_claims_csv_path}}"
+variables:
+  warranty_claims_csv_path:
+    default: "./warranty-claims.csv"
+    description: "Path to a CSV with columns: claim_id,job_id,filing_deadline (YYYY-MM-DD),status (open/submitted)."
+  warn_days_before:
+    default: 5
+    description: Days before the filing deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Filing windows vary by manufacturer (Carrier, Trane, Rheem, etc.) — keep warranty-claims.csv current from your service management system export.

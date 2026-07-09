@@ -1,0 +1,36 @@
+id: maintenance-contract-renewal-check
+version: 1
+name: Maintenance Contract Renewal Check
+description: >
+  Checks recurring service/maintenance contracts (annual HVAC tune-ups,
+  quarterly plumbing inspections) against their renewal date and flags
+  any coming up so the customer can be rebooked before the contract
+  lapses. Use this if a maintenance customer has ever silently churned
+  because nobody called to renew before the term ran out.
+category: fieldservice
+tags: [fieldservice, maintenance-contract, renewal, recurring-revenue]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline renewal_epoch; close(cmd);
+      days_left = (renewal_epoch - today) / 86400;
+      if (days_left <= warn && days_left >= 0) {
+        printf "RENEWAL DUE: contract %s for %s — renews %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{maintenance_contracts_csv_path}}"
+variables:
+  maintenance_contracts_csv_path:
+    default: "./maintenance-contracts.csv"
+    description: "Path to a CSV with columns: contract_id,customer_name,renewal_date (YYYY-MM-DD),status (active/lapsed/cancelled)."
+  warn_days_before:
+    default: 21
+    description: Days before renewal to start warning, giving time to schedule the visit.
+compatible_agents: [generic, claude, codex]
+notes: Reach out to schedule the renewal visit once flagged — this job only surfaces the upcoming date, it doesn't book anything.

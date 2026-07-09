@@ -1,0 +1,35 @@
+id: unresolved-callback-tracker
+version: 1
+name: Unresolved Callback Tracker
+description: >
+  Flags customer callbacks (a return visit for the same issue within
+  the warranty window) that are still open past a set number of days.
+  Use this if a rework job has ever slipped through the cracks and the
+  customer had to call a second time to get it actually fixed.
+category: fieldservice
+tags: [fieldservice, callback, rework, quality]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_open_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      open_days = (today - reported_epoch) / 86400;
+      if (open_days >= max_days) {
+        printf "STALE CALLBACK: %s — original job %s, open %d days, tech %s\n", $1, $3, open_days, $5;
+      }
+    }
+  ' "{{callbacks_csv_path}}"
+variables:
+  callbacks_csv_path:
+    default: "./callbacks.csv"
+    description: "Path to a CSV with columns: callback_id,reported_date (YYYY-MM-DD),original_job_id,status (open/resolved),assigned_tech."
+  max_open_days:
+    default: 3
+    description: How many days a callback can stay open before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Reassign or escalate the callback once flagged — this job only surfaces aging rework, it doesn't dispatch anyone.

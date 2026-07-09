@@ -1,0 +1,29 @@
+id: parts-low-stock-reorder-check
+version: 1
+name: Parts Low-Stock Reorder Check
+description: >
+  Checks your truck/warehouse parts inventory against reorder thresholds
+  and flags anything running low before a tech shows up on a job without
+  the capacitor or valve they need. Use this if a job has ever been
+  rescheduled because a common part was quietly out of stock.
+category: fieldservice
+tags: [fieldservice, inventory, parts, reorder]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      qty = $2 + 0; reorder_point = $3 + 0;
+      if (qty <= reorder_point) {
+        printf "LOW STOCK: %s — on hand %d (reorder point %d)\n", $1, qty, reorder_point;
+      }
+    }
+  ' "{{parts_inventory_csv_path}}"
+variables:
+  parts_inventory_csv_path:
+    default: "./parts-inventory.csv"
+    description: "Path to a CSV with columns: part_name,quantity_on_hand,reorder_point."
+compatible_agents: [generic, claude, codex]
+notes: Place the reorder with your supplier once flagged — this job only surfaces the shortage, it doesn't place orders.

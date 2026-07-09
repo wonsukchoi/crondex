@@ -1,0 +1,56 @@
+id: service-ticket-churn-risk-review
+version: 1
+name: Service Ticket Churn Risk Review
+description: >
+  Reviews customers with repeated service tickets in a recent window and
+  drafts a churn-risk summary with recommended outreach. Use this if a
+  customer has ever quietly churned after their third outage ticket
+  because nobody connected the dots between separate complaints.
+category: telecom
+tags: [telecom, churn, support, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_tickets="{{min_ticket_count}}" -v days="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline ticket_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - ticket_epoch) / 86400;
+      if (age_days <= days) count[$1]++;
+    }
+    END {
+      for (c in count) if (count[c] >= min_tickets) printf "%s: %d tickets in last %d days\n", c, count[c], days;
+    }
+  ' "{{tickets_csv_path}}"
+prompt: |
+  Here is the customer's recent service ticket history: {{tickets_csv_path}}
+  (columns: customer,ticket_date,issue_summary). Customers with
+  {{min_ticket_count}}+ tickets in the last {{lookback_days}} days are at
+  elevated churn risk.
+  1. For each flagged customer, summarize the pattern of issues (repeat
+     outages, slow speeds, billing disputes, etc.).
+  2. Assess churn risk as low/medium/high based on ticket frequency and
+     issue severity.
+  3. Draft a short, specific outreach note (not generic) that account
+     management could send or use as a call script — reference the actual
+     issues so the customer feels heard, not processed.
+script_note: >
+  The shell command gives you the raw list of customers who crossed the
+  ticket-count threshold — zero tokens, no interpretation. The prompt adds
+  issue-pattern synthesis and drafts the actual outreach message, which
+  needs judgment the script can't provide.
+variables:
+  tickets_csv_path:
+    default: "./service-tickets.csv"
+    description: "Path to a CSV with columns: customer,ticket_date (YYYY-MM-DD),issue_summary."
+  min_ticket_count:
+    default: 3
+    description: Minimum tickets in the lookback window to flag as churn risk.
+  lookback_days:
+    default: 30
+    description: Rolling window, in days, to count tickets within.
+compatible_agents: [claude, codex, hermes, generic]
+notes: Read-only analysis — does not send anything, just prepares the flag list and draft outreach for a human to review and send.

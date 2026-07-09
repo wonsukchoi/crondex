@@ -1,0 +1,37 @@
+id: link-capacity-threshold-alert
+version: 1
+name: Link Capacity Threshold Alert
+description: >
+  Checks a link's current bandwidth utilization against a warning
+  threshold so you can upgrade capacity before customers notice
+  congestion. Use this if a trunk or uplink has ever saturated during
+  peak hours and the first sign anyone saw was a flood of slow-speed
+  complaints.
+category: telecom
+tags: [telecom, bandwidth, capacity, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  util=$(snmpget -v2c -c "{{snmp_community}}" -Ovq "{{link_host}}" "{{snmp_oid}}" 2>/dev/null | tr -d '\r');
+  if [ -z "$util" ]; then echo "no SNMP response from {{link_host}} — check reachability/community string"; exit 0;
+  elif [ "${util%.*}" -ge "{{warn_threshold_pct}}" ]; then echo "WARNING: link {{link_host}} at ${util}% utilization (threshold {{warn_threshold_pct}}%)"; exit 1;
+  else echo "OK: link {{link_host}} at ${util}% utilization"; fi
+variables:
+  link_host:
+    default: "10.0.0.1"
+    description: IP or hostname of the router/switch interface to poll.
+  snmp_community:
+    default: "public"
+    description: SNMP community string (or use SNMPv3 credentials via a wrapper script).
+  snmp_oid:
+    default: "1.3.6.1.2.1.31.1.1.1.6"
+    description: SNMP OID for the interface counter you're tracking utilization from.
+  warn_threshold_pct:
+    default: 85
+    description: Utilization percentage that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `snmpget` (net-snmp) and a readable SNMP OID for the target
+  interface — the default OID is illustrative, replace with the correct
+  ifHCOutOctets/utilization OID for your gear. Read-only poll.

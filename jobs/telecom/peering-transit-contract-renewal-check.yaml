@@ -1,0 +1,36 @@
+id: peering-transit-contract-renewal-check
+version: 1
+name: Peering/Transit Contract Renewal Check
+description: >
+  Checks upstream transit and peering agreements for upcoming renewal or
+  auto-renew deadlines and warns with enough lead time to renegotiate.
+  Use this if a transit contract has ever auto-renewed at last year's
+  rate (or worse) because nobody flagged the deadline until the invoice
+  changed.
+category: telecom
+tags: [telecom, peering, transit, contracts]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline renewal_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (renewal_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days && diff_days >= 0) {
+        printf "RENEWAL DUE: %s (%s) renews/auto-renews %s (%d days)\n", $1, $3, $2, diff_days;
+      }
+    }
+  ' "{{contracts_csv_path}}"
+variables:
+  contracts_csv_path:
+    default: "./transit-peering-contracts.csv"
+    description: "Path to a CSV with columns: provider_name,renewal_date (YYYY-MM-DD),contract_type (transit/peering/IX)."
+  warn_days_before:
+    default: 60
+    description: Days before renewal date to start warning — transit renegotiation needs lead time.
+compatible_agents: [generic, claude, codex]
+notes: Assumes contract renewal dates are manually tracked or exported from a contracts log into the CSV.

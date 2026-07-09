@@ -1,0 +1,38 @@
+id: circuit-outage-detection
+version: 1
+name: Circuit Outage Detection
+description: >
+  Pings each monitored circuit endpoint and flags any that are down.
+  Use this if a customer circuit has ever gone dark and nobody on your
+  team noticed until the customer called in.
+category: telecom
+tags: [telecom, outage, monitoring, circuits]
+schedule: "*/5 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  down=0;
+  while IFS=',' read -r circuit_id endpoint _rest; do
+    [ "$circuit_id" = "circuit_id" ] && continue;
+    [ -z "$endpoint" ] && continue;
+    if ! ping -c "{{ping_count}}" -W "{{ping_timeout_sec}}" "$endpoint" >/dev/null 2>&1; then
+      echo "DOWN: circuit $circuit_id ($endpoint) is not responding";
+      down=1;
+    fi;
+  done < "{{circuits_csv_path}}";
+  if [ "$down" -eq 0 ]; then echo "OK: all monitored circuits responding"; else exit 1; fi
+variables:
+  circuits_csv_path:
+    default: "./circuits.csv"
+    description: "Path to a CSV with columns: circuit_id,endpoint (IP or hostname to ping)."
+  ping_count:
+    default: 2
+    description: Number of ping probes per circuit before declaring it down.
+  ping_timeout_sec:
+    default: 3
+    description: Timeout in seconds per ping probe.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses ICMP ping as a cheap reachability check — swap in an SNMP or NMS API
+  poll if your circuits are behind firewalls that block ICMP. Read-only,
+  no state changes.

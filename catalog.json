@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 347,
+  "count": 375,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -231,6 +231,56 @@
         "generic"
       ],
       "path": "jobs/healthcare/appointment-no-show-follow-up.yaml"
+    },
+    {
+      "id": "appointment-no-show-tracker",
+      "version": 1,
+      "name": "Appointment No-Show & Late-Cancel Tracker",
+      "description": "Flags clients who no-showed or cancelled late in the past window so front desk can follow up or apply a policy. Use this if a chair or treatment room has ever sat empty because a client skipped without warning and nobody noticed the pattern until it kept happening.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "appointments",
+        "no-show",
+        "front-desk"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/appointment-no-show-tracker.yaml"
+    },
+    {
+      "id": "arc-review-copy-followup",
+      "version": 1,
+      "name": "ARC Review Copy Followup",
+      "description": "Flags reviewers, bloggers, or media contacts who received an advance review copy (ARC) but haven't posted or filed a review within a set window, so a nudge can go out before the publication date. Use this if ARCs have ever been sent out and quietly forgotten with no review to show for them.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "arc",
+        "review-copies",
+        "marketing"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/arc-review-copy-followup.yaml"
     },
     {
       "id": "assignment-grading-backlog-check",
@@ -1064,6 +1114,56 @@
       "path": "jobs/devops/ci-build-time-regression-watch.yaml"
     },
     {
+      "id": "circuit-outage-detection",
+      "version": 1,
+      "name": "Circuit Outage Detection",
+      "description": "Pings each monitored circuit endpoint and flags any that are down. Use this if a customer circuit has ever gone dark and nobody on your team noticed until the customer called in.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "outage",
+        "monitoring",
+        "circuits"
+      ],
+      "schedule": "*/5 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/circuit-outage-detection.yaml"
+    },
+    {
+      "id": "circuit-provisioning-order-aging",
+      "version": 1,
+      "name": "Circuit Provisioning Order Aging Check",
+      "description": "Flags circuit orders that were placed but never activated within a target number of days. Use this if a provisioning order has ever sat in limbo for weeks because the install date fell through the cracks between sales, the carrier, and the field tech.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "provisioning",
+        "circuits",
+        "orders"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/circuit-provisioning-order-aging.yaml"
+    },
+    {
       "id": "claim-status-check",
       "version": 1,
       "name": "Open Claim Status Check",
@@ -1524,6 +1624,31 @@
         "generic"
       ],
       "path": "jobs/insurance/coverage-gap-audit.yaml"
+    },
+    {
+      "id": "cpe-firmware-update-tracker",
+      "version": 1,
+      "name": "CPE Firmware/Warranty Update Tracker",
+      "description": "Checks deployed customer-premises equipment against current firmware versions and warranty expiry dates, flagging anything out of date or soon out of warranty. Use this if a modem or router has ever been running years-old firmware with a known vulnerability because nobody was tracking the fleet's patch level.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "cpe",
+        "firmware",
+        "warranty"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/cpe-firmware-update-tracker.yaml"
     },
     {
       "id": "crew-safety-cert-expiry-check",
@@ -3312,6 +3437,31 @@
       "path": "jobs/crypto/gas-price-alert.yaml"
     },
     {
+      "id": "gift-card-expiry-check",
+      "version": 1,
+      "name": "Gift Card Expiry Check",
+      "description": "Scans your gift card ledger for cards approaching their expiration date with a remaining balance. Use this if a client has ever held an unused gift card that quietly expired, turning a goodwill purchase into a complaint at checkout.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "gift-cards",
+        "retention",
+        "front-desk"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/gift-card-expiry-check.yaml"
+    },
+    {
       "id": "gift-card-liability-reconciliation-check",
       "version": 1,
       "name": "Gift Card Liability Reconciliation Check",
@@ -4146,6 +4296,31 @@
       "path": "jobs/agriculture/irrigation-schedule-check.yaml"
     },
     {
+      "id": "isbn-registration-tracker",
+      "version": 1,
+      "name": "ISBN Registration Tracker",
+      "description": "Flags upcoming titles that don't yet have an ISBN assigned and registered with the relevant agency, checked against their planned publication date. Use this if a title has ever hit its pub date without an ISBN because registration wasn't started early enough.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "isbn",
+        "metadata",
+        "pre-press"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/isbn-registration-tracker.yaml"
+    },
+    {
       "id": "job-posting-expiry-check",
       "version": 1,
       "name": "Job Posting Expiry Check",
@@ -4444,6 +4619,56 @@
       "path": "jobs/healthcare/license-credential-expiry-check.yaml"
     },
     {
+      "id": "license-renewal-tracker",
+      "version": 1,
+      "name": "Esthetician/Cosmetologist License Renewal Tracker",
+      "description": "Warns before a staff member's state license, certification, or continuing-education deadline lapses. Use this if a technician has ever shown up ready to work a shift, only to discover their license expired last month and they can't legally touch a client.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "licensing",
+        "compliance",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/license-renewal-tracker.yaml"
+    },
+    {
+      "id": "link-capacity-threshold-alert",
+      "version": 1,
+      "name": "Link Capacity Threshold Alert",
+      "description": "Checks a link's current bandwidth utilization against a warning threshold so you can upgrade capacity before customers notice congestion. Use this if a trunk or uplink has ever saturated during peak hours and the first sign anyone saw was a flood of slow-speed complaints.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "bandwidth",
+        "capacity",
+        "monitoring"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/link-capacity-threshold-alert.yaml"
+    },
+    {
       "id": "livestock-feed-stock-check",
       "version": 1,
       "name": "Livestock Feed Stock Check",
@@ -4689,6 +4914,56 @@
       "path": "jobs/support/macro-usage-staleness-check.yaml"
     },
     {
+      "id": "maintenance-contract-renewal-check",
+      "version": 1,
+      "name": "Maintenance Contract Renewal Check",
+      "description": "Checks recurring service/maintenance contracts (annual HVAC tune-ups, quarterly plumbing inspections) against their renewal date and flags any coming up so the customer can be rebooked before the contract lapses. Use this if a maintenance customer has ever silently churned because nobody called to renew before the term ran out.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "maintenance-contract",
+        "renewal",
+        "recurring-revenue"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/maintenance-contract-renewal-check.yaml"
+    },
+    {
+      "id": "manuscript-deadline-tracker",
+      "version": 1,
+      "name": "Manuscript Deadline Tracker",
+      "description": "Flags manuscript milestones (first draft, revisions, final delivery) coming due from authors or editors. Use this if a book has ever slipped its production schedule because a manuscript deadline only lived in an email thread nobody rechecked.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "manuscripts",
+        "authors",
+        "deadlines"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/manuscript-deadline-tracker.yaml"
+    },
+    {
       "id": "markdown-aging-inventory-check",
       "version": 1,
       "name": "Markdown Aging Inventory Check",
@@ -4838,6 +5113,31 @@
         "codex"
       ],
       "path": "jobs/personal/medication-refill-reminder.yaml"
+    },
+    {
+      "id": "membership-unused-session-expiry-check",
+      "version": 1,
+      "name": "Membership/Package Unused-Session Expiry Check",
+      "description": "Flags members or package holders whose prepaid sessions or membership credits are about to expire unused. Use this if a client has ever paid for a monthly facial membership, banked three unused visits, and let them evaporate because nobody reminded them to book.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "membership",
+        "churn",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/membership-unused-session-expiry-check.yaml"
     },
     {
       "id": "morning-briefing-digest",
@@ -5395,6 +5695,31 @@
       "path": "jobs/automotive/parts-backorder-check.yaml"
     },
     {
+      "id": "parts-low-stock-reorder-check",
+      "version": 1,
+      "name": "Parts Low-Stock Reorder Check",
+      "description": "Checks your truck/warehouse parts inventory against reorder thresholds and flags anything running low before a tech shows up on a job without the capacitor or valve they need. Use this if a job has ever been rescheduled because a common part was quietly out of stock.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "inventory",
+        "parts",
+        "reorder"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/parts-low-stock-reorder-check.yaml"
+    },
+    {
       "id": "passport-expiry-check",
       "version": 1,
       "name": "Passport Expiry Check",
@@ -5520,6 +5845,31 @@
       "path": "jobs/finance/payroll-run-reminder.yaml"
     },
     {
+      "id": "peering-transit-contract-renewal-check",
+      "version": 1,
+      "name": "Peering/Transit Contract Renewal Check",
+      "description": "Checks upstream transit and peering agreements for upcoming renewal or auto-renew deadlines and warns with enough lead time to renegotiate. Use this if a transit contract has ever auto-renewed at last year's rate (or worse) because nobody flagged the deadline until the invoice changed.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "peering",
+        "transit",
+        "contracts"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/peering-transit-contract-renewal-check.yaml"
+    },
+    {
       "id": "performance-review-cycle-reminder",
       "version": 1,
       "name": "Performance Review Cycle Reminder",
@@ -5545,6 +5895,31 @@
         "generic"
       ],
       "path": "jobs/hr/performance-review-cycle-reminder.yaml"
+    },
+    {
+      "id": "permissions-clearance-tracker",
+      "version": 1,
+      "name": "Permissions Clearance Tracker",
+      "description": "Flags quoted material, images, lyrics, or other third-party content in a forthcoming title that still needs permissions clearance before the book goes to press. Use this if a title has ever gone to print with an uncleared quote or image because clearance status wasn't tracked centrally.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "permissions",
+        "rights-clearance",
+        "pre-press"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/permissions-clearance-tracker.yaml"
     },
     {
       "id": "permit-application-backlog-check",
@@ -5949,6 +6324,31 @@
       "path": "jobs/manufacturing/preventive-maintenance-due-check.yaml"
     },
     {
+      "id": "print-run-reorder-threshold-check",
+      "version": 1,
+      "name": "Print Run Reorder Threshold Check",
+      "description": "Flags titles whose warehouse stock has dropped below the reorder threshold, so a reprint can be queued before the book goes out of stock. Use this if a title has ever gone unavailable for weeks because nobody noticed the print run was running low until it was already sold out.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "print-run",
+        "inventory",
+        "reprints"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/print-run-reorder-threshold-check.yaml"
+    },
+    {
       "id": "probation-period-review-reminder",
       "version": 1,
       "name": "Probation Period Review Reminder",
@@ -5972,6 +6372,32 @@
         "codex"
       ],
       "path": "jobs/hr/probation-period-review-reminder.yaml"
+    },
+    {
+      "id": "product-chemical-expiry-check",
+      "version": 1,
+      "name": "Product & Chemical Expiry Check",
+      "description": "Flags skincare products, dye lots, wax, and other chemical inventory approaching their expiration or period-after-opening date. Use this if an esthetician or colorist has ever applied a product past its safe-use date because the expiry label was never checked against today's date.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "inventory",
+        "expiry",
+        "safety",
+        "chemicals"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/product-chemical-expiry-check.yaml"
     },
     {
       "id": "production-line-downtime-watch",
@@ -6618,6 +7044,31 @@
       "path": "jobs/restaurant/reservation-noshow-deposit-check.yaml"
     },
     {
+      "id": "retail-product-low-stock-check",
+      "version": 1,
+      "name": "Retail Product Low-Stock Check",
+      "description": "Scans your retail/backbar inventory log and flags skincare, haircare, or nail products at or below reorder point. Use this if a stylist or esthetician has ever reached for a product mid-service and found the shelf empty because nobody was watching the count.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "retail",
+        "inventory",
+        "restock"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/retail-product-low-stock-check.yaml"
+    },
+    {
       "id": "return-fraud-pattern-check",
       "version": 1,
       "name": "Return Fraud Pattern Check",
@@ -6719,6 +7170,31 @@
       "path": "jobs/growth/review-request-nudge.yaml"
     },
     {
+      "id": "rights-license-expiry-check",
+      "version": 1,
+      "name": "Rights and License Expiry Check",
+      "description": "Warns you before a granted or acquired rights/licensing deal (foreign rights, film/TV options, audio, translation) expires or comes up for renewal. Use this if a rights deal has ever lapsed silently because the expiry date only lived in the signed contract's PDF.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "rights",
+        "licensing",
+        "contracts"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/rights-license-expiry-check.yaml"
+    },
+    {
       "id": "robots-txt-check",
       "version": 1,
       "name": "Robots.txt Blanket-Block Check",
@@ -6741,6 +7217,31 @@
         "codex"
       ],
       "path": "jobs/content/robots-txt-check.yaml"
+    },
+    {
+      "id": "royalty-statement-due-check",
+      "version": 1,
+      "name": "Royalty Statement Due Check",
+      "description": "Warns you before a royalty statement and payment is due to an author or co-author. Use this if a royalty statement has ever gone out late (or didn't go out at all) because the payout schedule wasn't tracked anywhere.",
+      "category": "publishing",
+      "tags": [
+        "publishing",
+        "royalties",
+        "authors",
+        "payments"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/publishing/royalty-statement-due-check.yaml"
     },
     {
       "id": "rss-feed-health-check",
@@ -6893,6 +7394,31 @@
       "path": "jobs/finance/saas-seat-audit.yaml"
     },
     {
+      "id": "safety-inspection-due-reminder",
+      "version": 1,
+      "name": "Health & Safety Inspection Due Reminder",
+      "description": "Warns before a health department, board-of-cosmetology, or fire/safety inspection is expected, based on your jurisdiction's typical interval. Use this if an inspector has ever shown up to a treatment room that wasn't ready because nobody was tracking when the last inspection happened.",
+      "category": "spa",
+      "tags": [
+        "spa",
+        "compliance",
+        "inspection",
+        "safety"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/spa/safety-inspection-due-reminder.yaml"
+    },
+    {
       "id": "screen-time-check",
       "version": 1,
       "name": "Screen Time Check",
@@ -7018,6 +7544,33 @@
       "path": "jobs/marketing/seo-rank-drop-watch.yaml"
     },
     {
+      "id": "service-ticket-churn-risk-review",
+      "version": 1,
+      "name": "Service Ticket Churn Risk Review",
+      "description": "Reviews customers with repeated service tickets in a recent window and drafts a churn-risk summary with recommended outreach. Use this if a customer has ever quietly churned after their third outage ticket because nobody connected the dots between separate complaints.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "churn",
+        "support",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "generic"
+      ],
+      "path": "jobs/telecom/service-ticket-churn-risk-review.yaml"
+    },
+    {
       "id": "shipment-delay-watch",
       "version": 1,
       "name": "Shipment Delay Watch",
@@ -7113,6 +7666,31 @@
         "codex"
       ],
       "path": "jobs/support/sla-breach-warning.yaml"
+    },
+    {
+      "id": "sla-uptime-breach-tracker",
+      "version": 1,
+      "name": "SLA Uptime Breach Tracker",
+      "description": "Compares each customer's measured monthly uptime percentage against their contracted SLA and flags anyone below threshold. Use this if you've ever missed an SLA credit obligation because nobody totaled up the downtime minutes until the customer's lawyer did.",
+      "category": "telecom",
+      "tags": [
+        "telecom",
+        "sla",
+        "uptime",
+        "contracts"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/telecom/sla-uptime-breach-tracker.yaml"
     },
     {
       "id": "smart-contract-upgrade-watch",
@@ -7841,6 +8419,56 @@
       "path": "jobs/team/team-anniversary-reminder.yaml"
     },
     {
+      "id": "tech-eta-no-show-check",
+      "version": 1,
+      "name": "Tech ETA No-Show Check",
+      "description": "Checks today's dispatch log for jobs where the technician's promised arrival window has passed with no check-in logged. Use this if a customer has ever called asking where the tech is before dispatch even noticed the appointment was running late.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "dispatch",
+        "eta",
+        "no-show"
+      ],
+      "schedule": "*/30 7-18 * * 1-6",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/tech-eta-no-show-check.yaml"
+    },
+    {
+      "id": "tech-license-renewal-check",
+      "version": 1,
+      "name": "Tech License & Certification Renewal Check",
+      "description": "Checks technician licenses and certifications (EPA 608, journeyman electrician, plumbing license) against their expiration date and flags any expiring soon. Use this if a tech has ever been pulled off a job, or a permit rejected, because their certification quietly lapsed without anyone tracking the renewal date.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "license",
+        "certification",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/tech-license-renewal-check.yaml"
+    },
+    {
       "id": "terraform-drift-check",
       "version": 1,
       "name": "Terraform Drift Check",
@@ -8193,6 +8821,56 @@
       "path": "jobs/education/tuition-payment-plan-delinquency-check.yaml"
     },
     {
+      "id": "unpaid-invoice-aging-check",
+      "version": 1,
+      "name": "Unpaid Invoice Aging Check",
+      "description": "Checks invoices issued after completed jobs against their due date and flags any going unpaid past your collection threshold. Use this if cash has ever gotten tight because completed jobs sat uncollected for weeks with nobody following up on payment.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "invoicing",
+        "collections",
+        "aging"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/unpaid-invoice-aging-check.yaml"
+    },
+    {
+      "id": "unresolved-callback-tracker",
+      "version": 1,
+      "name": "Unresolved Callback Tracker",
+      "description": "Flags customer callbacks (a return visit for the same issue within the warranty window) that are still open past a set number of days. Use this if a rework job has ever slipped through the cracks and the customer had to call a second time to get it actually fixed.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "callback",
+        "rework",
+        "quality"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/unresolved-callback-tracker.yaml"
+    },
+    {
       "id": "uptime-ping-check",
       "version": 1,
       "name": "Uptime Ping Check",
@@ -8534,6 +9212,31 @@
         "codex"
       ],
       "path": "jobs/automotive/warranty-claim-deadline-check.yaml"
+    },
+    {
+      "id": "warranty-claim-expiry-check",
+      "version": 1,
+      "name": "Warranty Claim Expiry Check",
+      "description": "Checks open equipment warranty claims (HVAC units, water heaters, appliances) against the manufacturer's filing deadline and flags any about to lapse unfiled. Use this if a claim has ever been denied because it was submitted a day after the manufacturer's window closed.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "warranty",
+        "claims",
+        "deadline"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/warranty-claim-expiry-check.yaml"
     },
     {
       "id": "warranty-expiry-reminder",

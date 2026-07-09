@@ -1,0 +1,35 @@
+id: membership-unused-session-expiry-check
+version: 1
+name: Membership/Package Unused-Session Expiry Check
+description: >
+  Flags members or package holders whose prepaid sessions or membership
+  credits are about to expire unused. Use this if a client has ever paid
+  for a monthly facial membership, banked three unused visits, and let
+  them evaporate because nobody reminded them to book.
+category: spa
+tags: [spa, membership, churn, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 > 0 {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "CREDITS EXPIRING: %s — %d unused credit(s), expires %s (%d days)\n", $1, $4, $3, diff_days;
+      }
+    }
+  ' "{{memberships_csv_path}}"
+variables:
+  memberships_csv_path:
+    default: "./memberships.csv"
+    description: "Path to a CSV with columns: member_name,plan_name,credit_expiry_date (YYYY-MM-DD),unused_credits."
+  warn_days_before:
+    default: 10
+    description: How many days before credit expiry to start warning, while there's still time to book.
+compatible_agents: [generic, claude, codex]
+notes: A member who repeatedly lets credits expire unused is a churn risk — treat this as a retention nudge, not just a "use it or lose it" notice.

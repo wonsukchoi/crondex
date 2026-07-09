@@ -1,0 +1,32 @@
+id: tech-eta-no-show-check
+version: 1
+name: Tech ETA No-Show Check
+description: >
+  Checks today's dispatch log for jobs where the technician's promised
+  arrival window has passed with no check-in logged. Use this if a
+  customer has ever called asking where the tech is before dispatch
+  even noticed the appointment was running late.
+category: fieldservice
+tags: [fieldservice, dispatch, eta, no-show]
+schedule: "*/30 7-18 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" '
+    NR==1 {next}
+    $5 == "dispatched" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline window_end_epoch; close(cmd);
+      if (now > window_end_epoch) {
+        late_min = (now - window_end_epoch) / 60;
+        printf "NO CHECK-IN: job %s — tech %s, window ended %s (%d min late)\n", $1, $2, $3, late_min;
+      }
+    }
+  ' "{{dispatch_log_csv_path}}"
+variables:
+  dispatch_log_csv_path:
+    default: "./dispatch-log.csv"
+    description: "Path to a CSV with columns: job_id,tech_name,eta_window_end (YYYY-MM-DD HH:MM),customer_name,status (dispatched/checked-in/completed)."
+compatible_agents: [generic, claude, codex]
+notes: Call the tech directly once flagged — this job only surfaces the miss, it doesn't page anyone.

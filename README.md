@@ -117,7 +117,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-347 jobs across 44 categories:
+375 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -132,6 +132,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `ecommerce` | 7 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 7 | Classroom ops — grading, attendance, deadlines, permission slips. |
 | `events` | 7 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `fieldservice` | 7 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 10 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 7 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 7 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
@@ -155,13 +156,16 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
 | `podcast` | 7 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
+| `publishing` | 7 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 7 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 7 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
 | `retail` | 7 | Store ops — till reconciliation, opening checklist, scheduling. |
 | `sales` | 7 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
+| `spa` | 7 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `support` | 7 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 7 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `telecom` | 7 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 7 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `veterinary` | 7 | Clinic ops for animals — vaccines, controlled substances, boarding. |
 | `warehousing` | 7 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |

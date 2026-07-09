@@ -1,0 +1,36 @@
+id: permissions-clearance-tracker
+version: 1
+name: Permissions Clearance Tracker
+description: >
+  Flags quoted material, images, lyrics, or other third-party content in a
+  forthcoming title that still needs permissions clearance before the book
+  goes to press. Use this if a title has ever gone to print with an
+  uncleared quote or image because clearance status wasn't tracked
+  centrally.
+category: publishing
+tags: [publishing, permissions, rights-clearance, pre-press]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead={{lead_days}} '
+    NR>1 && $4 != "cleared" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_left = int((pub_ts - today) / 86400);
+      if (days_left <= lead) print "UNCLEARED: \"" $1 "\" — item \"" $3 "\" status=" $4 ", publishes in " days_left " days";
+    }
+  ' "{{permissions_csv}}"
+variables:
+  permissions_csv:
+    default: "./permissions-clearances.csv"
+    description: "CSV with header row, columns: title,pub_date(YYYY-MM-DD),item_description,status(pending|requested|denied|cleared)."
+  lead_days:
+    default: 30
+    description: Days before publication to start warning about any item not yet marked cleared.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update permissions-clearances.csv as each request is sent, denied, or
+  cleared. A "denied" item still shows up here deliberately — it needs
+  editorial follow-up (cut or replace) before press, not just tracking.

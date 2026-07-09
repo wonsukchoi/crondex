@@ -1,0 +1,33 @@
+id: interview-feedback-overdue-check
+version: 1
+name: Interview Feedback Overdue Check
+description: >
+  Flags interviews that happened but still have no feedback submitted, so
+  the decision doesn't stall waiting on one interviewer. Use this if a
+  candidate has ever been left hanging because feedback from one
+  interviewer never showed up and nobody chased it down.
+category: hiring
+tags: [hiring, interviews, feedback, recruiting]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{ats_system}} for interviews completed in the last
+  {{lookback_hours}} hours with no feedback/scorecard submitted yet.
+  1. List each: candidate name, interviewer, and how long ago the
+     interview happened.
+  2. Flag anyone past {{escalate_after_hours}} hours as needing a direct
+     nudge, not just a passive reminder.
+  3. Draft a short reminder message per overdue interviewer.
+variables:
+  ats_system:
+    default: "your applicant tracking system (e.g. Greenhouse, Lever, Ashby)"
+    description: Where interview feedback/scorecards are recorded.
+  lookback_hours:
+    default: 48
+    description: How far back to check for interviews missing feedback.
+  escalate_after_hours:
+    default: 24
+    description: Hours after an interview before a missing scorecard counts as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — nudge messages should go out through whatever channel your team already uses for interviewer reminders.

@@ -1,0 +1,34 @@
+id: token-unlock-vesting-watch
+version: 1
+name: Token Unlock/Vesting Watch
+description: >
+  Checks for upcoming token unlock or vesting cliff dates for a project
+  you're tracking and warns before a large unlock hits. Use this if a
+  token has ever dropped sharply right after an unlock you didn't see
+  coming.
+category: crypto
+tags: [crypto, tokenomics, vesting, unlock]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{token_name}}'s vesting/unlock schedule (via the project's
+  tokenomics docs, a vesting tracker site, or on-chain vesting contract
+  data) for unlocks in the next {{lookahead_days}} days.
+  1. List any upcoming unlock: date, amount, and percentage of circulating
+     supply it represents.
+  2. Flag any unlock over {{large_unlock_pct}}% of circulating supply as
+     worth watching closely for price impact.
+  3. If nothing is scheduled in the window, say so in one line.
+variables:
+  token_name:
+    default: "the token you're tracking"
+    description: Token/project name to check.
+  lookahead_days:
+    default: 14
+    description: How far ahead to check for scheduled unlocks.
+  large_unlock_pct:
+    default: 2
+    description: Percentage of circulating supply that counts as a "large" unlock worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Not trading advice — an informational heads-up only. Vesting schedule accuracy depends entirely on the source; cross-check against the project's own docs before acting on it.

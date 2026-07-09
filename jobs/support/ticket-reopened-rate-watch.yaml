@@ -1,0 +1,35 @@
+id: ticket-reopened-rate-watch
+version: 1
+name: Ticket Reopened Rate Watch
+description: >
+  Checks what percentage of closed tickets get reopened and flags it when
+  the rate climbs — a quality signal that's different from SLA or backlog
+  size. Use this if tickets have ever been closed to hit a metric and
+  quietly bounced right back, without anyone tracking the reopen rate
+  itself.
+category: support
+tags: [support, tickets, quality, reopened]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for tickets closed in the last
+  {{lookback_days}} days.
+  1. Calculate what percentage were reopened at least once after closing.
+  2. Compare against the target of {{target_reopen_pct}}%.
+  3. If above target, look for a pattern in the reopened tickets — same
+     agent, same issue category, same customer — rather than treating
+     each as an isolated case.
+  4. If at or below target, report the rate in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket status history is tracked.
+  lookback_days:
+    default: 7
+    description: How far back to check closed tickets.
+  target_reopen_pct:
+    default: 5
+    description: Target reopen rate percentage — above this is worth investigating.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A high reopen rate usually points at a process problem (closing too early, incomplete fixes) rather than any single ticket being mishandled — read it as a trend, not a per-ticket blame signal.

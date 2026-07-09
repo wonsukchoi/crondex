@@ -1,0 +1,34 @@
+id: performance-review-cycle-reminder
+version: 1
+name: Performance Review Cycle Reminder
+description: >
+  Tracks the performance review cycle deadline and flags managers who
+  haven't submitted reviews yet as the deadline approaches. Use this if a
+  review cycle has ever closed with a chunk of reviews still missing
+  because nobody chased the stragglers until HR asked.
+category: hr
+tags: [hr, performance-review, reminder, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{hris_system}} for the current performance review cycle, due
+  {{cycle_deadline}}.
+  1. Report days remaining until the deadline.
+  2. List managers who haven't submitted reviews for their direct reports
+     yet, with how many are outstanding.
+  3. If within {{final_warn_days}} days of the deadline, draft an urgent
+     reminder to each manager still missing reviews.
+  4. If the deadline has passed, report final completion rate instead.
+variables:
+  hris_system:
+    default: "your HRIS/performance management system"
+    description: Name of the system to check (e.g. "Lattice", "15Five", "Workday").
+  cycle_deadline:
+    default: "YYYY-MM-DD"
+    description: Date the current review cycle closes.
+  final_warn_days:
+    default: 5
+    description: Days before deadline to switch from routine reminders to urgent ones.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review reminder messages before sending, especially the "urgent" framing near the deadline.

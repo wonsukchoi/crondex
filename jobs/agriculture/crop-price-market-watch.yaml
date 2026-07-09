@@ -1,0 +1,32 @@
+id: crop-price-market-watch
+version: 1
+name: Crop Price Market Watch
+description: >
+  Checks a commodity crop's current market price against a target and
+  alerts when it crosses your threshold. Use this if you've ever missed a
+  good selling window because nobody was watching the market that week.
+category: agriculture
+tags: [agriculture, commodity, price, market]
+schedule: "0 14 * * 1-5"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check the current market price for {{commodity}} (via a commodity market
+  data source such as a futures quote or ag market report).
+  1. Report today's price and how it compares to {{target_price}}.
+  2. If price is at or above target, flag it as a potential selling window.
+  3. If price has moved more than {{move_threshold_pct}}% in the last week,
+     note that regardless of the target.
+  4. Otherwise report the price with no action needed.
+variables:
+  commodity:
+    default: "corn"
+    description: Commodity/crop to track (e.g. "corn", "soybeans", "wheat").
+  target_price:
+    default: "5.00 per bushel"
+    description: Price target that triggers a "consider selling" flag.
+  move_threshold_pct:
+    default: 5
+    description: Weekly price move percentage worth flagging even if the target isn't hit.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Not trading advice — a price-threshold alert only. Confirm quotes against your actual buyer/co-op before acting on them.

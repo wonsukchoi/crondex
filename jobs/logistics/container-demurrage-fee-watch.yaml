@@ -1,0 +1,35 @@
+id: container-demurrage-fee-watch
+version: 1
+name: Container Demurrage/Detention Fee Watch
+description: >
+  Checks tracked containers against their free-time deadline and warns
+  before demurrage or detention fees start accruing. Use this if a
+  container has ever sat at port past its free days and the fee bill only
+  showed up weeks later as a surprise.
+category: logistics
+tags: [logistics, shipping, demurrage, fees]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "FEE RISK: container %s — free time ends %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{containers_csv_path}}"
+variables:
+  containers_csv_path:
+    default: "./container-free-time.csv"
+    description: "Path to a CSV with columns: container_number,free_time_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 2
+    description: How many days before free time expires to start warning — demurrage windows are usually short.
+compatible_agents: [generic, claude, codex]
+notes: Assumes free-time deadlines are exported or manually tracked from your carrier/terminal portal — this is the "did anyone actually check" backstop before fees start accruing.

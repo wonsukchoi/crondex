@@ -1,0 +1,35 @@
+id: premium-payment-due-reminder
+version: 1
+name: Insurance Premium Payment Due Reminder
+description: >
+  Warns you before an insurance premium payment is due, separate from the
+  policy's renewal date. Use this if a policy has ever lapsed for
+  non-payment even though the renewal itself was months away, because a
+  monthly or quarterly premium payment was missed.
+category: insurance
+tags: [insurance, premium, payment, reminder]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "PREMIUM DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{premiums_csv_path}}"
+variables:
+  premiums_csv_path:
+    default: "./insurance-premiums.csv"
+    description: "Path to a CSV with columns: policy_name,next_payment_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 7
+    description: How many days before a premium payment is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Complements `policy-renewal-reminder` — that one tracks the annual/term renewal date, this one tracks the recurring payment schedule within the term.

@@ -1,0 +1,35 @@
+id: driver-license-cdl-expiry-check
+version: 1
+name: Driver License/CDL Expiry Check
+description: >
+  Checks tracked drivers' license or CDL expiry dates and warns before any
+  lapse. Use this if a driver has ever kept driving a fleet vehicle on an
+  expired license because nobody was tracking renewal dates separately
+  from vehicle registration.
+category: fleet
+tags: [fleet, drivers, license, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "LICENSE EXPIRING: %s — expires %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{drivers_csv_path}}"
+variables:
+  drivers_csv_path:
+    default: "./driver-licenses.csv"
+    description: "Path to a CSV with columns: driver_name,license_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Tracks the driver's own license/CDL — separate from `vehicle-registration-expiry-check`, which tracks the vehicle's registration.

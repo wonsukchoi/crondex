@@ -1,0 +1,37 @@
+id: podcast-rating-review-watch
+version: 1
+name: Podcast Rating/Review Watch
+description: >
+  Checks for new ratings and reviews on your podcast platforms and flags
+  a negative one or a rating drop worth looking into. Use this if a
+  critical review has ever sat unanswered for months because nobody
+  checks the ratings page between episodes.
+category: podcast
+tags: [podcast, reviews, ratings, reputation]
+schedule: "0 10 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{podcast_platforms}} for {{podcast_name}} for reviews/ratings
+  posted in the last {{lookback_days}} days.
+  1. List any new review, with rating and a one-line summary.
+  2. Flag anything rated at or below {{alert_threshold_stars}} stars, or
+     any average-rating drop compared to the prior period.
+  3. Note if a review raises a specific, actionable complaint (audio
+     quality, ad load, pacing) versus general subjective taste — the
+     actionable ones are worth a closer look.
+variables:
+  podcast_platforms:
+    default: "Apple Podcasts, Spotify"
+    description: Comma-separated list of platforms to check.
+  podcast_name:
+    default: "your podcast"
+    description: Name of the podcast to check.
+  lookback_days:
+    default: 7
+    description: How far back to check for new reviews.
+  alert_threshold_stars:
+    default: 3
+    description: Star rating at or below which a review gets flagged (out of 5).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Most podcast platforms don't expose a review API directly — this typically means checking the platform's creator dashboard manually or via whatever export it offers.

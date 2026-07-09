@@ -1,0 +1,35 @@
+id: at-risk-student-grade-watch
+version: 1
+name: At-Risk Student Grade Watch
+description: >
+  Flags students whose current grade has dropped below a passing threshold
+  partway through the term, instead of everyone finding out at report-card
+  time. Use this if a student has ever gone from passing to failing
+  without anyone reaching out until it was too late to recover.
+category: education
+tags: [education, grades, at-risk, students]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check current grades in {{gradebook_system}} for {{course_or_class}}.
+  1. List any student currently below {{passing_threshold}}.
+  2. For each, note which specific assignments are dragging the grade down
+     (missing work vs. low scores on completed work — the intervention is
+     different for each).
+  3. Flag anyone who was passing at the last check but has now dropped
+     below threshold, as a new/urgent case worth an earlier outreach.
+  4. Draft a short note for a teacher or counselor to send home, if that's
+     the practice at this school.
+variables:
+  gradebook_system:
+    default: "your gradebook/LMS (e.g. PowerSchool, Google Classroom, Canvas)"
+    description: Where grades are recorded.
+  course_or_class:
+    default: "the class/section to check"
+    description: Which course or section this job covers.
+  passing_threshold:
+    default: 65
+    description: Grade percentage below which a student counts as at-risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — outreach to students/families should go through whatever channel and approval process your school already uses.

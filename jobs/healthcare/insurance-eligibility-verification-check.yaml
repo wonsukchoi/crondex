@@ -1,0 +1,32 @@
+id: insurance-eligibility-verification-check
+version: 1
+name: Insurance Eligibility Verification Check
+description: >
+  Checks upcoming appointments for patients whose insurance eligibility
+  hasn't been verified yet, so it gets confirmed before the visit instead
+  of at checkout. Use this if a patient has ever been surprised with a
+  denied claim because eligibility was never checked ahead of time.
+category: healthcare
+tags: [healthcare, insurance, eligibility, appointments]
+schedule: "0 15 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Check {{scheduling_system}} for appointments in the next
+  {{lookahead_days}} days that don't have insurance eligibility marked as
+  verified.
+  1. List each: patient name, appointment date, and insurance plan on
+     file.
+  2. Flag anyone with no insurance information on file at all as highest
+     priority — that's the one most likely to cause a billing problem.
+  3. Note which need a same-day eligibility check (appointment within 24
+     hours) versus which have more lead time.
+variables:
+  scheduling_system:
+    default: "your scheduling/EHR system"
+    description: Name of the scheduling or EHR system to check.
+  lookahead_days:
+    default: 3
+    description: How far ahead to check for unverified appointments.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check — running the actual eligibility verification (via clearinghouse or payer portal) is a separate step this job just prioritizes.

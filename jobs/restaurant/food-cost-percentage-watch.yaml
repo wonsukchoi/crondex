@@ -1,0 +1,35 @@
+id: food-cost-percentage-watch
+version: 1
+name: Food Cost Percentage Watch
+description: >
+  Checks food cost as a percentage of sales against your target and flags
+  it when it runs high. Use this if food cost has ever crept up for weeks
+  before anyone pulled the numbers and noticed margins were shrinking.
+category: restaurant
+tags: [restaurant, food-cost, margin, finance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  cogs="{{food_cost_usd}}";
+  sales="{{sales_revenue_usd}}";
+  target="{{target_food_cost_pct}}";
+  pct=$(awk -v c="$cogs" -v s="$sales" 'BEGIN{ if (s>0) printf "%.1f", (c/s)*100; else print "0" }');
+  if awk -v p="$pct" -v t="$target" 'BEGIN{exit !(p > t)}'; then
+    echo "WARNING: food cost at $pct% of sales (target $target%)";
+    exit 1;
+  else
+    echo "OK: food cost at $pct% of sales (target $target%)";
+  fi
+variables:
+  food_cost_usd:
+    default: 0
+    description: Total cost of food used for the period (from your POS/inventory system).
+  sales_revenue_usd:
+    default: 0
+    description: Total food sales revenue for the same period.
+  target_food_cost_pct:
+    default: 30
+    description: Target food cost as a percentage of sales.
+compatible_agents: [generic, claude, codex]
+notes: Feed in period totals from your POS/accounting export — this compares a single period's ratio, so schedule it to match how often you close out food-cost numbers (weekly is typical).

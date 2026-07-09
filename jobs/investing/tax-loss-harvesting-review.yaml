@@ -1,0 +1,33 @@
+id: tax-loss-harvesting-review
+version: 1
+name: Tax-Loss Harvesting Review
+description: >
+  Checks your holdings for unrealized losses worth considering for
+  tax-loss harvesting before year-end. Use this if you've ever realized in
+  December that a position had been sitting at a loss all year and you
+  never did anything about it for tax purposes.
+category: investing
+tags: [investing, tax, portfolio, capital-gains]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Check current holdings and cost basis in {{brokerage_or_source}}.
+  1. List any position with an unrealized loss of at least
+     ${{min_loss_usd}}.
+  2. Note the loss amount and how long the position has been held
+     (relevant for short- vs. long-term treatment).
+  3. Flag anything that would trigger a wash sale if repurchased within 30
+     days, based on recent buy activity in the same or a substantially
+     identical security.
+  4. This is informational only, not tax advice — say so, and recommend
+     confirming with a tax professional before acting.
+variables:
+  brokerage_or_source:
+    default: "your brokerage account"
+    description: Where holdings and cost basis are tracked.
+  min_loss_usd:
+    default: 500
+    description: Minimum unrealized loss (USD) worth surfacing.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Not tax or investment advice — flags candidates for a human (ideally with a tax professional) to evaluate, doesn't execute any trades.

@@ -1,0 +1,38 @@
+id: supplier-otd-performance-watch
+version: 1
+name: Supplier On-Time Delivery Performance Watch
+description: >
+  Tracks a supplier's on-time delivery rate over recent orders and flags
+  it when performance drops below target. Use this if a supplier's
+  reliability has ever quietly slipped for months before it showed up as a
+  production delay bad enough to notice.
+category: manufacturing
+tags: [manufacturing, supplier, otd, procurement]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{otd_target_pct}}" '
+    NR==1 {next}
+    {
+      total[$1]++;
+      if ($2 == "on-time") ontime[$1]++;
+    }
+    END {
+      for (s in total) {
+        pct = (ontime[s] / total[s]) * 100;
+        if (pct < target) {
+          printf "BELOW TARGET: %s — %.1f%% on-time (%d of %d orders), target %d%%\n", s, pct, ontime[s], total[s], target;
+        }
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./supplier-orders.csv"
+    description: "Path to a CSV with columns: supplier_name,status (on-time or late) — one row per recent order."
+  otd_target_pct:
+    default: 90
+    description: Minimum acceptable on-time delivery percentage.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an exported or manually logged record of recent order statuses per supplier — export this from your ERP/procurement system on a schedule to keep the CSV current.

@@ -1,0 +1,34 @@
+id: game-server-uptime-check
+version: 1
+name: Self-Hosted Game Server Uptime Check
+description: >
+  Checks that your self-hosted game server (Minecraft, ARK, Valheim, etc.)
+  is actually up and accepting connections. Use this if your community
+  server has ever gone down overnight and players just assumed you took it
+  offline on purpose.
+category: gaming
+tags: [gaming, server, uptime, hosting]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if command -v nc >/dev/null 2>&1; then
+    if nc -z -w5 "{{server_host}}" "{{server_port}}" 2>/dev/null; then
+      echo "OK: {{server_host}}:{{server_port}} is accepting connections";
+    else
+      echo "DOWN: {{server_host}}:{{server_port}} is not responding";
+      exit 1;
+    fi
+  else
+    echo "ERROR: nc not installed — can't check port connectivity";
+    exit 1;
+  fi
+variables:
+  server_host:
+    default: "your.server.host"
+    description: Hostname or IP of the game server.
+  server_port:
+    default: 25565
+    description: Port the game server listens on.
+compatible_agents: [generic, claude, codex]
+notes: Checks raw TCP connectivity only, not that the game itself is responding correctly inside that port — good enough to catch a crashed process or a down host.

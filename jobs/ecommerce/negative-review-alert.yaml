@@ -1,0 +1,35 @@
+id: negative-review-alert
+version: 1
+name: Negative Review Alert
+description: >
+  Checks for new low-star product reviews and flags them same-day instead
+  of letting them sit in a dashboard nobody checks. Use this if a bad
+  review has ever sat live for a week before anyone on the team noticed
+  and responded.
+category: ecommerce
+tags: [ecommerce, reviews, reputation, customer-service]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{store_platform}} for reviews posted in the last
+  {{lookback_hours}} hours rated at or below {{alert_threshold_stars}}
+  stars.
+  1. List each: product, rating, and a one-line summary of the complaint.
+  2. Draft a short, non-defensive response for each, acknowledging the
+     issue and offering a concrete next step (replacement, refund,
+     follow-up contact) — not a generic "sorry to hear that."
+  3. Flag any review mentioning a safety issue or a pattern matching a
+     recent product-quality complaint separately as higher priority.
+variables:
+  store_platform:
+    default: "your storefront/reviews platform"
+    description: Platform to check (e.g. "Shopify product reviews", "Amazon Seller Central", "Trustpilot").
+  lookback_hours:
+    default: 24
+    description: How far back to check for new reviews.
+  alert_threshold_stars:
+    default: 2
+    description: Star rating at or below which a review triggers this alert (out of 5).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review responses before posting publicly, since a bad public reply can do more damage than the original review.

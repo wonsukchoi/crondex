@@ -1,0 +1,36 @@
+id: inventory-shrinkage-watch
+version: 1
+name: Inventory Shrinkage Watch
+description: >
+  Tracks the gap between expected and actual inventory over time and
+  flags when shrinkage (theft, damage, data-entry error) crosses a
+  threshold. Use this if shrinkage has ever only gotten noticed at the
+  annual physical count instead of trending visibly for months first.
+category: inventory
+tags: [inventory, shrinkage, loss-prevention, audit]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v pct="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      expected = $2;
+      actual = $3;
+      if (expected > 0) {
+        shrink_pct = ((expected - actual) / expected) * 100;
+        if (shrink_pct >= pct) {
+          printf "SHRINKAGE: %s — expected %d, actual %d (%.1f%% shrink)\n", $1, expected, actual, shrink_pct;
+        }
+      }
+    }
+  ' "{{inventory_counts_csv_path}}"
+variables:
+  inventory_counts_csv_path:
+    default: "./inventory-counts.csv"
+    description: "Path to a CSV with columns: sku,expected_quantity,actual_counted_quantity."
+  alert_threshold_pct:
+    default: 3
+    description: Shrinkage percentage that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Complements `inventory-count-discrepancy-check` (single-count mismatch) by tracking shrinkage as an ongoing percentage worth watching for a trend, not just a one-off count reconciliation.

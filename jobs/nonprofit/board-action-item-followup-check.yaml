@@ -1,0 +1,28 @@
+id: board-action-item-followup-check
+version: 1
+name: Board Action Item Follow-Up Check
+description: >
+  Checks action items from recent board meeting minutes and flags any
+  that are overdue with no update. Use this if a board commitment has
+  ever quietly died between meetings because nobody tracked it after the
+  minutes were filed away.
+category: nonprofit
+tags: [nonprofit, board, governance, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the action items list from {{action_items_source}} (extracted from
+  recent board meeting minutes).
+  1. List each open action item: owner, due date, and current status.
+  2. Flag anything past its due date with no completion note as overdue.
+  3. Draft a short status-check message per overdue item, addressed to
+     its owner.
+  4. Note any item with no owner assigned at all — that's usually the
+     first thing to fix, since it explains why nothing happened.
+variables:
+  action_items_source:
+    default: "your board meeting minutes / action item tracker"
+    description: Where board action items and their owners/due dates are recorded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — status-check messages should go out through whatever channel the board already uses.

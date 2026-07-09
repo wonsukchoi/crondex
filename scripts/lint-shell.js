@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 // Runs shellcheck over every jobs/**/*.yaml `command` field (runner: shell or hybrid).
-// crondex substitutes {{placeholders}} as literal text before bash ever sees the
-// script, so this stands each placeholder in as a real bash variable (braced, so a
-// literal suffix right after it — e.g. "{{days}}d" — doesn't get glued into the
-// variable name) just to let shellcheck catch actual quoting/syntax bugs.
+// See lib/shellcheck-prep.js for how a command gets turned into a checkable script.
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
+import { buildShellcheckScript } from "../lib/shellcheck-prep.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const JOBS_DIR = join(ROOT, "jobs");
@@ -50,10 +48,7 @@ try {
     if (!doc.command) continue;
 
     const rel = relative(ROOT, file);
-    const placeholders = [...new Set([...doc.command.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]))];
-    const header = placeholders.map((name) => `${name}="42"`).join("\n");
-    const body = doc.command.replace(/\{\{\s*(\w+)\s*\}\}/g, "$${$1}");
-    const script = `#!/usr/bin/env bash\n${header}\n${body}`;
+    const script = buildShellcheckScript(doc.command);
     const scriptPath = join(tmp, "check.sh");
     writeFileSync(scriptPath, script);
 

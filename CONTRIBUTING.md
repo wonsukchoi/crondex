@@ -59,13 +59,18 @@ well-formed YAML file plus a regenerated catalog. That's it.
    pair that's genuinely distinct, say so in the PR description; it's a
    nudge for review, not an absolute rule.
 
-## Editing the CLI
+## Editing the CLI or scripts
 
-If you're changing `bin/crondex.js` or `lib/recommend.js` rather than adding
-a job, run `npm test` (Node's built-in test runner, `test/*.test.js`) — it
-covers the `recommend` scoring/ranking logic specifically, since a silent
-regression there would just look like slightly-worse search results, not a
-crash.
+If you're changing `bin/crondex.js`, anything under `lib/`, or a script in
+`scripts/`, run `npm test` (Node's built-in test runner, `test/*.test.js`).
+Coverage: `recommend`/`rankJobs` scoring, near-duplicate detection
+(`lib/duplicates.js`), the shellcheck placeholder-substitution logic
+(`lib/shellcheck-prep.js`), catalog/README summary building
+(`lib/catalog-summary.js`), category-description completeness, and CLI
+integration tests that actually spawn `bin/crondex.js` for `list`/`show`/
+`add`/`init`/`recommend`/`categories`. Most of these bugs would look like
+"slightly worse output," not a crash — that's exactly what the tests exist
+to catch.
 
 ## What makes a good job
 

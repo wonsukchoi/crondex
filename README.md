@@ -104,7 +104,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-632 jobs across 48 categories:
+645 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -154,7 +154,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `team` | 7 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 7 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 7 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `veterinary` | 7 | Clinic ops for animals — vaccines, controlled substances, boarding. |
+| `veterinary` | 20 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 19 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->
 

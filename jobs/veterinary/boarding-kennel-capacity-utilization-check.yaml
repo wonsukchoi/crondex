@@ -1,0 +1,39 @@
+id: boarding-kennel-capacity-utilization-check
+version: 1
+name: Boarding/Kennel Capacity Utilization Check
+description: >
+  Compares today's occupied boarding runs/kennels against total capacity
+  and warns when utilization crosses a threshold. Use this if the front
+  desk has ever accepted a boarding reservation only to discover at
+  drop-off that every run was already full — this tracks overall
+  occupancy, distinct from boarding-checkout-reminder.yaml which tracks
+  individual checkout dates.
+category: veterinary
+tags: [veterinary, boarding, kennel, capacity, occupancy]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  occupied=$(awk -F',' -v today="$today" '
+    NR==1 {next}
+    $3 <= today && $4 >= today {count++}
+    END {print count+0}
+  ' "{{boarding_csv_path}}");
+  total="{{total_kennel_capacity}}";
+  warn="{{warn_threshold_pct}}";
+  pct=$(awk -v o="$occupied" -v t="$total" 'BEGIN { printf "%.1f", (t>0)?(o/t*100):0 }');
+  echo "OCCUPANCY: $occupied/$total runs occupied today ($pct%)";
+  awk -v pct="$pct" -v warn="$warn" 'BEGIN { if (pct+0 >= warn+0) print "ALERT: occupancy at or above " warn "% — confirm capacity before accepting more reservations." }'
+variables:
+  boarding_csv_path:
+    default: "./boarding-schedule.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD),checkout_date (YYYY-MM-DD)."
+  total_kennel_capacity:
+    default: 20
+    description: Total number of boarding runs/kennels available.
+  warn_threshold_pct:
+    default: 90
+    description: Occupancy percentage that triggers a capacity warning.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Counts any stay whose check-in/checkout window spans today — adjust the CSV export cadence to keep this current through the day.

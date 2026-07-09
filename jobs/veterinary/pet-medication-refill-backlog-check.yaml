@@ -1,0 +1,36 @@
+id: pet-medication-refill-backlog-check
+version: 1
+name: Pet Medication Refill Request Backlog Check
+description: >
+  Checks pending prescription/food refill requests against how long
+  they've been waiting and flags anything past a reasonable turnaround.
+  Use this if a client has ever run out of a pet's chronic medication
+  (e.g. thyroid or seizure medication) because a refill request sat
+  unanswered in the queue over a weekend.
+category: veterinary
+tags: [veterinary, prescriptions, refills, patients, medication]
+schedule: "0 9,15 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v hours="{{escalate_after_hours}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      age_hours = (today - requested_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "REFILL PENDING: %s (%s) — %s requested %s (%d hrs ago)\n", $1, $2, $5, $3, age_hours;
+      }
+    }
+  ' "{{refill_requests_csv_path}}"
+variables:
+  refill_requests_csv_path:
+    default: "./pet-refill-requests.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,requested_date (YYYY-MM-DD),status (pending/approved/denied),medication."
+  escalate_after_hours:
+    default: 48
+    description: Hours a refill request can sit pending before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only triage — actual approval of a refill is a clinical decision made by the veterinarian, not this job. Flag chronic/maintenance medications for priority handling.

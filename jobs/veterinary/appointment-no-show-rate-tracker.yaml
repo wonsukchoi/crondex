@@ -1,0 +1,49 @@
+id: appointment-no-show-rate-tracker
+version: 1
+name: Appointment No-Show Rate Tracker
+description: >
+  Calculates the weekly no-show rate from a logged appointment history and
+  flags when it crosses a threshold. Use this if the clinic has ever kept
+  eating empty exam-room slots without noticing the no-show rate had
+  crept up until the schedule was visibly hurting revenue — this tracks
+  the aggregate trend, distinct from a per-appointment outreach job.
+category: veterinary
+tags: [veterinary, appointments, no-show, scheduling, metrics]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - appt_epoch) / 86400;
+      if (age_days >= 0 && age_days <= cutoff) {
+        total++;
+        if ($3 == "no-show") noshow++;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (noshow / total) * 100;
+        printf "NO-SHOW RATE: %d/%d appointments in last %d day(s) = %.1f%%\n", noshow, total, cutoff, rate;
+        if (rate >= threshold) printf "ALERT: no-show rate %.1f%% is at or above the %.1f%% threshold\n", rate, threshold;
+      } else {
+        print "No appointments found in the lookback window.";
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./appointments.csv"
+    description: "Path to a CSV with columns: pet_name,appointment_date (YYYY-MM-DD),status (arrived/no-show/cancelled)."
+  lookback_days:
+    default: 7
+    description: How many trailing days of appointments to include in the rate calculation.
+  alert_threshold_pct:
+    default: 10
+    description: No-show rate percentage that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — pair with a per-appointment outreach job if you also want to contact each no-show individually.

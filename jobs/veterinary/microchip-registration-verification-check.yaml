@@ -1,0 +1,40 @@
+id: microchip-registration-verification-check
+version: 1
+name: Microchip Registration Verification Check
+description: >
+  Reviews recently implanted microchips and checks whether the chip was
+  actually registered with the manufacturer's database under the owner's
+  current contact info. Use this if a lost pet has ever been scanned at
+  a shelter, chip found, but the registry came back with no owner info
+  or an outdated phone number — the chip is only useful if the
+  registration behind it is current.
+category: veterinary
+tags: [veterinary, microchip, registration, patients, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the list of pets microchipped in the last {{lookback_days}} days
+  from {{practice_management_system}}: {{unregistered_chips_list}}.
+  1. For each chip, note whether the record shows it was registered with
+     the manufacturer's registry (e.g. HomeAgain, 24PetWatch, AKC
+     Reunite) and, if so, whether the owner contact info on file matches
+     the registry.
+  2. List any chip implanted but with no registration confirmed, and any
+     chip where the owner's phone/email on file has since changed
+     without the registry being updated.
+  3. Draft a short reminder message for owners with unregistered or
+     stale-registration chips, explaining briefly why an unregistered
+     chip won't reunite them with a lost pet.
+variables:
+  practice_management_system:
+    default: "your practice management system"
+    description: Name of the system where microchip implant records live.
+  unregistered_chips_list:
+    default: "the clinic's microchip implant log for the period"
+    description: Source of implanted-chip records to check against registry status.
+  lookback_days:
+    default: 30
+    description: How far back to check for recently implanted chips.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only outreach — registry lookups may require checking the specific manufacturer's site or portal, since there's no single universal microchip registry.

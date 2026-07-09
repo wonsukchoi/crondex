@@ -1,0 +1,43 @@
+id: senior-pet-wellness-recall-tracker
+version: 1
+name: Senior Pet Wellness Recall Tracker
+description: >
+  Finds senior pets (past a configurable age threshold) who are overdue
+  for a semi-annual senior wellness exam or bloodwork panel and drafts
+  outreach. Use this if an older pet has ever gone a full year between
+  visits when twice-yearly senior screening would have caught a treatable
+  condition early — distinct from pet-vaccine-due-reminder.yaml, which
+  tracks vaccine due dates rather than age-based wellness screening
+  cadence.
+category: veterinary
+tags: [veterinary, senior-pets, wellness, recall, outreach]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{practice_management_system}} for patients aged
+  {{senior_age_threshold_years}} years or older whose last wellness
+  exam or senior bloodwork panel was more than
+  {{recall_interval_months}} months ago, with no future appointment
+  booked.
+  1. List each pet, species/breed if known, last visit date, and how
+     overdue they are.
+  2. Sort by most overdue first.
+  3. Draft a short outreach message per pet (or a reusable template)
+     inviting the owner to book a senior wellness visit, mentioning
+     that early screening catches age-related conditions while they're
+     still manageable.
+  4. Separately call out any pet more than double the recall interval
+     overdue.
+variables:
+  practice_management_system:
+    default: "your practice management system"
+    description: Name of the system where appointment history lives.
+  senior_age_threshold_years:
+    default: 7
+    description: Age in years at which a pet is treated as a senior for recall purposes.
+  recall_interval_months:
+    default: 6
+    description: How many months between senior wellness visits before a pet counts as due.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — outreach messages should be reviewed by staff before sending. Senior age threshold varies by species/breed; adjust the default per your patient mix.

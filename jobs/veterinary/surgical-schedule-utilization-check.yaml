@@ -1,0 +1,36 @@
+id: surgical-schedule-utilization-check
+version: 1
+name: Surgical Schedule/OR Utilization Check
+description: >
+  Calculates how much of tomorrow's surgical suite time is booked versus
+  open, so scheduling can fill gaps or flag overbooking. Use this if the
+  OR has ever sat half-empty on a weekday because nobody was watching
+  utilization, or double-booked because two procedures landed in the
+  same block — distinct from surgery-prep-check.yaml, which checks
+  individual case readiness (bloodwork/consent) rather than schedule
+  utilization.
+category: veterinary
+tags: [veterinary, surgery, scheduling, utilization, operations]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  tomorrow=$(date -d "+1 day" +%Y-%m-%d 2>/dev/null || date -v+1d +%Y-%m-%d);
+  awk -F',' -v tomorrow="$tomorrow" -v capacity="{{available_or_minutes}}" '
+    NR==1 {next}
+    $2 == tomorrow { booked += $3; slots[$4]++ }
+    END {
+      pct = (capacity > 0) ? (booked / capacity * 100) : 0;
+      printf "OR UTILIZATION for %s: %d/%d minutes booked (%.1f%%)\n", tomorrow, booked, capacity, pct;
+      for (room in slots) if (slots[room] > 1) printf "POSSIBLE DOUBLE-BOOK: OR %s has %d procedures scheduled\n", room, slots[room];
+    }
+  ' "{{surgery_schedule_csv_path}}"
+variables:
+  surgery_schedule_csv_path:
+    default: "./surgery-schedule-detailed.csv"
+    description: "Path to a CSV with columns: pet_name,surgery_date (YYYY-MM-DD),duration_minutes,or_room."
+  available_or_minutes:
+    default: 480
+    description: Total surgical suite minutes available in a working day (e.g. 8 hours = 480).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Flags overlapping bookings in the same OR room as a possible double-book — verify against the actual schedule before reassigning.

@@ -1,0 +1,41 @@
+id: patient-record-completeness-audit
+version: 1
+name: Patient (Pet) Record Completeness Audit
+description: >
+  Spot-checks a sample of recent patient records for missing required
+  fields — weight, vaccine history, allergy flags, microchip number — and
+  lists the gaps. Use this if a chart has ever been missing a documented
+  drug allergy right when it mattered, because record completeness was
+  never actually reviewed, only assumed.
+category: veterinary
+tags: [veterinary, records, compliance, audit, patients]
+schedule: "0 10 * * 3"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review a sample of {{sample_size}} recent patient records from
+  {{practice_management_system}}, prioritizing patients seen in the last
+  {{lookback_days}} days.
+  1. For each record, check whether the following are present and current:
+     current weight, vaccine history, known allergies (or "none recorded"
+     explicitly, not just blank), and microchip number.
+  2. List each record with missing fields, grouped by which field is
+     missing most often across the sample — that's usually the intake
+     step actually breaking down.
+  3. Flag any record where an allergy field is blank rather than
+     explicitly marked "none" — a blank field is ambiguous and riskier
+     than a marked "none."
+  4. Suggest one process fix if the same field is missing across most of
+     the sample (e.g. "weight isn't being logged at check-in").
+variables:
+  practice_management_system:
+    default: "your practice management system"
+    description: Name of the system where patient records live.
+  sample_size:
+    default: 20
+    description: Number of recent records to sample for the audit.
+  lookback_days:
+    default: 30
+    description: How far back to pull records from for the sample.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Sampling audit, not a full chart review — use findings to spot a broken intake step, not to grade individual staff.

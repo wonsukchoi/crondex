@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 632,
+  "count": 645,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -488,6 +488,32 @@
       "path": "jobs/healthcare/appointment-no-show-follow-up.yaml"
     },
     {
+      "id": "appointment-no-show-rate-tracker",
+      "version": 1,
+      "name": "Appointment No-Show Rate Tracker",
+      "description": "Calculates the weekly no-show rate from a logged appointment history and flags when it crosses a threshold. Use this if the clinic has ever kept eating empty exam-room slots without noticing the no-show rate had crept up until the schedule was visibly hurting revenue — this tracks the aggregate trend, distinct from a per-appointment outreach job.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "appointments",
+        "no-show",
+        "scheduling",
+        "metrics"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/appointment-no-show-rate-tracker.yaml"
+    },
+    {
       "id": "appointment-no-show-tracker",
       "version": 1,
       "name": "Appointment No-Show & Late-Cancel Tracker",
@@ -948,6 +974,32 @@
         "codex"
       ],
       "path": "jobs/veterinary/boarding-checkout-reminder.yaml"
+    },
+    {
+      "id": "boarding-kennel-capacity-utilization-check",
+      "version": 1,
+      "name": "Boarding/Kennel Capacity Utilization Check",
+      "description": "Compares today's occupied boarding runs/kennels against total capacity and warns when utilization crosses a threshold. Use this if the front desk has ever accepted a boarding reservation only to discover at drop-off that every run was already full — this tracks overall occupancy, distinct from boarding-checkout-reminder.yaml which tracks individual checkout dates.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "boarding",
+        "kennel",
+        "capacity",
+        "occupancy"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/boarding-kennel-capacity-utilization-check.yaml"
     },
     {
       "id": "bol-freight-class-accuracy-audit",
@@ -2141,6 +2193,32 @@
         "codex"
       ],
       "path": "jobs/childcare/classroom-supply-low-stock-check.yaml"
+    },
+    {
+      "id": "client-payment-plan-delinquency-check",
+      "version": 1,
+      "name": "Client Payment Plan Delinquency Check",
+      "description": "Checks active client payment plans (e.g. for a large surgery or emergency bill) against their installment schedule and flags anyone who's missed a payment. Use this if a payment plan has ever quietly gone delinquent for months because nobody was cross-checking installment due dates against what actually came in.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "billing",
+        "payment-plans",
+        "collections",
+        "clients"
+      ],
+      "schedule": "0 9 1,15 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/client-payment-plan-delinquency-check.yaml"
     },
     {
       "id": "climate-control-compliance-check",
@@ -4122,6 +4200,32 @@
         "codex"
       ],
       "path": "jobs/finance/duplicate-payment-detection.yaml"
+    },
+    {
+      "id": "dvm-license-dea-registration-expiry-check",
+      "version": 1,
+      "name": "Veterinarian License & DEA Registration Expiry Check",
+      "description": "Checks each veterinarian's state license and DEA registration expiry dates and warns before either lapses. Use this if a vet has ever discovered a lapsed DEA registration only when trying to write a controlled-substance prescription — distinct from license-credential-expiry-check.yaml in healthcare, which tracks general staff credentials rather than the DVM license plus DEA dual-registration requirement specific to prescribing controlled substances for animal patients.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "compliance",
+        "licensing",
+        "dea",
+        "staff"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/dvm-license-dea-registration-expiry-check.yaml"
     },
     {
       "id": "earnings-calendar-watch",
@@ -8581,6 +8685,34 @@
       "path": "jobs/warehousing/mhe-preventive-maintenance-check.yaml"
     },
     {
+      "id": "microchip-registration-verification-check",
+      "version": 1,
+      "name": "Microchip Registration Verification Check",
+      "description": "Reviews recently implanted microchips and checks whether the chip was actually registered with the manufacturer's database under the owner's current contact info. Use this if a lost pet has ever been scanned at a shelter, chip found, but the registry came back with no owner info or an outdated phone number — the chip is only useful if the registration behind it is current.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "microchip",
+        "registration",
+        "patients",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/microchip-registration-verification-check.yaml"
+    },
+    {
       "id": "minibar-charge-reconciliation-check",
       "version": 1,
       "name": "Minibar Charge Reconciliation Check",
@@ -9874,6 +10006,34 @@
       "path": "jobs/healthcare/patient-recall-reminder.yaml"
     },
     {
+      "id": "patient-record-completeness-audit",
+      "version": 1,
+      "name": "Patient (Pet) Record Completeness Audit",
+      "description": "Spot-checks a sample of recent patient records for missing required fields — weight, vaccine history, allergy flags, microchip number — and lists the gaps. Use this if a chart has ever been missing a documented drug allergy right when it mattered, because record completeness was never actually reviewed, only assumed.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "records",
+        "compliance",
+        "audit",
+        "patients"
+      ],
+      "schedule": "0 10 * * 3",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/patient-record-completeness-audit.yaml"
+    },
+    {
       "id": "patient-satisfaction-survey-tracking",
       "version": 1,
       "name": "Patient Satisfaction Survey Response Tracking",
@@ -10157,6 +10317,32 @@
         "codex"
       ],
       "path": "jobs/construction/permit-expiry-check.yaml"
+    },
+    {
+      "id": "pet-medication-refill-backlog-check",
+      "version": 1,
+      "name": "Pet Medication Refill Request Backlog Check",
+      "description": "Checks pending prescription/food refill requests against how long they've been waiting and flags anything past a reasonable turnaround. Use this if a client has ever run out of a pet's chronic medication (e.g. thyroid or seizure medication) because a refill request sat unanswered in the queue over a weekend.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "prescriptions",
+        "refills",
+        "patients",
+        "medication"
+      ],
+      "schedule": "0 9,15 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/pet-medication-refill-backlog-check.yaml"
     },
     {
       "id": "pet-vaccine-due-reminder",
@@ -11277,6 +11463,34 @@
         "codex"
       ],
       "path": "jobs/construction/punch-list-completion-tracker.yaml"
+    },
+    {
+      "id": "puppy-kitten-vaccine-series-compliance-check",
+      "version": 1,
+      "name": "Puppy/Kitten Vaccine Series Compliance Check",
+      "description": "Tracks young patients partway through their initial multi-dose vaccine series and flags anyone who missed the next dose window. Use this if a puppy or kitten has ever fallen off after the first shot in a series, leaving them under-protected because nobody tracked series progress separately from routine adult booster due dates — distinct from pet-vaccine-due-reminder.yaml, which tracks single due-date reminders rather than a multi-dose series with its own interval rules.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "vaccine",
+        "puppy",
+        "kitten",
+        "patients"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/puppy-kitten-vaccine-series-compliance-check.yaml"
     },
     {
       "id": "purchase-order-overdue-check",
@@ -12706,6 +12920,34 @@
       "path": "jobs/realestate/security-deposit-return-deadline-check.yaml"
     },
     {
+      "id": "senior-pet-wellness-recall-tracker",
+      "version": 1,
+      "name": "Senior Pet Wellness Recall Tracker",
+      "description": "Finds senior pets (past a configurable age threshold) who are overdue for a semi-annual senior wellness exam or bloodwork panel and drafts outreach. Use this if an older pet has ever gone a full year between visits when twice-yearly senior screening would have caught a treatable condition early — distinct from pet-vaccine-due-reminder.yaml, which tracks vaccine due dates rather than age-based wellness screening cadence.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "senior-pets",
+        "wellness",
+        "recall",
+        "outreach"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/senior-pet-wellness-recall-tracker.yaml"
+    },
+    {
       "id": "seo-meta-check",
       "version": 1,
       "name": "SEO Meta Tag Check",
@@ -13190,6 +13432,32 @@
       "path": "jobs/content/social-mentions-watch.yaml"
     },
     {
+      "id": "spay-neuter-followup-compliance-check",
+      "version": 1,
+      "name": "Spay/Neuter Post-Op Follow-Up Compliance Check",
+      "description": "Checks which spay/neuter patients are due for their post-op recheck (incision check, suture removal) and haven't had one logged. Use this if a pet has ever developed an incision complication that would have been caught at a recheck nobody scheduled or confirmed happened.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "surgery",
+        "post-op",
+        "follow-up",
+        "compliance"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/spay-neuter-followup-compliance-check.yaml"
+    },
+    {
       "id": "speaker-confirmation-deadline-check",
       "version": 1,
       "name": "Speaker Confirmation Deadline Check",
@@ -13212,6 +13480,32 @@
         "codex"
       ],
       "path": "jobs/events/speaker-confirmation-deadline-check.yaml"
+    },
+    {
+      "id": "specialist-referral-followup-check",
+      "version": 1,
+      "name": "Veterinary Specialist Referral Follow-Up Check",
+      "description": "Checks outbound referrals to veterinary specialists (cardiology, oncology, orthopedic surgery, etc.) that haven't been scheduled or completed within a set window and flags them for follow-up. Use this if a pet has ever been referred out for a serious condition and the primary clinic never confirmed the owner actually followed through and got the specialist appointment.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "referrals",
+        "specialists",
+        "follow-up",
+        "care-coordination"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/specialist-referral-followup-check.yaml"
     },
     {
       "id": "sponsor-deliverable-tracker",
@@ -13993,6 +14287,32 @@
         "codex"
       ],
       "path": "jobs/veterinary/surgery-prep-check.yaml"
+    },
+    {
+      "id": "surgical-schedule-utilization-check",
+      "version": 1,
+      "name": "Surgical Schedule/OR Utilization Check",
+      "description": "Calculates how much of tomorrow's surgical suite time is booked versus open, so scheduling can fill gaps or flag overbooking. Use this if the OR has ever sat half-empty on a weekday because nobody was watching utilization, or double-booked because two procedures landed in the same block — distinct from surgery-prep-check.yaml, which checks individual case readiness (bloodwork/consent) rather than schedule utilization.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "surgery",
+        "scheduling",
+        "utilization",
+        "operations"
+      ],
+      "schedule": "0 16 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/surgical-schedule-utilization-check.yaml"
     },
     {
       "id": "table-turnover-rate-tracker",
@@ -15306,6 +15626,34 @@
         "codex"
       ],
       "path": "jobs/events/vendor-payment-deadline-reminder.yaml"
+    },
+    {
+      "id": "vet-staff-ce-credit-tracking",
+      "version": 1,
+      "name": "Veterinary Staff CE Credit Tracking",
+      "description": "Reviews each veterinarian and licensed vet tech's continuing education (CE) credit hours against what their state board requires by license renewal, and flags anyone on track to fall short. Use this if a provider has ever discovered close to renewal that they were short on RACE-approved CE hours needed to keep their license active — distinct from dvm-license-dea-registration-expiry-check.yaml, which tracks the license's own expiry date rather than the ongoing education requirement to renew it.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "continuing-education",
+        "compliance",
+        "licensing",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/vet-staff-ce-credit-tracking.yaml"
     },
     {
       "id": "vip-tier-reclassification-check",

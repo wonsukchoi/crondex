@@ -1,0 +1,36 @@
+id: vet-staff-ce-credit-tracking
+version: 1
+name: Veterinary Staff CE Credit Tracking
+description: >
+  Reviews each veterinarian and licensed vet tech's continuing education
+  (CE) credit hours against what their state board requires by license
+  renewal, and flags anyone on track to fall short. Use this if a
+  provider has ever discovered close to renewal that they were short on
+  RACE-approved CE hours needed to keep their license active — distinct
+  from dvm-license-dea-registration-expiry-check.yaml, which tracks the
+  license's own expiry date rather than the ongoing education
+  requirement to renew it.
+category: veterinary
+tags: [veterinary, continuing-education, compliance, licensing, staff]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the CE tracking export from {{ce_tracking_system}} for all
+  veterinarians and licensed vet techs.
+  1. For each staff member, compare CE hours completed this cycle
+     against the hours required by their state board (note: this varies
+     by state and by whether they're a DVM or LVT/CVT — flag if you're
+     unsure of the requirement rather than guessing).
+  2. List anyone whose completed hours, at the current pace, won't reach
+     the requirement before their cycle end date.
+  3. Sort by soonest cycle end date first.
+  4. Suggest which upcoming CE opportunities (conferences, RACE-approved
+     online courses) would close the gap, if that information is
+     available.
+variables:
+  ce_tracking_system:
+    default: "your CE tracking spreadsheet or HR/credentialing system"
+    description: Where completed CE hours and cycle end dates are recorded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires knowing each state board's specific CE hour requirement, which varies — verify against the actual state veterinary board rule before treating a flagged shortfall as final.

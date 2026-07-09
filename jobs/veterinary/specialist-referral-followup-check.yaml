@@ -1,0 +1,38 @@
+id: specialist-referral-followup-check
+version: 1
+name: Veterinary Specialist Referral Follow-Up Check
+description: >
+  Checks outbound referrals to veterinary specialists (cardiology,
+  oncology, orthopedic surgery, etc.) that haven't been scheduled or
+  completed within a set window and flags them for follow-up. Use this
+  if a pet has ever been referred out for a serious condition and the
+  primary clinic never confirmed the owner actually followed through and
+  got the specialist appointment.
+category: veterinary
+tags: [veterinary, referrals, specialists, follow-up, care-coordination]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{stale_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      pending_days = (today - sent_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "STALE REFERRAL: %s -> %s (%s) sent %s (%d days pending, no scheduled date)\n", $1, $2, $5, $3, pending_days;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./specialist-referrals.csv"
+    description: "Path to a CSV with columns: pet_name,specialist_name,referral_sent_date (YYYY-MM-DD),scheduled_date (blank if not yet scheduled),specialty."
+  stale_days:
+    default: 14
+    description: Days since a referral was sent, with no scheduled date, before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV export of outbound specialist referrals from your practice management system; adjust columns to match your export.

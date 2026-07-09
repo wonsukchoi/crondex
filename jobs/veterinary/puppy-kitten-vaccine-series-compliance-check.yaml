@@ -1,0 +1,39 @@
+id: puppy-kitten-vaccine-series-compliance-check
+version: 1
+name: Puppy/Kitten Vaccine Series Compliance Check
+description: >
+  Tracks young patients partway through their initial multi-dose vaccine
+  series and flags anyone who missed the next dose window. Use this if a
+  puppy or kitten has ever fallen off after the first shot in a series,
+  leaving them under-protected because nobody tracked series progress
+  separately from routine adult booster due dates — distinct from
+  pet-vaccine-due-reminder.yaml, which tracks single due-date reminders
+  rather than a multi-dose series with its own interval rules.
+category: veterinary
+tags: [veterinary, vaccine, puppy, kitten, patients]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the puppy/kitten vaccine series tracking export from
+  {{practice_management_system}} for patients currently mid-series
+  (i.e. have had at least one dose of a multi-dose series but not the
+  final dose).
+  1. For each patient, note the series (e.g. DHPP, FVRCP), which dose
+     number they're on, the date of their last dose, and the
+     recommended interval to the next dose ({{series_interval_weeks}}
+     weeks is typical but confirm against the specific vaccine's label).
+  2. Flag anyone past their expected next-dose window with no
+     appointment booked.
+  3. Sort by most overdue first, since a gap in a puppy/kitten series
+     can mean restarting the series depending on how long the gap was.
+  4. Draft a short reminder message per overdue patient for the owner.
+variables:
+  practice_management_system:
+    default: "your practice management system"
+    description: Name of the system where vaccine series records live.
+  series_interval_weeks:
+    default: 3
+    description: Typical interval in weeks between doses in a puppy/kitten vaccine series (varies by vaccine and product label).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — always confirm dosing interval and restart rules against the specific vaccine manufacturer's label, since gap tolerance varies by product.

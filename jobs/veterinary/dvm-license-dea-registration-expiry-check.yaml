@@ -1,0 +1,41 @@
+id: dvm-license-dea-registration-expiry-check
+version: 1
+name: Veterinarian License & DEA Registration Expiry Check
+description: >
+  Checks each veterinarian's state license and DEA registration expiry
+  dates and warns before either lapses. Use this if a vet has ever
+  discovered a lapsed DEA registration only when trying to write a
+  controlled-substance prescription — distinct from
+  license-credential-expiry-check.yaml in healthcare, which tracks
+  general staff credentials rather than the DVM license plus DEA
+  dual-registration requirement specific to prescribing controlled
+  substances for animal patients.
+category: veterinary
+tags: [veterinary, compliance, licensing, dea, staff]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline license_expiry_epoch; close(cmd);
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline dea_expiry_epoch; close(cmd2);
+      "date +%s" | getline now_epoch; close("date +%s");
+      license_days = (license_expiry_epoch - now_epoch) / 86400;
+      dea_days = (dea_expiry_epoch - now_epoch) / 86400;
+      if (license_days <= days) printf "EXPIRING: %s — state license expires %s (%d days)\n", $1, $3, license_days;
+      if (dea_days <= days) printf "EXPIRING: %s — DEA registration expires %s (%d days)\n", $1, $4, dea_days;
+    }
+  ' "{{credential_csv_path}}"
+variables:
+  credential_csv_path:
+    default: "./dvm-credentials.csv"
+    description: "Path to a CSV with columns: veterinarian_name,state,license_expiry_date (YYYY-MM-DD),dea_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 60
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV export from your credentialing/HR system. A lapsed DEA registration blocks legal prescribing of controlled substances — treat DEA warnings as higher priority than license warnings.

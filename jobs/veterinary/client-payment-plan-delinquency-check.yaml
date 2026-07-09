@@ -1,0 +1,36 @@
+id: client-payment-plan-delinquency-check
+version: 1
+name: Client Payment Plan Delinquency Check
+description: >
+  Checks active client payment plans (e.g. for a large surgery or
+  emergency bill) against their installment schedule and flags anyone
+  who's missed a payment. Use this if a payment plan has ever quietly
+  gone delinquent for months because nobody was cross-checking installment
+  due dates against what actually came in.
+category: veterinary
+tags: [veterinary, billing, payment-plans, collections, clients]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace_days="{{grace_period_days}}" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= grace_days) {
+        printf "DELINQUENT: %s — installment $%s due %s (%d days overdue), plan total $%s\n", $1, $2, $3, overdue_days, $5;
+      }
+    }
+  ' "{{payment_plans_csv_path}}"
+variables:
+  payment_plans_csv_path:
+    default: "./payment-plans.csv"
+    description: "Path to a CSV with columns: owner_name,installment_amount,due_date (YYYY-MM-DD),status (paid/unpaid),plan_total_amount."
+  grace_period_days:
+    default: 5
+    description: Days past the due date before a missed installment is flagged as delinquent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only aging check — actual collections outreach and any plan renegotiation should follow your practice's billing policy.

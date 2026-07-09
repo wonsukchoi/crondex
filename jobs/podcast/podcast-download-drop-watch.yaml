@@ -1,0 +1,42 @@
+id: podcast-download-drop-watch
+version: 1
+name: Podcast Download Drop Watch
+description: >
+  Compares a new episode's early download numbers against your recent
+  average and flags a real drop. Use this if a listenership decline has
+  ever gone unnoticed for months because nobody compared episode numbers
+  side by side.
+category: podcast
+tags: [podcast, downloads, analytics, listenership]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check download/listen numbers for the most recent episode of
+  {{podcast_name}} at the {{days_since_release}}-day mark, via
+  {{hosting_platform}}.
+  1. Compare against the average {{days_since_release}}-day download
+     count for the last {{baseline_episode_count}} episodes.
+  2. Flag a drop of {{drop_threshold_pct}}% or more below that average.
+  3. If flagged, note anything that coincided with this episode
+     (different topic, guest vs. solo, publish day/time change) that
+     might explain it, if that context is available.
+  4. If downloads are in the normal range, report the number in one line.
+variables:
+  podcast_name:
+    default: "your podcast"
+    description: Name of the podcast to check.
+  hosting_platform:
+    default: "your podcast host (e.g. Spotify for Podcasters, Buzzsprout, Libsyn)"
+    description: Where download analytics are available.
+  days_since_release:
+    default: 3
+    description: How many days after release to compare (early numbers are more predictive than day-one spikes).
+  baseline_episode_count:
+    default: 8
+    description: How many recent episodes to average for the baseline comparison.
+  drop_threshold_pct:
+    default: 20
+    description: Percentage drop below baseline that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Complements `podcast-rating-review-watch` (qualitative feedback) with a quantitative listenership signal.

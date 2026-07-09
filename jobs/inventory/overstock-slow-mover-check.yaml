@@ -1,0 +1,36 @@
+id: overstock-slow-mover-check
+version: 1
+name: Overstock / Slow-Mover Check
+description: >
+  Flags SKUs sitting well above normal stock levels with low recent sales
+  velocity, tying up capital and warehouse space. Use this if slow-moving
+  stock has ever piled up quietly until a year-end count revealed how
+  much cash was sitting on shelves doing nothing.
+category: inventory
+tags: [inventory, overstock, slow-mover, capital]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v mult="{{overstock_multiplier}}" -v min_days="{{min_days_of_stock}}" '
+    NR==1 {next}
+    {
+      daily_velocity = $3 / 30;
+      days_of_stock = (daily_velocity > 0) ? $2 / daily_velocity : 9999;
+      if (days_of_stock >= min_days && $2 > ($4 * mult)) {
+        printf "OVERSTOCK: %s — %d units (%.0f days of stock, %.1fx normal par)\n", $1, $2, days_of_stock, $2/$4;
+      }
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./inventory-with-par.csv"
+    description: "Path to a CSV with columns: sku,current_stock,units_sold_last_30_days,normal_par_level."
+  overstock_multiplier:
+    default: 2
+    description: How many times above normal par level counts as overstocked.
+  min_days_of_stock:
+    default: 90
+    description: Minimum days-of-stock-on-hand (at current velocity) before flagging, to avoid noise from normal restocking bumps.
+compatible_agents: [generic, claude, codex]
+notes: Complements `low-stock-alert`/`low-stock-reorder-alert` by catching the opposite problem — too much stock, not too little.

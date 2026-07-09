@@ -1,0 +1,38 @@
+id: sponsorship-deliverable-tracker
+version: 1
+name: Sponsorship Deliverable Tracker
+description: >
+  Flags brand-deal deliverables (a video, post, story, or link placement)
+  coming due across whatever platforms you post on. Use this if a sponsor
+  has ever had to ask where their promised content was because the
+  deadline only lived in an email thread from weeks ago.
+category: creator
+tags: [creator, sponsorship, brand-deal, deliverable]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "DUE SOON: %s — %s due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{deliverables_csv_path}}"
+variables:
+  deliverables_csv_path:
+    default: "./sponsorship-deliverables.csv"
+    description: "Path to a CSV with columns: brand_name,deliverable_type,due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 3
+    description: How many days before a deliverable is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers general brand-deal content (video, post, story, link) across any
+  platform. If you specifically need podcast ad-read tracking, see
+  `sponsor-deliverable-tracker` in the podcast category instead.

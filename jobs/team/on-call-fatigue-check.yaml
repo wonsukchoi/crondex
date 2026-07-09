@@ -1,0 +1,39 @@
+id: on-call-fatigue-check
+version: 1
+name: On-Call Fatigue Check
+description: >
+  Checks the on-call rotation history and flags if the same person has
+  been covering on-call more often than the rotation intends. Use this if
+  someone has ever quietly ended up on-call three weeks running because
+  swaps kept landing on the same person and nobody was tracking the
+  pattern.
+category: team
+tags: [team, oncall, rotation, burnout]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v weeks="{{lookback_weeks}}" -v max_share="{{max_share_pct}}" '
+    NR==1 {next}
+    { count[$1]++; total++ }
+    END {
+      for (person in count) {
+        pct = (count[person] / total) * 100;
+        if (pct >= max_share) {
+          printf "IMBALANCE: %s covered %d of %d on-call shifts (%.0f%%) in the last %s weeks\n", person, count[person], total, pct, weeks;
+        }
+      }
+    }
+  ' "{{oncall_history_csv_path}}"
+variables:
+  oncall_history_csv_path:
+    default: "./oncall-history.csv"
+    description: "Path to a CSV with one row per on-call shift, column: person_name — covering the lookback window."
+  lookback_weeks:
+    default: 8
+    description: How many weeks of on-call history the CSV covers (for labeling output).
+  max_share_pct:
+    default: 40
+    description: Percentage share of total shifts above which one person is carrying a disproportionate load.
+compatible_agents: [generic, claude, codex]
+notes: Complements `oncall-handoff-reminder` (per-shift handoff notes) by looking at the rotation pattern over time instead of a single handoff.

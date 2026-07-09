@@ -1,0 +1,36 @@
+id: labor-cost-percentage-watch
+version: 1
+name: Labor Cost Percentage Watch
+description: >
+  Checks labor cost as a percentage of sales against your target and
+  flags it when it runs high. Use this if overstaffing on a slow shift
+  has ever quietly eaten a week's margin before anyone pulled the labor
+  numbers and noticed.
+category: restaurant
+tags: [restaurant, labor-cost, margin, finance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  labor="{{labor_cost_usd}}";
+  sales="{{sales_revenue_usd}}";
+  target="{{target_labor_cost_pct}}";
+  pct=$(awk -v l="$labor" -v s="$sales" 'BEGIN{ if (s>0) printf "%.1f", (l/s)*100; else print "0" }');
+  if awk -v p="$pct" -v t="$target" 'BEGIN{exit !(p > t)}'; then
+    echo "WARNING: labor cost at $pct% of sales (target $target%)";
+    exit 1;
+  else
+    echo "OK: labor cost at $pct% of sales (target $target%)";
+  fi
+variables:
+  labor_cost_usd:
+    default: 0
+    description: Total labor cost (wages, not including benefits/taxes unless you want them included) for the period.
+  sales_revenue_usd:
+    default: 0
+    description: Total sales revenue for the same period.
+  target_labor_cost_pct:
+    default: 30
+    description: Target labor cost as a percentage of sales.
+compatible_agents: [generic, claude, codex]
+notes: Parallel structure to `food-cost-percentage-watch` — feed in period totals from your POS/payroll export, scheduled to match how often you close out labor numbers.

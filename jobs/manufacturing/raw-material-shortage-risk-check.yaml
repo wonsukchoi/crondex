@@ -1,0 +1,31 @@
+id: raw-material-shortage-risk-check
+version: 1
+name: Raw Material Shortage Risk Check
+description: >
+  Compares raw material stock against what the production schedule needs
+  over the next planning window, and flags anything that'll run short.
+  Use this if a production run has ever stalled mid-shift because a
+  component ran out and nobody had cross-checked stock against the
+  schedule beforehand.
+category: manufacturing
+tags: [manufacturing, materials, production-planning, shortage]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      material = $1; on_hand = $2; needed = $3;
+      if (needed > on_hand) {
+        shortfall = needed - on_hand;
+        printf "SHORTFALL: %s — need %d, have %d (short %d)\n", material, needed, on_hand, shortfall;
+      }
+    }
+  ' "{{materials_needs_csv_path}}"
+variables:
+  materials_needs_csv_path:
+    default: "./material-requirements.csv"
+    description: "Path to a CSV with columns: material_name,on_hand_qty,needed_qty_for_schedule — needed_qty computed from your production schedule/BOM for the planning window."
+compatible_agents: [generic, claude, codex]
+notes: Assumes `needed_qty` is derived from your MRP/production schedule export — this job just does the comparison and flags shortfalls, it doesn't calculate the BOM requirement itself.

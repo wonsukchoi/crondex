@@ -1,0 +1,30 @@
+id: agent-workload-balance-check
+version: 1
+name: Support Agent Workload Balance Check
+description: >
+  Checks how open tickets are distributed across agents and flags a real
+  imbalance. Use this if one agent has ever quietly ended up carrying
+  double the ticket load of a teammate because assignment was manual and
+  nobody was watching the split.
+category: support
+tags: [support, workload, agents, balance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for currently open ticket counts per agent.
+  1. List each agent's open ticket count.
+  2. Flag any agent carrying {{imbalance_multiplier}}x or more the team
+     average as overloaded.
+  3. Flag any agent with zero or very few open tickets while others are
+     overloaded — that's the other half of the imbalance worth surfacing.
+  4. If the distribution looks reasonably even, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket assignment data is tracked.
+  imbalance_multiplier:
+    default: 1.5
+    description: How many times above the team average counts as overloaded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only signal — rebalancing assignments is a team-lead decision, not something this job does automatically.

@@ -1,0 +1,32 @@
+id: earnings-calendar-watch
+version: 1
+name: Earnings Calendar Watch
+description: >
+  Checks for upcoming earnings dates on stocks you hold, so a report
+  doesn't catch you off guard. Use this if a holding has ever moved
+  sharply overnight and you only afterward realized earnings had been
+  scheduled for that day.
+category: investing
+tags: [investing, earnings, stocks, calendar]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Check upcoming earnings dates for these holdings: {{tickers}}, over the
+  next {{lookahead_days}} days (via any market data source or earnings
+  calendar).
+  1. List each ticker with an earnings date in the window, and whether
+     it's before or after market close.
+  2. Note the analyst consensus estimate if easily available, for
+     context.
+  3. If none of the tracked tickers report in this window, say so in one
+     line.
+variables:
+  tickers:
+    default: "AAPL, MSFT"
+    description: Comma-separated list of stock tickers to track.
+  lookahead_days:
+    default: 14
+    description: How far ahead to check for scheduled earnings reports.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — not a recommendation to trade around earnings, which is notoriously volatile and easy to get wrong.

@@ -1,0 +1,41 @@
+id: campaign-utm-tracking-check
+version: 1
+name: Campaign UTM Tracking Check
+description: >
+  Checks a list of campaign links for missing or malformed UTM parameters
+  before (or after) launch. Use this if a campaign has ever run for a week
+  with broken tracking, making every attribution report for that period
+  useless.
+category: marketing
+tags: [marketing, utm, tracking, analytics]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  required="{{required_params}}";
+  fail=0;
+  while IFS= read -r url; do
+    [ -z "$url" ] && continue;
+    missing="";
+    IFS=',' read -ra params <<< "$required";
+    for p in "${params[@]}"; do
+      case "$url" in
+        *"${p}="*) ;;
+        *) missing="$missing $p" ;;
+      esac;
+    done;
+    if [ -n "$missing" ]; then
+      echo "MISSING PARAMS ($missing): $url";
+      fail=1;
+    fi;
+  done < "{{urls_file_path}}";
+  exit $fail
+variables:
+  urls_file_path:
+    default: "./campaign-urls.txt"
+    description: Path to a plain text file with one campaign URL per line.
+  required_params:
+    default: "utm_source,utm_medium,utm_campaign"
+    description: Comma-separated list of UTM parameter names every URL must include.
+compatible_agents: [generic, claude, codex]
+notes: Checks parameter presence only, not that values are consistent/correctly spelled (e.g. "linkedin" vs "LinkedIn") — pair with a naming convention doc if that's a recurring issue.

@@ -1,0 +1,36 @@
+id: defi-liquidation-risk-watch
+version: 1
+name: DeFi Liquidation Risk Watch
+description: >
+  Checks a lending position's current collateral ratio and warns before it
+  gets close to the liquidation threshold. Use this if a position has ever
+  gotten liquidated during a price dip because nobody was watching the
+  health factor in real time.
+category: crypto
+tags: [crypto, defi, lending, liquidation]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current health factor / collateral ratio for the lending
+  position at {{position_address_or_id}} on {{protocol_name}} (via the
+  protocol's app, subgraph, or a position-tracking site).
+  1. Report the current health factor / collateral ratio.
+  2. Compare against the liquidation threshold — flag as urgent if within
+     {{danger_margin_pct}}% of triggering liquidation.
+  3. If urgent, suggest the immediate options: add collateral, repay part
+     of the loan, or reduce exposure — don't take any action, just lay out
+     the choices.
+  4. If healthy, report the current buffer in one line.
+variables:
+  protocol_name:
+    default: "Aave"
+    description: Name of the lending protocol (e.g. "Aave", "Compound", "MakerDAO").
+  position_address_or_id:
+    default: "your wallet address or position ID"
+    description: The wallet address or position identifier to check.
+  danger_margin_pct:
+    default: 15
+    description: How close to the liquidation threshold (in percent) counts as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — does not execute any transaction. Given how fast collateral ratios can move in volatile markets, treat the check interval as a floor, not a guarantee you'll always catch it in time.

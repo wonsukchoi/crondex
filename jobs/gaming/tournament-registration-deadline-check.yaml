@@ -1,0 +1,34 @@
+id: tournament-registration-deadline-check
+version: 1
+name: Tournament Registration Deadline Check
+description: >
+  Warns you before a tournament's registration window closes. Use this if
+  you've ever missed signing up for a tournament because the deadline
+  passed while you were heads-down practicing instead of checking dates.
+category: gaming
+tags: [gaming, tournament, esports, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "REGISTRATION CLOSING: %s — closes %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{tournaments_csv_path}}"
+variables:
+  tournaments_csv_path:
+    default: "./tournament-deadlines.csv"
+    description: "Path to a CSV with columns: tournament_name,registration_deadline (YYYY-MM-DD)."
+  warn_days_before:
+    default: 5
+    description: How many days before registration closes to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Maintain the CSV from whatever tournament listing sites/organizers you follow — this is a plain date-threshold reminder, not a tournament discovery tool.

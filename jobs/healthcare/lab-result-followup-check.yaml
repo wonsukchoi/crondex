@@ -1,0 +1,34 @@
+id: lab-result-followup-check
+version: 1
+name: Lab Result Follow-Up Check
+description: >
+  Checks for lab results that came back a while ago but haven't been
+  reviewed by a provider or communicated to the patient yet. Use this if a
+  result has ever sat in a queue for days because nobody was tracking
+  turnaround from result-received to patient-notified.
+category: healthcare
+tags: [healthcare, lab-results, patients, followup]
+schedule: "0 */4 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Check {{lab_system}} for results received in the last
+  {{lookback_hours}} hours that show no provider review or patient
+  notification logged yet.
+  1. List each: patient, test type, and how long ago the result came in.
+  2. Flag anything past {{escalate_after_hours}} hours as needing
+     immediate attention — especially flag any result marked abnormal or
+     critical regardless of how recently it arrived.
+  3. If nothing is overdue, say so in one line.
+variables:
+  lab_system:
+    default: "your lab/EHR system"
+    description: Name of the system where lab results and review status are tracked.
+  lookback_hours:
+    default: 48
+    description: How far back to check for unreviewed results.
+  escalate_after_hours:
+    default: 24
+    description: Hours after a result arrives before it counts as overdue for review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check — flags gaps in review/notification, doesn't interpret clinical results or contact patients itself. Follow your practice's actual critical-value notification protocol for anything flagged abnormal.

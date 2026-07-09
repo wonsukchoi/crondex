@@ -1,0 +1,35 @@
+id: background-check-status-check
+version: 1
+name: Background Check Status Check
+description: >
+  Checks pending background/reference checks for offered candidates and
+  flags anything stalling close to their planned start date. Use this if a
+  start date has ever slipped because a background check was still
+  pending and nobody noticed until the week before.
+category: hiring
+tags: [hiring, background-check, onboarding, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{background_check_vendor}} for candidates with a background
+  check still pending, and cross-reference against {{ats_system}} for
+  their planned start dates.
+  1. List each pending check: candidate name, days pending, and planned
+     start date.
+  2. Flag anyone whose start date is within {{escalate_within_days}} days
+     and still has no completed check — that's the one worth chasing the
+     vendor about today.
+  3. If everything's on track, say so in one line.
+variables:
+  background_check_vendor:
+    default: "your background check provider (e.g. Checkr, Sterling)"
+    description: Where background/reference check status is tracked.
+  ats_system:
+    default: "your applicant tracking system"
+    description: Where candidate start dates are recorded.
+  escalate_within_days:
+    default: 5
+    description: Days before start date at which a still-pending check becomes urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only status check — actually chasing the vendor or adjusting a start date is a decision for HR/recruiting to make.

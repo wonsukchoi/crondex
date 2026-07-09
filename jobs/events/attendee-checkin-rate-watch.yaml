@@ -1,0 +1,37 @@
+id: attendee-checkin-rate-watch
+version: 1
+name: Attendee Check-In Rate Watch
+description: >
+  Checks the day-of check-in rate against registered headcount and flags
+  it if turnout is running well below expectations while there's still
+  time to adjust (catering, seating, staffing). Use this if you've ever
+  found out an event was under-attended only after it ended, instead of
+  two hours into it.
+category: events
+tags: [events, checkin, attendance, day-of]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  checked_in=$(wc -l < "{{checkins_csv_path}}");
+  checked_in=$((checked_in - 1));
+  registered="{{registered_count}}";
+  pct=$(awk -v c="$checked_in" -v r="$registered" 'BEGIN{ if (r>0) printf "%.0f", (c/r)*100; else print "0" }');
+  target="{{expected_checkin_pct}}";
+  if [ "$pct" -lt "$target" ]; then
+    echo "LOW TURNOUT: $checked_in of $registered checked in ($pct%, expected ~$target%)";
+  else
+    echo "OK: $checked_in of $registered checked in ($pct%)";
+  fi
+variables:
+  checkins_csv_path:
+    default: "./event-checkins.csv"
+    description: Path to a CSV of check-ins so far (one header row plus one row per checked-in attendee).
+  registered_count:
+    default: 100
+    description: Total number of registered attendees expected.
+  expected_checkin_pct:
+    default: 70
+    description: Typical check-in rate (percent of registrants) for this kind of event, used as the comparison baseline.
+compatible_agents: [generic, claude, codex]
+notes: Only useful once check-ins start (e.g. run it during the event's arrival window) — it's a live day-of signal, not a pre-event forecast.

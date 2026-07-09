@@ -1,0 +1,36 @@
+id: last-mile-delivery-exception-check
+version: 1
+name: Last-Mile Delivery Exception Check
+description: >
+  Checks recent deliveries for exceptions — failed attempts, refused
+  packages, address issues — and flags them for follow-up. Use this if a
+  failed delivery has ever sat unresolved until an annoyed customer
+  emailed asking where their order was.
+category: logistics
+tags: [logistics, delivery, last-mile, exceptions]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{carrier_or_tms}} for delivery exceptions (failed attempt,
+  refused, address issue, damaged) logged in the last
+  {{lookback_hours}} hours.
+  1. List each exception: order/tracking number, exception type, and how
+     long ago it occurred.
+  2. Flag anything with no follow-up action logged yet (redelivery
+     scheduled, customer contacted) past {{escalate_after_hours}} hours.
+  3. Draft a short customer-facing message per unresolved exception,
+     appropriate to the exception type (e.g. rescheduling for a failed
+     attempt vs. apologizing for damage).
+variables:
+  carrier_or_tms:
+    default: "your carrier's tracking API or TMS"
+    description: Where delivery exception data is available (carrier API, transportation management system).
+  lookback_hours:
+    default: 24
+    description: How far back to check for new exceptions.
+  escalate_after_hours:
+    default: 12
+    description: Hours an exception can sit without follow-up before it counts as overdue.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review customer messages before sending, and confirm any rescheduled delivery actually gets booked through the carrier.

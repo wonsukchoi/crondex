@@ -1,0 +1,33 @@
+id: exit-interview-completion-check
+version: 1
+name: Exit Interview Completion Check
+description: >
+  Flags departing employees whose exit interview hasn't happened yet as
+  their last day approaches. Use this if someone has ever left without an
+  exit interview simply because scheduling it got lost in the handoff
+  paperwork.
+category: hr
+tags: [hr, offboarding, exit-interview, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{hris_system}} for employees with a last day within
+  {{lookahead_days}} days who don't have an exit interview scheduled or
+  completed.
+  1. List each: name, last day, and manager.
+  2. Flag anyone with a last day inside {{urgent_within_days}} days and no
+     exit interview on the calendar as urgent.
+  3. Draft a short note to HR/the manager to get one scheduled.
+variables:
+  hris_system:
+    default: "your HRIS/offboarding system"
+    description: Name of the system tracking departures and exit interview status.
+  lookahead_days:
+    default: 14
+    description: How far ahead to check for upcoming departures.
+  urgent_within_days:
+    default: 3
+    description: Days before last day at which a missing exit interview becomes urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — actually scheduling the interview goes through whatever process HR already uses.

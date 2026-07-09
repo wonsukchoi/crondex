@@ -1,0 +1,39 @@
+id: checkout-conversion-drop-watch
+version: 1
+name: Checkout Conversion Drop Watch
+description: >
+  Compares today's checkout completion rate against your recent baseline
+  and flags a real drop. Use this if a checkout bug has ever silently cut
+  conversion for a day or two before anyone noticed sales looked soft.
+category: ecommerce
+tags: [ecommerce, checkout, conversion, analytics]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check checkout funnel data in {{analytics_source}} for the last
+  {{lookback_hours}} hours.
+  1. Calculate checkout-started-to-completed conversion rate for the
+     window.
+  2. Compare against the trailing {{baseline_days}}-day average for the
+     same time-of-day/day-of-week (checkout rates often vary by both).
+  3. Flag a drop of {{drop_threshold_pct}}% or more below baseline.
+  4. If flagged, note which step of the funnel shows the biggest relative
+     drop-off compared to baseline — that's usually where to look first
+     (payment step failing vs. shipping step confusing people are very
+     different problems).
+variables:
+  analytics_source:
+    default: "your storefront analytics (e.g. Shopify Analytics, GA4, a custom funnel dashboard)"
+    description: Where checkout funnel data is tracked.
+  lookback_hours:
+    default: 6
+    description: Window of recent checkout activity to evaluate.
+  baseline_days:
+    default: 14
+    description: Days of history used to establish the normal conversion rate.
+  drop_threshold_pct:
+    default: 15
+    description: Percentage drop below baseline that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Time-of-day/day-of-week-aware baseline matters — comparing a Tuesday afternoon rate to a Black-Friday-morning baseline will false-positive constantly.

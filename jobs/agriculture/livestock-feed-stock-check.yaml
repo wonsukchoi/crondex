@@ -1,0 +1,35 @@
+id: livestock-feed-stock-check
+version: 1
+name: Livestock Feed Stock Check
+description: >
+  Checks how many days of feed are left based on current stock and daily
+  consumption, and warns before you run out. Use this if feed has ever run
+  low over a weekend or holiday when the supplier wasn't reachable.
+category: agriculture
+tags: [agriculture, livestock, feed, inventory]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stock="{{feed_stock_lbs}}";
+  daily_use="{{daily_consumption_lbs}}";
+  warn_days="{{warn_days_before}}";
+  days_left=$(awk -v s="$stock" -v d="$daily_use" 'BEGIN{ if (d>0) printf "%.1f", s/d; else print "999" }');
+  if awk -v dl="$days_left" -v w="$warn_days" 'BEGIN{exit !(dl <= w)}'; then
+    echo "LOW FEED: $days_left days of feed left (stock ${stock}lb, using ${daily_use}lb/day)";
+    exit 1;
+  else
+    echo "OK: $days_left days of feed left";
+  fi
+variables:
+  feed_stock_lbs:
+    default: 0
+    description: Current feed stock on hand, in pounds (update this manually or from a scale reading).
+  daily_consumption_lbs:
+    default: 100
+    description: Average daily feed consumption in pounds.
+  warn_days_before:
+    default: 7
+    description: Days of remaining supply that triggers a warning — set with supplier lead time in mind.
+compatible_agents: [generic, claude, codex]
+notes: Assumes you update `feed_stock_lbs` after each delivery/count — this is a simple burn-rate calculation, not an automatic inventory sensor integration.

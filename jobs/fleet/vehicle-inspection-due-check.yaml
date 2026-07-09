@@ -1,0 +1,35 @@
+id: vehicle-inspection-due-check
+version: 1
+name: Vehicle State/DOT Inspection Due Check
+description: >
+  Checks fleet vehicles against their state or DOT inspection due dates
+  and warns before any lapse. Use this if a vehicle has ever gotten pulled
+  off a job by an inspector because its inspection sticker quietly
+  expired — separate from routine maintenance or registration renewal.
+category: fleet
+tags: [fleet, inspection, dot, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "INSPECTION DUE: %s — expires %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{vehicles_csv_path}}"
+variables:
+  vehicles_csv_path:
+    default: "./vehicle-inspections.csv"
+    description: "Path to a CSV with columns: vehicle_name,inspection_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before the inspection expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Tracks the state/DOT safety inspection specifically — distinct from `vehicle-maintenance-due-check` (service intervals) and `vehicle-registration-expiry-check` (registration renewal).

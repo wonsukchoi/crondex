@@ -1,0 +1,36 @@
+id: field-trip-permission-slip-check
+version: 1
+name: Field Trip Permission Slip Check
+description: >
+  Checks which students still haven't returned a signed permission slip as
+  a field trip approaches. Use this if a student has ever been left behind
+  on a school trip because their slip got lost in a backpack and nobody
+  followed up in time.
+category: education
+tags: [education, field-trip, permission-slip, students]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_date_epoch=$(date -d "{{trip_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_date}}" +%s);
+  now_epoch=$(date +%s);
+  days_left=$(( (trip_date_epoch - now_epoch) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "trip date has passed"; exit 0; fi;
+  missing=$(awk -F',' '$2 != "returned" {print $1}' "{{slips_csv_path}}");
+  count=$(echo "$missing" | grep -c . || true);
+  if [ "$count" -gt 0 ]; then
+    echo "MISSING SLIPS ($days_left days until trip):";
+    echo "$missing";
+    exit 1;
+  else
+    echo "OK: all permission slips returned, $days_left days until trip";
+  fi
+variables:
+  trip_date:
+    default: "YYYY-MM-DD"
+    description: Date of the field trip.
+  slips_csv_path:
+    default: "./field-trip-slips.csv"
+    description: "Path to a CSV with columns: student_name,status (returned or pending)."
+compatible_agents: [generic, claude, codex]
+notes: Keep the CSV updated as slips come in — this just cross-checks the current list against the trip date, it doesn't collect slips itself.

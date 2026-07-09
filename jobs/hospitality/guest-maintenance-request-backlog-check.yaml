@@ -1,0 +1,35 @@
+id: guest-maintenance-request-backlog-check
+version: 1
+name: Guest Maintenance Request Backlog Check
+description: >
+  Checks how many guest-reported maintenance issues are still open and
+  flags any sitting past your target resolution time. Use this if a
+  reported issue (broken AC, leaking faucet) has ever gone unresolved for
+  days because the request lived in a notebook nobody checked.
+category: hospitality
+tags: [hospitality, maintenance, guest-experience, backlog]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{sla_hours}}" '
+    NR==1 {next}
+    $2 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - reported_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "OVERDUE: room %s — %s (open %d hrs)\n", $1, $4, age_hours;
+      }
+    }
+  ' "{{requests_csv_path}}"
+variables:
+  requests_csv_path:
+    default: "./maintenance-requests.csv"
+    description: "Path to a CSV with columns: room_number,status (open/closed),reported_at (YYYY-MM-DD HH:MM),description."
+  sla_hours:
+    default: 4
+    description: Target hours to resolve a guest maintenance request before it counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Assumes requests are logged as they come in from front desk/housekeeping — this just cross-checks the log against your SLA, it doesn't dispatch anyone.

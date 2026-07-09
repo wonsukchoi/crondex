@@ -1,0 +1,38 @@
+id: certificate-of-insurance-request-check
+version: 1
+name: Certificate of Insurance Request Check
+description: >
+  Checks for incoming certificate-of-insurance (COI) requests from
+  vendors, clients, or landlords that haven't been fulfilled yet. Use this
+  if a COI request has ever sat unanswered long enough to hold up a
+  contract or a lease signing.
+category: insurance
+tags: [insurance, coi, compliance, requests]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{escalate_after_days}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - requested_epoch) / 86400;
+      if (age_days >= days) {
+        printf "OVERDUE: %s — requested %s (%d days ago)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{coi_requests_csv_path}}"
+variables:
+  coi_requests_csv_path:
+    default: "./coi-requests.csv"
+    description: "Path to a CSV with columns: requester_name,requested_date (YYYY-MM-DD),status (pending/fulfilled)."
+  escalate_after_days:
+    default: 3
+    description: Days a request can sit before it counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is about issuing COIs to others who need proof of your coverage —
+  the opposite direction from `policy-renewal-reminder` and
+  `premium-payment-due-reminder`, which track your own policies.

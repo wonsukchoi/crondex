@@ -1,0 +1,38 @@
+id: compliance-filing-deadline-reminder
+version: 1
+name: Corporate Compliance Filing Deadline Reminder
+description: >
+  Warns you before a recurring corporate compliance filing is due —
+  annual reports, franchise tax, registered agent renewals. Use this if
+  you've ever had a company administratively dissolved (and had to pay to
+  reinstate it) because a routine state filing quietly lapsed.
+category: legal
+tags: [legal, compliance, corporate, filing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "FILING DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{filings_csv_path}}"
+variables:
+  filings_csv_path:
+    default: "./compliance-filings.csv"
+    description: "Path to a CSV with columns: filing_name,due_date (YYYY-MM-DD) — e.g. annual report, franchise tax, registered agent renewal."
+  warn_days_before:
+    default: 30
+    description: How many days before a filing is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers routine corporate/administrative filings — distinct from
+  `court-deadline-reminder` (litigation deadlines) and
+  `tax-deadline-reminder` in finance (income/estimated tax deadlines).

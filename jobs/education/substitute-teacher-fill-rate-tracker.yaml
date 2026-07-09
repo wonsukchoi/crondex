@@ -1,0 +1,35 @@
+id: substitute-teacher-fill-rate-tracker
+version: 1
+name: Substitute Teacher Fill Rate Tracker
+description: >
+  Compares substitute requests against how many were actually filled and
+  flags days or schools with a low fill rate. Use this if classes have
+  ever gone uncovered because nobody was tracking whether sub requests
+  were actually getting filled.
+category: education
+tags: [education, staffing, substitute-teachers]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minRate="{{min_fill_rate_pct}}" '
+    NR==1 {next}
+    { requested[$1] += 1; if ($3 == "filled") filled[$1] += 1; }
+    END {
+      for (school in requested) {
+        rate = (filled[school] / requested[school]) * 100;
+        if (rate < minRate) {
+          printf "LOW FILL RATE: %s — %.1f%% (%d/%d requests filled)\n", school, rate, filled[school], requested[school];
+        }
+      }
+    }
+  ' "{{sub_requests_csv_path}}"
+variables:
+  sub_requests_csv_path:
+    default: "./sub-requests.csv"
+    description: "Path to a CSV with columns: school,request_date,status (filled or unfilled)."
+  min_fill_rate_pct:
+    default: 85
+    description: Fill rate percentage below which a school is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Run this early in the morning before the school day starts so unfilled slots can still be covered.

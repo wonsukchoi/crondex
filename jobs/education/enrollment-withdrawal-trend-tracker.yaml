@@ -1,0 +1,39 @@
+id: enrollment-withdrawal-trend-tracker
+version: 1
+name: Enrollment/Withdrawal Trend Tracker
+description: >
+  Reviews new enrollments and withdrawals over time and flags a school or
+  grade level that's losing students faster than usual. Use this if
+  enrollment decline has ever gone unnoticed for a semester because
+  individual withdrawals looked routine one at a time.
+category: education
+tags: [education, enrollment, students, trends]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review enrollment and withdrawal records from {{sis_hint}} for the last
+  {{lookback_months}} months.
+  1. Calculate net enrollment change by school and by grade level over the
+     window.
+  2. Flag any school or grade with a withdrawal rate above
+     {{withdrawal_rate_threshold_pct}}%, or a net enrollment decline that's
+     unusual compared to the same period in prior years if that data is
+     available.
+  3. Where withdrawal reasons are recorded, summarize the most common ones
+     (moved out of district, transferred to another school, homeschooling,
+     etc.) to help spot a pattern worth addressing versus normal mobility.
+  4. Summarize findings for administration, since sustained enrollment
+     decline affects staffing and funding decisions.
+variables:
+  sis_hint:
+    default: "your student information system"
+    description: Where enrollment and withdrawal records live.
+  lookback_months:
+    default: 6
+    description: How many months of enrollment history to review.
+  withdrawal_rate_threshold_pct:
+    default: 8
+    description: Withdrawal rate percentage that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — SIS platforms and how they record withdrawal reasons vary too widely to assume a common export format.

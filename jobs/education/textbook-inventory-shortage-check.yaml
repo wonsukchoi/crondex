@@ -1,0 +1,32 @@
+id: textbook-inventory-shortage-check
+version: 1
+name: Textbook Inventory Shortage Check
+description: >
+  Compares textbook/material stock counts against enrolled class sizes and
+  flags courses that are short. Use this if a class has ever started the
+  term with more students than available textbooks because nobody checked
+  inventory against the roster ahead of time.
+category: education
+tags: [education, inventory, textbooks, materials]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer="{{buffer_copies}}" '
+    NR==1 {next}
+    {
+      needed = $2 + buffer;
+      if ($3 < needed) {
+        printf "SHORTAGE: %s — %d in stock, %d needed (%d enrolled + %d buffer)\n", $1, $3, needed, $2, buffer;
+      }
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./textbook-inventory.csv"
+    description: "Path to a CSV with columns: course_title,enrolled_count,copies_in_stock."
+  buffer_copies:
+    default: 3
+    description: Extra copies to keep on hand beyond the enrolled count.
+compatible_agents: [generic, claude, codex]
+notes: Run this before the start of term and again a few weeks in, since enrollment (and thus the shortfall) can shift after add/drop.

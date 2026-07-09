@@ -1,0 +1,37 @@
+id: department-budget-variance-check
+version: 1
+name: Department Budget Variance Check
+description: >
+  Compares each department's or program's actual spending against its
+  budget and flags meaningful overages or underspend. Use this if a
+  department has ever blown through its annual budget months early
+  because nobody was checking actual-vs-budget until year-end
+  reconciliation.
+category: education
+tags: [education, budget, finance, departments]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review department/program budget vs. actual spending from
+  {{finance_system_hint}} for the current fiscal year to date.
+  1. For each department or program, compute spend as a percentage of its
+     annual budget and compare that to the expected percentage of the
+     fiscal year elapsed.
+  2. Flag departments running more than {{variance_threshold_pct}}
+     percentage points ahead of pace (overspend risk) or behind pace
+     (possible underspend, use-it-or-lose-it risk, or a stalled
+     initiative).
+  3. Note any single large transactions that materially explain a
+     variance, if visible in the data.
+  4. Summarize so budget owners can adjust spending or reforecast before
+     the next reporting cycle.
+variables:
+  finance_system_hint:
+    default: "your district finance/ERP system"
+    description: Where budget and actuals data lives.
+  variance_threshold_pct:
+    default: 15
+    description: Percentage-point gap between spend pace and time-elapsed pace that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This tracks department/program-level spending, not headcount or payroll cost, which HR budget jobs already cover separately.

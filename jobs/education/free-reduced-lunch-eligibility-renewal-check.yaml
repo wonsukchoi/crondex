@@ -1,0 +1,36 @@
+id: free-reduced-lunch-eligibility-renewal-check
+version: 1
+name: Free/Reduced Lunch Eligibility Renewal Check
+description: >
+  Checks free/reduced meal eligibility records for approvals that are
+  about to expire and flags families who need to renew. Use this if a
+  student has ever lost meal benefits mid-year because their eligibility
+  lapsed and nobody sent a renewal reminder in time.
+category: education
+tags: [education, meals, eligibility, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warnDays="{{warn_days}}" '
+    NR==1 {next}
+    $3 == "no" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (exp_epoch - now_epoch) / 86400;
+      if (days_left <= warnDays) {
+        printf "%s: %s eligibility expires %s (%d days)\n", (days_left < 0 ? "EXPIRED" : "RENEW SOON"), $1, $2, days_left;
+      }
+    }
+  ' "{{eligibility_csv_path}}"
+variables:
+  eligibility_csv_path:
+    default: "./meal-eligibility.csv"
+    description: "Path to a CSV with columns: student_name,expiration_date (YYYY-MM-DD),active (yes/no)."
+  warn_days:
+    default: 21
+    description: Days before expiration to start warning, giving families time to resubmit paperwork.
+compatible_agents: [generic, claude, codex]
+notes: Route renewal notices through whatever family-communication channel the district already uses for meal program paperwork.

@@ -1,0 +1,35 @@
+id: teacher-certification-expiry-tracker
+version: 1
+name: Teacher Certification Expiry Tracker
+description: >
+  Checks teaching certifications and endorsements against their renewal
+  dates and flags anything expiring soon. Use this if a teacher has ever
+  had their state license lapse mid-year because the renewal deadline
+  wasn't on anyone's radar until an audit or licensing-board notice.
+category: education
+tags: [education, staff, certification, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review teaching certification/endorsement records from
+  {{credentialing_system_hint}} for all instructional staff.
+  1. List any certification or endorsement expiring within
+     {{warn_days}} days.
+  2. Separate staff whose core teaching license is expiring (cannot
+     legally teach without it) from those with a secondary endorsement
+     lapsing (may still teach, but affects course assignments).
+  3. Note any continuing-education or renewal-credit requirements that
+     still need to be completed before the deadline, if that data is
+     available.
+  4. Summarize so HR/administration can start the renewal process with
+     enough lead time.
+variables:
+  credentialing_system_hint:
+    default: "your state licensing portal or HR credentialing system"
+    description: Where certification/endorsement records and expiration dates live.
+  warn_days:
+    default: 60
+    description: Days before expiration to start warning — certification renewals often take longer than typical HR paperwork.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from general HR compliance training tracking — this is specifically about the state teaching license/endorsements required to legally hold a classroom assignment.

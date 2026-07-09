@@ -1,0 +1,34 @@
+id: chronic-absenteeism-tracker
+version: 1
+name: Chronic Absenteeism Tracker
+description: >
+  Calculates each student's missed-day percentage for the term and flags
+  anyone crossing the chronic-absenteeism threshold. Use this if a student
+  has ever quietly racked up enough missed days to count as chronically
+  absent before anyone outside the attendance office noticed.
+category: education
+tags: [education, attendance, chronic-absenteeism, students]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{chronic_threshold_pct}}" '
+    NR==1 {next}
+    {
+      enrolled = $2; absent = $3;
+      if (enrolled <= 0) next;
+      pct = (absent / enrolled) * 100;
+      if (pct >= threshold) {
+        printf "CHRONIC: %s — %d/%d days missed (%.1f%%)\n", $1, absent, enrolled, pct;
+      }
+    }
+  ' "{{attendance_csv_path}}"
+variables:
+  attendance_csv_path:
+    default: "./term-attendance.csv"
+    description: "Path to a CSV with columns: student_name,enrolled_days,absent_days."
+  chronic_threshold_pct:
+    default: 10
+    description: Percentage of enrolled days missed that counts as chronically absent (10% is the common federal benchmark).
+compatible_agents: [generic, claude, codex]
+notes: This looks at the whole term to date, unlike attendance-anomaly-check which flags a short-term drop — the two catch different problems.

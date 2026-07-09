@@ -1,0 +1,40 @@
+id: school-bus-route-ontime-check
+version: 1
+name: School Bus Route On-Time Check
+description: >
+  Reviews bus route arrival data and flags routes that are consistently
+  running late. Use this if a route has ever drifted later and later over
+  weeks with only individual parent complaints, never a pattern anyone
+  actually looked at.
+category: education
+tags: [education, transportation, bus-routes]
+schedule: "0 16 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review bus arrival/departure data from {{transportation_system_hint}} for
+  the last {{lookback_days}} days.
+  1. For each route, compare actual arrival times against the scheduled
+     times at each stop.
+  2. Flag any route that was late by more than {{late_threshold_min}}
+     minutes on {{repeat_occurrences}} or more days in the window —
+     one bad day is noise, a pattern is a scheduling or staffing problem.
+  3. For flagged routes, note whether the lateness looks tied to a specific
+     stop, time of day, or driver, since that changes what the fix is.
+  4. Summarize findings so transportation staff can adjust schedules or
+     staffing before it becomes a parent-complaint pattern.
+variables:
+  transportation_system_hint:
+    default: "your bus/transportation tracking system"
+    description: Where route timing data lives (GPS tracker, dispatch software, etc.).
+  lookback_days:
+    default: 10
+    description: How many school days of route data to review.
+  late_threshold_min:
+    default: 10
+    description: Minutes past scheduled time that counts as late.
+  repeat_occurrences:
+    default: 3
+    description: Number of late days within the window that counts as a pattern worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — bus tracking/GPS systems vary too widely to assume a common export format.

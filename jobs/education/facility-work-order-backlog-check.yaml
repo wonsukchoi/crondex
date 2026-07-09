@@ -1,0 +1,34 @@
+id: facility-work-order-backlog-check
+version: 1
+name: Facility Work Order Backlog Check
+description: >
+  Reviews open facility maintenance work orders and flags the ones that
+  have been sitting too long, especially safety-related requests. Use
+  this if a maintenance ticket has ever gone stale for weeks until it
+  turned into a bigger, more expensive problem.
+category: education
+tags: [education, facilities, maintenance, work-orders]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review open facility work orders from {{facilities_system_hint}}.
+  1. List every work order still open after {{stale_days}} days, with its
+     school/building, description, and age.
+  2. Call out anything that reads as a safety or code issue (electrical,
+     HVAC failure in occupied spaces, structural, fire/life-safety,
+     accessibility) separately from routine cosmetic or convenience
+     requests — those need different urgency.
+  3. Group the remaining backlog by building so facilities staff can see
+     where the workload is concentrated.
+  4. Summarize counts and the oldest few tickets so leadership can decide
+     where to add capacity or reprioritize.
+variables:
+  facilities_system_hint:
+    default: "your facilities/maintenance ticketing system"
+    description: Where work orders are tracked.
+  stale_days:
+    default: 14
+    description: Days a work order can stay open before it's counted as backlog.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — facilities/maintenance ticketing systems vary too widely for a single export format.

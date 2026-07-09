@@ -1,0 +1,29 @@
+id: parent-teacher-conference-noshow-tracker
+version: 1
+name: Parent-Teacher Conference No-Show Tracker
+description: >
+  Checks scheduled parent-teacher conferences against attendance and flags
+  no-shows for follow-up. Use this if a family has ever missed a
+  conference slot and nobody rescheduled it, especially for a student
+  where that conversation actually mattered.
+category: education
+tags: [education, parent-engagement, conferences]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  noshows=$(awk -F',' 'NR>1 && $4=="no-show" {print $1" (with "$2", "$3")"}' "{{conferences_csv_path}}");
+  count=$(echo "$noshows" | grep -c . || true);
+  if [ "$count" -gt 0 ]; then
+    echo "NO-SHOWS TO FOLLOW UP:";
+    echo "$noshows";
+    exit 1;
+  else
+    echo "OK: no unaddressed conference no-shows";
+  fi
+variables:
+  conferences_csv_path:
+    default: "./conference-schedule.csv"
+    description: "Path to a CSV with columns: student_name,parent_name,teacher_name,status (attended, no-show, rescheduled)."
+compatible_agents: [generic, claude, codex]
+notes: Mark a no-show as rescheduled once a follow-up slot is booked, or it will keep showing up here.

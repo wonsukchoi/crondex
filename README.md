@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-557 jobs across 48 categories:
+569 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -116,7 +116,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `crypto` | 7 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 7 | Classroom ops — grading, attendance, deadlines, permission slips. |
+| `education` | 19 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 7 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 7 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 24 | Personal/business finance — budgets, invoices, taxes, subscriptions. |

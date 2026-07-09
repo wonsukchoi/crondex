@@ -36,6 +36,10 @@ npx @wonsukchoi/crondex add ssl-cert-expiry-check --dest ./cron/ssl-cert-expiry-
 - `add <id> [--dest path]` — copy it into your project to edit
 - `init <id> [--category x]` — scaffold a brand-new job from the template
 
+Add `--json` to `list`/`categories`/`show`/`recommend` for machine-readable
+output — useful when an agent is parsing the result programmatically
+instead of a human reading it.
+
 No install needed — `npx` always runs against the latest catalog. Prefer
 installing once? `npm install -g @wonsukchoi/crondex`, then drop the `npx`
 prefix (run `npm update -g` later to pick up new jobs). Prefer no npm at

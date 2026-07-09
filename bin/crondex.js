@@ -2,6 +2,7 @@
 // CLI over catalog.json — browse jobs, read one, or pull one into your project.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import yaml from "js-yaml";
 import { tokenize, rankJobs } from "../lib/recommend.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -13,6 +14,14 @@ const [, , cmd, ...args] = process.argv;
 function flag(name) {
   const i = args.indexOf(`--${name}`);
   return i === -1 ? undefined : args[i + 1];
+}
+
+function hasFlag(name) {
+  return args.includes(`--${name}`);
+}
+
+function printJson(value) {
+  console.log(JSON.stringify(value, null, 2));
 }
 
 function findJob(id) {
@@ -28,11 +37,11 @@ function printHelp() {
   console.log(`crondex — browse and pull pre-made cron jobs
 
 Usage:
-  crondex list [--category <name>] [--tag <name>]
-  crondex categories
-  crondex show <id>
+  crondex list [--category <name>] [--tag <name>] [--json]
+  crondex categories [--json]
+  crondex show <id> [--json]
   crondex add <id> [--dest <path>]
-  crondex recommend "<what you want done>" [--limit <n>]
+  crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
 
 Examples:
@@ -42,19 +51,38 @@ Examples:
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
   crondex recommend "warn me before my SSL cert expires"
   crondex init ssl-cert-expiry-check --category security
+
+Add --json to list/categories/show/recommend for machine-readable output —
+useful when an agent is parsing crondex's output programmatically instead
+of a human reading it.
 `);
 }
 
 function recommend(queryText) {
   const limit = Number(flag("limit")) || 5;
+  const json = hasFlag("json");
   if (!tokenize(queryText).length) {
+    if (json) return printJson([]);
     console.log("query too vague to match on — describe what you want the job to check or remind you about.");
     return;
   }
   const ranked = rankJobs(CATALOG.jobs, queryText, limit);
   if (!ranked.length) {
+    if (json) return printJson([]);
     console.log(`no confident match for "${queryText}". Run "crondex list" to browse everything.`);
     return;
+  }
+  if (json) {
+    return printJson(
+      ranked.map((r) => ({
+        id: r.job.id,
+        category: r.job.category,
+        score: r.score,
+        matched_terms: r.matchedTerms,
+        modes: r.job.modes,
+        description: r.job.description,
+      }))
+    );
   }
   console.log(`top match${ranked.length > 1 ? "es" : ""} for "${queryText}":`);
   console.log();
@@ -77,9 +105,11 @@ function catalogInfoLine() {
 function list() {
   const category = flag("category");
   const tag = flag("tag");
+  const json = hasFlag("json");
   const jobs = CATALOG.jobs.filter(
     (j) => (!category || j.category === category) && (!tag || j.tags.includes(tag))
   );
+  if (json) return printJson(jobs);
   console.log(catalogInfoLine());
   console.log();
   if (!jobs.length) {
@@ -94,15 +124,20 @@ function list() {
 }
 
 function show(id) {
-  console.log(readFileSync(join(ROOT, findJob(id).path), "utf8"));
+  const meta = findJob(id);
+  const raw = readFileSync(join(ROOT, meta.path), "utf8");
+  if (hasFlag("json")) return printJson(yaml.load(raw));
+  console.log(raw);
 }
 
 function categories() {
   const counts = {};
   for (const j of CATALOG.jobs) counts[j.category] = (counts[j.category] ?? 0) + 1;
+  const sorted = Object.entries(counts).sort(([a], [b]) => a.localeCompare(b));
+  if (hasFlag("json")) return printJson(sorted.map(([category, count]) => ({ category, count })));
   console.log(catalogInfoLine());
   console.log();
-  for (const [cat, n] of Object.entries(counts).sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [cat, n] of sorted) {
     console.log(`${cat}  (${n})`);
   }
 }

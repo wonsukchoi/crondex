@@ -1,0 +1,42 @@
+id: forecast-submission-compliance-check
+version: 1
+name: Forecast Submission Compliance Check
+description: >
+  Compares your active rep roster against submitted forecast records for
+  the current period and flags anyone who hasn't submitted yet. Use this
+  if sales leadership has ever walked into a forecast review meeting only
+  to find out half the team never actually submitted numbers.
+category: sales
+tags: [sales, forecasting, compliance, sales-ops]
+schedule: "0 9 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  period="{{current_period}}";
+  if [ -z "$period" ]; then period=$(date +%G-W%V); fi;
+  awk -F',' -v period="$period" '
+    NR==FNR { if (FNR>1) reps[$1]=1; next }
+    FNR==1 { next }
+    $2 == period { submitted[$1]=1 }
+    END {
+      for (r in reps) {
+        if (!(r in submitted)) print "MISSING FORECAST: " r " has not submitted for " period;
+      }
+    }
+  ' "{{reps_csv_path}}" "{{forecasts_csv_path}}"
+variables:
+  reps_csv_path:
+    default: "./active-reps.csv"
+    description: "Path to a CSV with header row and column: rep_name — one row per active rep expected to submit a forecast."
+  forecasts_csv_path:
+    default: "./forecast-submissions.csv"
+    description: "Path to a CSV with header row and columns: rep_name,period,submitted_at — one row per submitted forecast."
+  current_period:
+    default: ""
+    description: 'The period identifier to check submissions against (e.g. ISO week or "2026-Q3"). Leave blank to default to the current ISO week (YYYY-Www) — override if your forecasts CSV uses a different period format.'
+compatible_agents: [generic, claude, codex]
+notes: >
+  You maintain both CSVs yourself (export active-reps.csv from your HRIS
+  or CRM user list, and forecast-submissions.csv from wherever forecasts
+  are logged) — the `current_period` value must match how periods are
+  written in forecast-submissions.csv exactly.

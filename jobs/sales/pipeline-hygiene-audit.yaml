@@ -1,0 +1,26 @@
+id: pipeline-hygiene-audit
+version: 1
+name: Pipeline Hygiene Audit
+description: >
+  Finds open deals missing basic required fields, like an amount, a close
+  date, or a next step, so forecasts and reports aren't quietly built on
+  bad data. Use this if a forecast has ever been wrong because half the
+  pipeline had blank fields nobody was checking for.
+category: sales
+tags: [sales, pipeline, data-quality, crm-hygiene]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, owner, stage, (case when amount is null then 'missing amount' end) || (case when close_date is null then ' missing close_date' end) || (case when next_step is null or next_step = '' then ' missing next_step' end) as issues from deals where stage not in ('closed_won','closed_lost') and (amount is null or close_date is null or next_step is null or next_step = '');"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deals` table with `amount`, `close_date`, and `next_step`
+  columns — adjust the query and the required-field list to what your
+  team actually treats as mandatory. Distinct from `stale-deal-nudge`
+  (which flags deals with no recent activity) — this flags deals with
+  incomplete data regardless of how recently they were touched.

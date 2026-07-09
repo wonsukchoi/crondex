@@ -1,0 +1,43 @@
+id: territory-coverage-gap-check
+version: 1
+name: Territory Coverage Gap Check
+description: >
+  Flags target accounts that have no assigned rep, or have an assigned
+  rep but no logged activity in a long time. Use this if an account has
+  ever gone completely unworked for months simply because it fell between
+  territory reassignments and nobody noticed the gap.
+category: sales
+tags: [sales, territory, account-coverage, ops]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v stale_days="{{stale_days}}" '
+    NR==1 {next}
+    {
+      account=$1; rep=$2; last_activity=$3;
+      if (rep == "" ) {
+        printf "UNASSIGNED: %s has no assigned rep\n", account;
+        next;
+      }
+      cmd = "date -d \"" last_activity "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_activity "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (now_epoch - last_epoch) / 86400;
+      if (days >= stale_days) {
+        printf "NO ACTIVITY: %s (rep: %s) — %d day(s) since last activity\n", account, rep, days;
+      }
+    }
+  ' "{{accounts_csv_path}}"
+variables:
+  accounts_csv_path:
+    default: "./target-accounts.csv"
+    description: "Path to a CSV with columns: account_name,assigned_rep,last_activity_date (YYYY-MM-DD; assigned_rep blank if unowned)."
+  stale_days:
+    default: 45
+    description: Days without logged activity on an assigned account before it's flagged as a coverage gap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  You maintain target-accounts.csv yourself (or export it from your CRM's
+  account list) — this is a coverage/ownership check, not a deal-level
+  staleness check (see `stale-deal-nudge` for that).

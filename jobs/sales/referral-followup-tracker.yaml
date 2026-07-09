@@ -1,0 +1,40 @@
+id: referral-followup-tracker
+version: 1
+name: Referral Follow-Up Tracker
+description: >
+  Flags customer referrals that were asked for or given, and haven't had a
+  logged follow-up after a set number of days. Use this if a happy
+  customer has ever offered a referral introduction and it fell through
+  the cracks because nobody owned the follow-up.
+category: sales
+tags: [sales, referrals, advocacy, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v wait_days="{{wait_days}}" '
+    NR==1 {next}
+    $5 == "yes" {next}
+    {
+      customer=$1; referred_contact=$2; requested_date=$3; owner=$4;
+      cmd = "date -d \"" requested_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" requested_date "\" +%s 2>/dev/null";
+      cmd | getline req_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (now_epoch - req_epoch) / 86400;
+      if (days >= wait_days) {
+        printf "NEEDS FOLLOW-UP: %s referred %s (owner: %s) — %d day(s) since requested\n", customer, referred_contact, owner, days;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./referrals.csv"
+    description: "Path to a CSV with columns: customer_name,referred_contact,requested_date,owner,followed_up (yes/no; requested_date is YYYY-MM-DD)."
+  wait_days:
+    default: 5
+    description: Days after a referral is logged before it's flagged as overdue for a follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  You maintain referrals.csv yourself (log it when a customer offers or
+  makes an introduction, mark followed_up=yes once the owner reaches out)
+  — doesn't integrate with any CRM directly.

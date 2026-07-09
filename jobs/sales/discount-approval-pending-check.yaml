@@ -1,0 +1,31 @@
+id: discount-approval-pending-check
+version: 1
+name: Discount Approval Pending Check
+description: >
+  Flags deals with a discount above your standard threshold that are
+  still waiting on manager approval, especially ones that have been
+  sitting for a while. Use this if a rep has ever quoted a customer a
+  deep discount and the deal stalled for days waiting on an approval
+  nobody knew was pending.
+category: sales
+tags: [sales, discounts, approvals, deal-desk]
+schedule: "0 */4 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, owner, discount_pct, approval_requested_at from deals where discount_pct >= {{discount_threshold_pct}} and approval_status = 'pending' and approval_requested_at < now() - interval '{{stale_hours}} hours' order by approval_requested_at;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  discount_threshold_pct:
+    default: 15
+    description: Discount percent that requires manager approval in your process.
+  stale_hours:
+    default: 24
+    description: Hours an approval request can sit pending before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deals` table with `discount_pct`, `approval_status`, and
+  `approval_requested_at` columns from a deal-desk/CPQ approval workflow
+  — adjust field names to match your process.

@@ -1,0 +1,32 @@
+id: commission-payout-tracker
+version: 1
+name: Commission Payout Tracker
+description: >
+  Finds closed-won deals whose sales commission hasn't been marked as paid
+  even though the payout grace period has passed, and totals what's owed
+  per rep. Use this if a rep has ever had to chase finance to find out why
+  a commission from weeks ago never showed up in their paycheck.
+category: sales
+tags: [sales, commission, payroll-adjacent, compensation]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select owner, count(*) as unpaid_deals, sum(amount) as unpaid_revenue, round(sum(amount) * {{commission_rate_pct}} / 100.0, 2) as commission_owed from deals where stage = 'closed_won' and commission_paid = false and closed_at < now() - interval '{{grace_days}} days' group by owner order by commission_owed desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  commission_rate_pct:
+    default: 10
+    description: Flat commission rate percent applied to closed-won revenue, for the estimate.
+  grace_days:
+    default: 15
+    description: Days after close before an unpaid commission counts as overdue for payout.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deals` table with a `commission_paid` boolean column and a
+  flat commission rate — replace the flat-rate math with your real
+  commission plan (tiers, accelerators, clawbacks) if it's more complex.
+  This is separate from any HR payroll job — it only flags CRM-side deal
+  data, it does not run payroll.

@@ -1,0 +1,44 @@
+id: champion-departure-watch
+version: 1
+name: Champion Departure Watch
+description: >
+  Checks whether your champion or economic-buyer contact at open or
+  recently-closed accounts has left the company, using bounce signals or
+  a job-change lookup, and drafts a plan to find the new point of contact.
+  Use this if a deal has ever gone quiet for weeks before you found out
+  your one internal advocate had already left the company.
+category: sales
+tags: [sales, champion, contact-departure, account-risk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the champion/decision-maker contacts listed in {{contacts_source}}
+  for accounts with an open deal or a contract within
+  {{renewal_lookback_days}} days of renewal.
+  1. For each contact, check for signs they've left the company: a bounced
+     email address, an outdated title, or a job-change signal on
+     {{signal_source}} (e.g. LinkedIn).
+  2. List any contact flagged as likely departed, with the account name,
+     deal/contract at risk, and what signal triggered the flag.
+  3. For each flagged account, suggest the most likely replacement contact
+     if one is visible in the account (another named stakeholder, or a
+     generic role like "VP of [department]"), and draft a short
+     re-introduction email to that person or a warm-intro request to
+     another contact at the account.
+  4. If no departures are found, say so in one line.
+variables:
+  contacts_source:
+    default: "your CRM's contact list, or a champions.csv with columns: account,contact_name,contact_email,title,deal_or_contract"
+    description: Where champion/decision-maker contacts and the account/deal they're tied to are recorded.
+  signal_source:
+    default: "LinkedIn, or email bounce logs from your email platform"
+    description: Where to check for a job-change or departure signal.
+  renewal_lookback_days:
+    default: 90
+    description: How far ahead to include upcoming renewals when scoping which accounts' champions to check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — review the suggested replacement contact and re-intro email
+  before sending. Respect LinkedIn's terms of use; a manual check or a
+  licensed data provider is safer than scraping.

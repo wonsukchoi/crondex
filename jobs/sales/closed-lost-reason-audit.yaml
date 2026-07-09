@@ -1,0 +1,42 @@
+id: closed-lost-reason-audit
+version: 1
+name: Closed-Lost Reason Audit
+description: >
+  Finds recently closed-lost deals with no loss reason recorded, and
+  summarizes the reasons that were captured into a short pattern report.
+  Use this if closed-lost deals have ever piled up with a blank reason
+  field, making it impossible to tell whether you're losing to a
+  competitor, on price, or on missing features.
+category: sales
+tags: [sales, closed-lost, win-loss, reporting]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select name, owner, amount, loss_reason from deals where stage = 'closed_lost' and closed_at > now() - interval '{{lookback_days}} days' order by closed_at desc;"
+prompt: |
+  Review closed-lost deals from the last {{lookback_days}} days (from the
+  script output above, or by querying {{database_url}} directly).
+  1. List every deal with a blank/missing loss_reason — these need a rep
+     follow-up to fill in before the data is usable.
+  2. For deals that do have a loss_reason, group them into a short summary
+     of the top 3-5 recurring themes (e.g. "price", "lost to [competitor]",
+     "missing feature X", "no budget/timing").
+  3. Note if one theme is trending upward compared to what you'd normally
+     expect, so it can be raised with product/pricing.
+script_note: >
+  `command` lists closed-lost deals and their recorded (or missing) loss
+  reason with zero tokens. `prompt` adds the missing-reason follow-up list
+  and the qualitative theme summary across free-text reasons.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  lookback_days:
+    default: 30
+    description: How many days of closed-lost deals to review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Assumes a `deals` table with `stage`, `closed_at`, and a free-text
+  `loss_reason` column — adjust to your CRM's schema and loss-reason
+  taxonomy if it uses a fixed picklist instead of free text.

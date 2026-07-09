@@ -1,0 +1,28 @@
+id: contract-renewal-opportunity-tracker
+version: 1
+name: Contract Renewal Opportunity Tracker
+description: >
+  Flags existing customer contracts approaching their renewal date so
+  account management can start the renewal conversation early. Use this
+  if a contract has ever auto-lapsed or renewed on unfavorable terms
+  because nobody flagged it until it was almost too late.
+category: sales
+tags: [sales, renewals, contracts, account-management]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_name, owner, contract_value, renewal_date from contracts where status = 'active' and renewal_date < now() + interval '{{warn_days}} days' order by renewal_date;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the contracts/CRM database.
+  warn_days:
+    default: 60
+    description: Days before renewal_date to start flagging a contract for renewal outreach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `contracts` table with `status`, `renewal_date`, `owner`, and
+  `contract_value` columns — adjust to your schema. Distinct from
+  `quote-expiry-reminder` (pre-sale quotes that haven't been signed yet);
+  this tracks signed, active customer contracts nearing their renewal date.

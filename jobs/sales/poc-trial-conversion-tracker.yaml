@@ -1,0 +1,29 @@
+id: poc-trial-conversion-tracker
+version: 1
+name: Sales-Led POC Conversion Tracker
+description: >
+  Flags sales-assisted proof-of-concept (POC) engagements approaching or
+  past their end date with no closed-won or closed-lost outcome recorded.
+  Use this if an enterprise POC has ever quietly run past its agreed end
+  date with no clear owner pushing toward a decision.
+category: sales
+tags: [sales, poc, enterprise, conversion]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_name, owner, poc_end_date, stage from pocs where stage = 'in_progress' and poc_end_date < now() + interval '{{lookahead_days}} days' order by poc_end_date;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database (a `pocs` table or equivalent stage on `deals`).
+  lookahead_days:
+    default: 7
+    description: How many days ahead (or past, if negative logic is added) to flag a POC nearing its end date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `pocs` table (or a `deals` table filtered to a POC stage) with
+  `poc_end_date` and `stage` columns — adjust to your CRM's schema. This
+  is a sales-assisted enterprise POC tracked in the CRM by a rep, distinct
+  from growth's `trial-expiring-nudge`, which tracks self-serve product
+  trials nearing expiration.

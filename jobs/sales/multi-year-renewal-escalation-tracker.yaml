@@ -1,0 +1,31 @@
+id: multi-year-renewal-escalation-tracker
+version: 1
+name: Multi-Year Renewal Escalation Tracker
+description: >
+  Flags multi-year contracts approaching their next contract-year
+  anniversary, where a pre-agreed price escalation kicks in, so the
+  customer gets notice before the higher invoice arrives. Use this if a
+  customer has ever been surprised by a built-in price increase on a
+  multi-year deal because nobody sent the required notice ahead of the
+  anniversary date.
+category: sales
+tags: [sales, renewals, multi-year, pricing, account-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_name, owner, escalation_pct, next_anniversary_date from multi_year_contracts where next_anniversary_date < now() + interval '{{notice_days}} days' order by next_anniversary_date;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the contracts/CRM database.
+  notice_days:
+    default: 45
+    description: Days of advance notice required before a contract's next anniversary/escalation date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `multi_year_contracts` table with `next_anniversary_date` and
+  `escalation_pct` columns tracking the pre-agreed annual price increase
+  — adjust to your schema. Distinct from `contract-renewal-opportunity-tracker`,
+  which covers the end-of-term renewal decision rather than an in-term
+  contractual price step-up.

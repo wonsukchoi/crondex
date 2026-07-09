@@ -1,0 +1,33 @@
+id: delivery-receiving-discrepancy-check
+version: 1
+name: Supplier Delivery Receiving Discrepancy Check
+description: >
+  Compares what was ordered from a supplier against what was actually
+  received on the delivery receiving log and flags shortages or
+  overages. Use this if a supplier has ever shorted a case of product
+  and it only got noticed mid-service when the kitchen ran out.
+category: restaurant
+tags: [restaurant, suppliers, receiving, inventory]
+schedule: "0 12 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{qty_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      if ($2 > 0) {
+        diff_pct = (($3 - $2) / $2) * 100;
+        absdiff = (diff_pct < 0) ? -diff_pct : diff_pct;
+        if (absdiff > tolerance) printf "DISCREPANCY: %s from %s — ordered %d, received %d (%.1f%% off)\n", $1, $4, $2, $3, diff_pct;
+      }
+    }
+  ' "{{receiving_log_csv}}"
+variables:
+  receiving_log_csv:
+    default: "./receiving-log.csv"
+    description: "CSV with header row, columns: item_name,qty_ordered,qty_received,supplier_name — one row per delivered line item."
+  qty_tolerance_pct:
+    default: 5
+    description: Percentage difference between ordered and received quantity allowed before a line item is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Have whoever signs for the delivery log qty_received per line before signing — this catches shortages/overages that a total-case-count check would miss.

@@ -1,0 +1,39 @@
+id: comp-void-anomaly-tracker
+version: 1
+name: Comp/Void Transaction Anomaly Tracker
+description: >
+  Reviews comped and voided POS transactions for the period and flags
+  patterns worth a second look — an employee with an outsized comp
+  rate, comps clustered right before closeout, or repeated same-item
+  voids. Use this if comps and voids have ever quietly become a hole in
+  the till that nobody added up until year-end.
+category: restaurant
+tags: [restaurant, pos, loss-prevention, comps, voids]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull comp and void transaction records from {{pos_system}} for the
+  past {{lookback_days}} days, including employee_id, amount, reason
+  code (if logged), and timestamp.
+  1. Total comp/void dollar amount and count, and as a percentage of
+     total sales for the period.
+  2. Rank employees by comp/void dollar amount and by comp/void rate
+     relative to their sales volume — flag anyone meaningfully above
+     the team average.
+  3. Flag any comps/voids clustered suspiciously close to shift end or
+     drawer close, or missing a reason code where one is normally
+     required.
+  4. List repeated voids of the same menu item, which may point to a
+     kitchen/prep problem rather than a POS misuse issue.
+  5. Present findings neutrally as patterns to review, not conclusions
+     of wrongdoing.
+variables:
+  pos_system:
+    default: "your POS system"
+    description: Name of the point-of-sale system (e.g. "Toast", "Square", "Aloha").
+  lookback_days:
+    default: 30
+    description: Window of comp/void history to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only pattern surfacing — any disciplinary or policy action based on findings is a manager decision, not something this job should recommend directly.

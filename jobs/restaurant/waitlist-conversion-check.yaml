@@ -1,0 +1,37 @@
+id: waitlist-conversion-check
+version: 1
+name: Waitlist-to-Seated Conversion Check
+description: >
+  Analyzes waitlist app data to see what share of people who joined the
+  waitlist actually got seated versus walked away, and whether quoted
+  wait times matched reality. Use this if you suspect an overly
+  optimistic quoted wait time is quietly driving guests to leave before
+  their table is ready.
+category: restaurant
+tags: [restaurant, front-of-house, waitlist, guest-experience]
+schedule: "0 11 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull waitlist entries from {{waitlist_app}} for the past
+  {{lookback_days}} days, including join time, quoted wait, actual seated
+  time (or abandoned/no-show status), and party size.
+  1. Calculate overall waitlist-to-seated conversion rate and the
+     abandonment rate (left before being seated).
+  2. Compare quoted wait time to actual wait time — flag any pattern
+     where actual wait consistently runs longer than quoted, which
+     likely drives abandonment.
+  3. Break down conversion rate by day of week, time slot, and party
+     size — flag the weakest-converting segments.
+  4. Recommend whether quoted wait times need adjusting for the
+     flagged segments, or whether a text-notification/callback flow
+     would reduce walk-aways.
+variables:
+  waitlist_app:
+    default: "your waitlist/reservation app"
+    description: Name of the waitlist system (e.g. "Yelp Waitlist", "NoWait", "Toast Tables").
+  lookback_days:
+    default: 30
+    description: Window of waitlist history to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — any change to quoted-wait logic or staffing is a floor-management decision for a human to make.

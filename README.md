@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-503 jobs across 48 categories:
+516 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -144,7 +144,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 7 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
-| `restaurant` | 7 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
+| `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 7 | Store ops — till reconciliation, opening checklist, scheduling. |
 | `sales` | 18 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |

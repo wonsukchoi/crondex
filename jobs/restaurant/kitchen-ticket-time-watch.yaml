@@ -1,0 +1,38 @@
+id: kitchen-ticket-time-watch
+version: 1
+name: Kitchen Ticket Time Watch
+description: >
+  Reviews kitchen display system ticket times (fire to plate-up) and
+  flags stations or dayparts running consistently slower than target.
+  Use this if slow ticket times have ever driven complaints or comps
+  before anyone traced it back to a specific station falling behind.
+category: restaurant
+tags: [restaurant, kitchen, kds, speed-of-service]
+schedule: "0 10 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull ticket time data from {{kds_system}} for the past
+  {{lookback_days}} days, including station, item, fire time, and
+  plate-up time.
+  1. Calculate average ticket time overall and by station.
+  2. Flag any station averaging above {{target_minutes}} minutes, and
+     note whether the slowness is concentrated at specific dayparts
+     (peak lunch/dinner rushes vs. slow periods).
+  3. Identify the specific menu items driving the slowest tickets at
+     each flagged station.
+  4. Suggest one concrete fix per flagged station — additional prep,
+     station staffing, or menu item batching — without recommending
+     cutting a dish outright unless it's clearly the only lever.
+variables:
+  kds_system:
+    default: "your kitchen display system"
+    description: Name of the KDS (e.g. "Toast KDS", "QSR Automations", "a manual ticket-time log").
+  lookback_days:
+    default: 14
+    description: Window of ticket data to analyze.
+  target_minutes:
+    default: 15
+    description: Target average ticket time in minutes before a station is flagged as running slow.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only speed-of-service analysis — pair with kitchen leadership before making staffing changes based on the findings.

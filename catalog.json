@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 503,
+  "count": 516,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1994,6 +1994,34 @@
       "path": "jobs/sales/commission-payout-tracker.yaml"
     },
     {
+      "id": "comp-void-anomaly-tracker",
+      "version": 1,
+      "name": "Comp/Void Transaction Anomaly Tracker",
+      "description": "Reviews comped and voided POS transactions for the period and flags patterns worth a second look — an employee with an outsized comp rate, comps clustered right before closeout, or repeated same-item voids. Use this if comps and voids have ever quietly become a hole in the till that nobody added up until year-end.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "pos",
+        "loss-prevention",
+        "comps",
+        "voids"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/comp-void-anomaly-tracker.yaml"
+    },
+    {
       "id": "competitor-page-diff-watch",
       "version": 2,
       "name": "Competitor Page Diff Watch",
@@ -2839,6 +2867,33 @@
       "path": "jobs/learning/daily-flashcard-review.yaml"
     },
     {
+      "id": "daily-sales-flash-report",
+      "version": 1,
+      "name": "Daily Sales Flash Report",
+      "description": "Pulls yesterday's key sales numbers (net sales, covers, average check, comp/void total) and compares them against the same day last week and last year, then writes a short flash summary. Use this if you've ever wanted a same-day read on how the restaurant performed without waiting for the full weekly P&L close.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "sales",
+        "flash-report",
+        "reporting"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/daily-sales-flash-report.yaml"
+    },
+    {
       "id": "daily-standup-summary",
       "version": 1,
       "name": "Daily Standup Summary",
@@ -2969,6 +3024,57 @@
         "generic"
       ],
       "path": "jobs/crypto/defi-liquidation-risk-watch.yaml"
+    },
+    {
+      "id": "delivery-platform-commission-reconciliation",
+      "version": 1,
+      "name": "Third-Party Delivery Commission Reconciliation",
+      "description": "Recalculates what a delivery platform (DoorDash, Uber Eats, Grubhub) should have paid out after commission and fees, and flags orders where the actual payout came in lower than expected. Use this if you've ever suspected a delivery platform's payout report doesn't quite match its own published commission rate but never checked.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "delivery",
+        "commission",
+        "reconciliation",
+        "third-party"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/delivery-platform-commission-reconciliation.yaml"
+    },
+    {
+      "id": "delivery-receiving-discrepancy-check",
+      "version": 1,
+      "name": "Supplier Delivery Receiving Discrepancy Check",
+      "description": "Compares what was ordered from a supplier against what was actually received on the delivery receiving log and flags shortages or overages. Use this if a supplier has ever shorted a case of product and it only got noticed mid-service when the kitchen ran out.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "suppliers",
+        "receiving",
+        "inventory"
+      ],
+      "schedule": "0 12 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/delivery-receiving-discrepancy-check.yaml"
     },
     {
       "id": "dependabot-alert-digest",
@@ -4400,6 +4506,31 @@
       "path": "jobs/restaurant/food-cost-percentage-watch.yaml"
     },
     {
+      "id": "food-handler-permit-expiry-tracker",
+      "version": 1,
+      "name": "Food Handler Permit Expiry Tracker",
+      "description": "Checks staff food handler permits and manager certifications (ServSafe or your local equivalent) against their expiration dates and flags anyone expiring soon. Use this if a health inspector has ever asked for a permit that had quietly lapsed weeks earlier.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "compliance",
+        "certification",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/food-handler-permit-expiry-tracker.yaml"
+    },
+    {
       "id": "food-safety-temp-log-check",
       "version": 1,
       "name": "Food Safety Temperature Log Check",
@@ -4779,6 +4910,31 @@
         "codex"
       ],
       "path": "jobs/spa/gift-card-expiry-check.yaml"
+    },
+    {
+      "id": "gift-card-liability-check",
+      "version": 1,
+      "name": "Gift Card Liability Reconciliation",
+      "description": "Reconciles total outstanding gift card balance (liability) against cards sold minus cards redeemed for the period, and flags a mismatch worth investigating. Use this if you've ever had to guess at your gift card liability for the books instead of actually reconciling it.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "gift-cards",
+        "finance",
+        "reconciliation"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/gift-card-liability-check.yaml"
     },
     {
       "id": "gift-card-liability-reconciliation-check",
@@ -5796,6 +5952,33 @@
       "path": "jobs/devops/k8s-pod-restart-watch.yaml"
     },
     {
+      "id": "kitchen-ticket-time-watch",
+      "version": 1,
+      "name": "Kitchen Ticket Time Watch",
+      "description": "Reviews kitchen display system ticket times (fire to plate-up) and flags stations or dayparts running consistently slower than target. Use this if slow ticket times have ever driven complaints or comps before anyone traced it back to a specific station falling behind.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "kitchen",
+        "kds",
+        "speed-of-service"
+      ],
+      "schedule": "0 10 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/kitchen-ticket-time-watch.yaml"
+    },
+    {
       "id": "knowledge-base-article-staleness-check",
       "version": 1,
       "name": "Knowledge Base Article Staleness Check",
@@ -6244,6 +6427,32 @@
         "codex"
       ],
       "path": "jobs/telecom/link-capacity-threshold-alert.yaml"
+    },
+    {
+      "id": "liquor-pour-cost-variance-check",
+      "version": 1,
+      "name": "Liquor Pour Cost Variance Check",
+      "description": "Compares each bottle's theoretical usage (from drinks sold) against actual bottle depletion from inventory counts, and flags bottles showing a variance that points to over-pouring, spillage, or theft. Use this if the bar's overall liquor cost percentage looks fine but you suspect a specific bottle is walking off faster than it's rung up.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "bar",
+        "liquor-cost",
+        "inventory",
+        "loss-prevention"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/liquor-pour-cost-variance-check.yaml"
     },
     {
       "id": "litigation-hold-acknowledgment-tracker",
@@ -6870,6 +7079,59 @@
         "codex"
       ],
       "path": "jobs/spa/membership-unused-session-expiry-check.yaml"
+    },
+    {
+      "id": "menu-86-frequency-tracker",
+      "version": 1,
+      "name": "Menu Item 86 Frequency Tracker",
+      "description": "Reviews how often each menu item gets 86'd (marked sold out) mid- service and flags items that run out repeatedly, which usually points to a par-level or ordering problem rather than one bad night. Use this if the same dish has ever been 86'd three Fridays in a row before anyone connected the dots.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "menu",
+        "kitchen",
+        "ordering",
+        "par-levels"
+      ],
+      "schedule": "0 10 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/menu-86-frequency-tracker.yaml"
+    },
+    {
+      "id": "menu-item-profitability-check",
+      "version": 1,
+      "name": "Menu Item Profitability Check",
+      "description": "Compares each menu item's plate cost against its menu price and flags items whose contribution margin has dropped below target. Use this if an ingredient cost has ever crept up on a specific dish until it was quietly losing money on every order, unlike the overall food-cost percentage which only shows the average.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "menu-engineering",
+        "margin",
+        "food-cost"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/menu-item-profitability-check.yaml"
     },
     {
       "id": "month-end-close-checklist-tracker",
@@ -8420,6 +8682,31 @@
         "generic"
       ],
       "path": "jobs/investing/portfolio-rebalance-check.yaml"
+    },
+    {
+      "id": "pos-end-of-day-reconciliation-check",
+      "version": 1,
+      "name": "POS End-of-Day Reconciliation Check",
+      "description": "Compares the POS system's expected cash-drawer total against what was actually counted at close and flags any shift over the acceptable variance. Use this if a drawer has ever come up short (or suspiciously over) and nobody traced it back to which shift it happened on.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "pos",
+        "cash-handling",
+        "reconciliation"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/restaurant/pos-end-of-day-reconciliation-check.yaml"
     },
     {
       "id": "pos-till-reconciliation-check",
@@ -11263,6 +11550,33 @@
       "path": "jobs/veterinary/surgery-prep-check.yaml"
     },
     {
+      "id": "table-turnover-rate-tracker",
+      "version": 1,
+      "name": "Table Turnover Rate Tracker",
+      "description": "Analyzes seating and table-clear timestamps to calculate average table turnover time by section, day, and shift, and flags where tables are sitting occupied well past the typical dining window. Use this if you suspect one section or server is quietly slowing down the whole dining room's throughput on busy nights.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "front-of-house",
+        "tables",
+        "throughput"
+      ],
+      "schedule": "0 10 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/table-turnover-rate-tracker.yaml"
+    },
+    {
       "id": "tax-deadline-reminder",
       "version": 1,
       "name": "Tax Deadline Reminder",
@@ -12364,6 +12678,33 @@
         "codex"
       ],
       "path": "jobs/security/waf-rule-change-watch.yaml"
+    },
+    {
+      "id": "waitlist-conversion-check",
+      "version": 1,
+      "name": "Waitlist-to-Seated Conversion Check",
+      "description": "Analyzes waitlist app data to see what share of people who joined the waitlist actually got seated versus walked away, and whether quoted wait times matched reality. Use this if you suspect an overly optimistic quoted wait time is quietly driving guests to leave before their table is ready.",
+      "category": "restaurant",
+      "tags": [
+        "restaurant",
+        "front-of-house",
+        "waitlist",
+        "guest-experience"
+      ],
+      "schedule": "0 11 * * 1",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/restaurant/waitlist-conversion-check.yaml"
     },
     {
       "id": "walk-in-cooler-temp-log-check",

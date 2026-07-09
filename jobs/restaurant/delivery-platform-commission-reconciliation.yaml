@@ -1,0 +1,33 @@
+id: delivery-platform-commission-reconciliation
+version: 1
+name: Third-Party Delivery Commission Reconciliation
+description: >
+  Recalculates what a delivery platform (DoorDash, Uber Eats, Grubhub)
+  should have paid out after commission and fees, and flags orders
+  where the actual payout came in lower than expected. Use this if
+  you've ever suspected a delivery platform's payout report doesn't
+  quite match its own published commission rate but never checked.
+category: restaurant
+tags: [restaurant, delivery, commission, reconciliation, third-party]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_usd}}" '
+    NR==1 {next}
+    {
+      expected = $2 * (1 - ($3 / 100)) - $4;
+      diff = expected - $5;
+      absdiff = (diff < 0) ? -diff : diff;
+      if (absdiff > tolerance) printf "PAYOUT MISMATCH: order %s (%s) — expected payout $%.2f, actual $%.2f (diff $%.2f)\n", $1, $6, expected, $5, diff;
+    }
+  ' "{{delivery_payout_csv}}"
+variables:
+  delivery_payout_csv:
+    default: "./delivery-payouts.csv"
+    description: "CSV with header row, columns: order_id,order_subtotal_usd,commission_pct,other_fees_usd,actual_payout_usd,platform_name."
+  variance_tolerance_usd:
+    default: 1
+    description: Dollar variance allowed between expected and actual payout before an order is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Pull order_subtotal_usd and actual_payout_usd from the platform's own payout CSV export; commission_pct should match your current contracted rate, which platforms occasionally change without a clear notice.

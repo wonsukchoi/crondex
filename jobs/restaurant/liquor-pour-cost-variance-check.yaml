@@ -1,0 +1,34 @@
+id: liquor-pour-cost-variance-check
+version: 1
+name: Liquor Pour Cost Variance Check
+description: >
+  Compares each bottle's theoretical usage (from drinks sold) against
+  actual bottle depletion from inventory counts, and flags bottles
+  showing a variance that points to over-pouring, spillage, or theft.
+  Use this if the bar's overall liquor cost percentage looks fine but
+  you suspect a specific bottle is walking off faster than it's rung up.
+category: restaurant
+tags: [restaurant, bar, liquor-cost, inventory, loss-prevention]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      if ($2 > 0) {
+        variance_pct = (($3 - $2) / $2) * 100;
+        absvar = (variance_pct < 0) ? -variance_pct : variance_pct;
+        if (absvar > tolerance) printf "POUR VARIANCE: %s — theoretical usage %.1f oz, actual depletion %.1f oz (%.1f%% variance)\n", $1, $2, $3, variance_pct;
+      }
+    }
+  ' "{{pour_cost_csv}}"
+variables:
+  pour_cost_csv:
+    default: "./liquor-pour-cost.csv"
+    description: "CSV with header row, columns: bottle_name,theoretical_usage_oz,actual_depletion_oz — theoretical comes from POS drink sales times recipe pour size, actual from physical bottle counts."
+  variance_tolerance_pct:
+    default: 10
+    description: Percentage variance (either direction) allowed before a bottle is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from food-cost-percentage-watch and menu-item-profitability-check — this drills into per-bottle variance at the bar rather than an overall cost ratio or a food dish's margin.

@@ -1,0 +1,31 @@
+id: pos-end-of-day-reconciliation-check
+version: 1
+name: POS End-of-Day Reconciliation Check
+description: >
+  Compares the POS system's expected cash-drawer total against what was
+  actually counted at close and flags any shift over the acceptable
+  variance. Use this if a drawer has ever come up short (or suspiciously
+  over) and nobody traced it back to which shift it happened on.
+category: restaurant
+tags: [restaurant, pos, cash-handling, reconciliation]
+schedule: "0 6 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_usd}}" '
+    NR==1 {next}
+    {
+      diff = $4 - $3;
+      absdiff = (diff < 0) ? -diff : diff;
+      if (absdiff > tolerance) printf "VARIANCE: %s shift %s — expected $%.2f, counted $%.2f (diff $%.2f)\n", $1, $2, $3, $4, diff;
+    }
+  ' "{{eod_close_csv}}"
+variables:
+  eod_close_csv:
+    default: "./eod-close-log.csv"
+    description: "CSV with header row, columns: close_date,shift_name,pos_expected_usd,counted_usd — one row per drawer close."
+  variance_tolerance_usd:
+    default: 10
+    description: Dollar variance (either direction) allowed before a shift close is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Export the close log from your POS's end-of-day/drawer-count report — this only compares totals, it doesn't investigate the cause of a variance.

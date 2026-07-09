@@ -1,0 +1,45 @@
+id: gift-card-liability-check
+version: 1
+name: Gift Card Liability Reconciliation
+description: >
+  Reconciles total outstanding gift card balance (liability) against
+  cards sold minus cards redeemed for the period, and flags a mismatch
+  worth investigating. Use this if you've ever had to guess at your
+  gift card liability for the books instead of actually reconciling it.
+category: restaurant
+tags: [restaurant, gift-cards, finance, reconciliation]
+schedule: "0 9 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  sold="{{gift_cards_sold_usd}}";
+  redeemed="{{gift_cards_redeemed_usd}}";
+  prior="{{prior_period_liability_usd}}";
+  ledger="{{current_ledger_balance_usd}}";
+  tolerance="{{variance_tolerance_usd}}";
+  expected=$(awk -v p="$prior" -v s="$sold" -v r="$redeemed" 'BEGIN{printf "%.2f", p+s-r}');
+  diff=$(awk -v e="$expected" -v l="$ledger" 'BEGIN{d=e-l; if (d<0) d=-d; printf "%.2f", d}');
+  if awk -v d="$diff" -v t="$tolerance" 'BEGIN{exit !(d > t)}'; then
+    echo "MISMATCH: expected liability \$$expected, ledger shows \$$ledger (diff \$$diff)";
+    exit 1;
+  else
+    echo "OK: gift card liability reconciles within tolerance (\$$diff diff)";
+  fi
+variables:
+  gift_cards_sold_usd:
+    default: 0
+    description: Total value of gift cards sold during the period.
+  gift_cards_redeemed_usd:
+    default: 0
+    description: Total value of gift cards redeemed during the period.
+  prior_period_liability_usd:
+    default: 0
+    description: Outstanding gift card liability carried over from the prior period.
+  current_ledger_balance_usd:
+    default: 0
+    description: Current outstanding gift card balance as recorded in your accounting ledger.
+  variance_tolerance_usd:
+    default: 25
+    description: Dollar variance allowed before the reconciliation is flagged as a mismatch.
+compatible_agents: [generic, claude, codex]
+notes: This reconciles aggregate liability for the books, not individual card expiry — pair with a per-card expiry check if your state allows gift cards to expire.

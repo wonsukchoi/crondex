@@ -1,0 +1,36 @@
+id: daily-sales-flash-report
+version: 1
+name: Daily Sales Flash Report
+description: >
+  Pulls yesterday's key sales numbers (net sales, covers, average check,
+  comp/void total) and compares them against the same day last week and
+  last year, then writes a short flash summary. Use this if you've ever
+  wanted a same-day read on how the restaurant performed without
+  waiting for the full weekly P&L close.
+category: restaurant
+tags: [restaurant, sales, flash-report, reporting]
+schedule: "0 7 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull yesterday's sales summary from {{pos_system}}: net sales, covers,
+  average check, comp/void total, and sales by daypart if available.
+  1. Also pull the same weekday from last week and, if available, the
+     same date last year for comparison.
+  2. Present a short flash summary: yesterday's numbers, % change vs.
+     last week same day, and % change vs. last year same date.
+  3. Flag anything notably off-trend (net sales or covers down more
+     than {{flag_threshold_pct}}% vs. last week same day) with a
+     one-line possible explanation if context is available (weather,
+     local event, holiday).
+  4. Keep the whole report to a few sentences plus the numbers table —
+     this is a same-day pulse check, not a full P&L.
+variables:
+  pos_system:
+    default: "your POS system"
+    description: Name of the point-of-sale system (e.g. "Toast", "Square", "Aloha").
+  flag_threshold_pct:
+    default: 15
+    description: Percentage decline vs. last week same day that triggers a flag in the summary.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A same-day directional pulse check, not a substitute for the formal weekly/period close that feeds food-cost-percentage-watch and labor-cost-percentage-watch.

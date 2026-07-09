@@ -1,0 +1,36 @@
+id: table-turnover-rate-tracker
+version: 1
+name: Table Turnover Rate Tracker
+description: >
+  Analyzes seating and table-clear timestamps to calculate average
+  table turnover time by section, day, and shift, and flags where
+  tables are sitting occupied well past the typical dining window. Use
+  this if you suspect one section or server is quietly slowing down
+  the whole dining room's throughput on busy nights.
+category: restaurant
+tags: [restaurant, front-of-house, tables, throughput]
+schedule: "0 10 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull seated and table-cleared timestamps from {{pos_or_reservation_system}}
+  for the past {{lookback_days}} days.
+  1. Calculate average table turnover time (seated to cleared) overall,
+     then broken down by section, day of week, and shift (lunch/dinner).
+  2. Flag any section or shift where average turnover time is
+     meaningfully above the overall average, and estimate the covers
+     lost to the slowdown based on typical table demand at that time.
+  3. Note any pattern tied to a specific server or table size, if that
+     data is available, without naming individuals punitively — this is
+     for staffing/floor-plan decisions, not performance write-ups.
+  4. Recommend one concrete adjustment (seating flow, bussing staffing,
+     course pacing) for the slowest-flagged segment.
+variables:
+  pos_or_reservation_system:
+    default: "your POS or table-management system"
+    description: System that logs seat and clear timestamps (e.g. "Toast", "OpenTable", "SevenRooms").
+  lookback_days:
+    default: 14
+    description: Window of turnover data to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis for floor-plan and staffing decisions — do not use this to single out individual servers without corroborating context.

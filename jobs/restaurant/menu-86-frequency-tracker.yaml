@@ -1,0 +1,39 @@
+id: menu-86-frequency-tracker
+version: 1
+name: Menu Item 86 Frequency Tracker
+description: >
+  Reviews how often each menu item gets 86'd (marked sold out) mid-
+  service and flags items that run out repeatedly, which usually points
+  to a par-level or ordering problem rather than one bad night. Use
+  this if the same dish has ever been 86'd three Fridays in a row
+  before anyone connected the dots.
+category: restaurant
+tags: [restaurant, menu, kitchen, ordering, par-levels]
+schedule: "0 10 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Pull 86 (sold-out) log entries from {{pos_or_kitchen_log}} for the
+  past {{lookback_days}} days, including item name, time 86'd, and
+  time (if any) it came back available.
+  1. Rank menu items by number of times 86'd in the window.
+  2. For each item 86'd more than {{repeat_threshold}} times, note the
+     typical time of day/day of week it runs out, which suggests
+     whether it's a prep-quantity or a purchasing-quantity issue.
+  3. Flag any item that's been 86'd on back-to-back service days —
+     that's a stronger signal than scattered one-offs.
+  4. Suggest a par-level or prep-batch adjustment per repeatedly-86'd
+     item, distinct from a general waste-log review which looks at
+     over-ordering rather than under-ordering.
+variables:
+  pos_or_kitchen_log:
+    default: "your POS 86 list or kitchen display system"
+    description: Where 86'd items get logged (e.g. "Toast 86 list", "a kitchen whiteboard log transcribed daily").
+  lookback_days:
+    default: 30
+    description: Window of 86-log history to analyze.
+  repeat_threshold:
+    default: 3
+    description: Minimum number of times an item must be 86'd in the window to be called out individually.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Complements inventory-waste-log-review — that job catches over-ordering (waste), this one catches under-ordering (running out).

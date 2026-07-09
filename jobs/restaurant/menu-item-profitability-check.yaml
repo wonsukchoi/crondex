@@ -1,0 +1,33 @@
+id: menu-item-profitability-check
+version: 1
+name: Menu Item Profitability Check
+description: >
+  Compares each menu item's plate cost against its menu price and flags
+  items whose contribution margin has dropped below target. Use this if
+  an ingredient cost has ever crept up on a specific dish until it was
+  quietly losing money on every order, unlike the overall food-cost
+  percentage which only shows the average.
+category: restaurant
+tags: [restaurant, menu-engineering, margin, food-cost]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v target="{{min_margin_pct}}" '
+    NR==1 {next}
+    {
+      if ($3 > 0) {
+        margin_pct = (($3 - $2) / $3) * 100;
+        if (margin_pct < target) printf "LOW MARGIN: %s — plate cost $%.2f, price $%.2f, margin %.1f%% (target %.0f%%)\n", $1, $2, $3, margin_pct, target;
+      }
+    }
+  ' "{{menu_cost_csv}}"
+variables:
+  menu_cost_csv:
+    default: "./menu-item-costs.csv"
+    description: "CSV with header row, columns: item_name,plate_cost_usd,menu_price_usd — one row per active menu item."
+  min_margin_pct:
+    default: 65
+    description: Minimum acceptable contribution margin percentage before an item is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Rebuild menu-item-costs.csv whenever a recipe or ingredient price changes — this compares per-item margin, not the restaurant-wide average that food-cost-percentage-watch checks.

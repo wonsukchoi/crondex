@@ -1,0 +1,42 @@
+id: product-qualified-lead-tracker
+version: 1
+name: Product-Qualified Lead (PQL) Tracker
+description: >
+  Reviews free/trial users' in-product usage for signals that they're
+  ready for a sales conversation — hitting usage limits, inviting
+  teammates, using premium-gated features — and flags them as PQLs. Use
+  this if self-serve users who are clearly ready to buy only get noticed
+  when they email support asking how to upgrade.
+category: growth
+tags: [growth, pql, product-led-growth, activation]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review usage data for free/trial accounts from {{analytics_hint}} over
+  the last {{lookback_days}} days.
+  1. Identify accounts showing buying-intent signals: approaching or
+     hitting a usage limit, inviting {{team_invite_threshold}}+ teammates,
+     repeatedly hitting a paywalled/premium feature, or a sustained
+     increase in core-feature usage.
+  2. Score each candidate account as a PQL if it shows two or more of
+     these signals.
+  3. List PQLs ranked by signal strength, with which signals triggered
+     the flag, so sales/success can prioritize outreach.
+variables:
+  analytics_hint:
+    default: "product analytics tool (e.g. Amplitude, Mixpanel, PostHog)"
+    description: Where in-product usage data lives.
+  lookback_days:
+    default: 14
+    description: Window of usage activity to evaluate.
+  team_invite_threshold:
+    default: 2
+    description: Number of teammate invites within the window that counts as a buying-intent signal.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — combining multiple usage signals into a
+  qualification judgment needs reasoning about the product's specific
+  activation moments. Distinct from marketing's MQL jobs (marketing-sourced
+  leads from campaigns/forms) — this looks at existing free/trial users'
+  in-product behavior instead.

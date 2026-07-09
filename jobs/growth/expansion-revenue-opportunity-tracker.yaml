@@ -1,0 +1,44 @@
+id: expansion-revenue-opportunity-tracker
+version: 1
+name: Expansion Revenue Opportunity Tracker
+description: >
+  Reviews usage-based consumption (API calls, storage, records processed,
+  etc.) against each account's plan allowance and flags accounts
+  regularly running over, before it becomes a support complaint about
+  being throttled. Use this if the first sign of an account outgrowing
+  its plan is a "why did my job fail" ticket instead of a proactive
+  expansion conversation.
+category: growth
+tags: [growth, expansion, upsell, usage-based]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull consumption metrics (e.g. API calls, storage used, records
+  processed — whatever your plan limits are metered on) for each paying
+  account from {{usage_source}} over the last {{lookback_days}} days.
+  1. Compare each account's usage against its plan's included allowance.
+  2. Flag accounts that exceeded the allowance, or came within
+     {{near_limit_pct}}% of it, on {{repeat_occurrences}} or more days in
+     the window.
+  3. List flagged accounts with their overage amount and current plan, so
+     the account owner can start an expansion conversation.
+variables:
+  usage_source:
+    default: "your metering/billing system or usage database"
+    description: Where consumption/usage-metering data lives.
+  lookback_days:
+    default: 30
+    description: Window of usage to evaluate.
+  near_limit_pct:
+    default: 90
+    description: Percent of plan allowance that counts as "near the limit."
+  repeat_occurrences:
+    default: 3
+    description: Number of days within the window an account must hit/near the limit to be flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — usage-metering schemas vary too much per
+  product to hardcode a query. Distinct from seat-utilization-upsell-check
+  (seat-count based) — this looks at metered/consumption-based usage
+  instead of seat count, since not every plan is priced per seat.

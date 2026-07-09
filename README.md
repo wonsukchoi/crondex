@@ -104,7 +104,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-619 jobs across 48 categories:
+632 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -125,7 +125,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fleet` | 19 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 7 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 7 | Public-sector ops — records requests, permits, constituent casework. |
-| `growth` | 7 | Lifecycle marketing — churn, trials, onboarding, reviews. |
+| `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |

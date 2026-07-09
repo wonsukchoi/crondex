@@ -1,0 +1,39 @@
+id: onboarding-funnel-dropoff-check
+version: 1
+name: Onboarding Funnel Drop-off Check
+description: >
+  Computes the step-by-step completion rate across your onboarding funnel
+  and flags whichever step is losing the most users. Use this if you know
+  onboarding completion isn't great but have never actually seen where in
+  the funnel people give up.
+category: growth
+tags: [growth, onboarding, funnel, activation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{funnel_csv_path}}; drop_threshold={{step_dropoff_threshold_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  prev_count=0; prev_step="start";
+  tail -n +2 "$file" | while IFS=',' read -r step count; do
+    if [ "$prev_count" -gt 0 ]; then
+      drop_pct=$(awk "BEGIN{printf \"%.1f\", (($prev_count-$count)/$prev_count)*100}");
+      flag="";
+      awk "BEGIN{exit !($drop_pct >= $drop_threshold)}" && flag=" <-- HIGH DROP-OFF";
+      echo "$prev_step -> $step: $prev_count -> $count (-${drop_pct}%)$flag";
+    fi;
+    prev_count=$count; prev_step=$step;
+  done
+variables:
+  funnel_csv_path:
+    default: "./onboarding-funnel.csv"
+    description: "Path to a CSV with header: step,users_reached, ordered from first onboarding step to last, one row per step."
+  step_dropoff_threshold_pct:
+    default: 30
+    description: Step-over-step drop percent that flags a step as a major leak.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Export onboarding-funnel.csv from your product analytics
+  tool's funnel report. Distinct from onboarding-completion-stall-check
+  (flags individual users stuck on a step) — this looks at aggregate
+  step-to-step drop-off across the whole funnel instead.

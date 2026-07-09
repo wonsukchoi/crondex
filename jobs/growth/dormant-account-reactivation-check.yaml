@@ -1,0 +1,39 @@
+id: dormant-account-reactivation-check
+version: 1
+name: Dormant Account Reactivation Check
+description: >
+  Flags accounts that have gone completely silent — no login at all for
+  an extended stretch — regardless of payment status, so they can be
+  routed into a reactivation effort instead of being written off
+  silently. Use this if accounts that stopped logging in months ago only
+  come up again when finance asks why you're still paying to host them.
+category: growth
+tags: [growth, dormant-accounts, reactivation, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{accounts_csv_path}}; dormant_days={{dormant_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=',' read -r account email last_login flagged; do
+    [ "$flagged" = "yes" ] && continue;
+    l_epoch=$(date -d "$last_login" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$last_login" +%s 2>/dev/null);
+    [ -z "$l_epoch" ] && continue;
+    days=$(( (today-l_epoch)/86400 ));
+    if [ "$days" -ge "$dormant_days" ]; then echo "DORMANT: $account ($email) — last login $days day(s) ago"; fi
+  done
+variables:
+  accounts_csv_path:
+    default: "./account-last-login.csv"
+    description: "Path to a CSV with header: account_name,email,last_login_date,already_flagged (last_login_date is YYYY-MM-DD, already_flagged is yes/no)."
+  dormant_days:
+    default: 60
+    description: Days with no login before an account counts as dormant.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain account-last-login.csv yourself (or export
+  from your user database) — mark already_flagged=yes after routing an
+  account into reactivation outreach. Distinct from churn-risk-watch
+  (partial usage drop-off on paying accounts) — this catches accounts
+  with zero activity at all, paying or not.

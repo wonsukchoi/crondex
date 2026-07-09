@@ -1,0 +1,40 @@
+id: nps-trend-tracker
+version: 1
+name: NPS Trend Tracker
+description: >
+  Computes Net Promoter Score from a survey response log and flags when
+  it drops meaningfully from the prior period. Use this if NPS only gets
+  looked at once a quarter in a slide, instead of catching a slide in
+  sentiment while there's still time to find out why.
+category: growth
+tags: [growth, nps, sentiment, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{nps_responses_csv_path}}; drop_threshold={{drop_threshold_points}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=$(tail -n +2 "$file" | wc -l | tr -d ' ');
+  if [ "$total" -eq 0 ]; then echo "No NPS responses recorded in $file"; exit 0; fi;
+  promoters=$(tail -n +2 "$file" | awk -F',' '$2>=9 {c++} END{print c+0}');
+  detractors=$(tail -n +2 "$file" | awk -F',' '$2<=6 {c++} END{print c+0}');
+  nps=$(awk "BEGIN{printf \"%.0f\", (($promoters-$detractors)/$total)*100}");
+  prev={{previous_nps_score}};
+  drop=$((prev - nps));
+  echo "NPS: $nps (from $total responses; $promoters promoters, $detractors detractors) — previous: $prev";
+  if [ "$drop" -ge "$drop_threshold" ]; then echo "WARNING: NPS dropped $drop points since last period"; exit 1; fi
+variables:
+  nps_responses_csv_path:
+    default: "./nps-responses.csv"
+    description: "Path to a CSV with header: respondent_email,score (score is 0-10)."
+  previous_nps_score:
+    default: 40
+    description: NPS score from the prior period, to compare against (update after each run).
+  drop_threshold_points:
+    default: 10
+    description: Point drop in NPS from the previous period that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Export nps-responses.csv from your survey tool (Delighted,
+  Wootric, or your own in-app survey) and update previous_nps_score after
+  each run to track period-over-period movement.

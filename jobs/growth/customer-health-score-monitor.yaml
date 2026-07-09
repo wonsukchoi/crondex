@@ -1,0 +1,37 @@
+id: customer-health-score-monitor
+version: 1
+name: Customer Health Score Monitor
+description: >
+  Rolls up usage, support, billing, and sentiment signals into a
+  per-account health score and flags accounts that dropped into the red
+  zone. Use this if account health only ever comes up in a QBR deck, long
+  after an account has already quietly gone cold.
+category: growth
+tags: [growth, health-score, retention, customer-success]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull recent signals for each active account from {{signal_sources}}:
+  product usage trend, open support ticket volume/severity, days since
+  last login, payment status, and (if available) latest NPS/CSAT
+  response.
+  1. Combine the signals into a rough health score per account (e.g.
+     green/yellow/red), weighting usage decline and payment issues most
+     heavily.
+  2. List accounts that land in the red zone, with the specific signals
+     that dragged them down.
+  3. Note any account that moved from green/yellow to red since the last
+     run, since a sudden drop is more urgent than a chronically weak
+     score.
+variables:
+  signal_sources:
+    default: "your product analytics, support/helpdesk tool, and billing system"
+    description: Where usage, support, and billing signals come from.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — combining several signal types into one score
+  and judging what counts as "red" needs reasoning across sources, not a
+  single threshold. Distinct from churn-risk-watch (which only looks at
+  usage drop-off) — this rolls up multiple signal types into one composite
+  score.

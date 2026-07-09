@@ -1,0 +1,39 @@
+id: dau-mau-engagement-ratio-check
+version: 1
+name: DAU/MAU Engagement Ratio Check
+description: >
+  Computes the daily-active-to-monthly-active user ratio (a standard
+  stickiness measure) and flags when it drops below a healthy floor. Use
+  this if "engagement feels down lately" has ever been a gut feeling
+  nobody could confirm with a number until the next board deck.
+category: growth
+tags: [growth, engagement, stickiness, dau-mau]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{analytics_api_token}}" "{{analytics_api_url}}");
+  dau=$(echo "$stats" | grep -o '"dau":[0-9]*' | head -n1 | cut -d: -f2);
+  mau=$(echo "$stats" | grep -o '"mau":[0-9]*' | head -n1 | cut -d: -f2);
+  if [ -z "$dau" ] || [ -z "$mau" ] || [ "$mau" -eq 0 ]; then echo "ERROR: could not compute DAU/MAU from {{analytics_api_url}}"; exit 1; fi;
+  ratio=$(awk "BEGIN{printf \"%.1f\", ($dau/$mau)*100}");
+  if awk "BEGIN{exit !($ratio < {{min_ratio_pct}})}"; then
+    echo "WARNING: DAU/MAU ratio ${ratio}% (min {{min_ratio_pct}}%) — $dau DAU / $mau MAU";
+    exit 1;
+  else echo "OK: DAU/MAU ratio ${ratio}% — $dau DAU / $mau MAU"; fi
+variables:
+  analytics_api_url:
+    default: "https://api.example-analytics.com/v1/engagement/summary"
+    description: Product analytics endpoint returning current dau and mau counts.
+  analytics_api_token:
+    default: "your-api-token"
+    description: API token for the analytics platform.
+  min_ratio_pct:
+    default: 15
+    description: Minimum acceptable DAU/MAU ratio percent before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point at your analytics platform's (Amplitude,
+  Mixpanel, PostHog) engagement summary endpoint; adjust field names to
+  match its response shape. 15-20% is a common "sticky product" floor for
+  B2B SaaS, but tune to your product's natural usage cadence.

@@ -1,0 +1,44 @@
+id: feature-adoption-rate-tracker
+version: 1
+name: Feature Adoption Rate Tracker
+description: >
+  Tracks what percent of active accounts have used a specific feature at
+  least once, and flags when adoption is stuck below target. Use this if
+  you shipped a feature, called it done, and never actually checked
+  whether anyone uses it.
+category: growth
+tags: [growth, feature-adoption, activation, product]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{accounts_csv_path}}; feature="{{feature_column}}"; target={{target_adoption_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  header=$(head -1 "$file");
+  col=$(echo "$header" | tr ',' '\n' | grep -nx "$feature" | cut -d: -f1);
+  [ -n "$col" ] || { echo "ERROR: column $feature not found in $file"; exit 1; };
+  total=0; used=0;
+  tail -n +2 "$file" | while IFS=',' read -ra row; do
+    total=$((total+1));
+    val="${row[$((col-1))]}";
+    [ "$val" = "yes" ] || [ "$val" = "1" ] || [ "$val" = "true" ] && used=$((used+1));
+    echo "$total $used";
+  done | tail -1 | { read -r t u;
+    pct=$(awk "BEGIN{printf \"%.1f\", ($u/$t)*100}");
+    echo "Feature adoption for $feature: $u/$t accounts (${pct}%)";
+    if awk "BEGIN{exit !($pct < $target)}"; then echo "WARNING: adoption below target (${target}%)"; exit 1; fi;
+  }
+variables:
+  accounts_csv_path:
+    default: "./account-feature-usage.csv"
+    description: "Path to a CSV with an account identifier column plus one column per tracked feature (yes/no, 1/0, or true/false)."
+  feature_column:
+    default: "used_new_dashboard"
+    description: Column name for the feature to check adoption of.
+  target_adoption_pct:
+    default: 30
+    description: Minimum adoption percent expected before flagging as behind.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You export account-feature-usage.csv from your product
+  analytics tool (one boolean column per feature you want to track).

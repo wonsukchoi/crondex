@@ -1,0 +1,48 @@
+id: trial-to-paid-conversion-rate-tracker
+version: 1
+name: Trial-to-Paid Conversion Rate Tracker
+description: >
+  Computes the trial-to-paid conversion rate for recently-ended trial
+  cohorts and can summarize what's changed if the rate moves. Use this if
+  trial conversion rate is a number that only gets calculated by hand
+  once a quarter for a board deck, instead of being watched continuously.
+category: growth
+tags: [growth, trials, conversion, activation]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  file={{trials_csv_path}}; min_rate={{min_conversion_rate_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  ended=$(tail -n +2 "$file" | awk -F',' '$2=="ended" {c++} END{print c+0}');
+  converted=$(tail -n +2 "$file" | awk -F',' '$2=="converted" {c++} END{print c+0}');
+  total=$((ended+converted));
+  if [ "$total" -eq 0 ]; then echo "No ended trials recorded in $file"; exit 0; fi;
+  rate=$(awk "BEGIN{printf \"%.1f\", ($converted/$total)*100}");
+  echo "Trial-to-paid conversion: $converted/$total (${rate}%)";
+  if awk "BEGIN{exit !($rate < $min_rate)}"; then echo "WARNING: conversion rate below ${min_rate}%"; exit 1; fi
+prompt: |
+  The trial-to-paid conversion rate for the recent trial cohort in
+  {{trials_csv_path}} is below {{min_conversion_rate_pct}}%.
+  1. Look at the trials that ended without converting and note any
+     pattern visible in the data (e.g. low usage before expiry, specific
+     plan tier, signup source).
+  2. Suggest one or two concrete follow-ups (e.g. targeted win-back
+     outreach, a longer trial for a specific segment) based on what the
+     data shows.
+script_note: >
+  `command` computes the trial-to-paid conversion rate with zero tokens
+  and flags if it's below target. `prompt` (only needed when the rate is
+  flagged) digs into why and suggests a fix, which needs judgment.
+variables:
+  trials_csv_path:
+    default: "./trial-outcomes.csv"
+    description: "Path to a CSV with header: user_email,outcome (outcome is 'ended' for trials that expired without converting or 'converted' for trials that became paid)."
+  min_conversion_rate_pct:
+    default: 15
+    description: Minimum acceptable trial-to-paid conversion rate percent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from trial-expiring-nudge (per-user nudge before expiry) —
+  this tracks the aggregate conversion rate after trials have already
+  ended, as a health metric rather than an outreach trigger.

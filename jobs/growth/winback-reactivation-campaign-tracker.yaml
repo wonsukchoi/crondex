@@ -1,0 +1,46 @@
+id: winback-reactivation-campaign-tracker
+version: 1
+name: Win-Back Reactivation Campaign Tracker
+description: >
+  Tracks how canceled customers targeted by a win-back campaign are
+  responding, and can draft the next outreach touch for non-responders.
+  Use this if a win-back campaign has ever gone out once and then nobody
+  followed up with the customers who didn't respond.
+category: growth
+tags: [growth, winback, reactivation, churn]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  file={{winback_csv_path}}; wait_days={{followup_wait_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=',' read -r email canceled_date sent_date status; do
+    [ "$status" = "reactivated" ] || [ "$status" = "declined" ] && continue;
+    s_epoch=$(date -d "$sent_date" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$sent_date" +%s 2>/dev/null);
+    [ -z "$s_epoch" ] && continue;
+    days=$(( (today-s_epoch)/86400 ));
+    if [ "$days" -ge "$wait_days" ]; then echo "NO RESPONSE: $email — canceled $canceled_date, win-back sent $days day(s) ago"; fi
+  done
+prompt: |
+  For each customer flagged as "NO RESPONSE" (from {{winback_csv_path}},
+  win-back email sent {{followup_wait_days}}+ days ago with no reply):
+  1. Draft a short, low-pressure follow-up touch — a different angle than
+     the first email (e.g. a specific improvement made since they left,
+     or a direct ask for feedback on why they canceled).
+  2. Keep it under 100 words. Don't send — draft only.
+script_note: >
+  `command` lists which canceled customers were sent a win-back email and
+  haven't responded, zero tokens. `prompt` drafts the follow-up touch for
+  each, which needs judgment on tone and angle.
+variables:
+  winback_csv_path:
+    default: "./winback-campaign.csv"
+    description: "Path to a CSV with header: email,canceled_date,winback_sent_date,status (status is one of: sent,reactivated,declined)."
+  followup_wait_days:
+    default: 10
+    description: Days to wait after the win-back email before flagging for a follow-up touch.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  You maintain winback-campaign.csv yourself (update status as customers
+  respond) — doesn't integrate with any CRM/ESP directly.

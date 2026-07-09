@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 619,
+  "count": 632,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2248,6 +2248,31 @@
       "path": "jobs/hr/cobra-notification-deadline-tracker.yaml"
     },
     {
+      "id": "cohort-retention-curve-monitor",
+      "version": 1,
+      "name": "Cohort Retention Curve Monitor",
+      "description": "Compares a new signup cohort's early retention (e.g. week-1, week-4) against your historical baseline and flags when a cohort is retaining worse than usual. Use this if a bad cohort has ever only been noticed months later when overall retention numbers had already softened.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "retention",
+        "cohort-analysis",
+        "activation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/cohort-retention-curve-monitor.yaml"
+    },
+    {
       "id": "commission-payout-tracker",
       "version": 1,
       "name": "Commission Payout Tracker",
@@ -3177,6 +3202,33 @@
       "path": "jobs/automotive/csi-score-monitor.yaml"
     },
     {
+      "id": "customer-health-score-monitor",
+      "version": 1,
+      "name": "Customer Health Score Monitor",
+      "description": "Rolls up usage, support, billing, and sentiment signals into a per-account health score and flags accounts that dropped into the red zone. Use this if account health only ever comes up in a QBR deck, long after an account has already quietly gone cold.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "health-score",
+        "retention",
+        "customer-success"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/customer-health-score-monitor.yaml"
+    },
+    {
       "id": "customer-pay-warranty-pay-mix-tracker",
       "version": 1,
       "name": "Customer-Pay vs Warranty-Pay Mix Tracker",
@@ -3438,6 +3490,31 @@
         "generic"
       ],
       "path": "jobs/legal/data-privacy-request-deadline-tracker.yaml"
+    },
+    {
+      "id": "dau-mau-engagement-ratio-check",
+      "version": 1,
+      "name": "DAU/MAU Engagement Ratio Check",
+      "description": "Computes the daily-active-to-monthly-active user ratio (a standard stickiness measure) and flags when it drops below a healthy floor. Use this if \"engagement feels down lately\" has ever been a gut feeling nobody could confirm with a number until the next board deck.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "engagement",
+        "stickiness",
+        "dau-mau"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/dau-mau-engagement-ratio-check.yaml"
     },
     {
       "id": "db-backup-verify",
@@ -3867,6 +3944,31 @@
         "codex"
       ],
       "path": "jobs/nonprofit/donation-acknowledgment-lag-check.yaml"
+    },
+    {
+      "id": "dormant-account-reactivation-check",
+      "version": 1,
+      "name": "Dormant Account Reactivation Check",
+      "description": "Flags accounts that have gone completely silent — no login at all for an extended stretch — regardless of payment status, so they can be routed into a reactivation effort instead of being written off silently. Use this if accounts that stopped logging in months ago only come up again when finance asks why you're still paying to host them.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "dormant-accounts",
+        "reactivation",
+        "retention"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/dormant-account-reactivation-check.yaml"
     },
     {
       "id": "downloads-folder-auto-organize",
@@ -4734,6 +4836,33 @@
       "path": "jobs/hr/exit-interview-completion-check.yaml"
     },
     {
+      "id": "expansion-revenue-opportunity-tracker",
+      "version": 1,
+      "name": "Expansion Revenue Opportunity Tracker",
+      "description": "Reviews usage-based consumption (API calls, storage, records processed, etc.) against each account's plan allowance and flags accounts regularly running over, before it becomes a support complaint about being throttled. Use this if the first sign of an account outgrowing its plan is a \"why did my job fail\" ticket instead of a proactive expansion conversation.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "expansion",
+        "upsell",
+        "usage-based"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/expansion-revenue-opportunity-tracker.yaml"
+    },
+    {
       "id": "expense-report-compliance-check",
       "version": 1,
       "name": "Expense Report Compliance Check",
@@ -4932,6 +5061,31 @@
         "codex"
       ],
       "path": "jobs/ecommerce/failed-payment-dunning-check.yaml"
+    },
+    {
+      "id": "feature-adoption-rate-tracker",
+      "version": 1,
+      "name": "Feature Adoption Rate Tracker",
+      "description": "Tracks what percent of active accounts have used a specific feature at least once, and flags when adoption is stuck below target. Use this if you shipped a feature, called it done, and never actually checked whether anyone uses it.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "feature-adoption",
+        "activation",
+        "product"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/feature-adoption-rate-tracker.yaml"
     },
     {
       "id": "feature-flag-staleness-audit",
@@ -8917,6 +9071,31 @@
       "path": "jobs/manufacturing/non-conformance-report-backlog-check.yaml"
     },
     {
+      "id": "nps-trend-tracker",
+      "version": 1,
+      "name": "NPS Trend Tracker",
+      "description": "Computes Net Promoter Score from a survey response log and flags when it drops meaningfully from the prior period. Use this if NPS only gets looked at once a quarter in a slide, instead of catching a slide in sentiment while there's still time to find out why.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "nps",
+        "sentiment",
+        "retention"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/nps-trend-tracker.yaml"
+    },
+    {
       "id": "occupancy-forecast-variance-check",
       "version": 1,
       "name": "Occupancy Forecast Variance Check",
@@ -9039,6 +9218,31 @@
         "codex"
       ],
       "path": "jobs/growth/onboarding-completion-stall-check.yaml"
+    },
+    {
+      "id": "onboarding-funnel-dropoff-check",
+      "version": 1,
+      "name": "Onboarding Funnel Drop-off Check",
+      "description": "Computes the step-by-step completion rate across your onboarding funnel and flags whichever step is losing the most users. Use this if you know onboarding completion isn't great but have never actually seen where in the funnel people give up.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "onboarding",
+        "funnel",
+        "activation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/onboarding-funnel-dropoff-check.yaml"
     },
     {
       "id": "oncall-handoff-reminder",
@@ -9774,6 +9978,34 @@
         "codex"
       ],
       "path": "jobs/finance/payroll-run-reminder.yaml"
+    },
+    {
+      "id": "paywall-upgrade-prompt-conversion-check",
+      "version": 1,
+      "name": "Paywall/Upgrade Prompt Conversion Check",
+      "description": "Reviews how often users who hit a paywall or upgrade prompt actually convert, and flags prompts that are being seen a lot but converting poorly. Use this if an upgrade prompt has ever quietly annoyed users for months with a near-zero conversion rate and nobody looked at the numbers until a redesign project asked \"does this even work?\"",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "paywall",
+        "upgrade-prompt",
+        "conversion",
+        "product-led-growth"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/paywall-upgrade-prompt-conversion-check.yaml"
     },
     {
       "id": "peering-transit-contract-renewal-check",
@@ -10692,6 +10924,33 @@
       "path": "jobs/ecommerce/product-feed-health-check.yaml"
     },
     {
+      "id": "product-qualified-lead-tracker",
+      "version": 1,
+      "name": "Product-Qualified Lead (PQL) Tracker",
+      "description": "Reviews free/trial users' in-product usage for signals that they're ready for a sales conversation — hitting usage limits, inviting teammates, using premium-gated features — and flags them as PQLs. Use this if self-serve users who are clearly ready to buy only get noticed when they email support asking how to upgrade.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "pql",
+        "product-led-growth",
+        "activation"
+      ],
+      "schedule": "0 9 * * 2",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/product-qualified-lead-tracker.yaml"
+    },
+    {
       "id": "production-line-downtime-watch",
       "version": 1,
       "name": "Production Line Downtime Watch",
@@ -11389,6 +11648,31 @@
         "codex"
       ],
       "path": "jobs/healthcare/referral-pending-followup-check.yaml"
+    },
+    {
+      "id": "referral-program-performance-tracker",
+      "version": 1,
+      "name": "Referral Program Performance Tracker",
+      "description": "Computes referral-to-signup and referral-to-paid conversion rates from a referral log and flags when the program's performance drops. Use this if a referral program launched with fanfare and nobody has checked its numbers since.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "referrals",
+        "virality",
+        "conversion"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/referral-program-performance-tracker.yaml"
     },
     {
       "id": "reinsurance-treaty-renewal-tracker",
@@ -14473,6 +14757,34 @@
       "path": "jobs/growth/trial-expiring-nudge.yaml"
     },
     {
+      "id": "trial-to-paid-conversion-rate-tracker",
+      "version": 1,
+      "name": "Trial-to-Paid Conversion Rate Tracker",
+      "description": "Computes the trial-to-paid conversion rate for recently-ended trial cohorts and can summarize what's changed if the rate moves. Use this if trial conversion rate is a number that only gets calculated by hand once a quarter for a board deck, instead of being watched continuously.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "trials",
+        "conversion",
+        "activation"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/trial-to-paid-conversion-rate-tracker.yaml"
+    },
+    {
       "id": "tuition-payment-late-check",
       "version": 1,
       "name": "Tuition Payment Late Check",
@@ -15562,6 +15874,34 @@
         "generic"
       ],
       "path": "jobs/growth/welcome-email-drip-check.yaml"
+    },
+    {
+      "id": "winback-reactivation-campaign-tracker",
+      "version": 1,
+      "name": "Win-Back Reactivation Campaign Tracker",
+      "description": "Tracks how canceled customers targeted by a win-back campaign are responding, and can draft the next outreach touch for non-responders. Use this if a win-back campaign has ever gone out once and then nobody followed up with the customers who didn't respond.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "winback",
+        "reactivation",
+        "churn"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/winback-reactivation-campaign-tracker.yaml"
     },
     {
       "id": "wishlist-abandonment-check",

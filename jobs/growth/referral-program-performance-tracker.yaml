@@ -1,0 +1,35 @@
+id: referral-program-performance-tracker
+version: 1
+name: Referral Program Performance Tracker
+description: >
+  Computes referral-to-signup and referral-to-paid conversion rates from
+  a referral log and flags when the program's performance drops. Use this
+  if a referral program launched with fanfare and nobody has checked its
+  numbers since.
+category: growth
+tags: [growth, referrals, virality, conversion]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{referrals_csv_path}}; min_rate={{min_conversion_rate_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=$(tail -n +2 "$file" | wc -l | tr -d ' ');
+  converted=$(tail -n +2 "$file" | awk -F',' '$3=="paid" {c++} END{print c+0}');
+  signed_up=$(tail -n +2 "$file" | awk -F',' '$3=="signed_up" || $3=="paid" {c++} END{print c+0}');
+  if [ "$total" -eq 0 ]; then echo "No referrals recorded in $file"; exit 0; fi;
+  signup_rate=$(awk "BEGIN{printf \"%.1f\", ($signed_up/$total)*100}");
+  paid_rate=$(awk "BEGIN{printf \"%.1f\", ($converted/$total)*100}");
+  echo "Referral performance: $total referrals, ${signup_rate}% signed up, ${paid_rate}% converted to paid";
+  if awk "BEGIN{exit !($paid_rate < $min_rate)}"; then echo "WARNING: referral-to-paid rate below ${min_rate}%"; exit 1; fi
+variables:
+  referrals_csv_path:
+    default: "./referrals.csv"
+    description: "Path to a CSV with header: referral_id,referrer_email,status (status is one of: pending,signed_up,paid)."
+  min_conversion_rate_pct:
+    default: 10
+    description: Minimum acceptable referral-to-paid conversion rate percent.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Export referrals.csv from your referral program tool
+  (ReferralCandy, Rewardful, or your own tracking table).

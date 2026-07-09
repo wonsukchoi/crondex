@@ -1,0 +1,40 @@
+id: paywall-upgrade-prompt-conversion-check
+version: 1
+name: Paywall/Upgrade Prompt Conversion Check
+description: >
+  Reviews how often users who hit a paywall or upgrade prompt actually
+  convert, and flags prompts that are being seen a lot but converting
+  poorly. Use this if an upgrade prompt has ever quietly annoyed users for
+  months with a near-zero conversion rate and nobody looked at the
+  numbers until a redesign project asked "does this even work?"
+category: growth
+tags: [growth, paywall, upgrade-prompt, conversion, product-led-growth]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull paywall/upgrade-prompt impression and conversion data from
+  {{analytics_hint}} for the last {{lookback_days}} days, broken down by
+  prompt location or trigger (e.g. feature-gate modal, usage-limit
+  banner, pricing page CTA).
+  1. Compute the view-to-upgrade conversion rate for each prompt.
+  2. Flag any prompt with {{min_impressions}}+ impressions but a
+     conversion rate under {{min_conversion_rate_pct}}%.
+  3. For flagged prompts, suggest likely causes based on what's visible
+     (wrong audience being shown the prompt, unclear value proposition,
+     price shown too early, friction in the upgrade flow itself).
+variables:
+  analytics_hint:
+    default: "product analytics tool (e.g. Amplitude, Mixpanel, PostHog)"
+    description: Where paywall/upgrade-prompt impression and conversion events are tracked.
+  lookback_days:
+    default: 30
+    description: Window of prompt data to evaluate.
+  min_impressions:
+    default: 100
+    description: Minimum impressions a prompt needs before its conversion rate is judged.
+  min_conversion_rate_pct:
+    default: 2
+    description: Conversion rate percent below which a well-seen prompt gets flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — diagnosing why a specific prompt underconverts needs judgment about UX and audience, not just a rate comparison.

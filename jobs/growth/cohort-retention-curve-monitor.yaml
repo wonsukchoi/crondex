@@ -1,0 +1,39 @@
+id: cohort-retention-curve-monitor
+version: 1
+name: Cohort Retention Curve Monitor
+description: >
+  Compares a new signup cohort's early retention (e.g. week-1, week-4)
+  against your historical baseline and flags when a cohort is retaining
+  worse than usual. Use this if a bad cohort has ever only been noticed
+  months later when overall retention numbers had already softened.
+category: growth
+tags: [growth, retention, cohort-analysis, activation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{cohort_retention_csv_path}}; baseline={{baseline_retention_pct}}; drop={{drop_threshold_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  tail -n +2 "$file" | while IFS=',' read -r cohort_week cohort_size retained; do
+    [ "$cohort_size" -eq 0 ] 2>/dev/null && continue;
+    pct=$(awk "BEGIN{printf \"%.1f\", ($retained/$cohort_size)*100}");
+    below=$(awk "BEGIN{print ($pct < ($baseline - $drop)) ? 1 : 0}");
+    if [ "$below" = "1" ]; then
+      echo "BELOW BASELINE: cohort $cohort_week — ${pct}% retained ($retained/$cohort_size), baseline ${baseline}%";
+    fi
+  done
+variables:
+  cohort_retention_csv_path:
+    default: "./cohort-retention.csv"
+    description: "Path to a CSV with header: cohort_week,cohort_size,retained_at_checkpoint (retained_at_checkpoint is the count still active at your chosen checkpoint, e.g. week 4)."
+  baseline_retention_pct:
+    default: 60
+    description: Your historical average retention percent at the checkpoint being measured.
+  drop_threshold_pct:
+    default: 10
+    description: Percentage points below baseline that flags a cohort as underperforming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain cohort-retention.csv yourself (export from
+  product analytics, one row per signup cohort with its retention count
+  at a fixed checkpoint like week 4).

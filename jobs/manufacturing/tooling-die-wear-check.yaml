@@ -1,0 +1,31 @@
+id: tooling-die-wear-check
+version: 1
+name: Tooling and Die Wear Check
+description: >
+  Tracks cycle counts against a tool or die's rated life and flags it
+  when it's approaching end-of-life. Use this if a worn die has ever kept
+  running past its rated cycle count until it started producing bad
+  parts nobody traced back to the tooling.
+category: manufacturing
+tags: [manufacturing, tooling, dies, maintenance, wear]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn={{warn_pct_remaining}} '
+    NR==1 {next}
+    {
+      pct_used = ($2 / $3) * 100;
+      pct_remaining = 100 - pct_used;
+      if (pct_remaining <= warn) printf "WARNING: tool \"%s\" at %.0f%% of rated life (%d of %d cycles), %.0f%% remaining\n", $1, pct_used, $2, $3, pct_remaining;
+    }
+  ' "{{tooling_cycles_csv}}"
+variables:
+  tooling_cycles_csv:
+    default: "./tooling-cycle-counts.csv"
+    description: "CSV with header row, columns: tool_id,cycles_used,rated_life_cycles."
+  warn_pct_remaining:
+    default: 15
+    description: Percentage of rated life remaining at which to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Update tooling-cycle-counts.csv from your press/molding machine's cycle counters or MES tooling module before each run — one row per active tool or die.

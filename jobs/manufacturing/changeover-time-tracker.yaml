@@ -1,0 +1,29 @@
+id: changeover-time-tracker
+version: 1
+name: Changeover Time Tracker
+description: >
+  Compares logged changeover/setup durations against a target and flags
+  the ones that ran long. Use this if a slow product changeover has ever
+  eaten into a shift's output without anyone tracing the lost hours back
+  to the setup itself.
+category: manufacturing
+tags: [manufacturing, changeover, setup, efficiency]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{changeover_target_minutes}} '
+    NR==1 {next}
+    {
+      if ($3 > target) printf "LONG CHANGEOVER: line %s, %s -> %s, took %d min (target %d min)\n", $1, $2, $4, $3, target;
+    }
+  ' "{{changeover_log_csv}}"
+variables:
+  changeover_log_csv:
+    default: "./changeover-log.csv"
+    description: "CSV with header row, columns: line_id,from_product,duration_minutes,to_product — one row per changeover event."
+  changeover_target_minutes:
+    default: 45
+    description: Maximum acceptable changeover duration in minutes before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Log each changeover's start/end from the line's MES event stream or a shift supervisor's log — this job only compares durations against target, it doesn't time the changeover itself.

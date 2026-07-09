@@ -1,0 +1,37 @@
+id: lot-traceability-audit
+version: 1
+name: Lot Traceability Audit
+description: >
+  Spot-checks that finished-goods lots have complete genealogy back to
+  their raw material lots and process records. Use this if a recall has
+  ever turned into a scramble because a lot's traceability records had
+  gaps nobody caught until they were needed under pressure.
+category: manufacturing
+tags: [manufacturing, traceability, quality, compliance, lots]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the list of finished-goods lots produced in the last
+  {{lookback_days}} days from {{traceability_system}}. For a sample of
+  {{sample_size}} lots (or all of them if fewer), verify each has:
+  1. A linked raw material lot / component lot record.
+  2. A linked process record (line, operator, date, key process
+     parameters).
+  3. A linked QC/inspection record with a disposition (pass/hold/reject).
+
+  Report any lot missing one of these links as a traceability gap, with
+  the lot ID and which link is missing. Summarize overall: lots checked,
+  lots with complete genealogy, lots with gaps.
+variables:
+  traceability_system:
+    default: "your MES/QMS lot genealogy records"
+    description: System of record for lot genealogy and production/QC linkage.
+  lookback_days:
+    default: 30
+    description: How many days back to pull finished-goods lots from.
+  sample_size:
+    default: 20
+    description: Number of lots to spot-check per run (use a full audit periodically instead of every run for large volumes).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is a spot-check, not a full recall-readiness audit — schedule a complete review of all lots on a longer cadence (e.g. quarterly) separately.

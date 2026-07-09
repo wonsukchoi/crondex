@@ -1,0 +1,38 @@
+id: supplier-quality-ppm-watch
+version: 1
+name: Supplier Quality PPM Watch
+description: >
+  Calculates each supplier's defect rate in parts-per-million from
+  incoming inspection records and flags anyone above target. Use this if
+  a supplier's defective parts have ever slipped through in small enough
+  numbers each month that no one noticed the trend until a batch got bad
+  enough to stop the line.
+category: manufacturing
+tags: [manufacturing, supplier, quality, incoming-inspection, ppm]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{ppm_target}} '
+    NR==1 {next}
+    {
+      received[$1] += $2;
+      rejected[$1] += $3;
+    }
+    END {
+      for (s in received) {
+        ppm = (rejected[s] / received[s]) * 1000000;
+        status = (ppm > target) ? "ABOVE TARGET" : "OK";
+        printf "%s: supplier %s — %.0f PPM (%d rejected of %d received), target %d PPM\n", status, s, ppm, rejected[s], received[s], target;
+      }
+    }
+  ' "{{incoming_inspection_csv}}"
+variables:
+  incoming_inspection_csv:
+    default: "./incoming-inspection-log.csv"
+    description: "CSV with header row, columns: supplier_name,units_received,units_rejected — one row per receipt/day for the reporting window."
+  ppm_target:
+    default: 500
+    description: Maximum acceptable defective parts-per-million before a supplier is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from supplier-otd-performance-watch — that one tracks delivery timeliness, this one tracks incoming part quality. Export incoming-inspection-log.csv from your receiving/incoming-QC records.

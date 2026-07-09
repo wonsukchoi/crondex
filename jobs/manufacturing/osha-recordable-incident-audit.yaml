@@ -1,0 +1,37 @@
+id: osha-recordable-incident-audit
+version: 1
+name: OSHA Recordable Incident Log Audit
+description: >
+  Checks the incident log for recordable injuries that haven't been
+  logged on the OSHA 300 form within the required window. Use this if a
+  recordable incident has ever slipped past the logging deadline because
+  the person who handled the report forgot to also update the 300 log.
+category: manufacturing
+tags: [manufacturing, safety, osha, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v deadline={{logging_deadline_days}} '
+    NR==1 {next}
+    $3 == "yes" && $4 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline inc_ts; close(cmd);
+      days_since = int((today - inc_ts) / 86400);
+      if (days_since >= deadline) printf "OVERDUE: incident %s (%s) is recordable and unlogged, %d days since it happened (deadline %d days)\n", $1, $2, days_since, deadline;
+      else printf "PENDING: incident %s (%s) recordable and unlogged, %d days left to log\n", $1, $2, (deadline - days_since);
+    }
+  ' "{{incident_log_csv}}"
+variables:
+  incident_log_csv:
+    default: "./incident-log.csv"
+    description: "CSV with header row, columns: incident_id,incident_date(YYYY-MM-DD),recordable(yes/no),logged_on_300(yes/no)."
+  logging_deadline_days:
+    default: 7
+    description: Days allowed to record a qualifying incident on the OSHA 300 log before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This checks logging timeliness against a configurable window you set —
+  confirm current OSHA recordkeeping deadlines with your safety officer
+  or counsel, this job doesn't determine recordability itself.

@@ -1,0 +1,37 @@
+id: safety-certification-expiry-check
+version: 1
+name: Safety Equipment Operator Certification Expiry Check
+description: >
+  Warns before an operator's certification for safety-sensitive equipment
+  (forklift, overhead crane, powered industrial truck, etc.) expires. Use
+  this if an uncertified operator has ever kept running equipment for
+  weeks because nobody was tracking cert expiry dates against the roster.
+category: manufacturing
+tags: [manufacturing, safety, certification, training, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $1 "'"'"'s " $2 " certification expires in " days_left " days (" $3 ")";
+    }
+  ' {{operator_certs_csv}}
+variables:
+  operator_certs_csv:
+    default: "./operator-certifications.csv"
+    description: "CSV with header row, columns: operator_name,equipment_type,cert_expiry_date(YYYY-MM-DD)."
+  warn_days:
+    default: 21
+    description: Days before a certification expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers operator training certifications (who's allowed to run the
+  equipment), distinct from warehousing's forklift-inspection-check,
+  which covers pre-shift equipment condition checks, not operator
+  credentials. Keep operator-certifications.csv updated from your
+  training records after each recertification.

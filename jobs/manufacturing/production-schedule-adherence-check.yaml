@@ -1,0 +1,35 @@
+id: production-schedule-adherence-check
+version: 1
+name: Production Schedule Adherence Check
+description: >
+  Compares actual output against the planned production schedule and
+  explains any meaningful variance. Use this if a schedule slip has ever
+  gone unexplained until it was too late to recover the shift, because
+  nobody compared plan vs. actual until the week was already over.
+category: manufacturing
+tags: [manufacturing, production-planning, schedule, variance]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull yesterday's planned vs. actual production output per line from
+  {{data_source}}. For any line where actual output missed plan by more
+  than {{variance_threshold_pct}}%:
+  1. Report the planned quantity, actual quantity, and variance.
+  2. Check downtime/quality logs for that line for the same period and
+     note any likely cause (downtime event, quality hold, changeover,
+     staffing).
+  3. If no clear cause is found in the logs, flag it as "unexplained
+     variance" for a supervisor to look into.
+
+  Summarize lines on plan, lines behind with an identified cause, and
+  lines with unexplained variance.
+variables:
+  data_source:
+    default: "your MES/ERP production schedule and output records"
+    description: System of record for planned schedule, actual output, and downtime/quality logs.
+  variance_threshold_pct:
+    default: 10
+    description: Percentage variance from plan that triggers a variance investigation.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Complements production-line-downtime-watch and quality-defect-rate-check by tying variance back to a likely cause instead of just reporting the stoppage or defect rate in isolation.

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 463,
+  "count": 477,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1292,6 +1292,31 @@
       "path": "jobs/content/changelog-digest.yaml"
     },
     {
+      "id": "changeover-time-tracker",
+      "version": 1,
+      "name": "Changeover Time Tracker",
+      "description": "Compares logged changeover/setup durations against a target and flags the ones that ran long. Use this if a slow product changeover has ever eaten into a shift's output without anyone tracing the lost hours back to the setup itself.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "changeover",
+        "setup",
+        "efficiency"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/changeover-time-tracker.yaml"
+    },
+    {
       "id": "chargeback-fraud-risk-order-review",
       "version": 1,
       "name": "Chargeback Fraud Risk Order Review",
@@ -2293,6 +2318,31 @@
         "codex"
       ],
       "path": "jobs/construction/crew-safety-cert-expiry-check.yaml"
+    },
+    {
+      "id": "critical-spare-parts-stock-check",
+      "version": 1,
+      "name": "Critical Spare Parts Stock Check",
+      "description": "Compares on-hand stock of critical maintenance spare parts against a set minimum and flags anything running low. Use this if a machine has ever sat down for days waiting on a spare part that a stock check would have caught weeks earlier.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "maintenance",
+        "spare-parts",
+        "inventory"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/critical-spare-parts-stock-check.yaml"
     },
     {
       "id": "crop-price-market-watch",
@@ -3835,6 +3885,31 @@
         "codex"
       ],
       "path": "jobs/security/firewall-rule-diff.yaml"
+    },
+    {
+      "id": "first-pass-yield-report",
+      "version": 1,
+      "name": "First-Pass Yield Report",
+      "description": "Calculates yesterday's first-pass yield (units that passed inspection without rework) per production line and flags any line below target. Use this if rework has ever been quietly absorbed as \"normal\" until someone finally rolled up the numbers and saw how much it was costing.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "quality",
+        "yield",
+        "production"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/first-pass-yield-report.yaml"
     },
     {
       "id": "fleet-inspection-expiry-check",
@@ -5948,6 +6023,34 @@
       "path": "jobs/hospitality/lost-and-found-item-aging-check.yaml"
     },
     {
+      "id": "lot-traceability-audit",
+      "version": 1,
+      "name": "Lot Traceability Audit",
+      "description": "Spot-checks that finished-goods lots have complete genealogy back to their raw material lots and process records. Use this if a recall has ever turned into a scramble because a lot's traceability records had gaps nobody caught until they were needed under pressure.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "traceability",
+        "quality",
+        "compliance",
+        "lots"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/manufacturing/lot-traceability-audit.yaml"
+    },
+    {
       "id": "low-stock-alert",
       "version": 1,
       "name": "Low Stock Alert",
@@ -6712,6 +6815,57 @@
       "path": "jobs/legal/non-compete-expiry-tracker.yaml"
     },
     {
+      "id": "non-conformance-report-backlog-check",
+      "version": 1,
+      "name": "Non-Conformance Report Backlog Check",
+      "description": "Counts open non-conformance reports (NCRs) that have gone past their disposition deadline without a root cause or corrective action logged. Use this if an NCR has ever sat open for months with the nonconforming material still floating around because nobody was tracking the disposition clock.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "quality",
+        "ncr",
+        "corrective-action",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/non-conformance-report-backlog-check.yaml"
+    },
+    {
+      "id": "oee-efficiency-check",
+      "version": 1,
+      "name": "OEE Efficiency Check",
+      "description": "Calculates Overall Equipment Effectiveness (availability x performance x quality) for a line from a production log and flags it when it drops below target. Use this if a line has ever \"felt slow\" for weeks before anyone put a single number on how much effectiveness it was actually losing.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "oee",
+        "efficiency",
+        "production"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/oee-efficiency-check.yaml"
+    },
+    {
       "id": "offer-expiry-reminder",
       "version": 1,
       "name": "Offer Expiry Reminder",
@@ -6907,6 +7061,31 @@
         "codex"
       ],
       "path": "jobs/devops/orphaned-branch-cleanup.yaml"
+    },
+    {
+      "id": "osha-recordable-incident-audit",
+      "version": 1,
+      "name": "OSHA Recordable Incident Log Audit",
+      "description": "Checks the incident log for recordable injuries that haven't been logged on the OSHA 300 form within the required window. Use this if a recordable incident has ever slipped past the logging deadline because the person who handled the report forgot to also update the 300 log.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "safety",
+        "osha",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/osha-recordable-incident-audit.yaml"
     },
     {
       "id": "outside-counsel-invoice-budget-check",
@@ -8072,6 +8251,33 @@
         "codex"
       ],
       "path": "jobs/manufacturing/production-line-downtime-watch.yaml"
+    },
+    {
+      "id": "production-schedule-adherence-check",
+      "version": 1,
+      "name": "Production Schedule Adherence Check",
+      "description": "Compares actual output against the planned production schedule and explains any meaningful variance. Use this if a schedule slip has ever gone unexplained until it was too late to recover the shift, because nobody compared plan vs. actual until the week was already over.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "production-planning",
+        "schedule",
+        "variance"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/manufacturing/production-schedule-adherence-check.yaml"
     },
     {
       "id": "property-maintenance-inspection-reminder",
@@ -9248,6 +9454,32 @@
       "path": "jobs/finance/saas-seat-audit.yaml"
     },
     {
+      "id": "safety-certification-expiry-check",
+      "version": 1,
+      "name": "Safety Equipment Operator Certification Expiry Check",
+      "description": "Warns before an operator's certification for safety-sensitive equipment (forklift, overhead crane, powered industrial truck, etc.) expires. Use this if an uncertified operator has ever kept running equipment for weeks because nobody was tracking cert expiry dates against the roster.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "safety",
+        "certification",
+        "training",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/safety-certification-expiry-check.yaml"
+    },
+    {
       "id": "safety-inspection-due-reminder",
       "version": 1,
       "name": "Health & Safety Inspection Due Reminder",
@@ -9271,6 +9503,31 @@
         "codex"
       ],
       "path": "jobs/spa/safety-inspection-due-reminder.yaml"
+    },
+    {
+      "id": "scrap-waste-rate-watch",
+      "version": 1,
+      "name": "Scrap and Waste Rate Watch",
+      "description": "Tracks scrapped material as a percentage of total material consumed and flags it when it runs above target. Use this if scrap has ever crept up gradually until it showed up as a surprise hit to material cost at month-end.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "scrap",
+        "waste",
+        "cost"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/scrap-waste-rate-watch.yaml"
     },
     {
       "id": "screen-time-check",
@@ -9473,6 +9730,33 @@
         "codex"
       ],
       "path": "jobs/legal/settlement-payment-schedule-tracker.yaml"
+    },
+    {
+      "id": "shift-handoff-report",
+      "version": 1,
+      "name": "Shift Handoff Report",
+      "description": "Pulls the outgoing shift's production, downtime, and open-issue notes and drafts a handoff summary for the incoming shift lead. Use this if an incoming shift has ever started blind because the handoff was a rushed hallway conversation instead of something written down.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "shift-handoff",
+        "production",
+        "communication"
+      ],
+      "schedule": "0 6,14,22 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/manufacturing/shift-handoff-report.yaml"
     },
     {
       "id": "shipment-delay-watch",
@@ -10275,6 +10559,32 @@
       "path": "jobs/restaurant/supplier-price-increase-watch.yaml"
     },
     {
+      "id": "supplier-quality-ppm-watch",
+      "version": 1,
+      "name": "Supplier Quality PPM Watch",
+      "description": "Calculates each supplier's defect rate in parts-per-million from incoming inspection records and flags anyone above target. Use this if a supplier's defective parts have ever slipped through in small enough numbers each month that no one noticed the trend until a batch got bad enough to stop the line.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "supplier",
+        "quality",
+        "incoming-inspection",
+        "ppm"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/supplier-quality-ppm-watch.yaml"
+    },
+    {
       "id": "surgery-prep-check",
       "version": 1,
       "name": "Surgery Prep Check",
@@ -10701,6 +11011,32 @@
         "generic"
       ],
       "path": "jobs/crypto/token-unlock-vesting-watch.yaml"
+    },
+    {
+      "id": "tooling-die-wear-check",
+      "version": 1,
+      "name": "Tooling and Die Wear Check",
+      "description": "Tracks cycle counts against a tool or die's rated life and flags it when it's approaching end-of-life. Use this if a worn die has ever kept running past its rated cycle count until it started producing bad parts nobody traced back to the tooling.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "tooling",
+        "dies",
+        "maintenance",
+        "wear"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/tooling-die-wear-check.yaml"
     },
     {
       "id": "tournament-registration-deadline-check",
@@ -11632,6 +11968,31 @@
         "generic"
       ],
       "path": "jobs/ecommerce/wishlist-abandonment-check.yaml"
+    },
+    {
+      "id": "work-order-backlog-check",
+      "version": 1,
+      "name": "Work Order Backlog Check",
+      "description": "Counts open production work orders that have sat unstarted or unfinished past their planned completion date. Use this if a work order has ever quietly aged for weeks in the queue while everyone assumed someone else had picked it up.",
+      "category": "manufacturing",
+      "tags": [
+        "manufacturing",
+        "work-orders",
+        "production-planning",
+        "backlog"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/manufacturing/work-order-backlog-check.yaml"
     },
     {
       "id": "workers-comp-claim-status-check",

@@ -1,0 +1,37 @@
+id: shift-handoff-report
+version: 1
+name: Shift Handoff Report
+description: >
+  Pulls the outgoing shift's production, downtime, and open-issue notes
+  and drafts a handoff summary for the incoming shift lead. Use this if
+  an incoming shift has ever started blind because the handoff was a
+  rushed hallway conversation instead of something written down.
+category: manufacturing
+tags: [manufacturing, shift-handoff, production, communication]
+schedule: "0 6,14,22 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull data for the shift that just ended on line(s) {{line_ids}} from
+  {{data_source}}: units produced vs. target, any downtime events and
+  their duration/cause, quality holds or rejects, and any open
+  maintenance or safety issues.
+
+  Draft a shift handoff note for the incoming lead covering:
+  1. Production vs. target for the shift, in one line.
+  2. Any downtime events, with cause and duration.
+  3. Open issues the incoming shift needs to watch (unresolved quality
+     holds, equipment acting up, parts running low).
+  4. Anything explicitly flagged by the outgoing lead as "don't forget."
+
+  Keep it to a few short bullets — this should be readable in under a
+  minute at the start of a shift, not a full report.
+variables:
+  line_ids:
+    default: "line-1"
+    description: Production line(s) this handoff covers.
+  data_source:
+    default: "your MES/SCADA system and shift log"
+    description: Where to pull production, downtime, and issue data from.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before posting to the shift log or handing off verbally, especially anything about open safety issues.

@@ -1,0 +1,37 @@
+id: work-order-backlog-check
+version: 1
+name: Work Order Backlog Check
+description: >
+  Counts open production work orders that have sat unstarted or unfinished
+  past their planned completion date. Use this if a work order has ever
+  quietly aged for weeks in the queue while everyone assumed someone else
+  had picked it up.
+category: manufacturing
+tags: [manufacturing, work-orders, production-planning, backlog]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{overdue_warn_count}} '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      if ($2 != "closed" && due_ts < today) { overdue++; printf "OVERDUE: work order %s (\"%s\") was due %s\n", $1, $4, $3 }
+    }
+    END {
+      if (overdue+0 >= warn) print "WARNING: " overdue " work orders are past their planned completion date";
+      else if (overdue+0 > 0) print "NOTE: " overdue " work order(s) overdue, below the " warn "-order warning threshold";
+      else print "OK: no overdue work orders";
+    }
+  ' "{{work_orders_csv}}"
+variables:
+  work_orders_csv:
+    default: "./work-orders.csv"
+    description: "CSV with header row, columns: work_order_id,status (open/in-progress/closed),due_date(YYYY-MM-DD),description."
+  overdue_warn_count:
+    default: 5
+    description: Number of overdue work orders that triggers a WARNING instead of a NOTE.
+compatible_agents: [generic, claude, codex]
+notes: Export work-orders.csv from your MES/ERP work order module before each run — this job only compares dates, it doesn't pull the data itself.

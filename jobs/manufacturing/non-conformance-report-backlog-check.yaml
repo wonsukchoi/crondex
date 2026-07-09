@@ -1,0 +1,34 @@
+id: non-conformance-report-backlog-check
+version: 1
+name: Non-Conformance Report Backlog Check
+description: >
+  Counts open non-conformance reports (NCRs) that have gone past their
+  disposition deadline without a root cause or corrective action logged.
+  Use this if an NCR has ever sat open for months with the nonconforming
+  material still floating around because nobody was tracking the
+  disposition clock.
+category: manufacturing
+tags: [manufacturing, quality, ncr, corrective-action, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $2 == "open" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      if (due_ts < today) { overdue++; printf "OVERDUE: NCR %s (\"%s\") past disposition deadline of %s\n", $1, $4, $3 }
+      else open_count++;
+    }
+    END {
+      printf "Summary: %d NCR(s) open and on track, %d overdue past disposition deadline\n", open_count+0, overdue+0;
+    }
+  ' "{{ncr_log_csv}}"
+variables:
+  ncr_log_csv:
+    default: "./ncr-log.csv"
+    description: "CSV with header row, columns: ncr_id,status (open/closed),disposition_due_date(YYYY-MM-DD),description."
+compatible_agents: [generic, claude, codex]
+notes: Export ncr-log.csv from your QMS's non-conformance module before each run — this checks the disposition clock, it doesn't evaluate root cause quality.

@@ -1,0 +1,33 @@
+id: scrap-waste-rate-watch
+version: 1
+name: Scrap and Waste Rate Watch
+description: >
+  Tracks scrapped material as a percentage of total material consumed and
+  flags it when it runs above target. Use this if scrap has ever crept up
+  gradually until it showed up as a surprise hit to material cost at
+  month-end.
+category: manufacturing
+tags: [manufacturing, scrap, waste, cost]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{scrap_target_pct}} '
+    NR==1 {next}
+    { consumed += $2; scrapped += $3 }
+    END {
+      if (consumed == 0) { print "OK: no material consumption logged for the period"; exit 0 }
+      pct = (scrapped / consumed) * 100;
+      if (pct > target) printf "ABOVE TARGET: scrap rate %.2f%% (%.0f of %.0f units scrapped), target %.2f%%\n", pct, scrapped, consumed, target;
+      else printf "OK: scrap rate %.2f%% is within the %.2f%% target\n", pct, target;
+    }
+  ' "{{scrap_log_csv}}"
+variables:
+  scrap_log_csv:
+    default: "./scrap-log.csv"
+    description: "CSV with header row, columns: material,units_consumed,units_scrapped — one row per material/day for the reporting window."
+  scrap_target_pct:
+    default: 3
+    description: Maximum acceptable scrap rate as a percentage of material consumed.
+compatible_agents: [generic, claude, codex]
+notes: Export scrap-log.csv from your MES's material consumption and scrap-reason records before each run.

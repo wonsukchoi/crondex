@@ -1,0 +1,29 @@
+id: critical-spare-parts-stock-check
+version: 1
+name: Critical Spare Parts Stock Check
+description: >
+  Compares on-hand stock of critical maintenance spare parts against a
+  set minimum and flags anything running low. Use this if a machine has
+  ever sat down for days waiting on a spare part that a stock check
+  would have caught weeks earlier.
+category: manufacturing
+tags: [manufacturing, maintenance, spare-parts, inventory]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    { if ($2 < $3) printf "LOW STOCK: critical spare \"%s\" — %d on hand, minimum %d\n", $1, $2, $3; }
+  ' "{{spare_parts_csv}}"
+variables:
+  spare_parts_csv:
+    default: "./critical-spare-parts.csv"
+    description: "CSV with header row, columns: part_name,qty_on_hand,min_qty — limited to parts flagged critical for equipment uptime, not general MRO stock."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to critical maintenance spares tied to specific equipment
+  (bearings, belts, sensors for machines on the floor), not general
+  warehouse/retail inventory — see inventory category's low-stock-alert
+  for that. Export critical-spare-parts.csv from your CMMS spare parts
+  module.

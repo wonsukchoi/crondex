@@ -1,0 +1,37 @@
+id: oee-efficiency-check
+version: 1
+name: OEE Efficiency Check
+description: >
+  Calculates Overall Equipment Effectiveness (availability x performance x
+  quality) for a line from a production log and flags it when it drops
+  below target. Use this if a line has ever "felt slow" for weeks before
+  anyone put a single number on how much effectiveness it was actually
+  losing.
+category: manufacturing
+tags: [manufacturing, oee, efficiency, production]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{oee_target_pct}} '
+    NR==1 {next}
+    {
+      planned=$2; runtime=$3; ideal_rate=$4; total_count=$5; good_count=$6;
+      availability = runtime / planned;
+      performance = (ideal_rate > 0) ? (total_count / (runtime * ideal_rate)) : 0;
+      if (performance > 1) performance = 1;
+      quality = (total_count > 0) ? (good_count / total_count) : 0;
+      oee = availability * performance * quality * 100;
+      status = (oee < target) ? "BELOW TARGET" : "OK";
+      printf "%s: line %s — OEE %.1f%% (avail %.0f%%, perf %.0f%%, qual %.0f%%), target %d%%\n", status, $1, oee, availability*100, performance*100, quality*100, target;
+    }
+  ' "{{oee_log_csv}}"
+variables:
+  oee_log_csv:
+    default: "./oee-log.csv"
+    description: "CSV with header row, columns: line_id,planned_minutes,runtime_minutes,ideal_units_per_minute,total_units,good_units — one row per line/day."
+  oee_target_pct:
+    default: 85
+    description: Minimum acceptable OEE percentage per line (world-class benchmark is often ~85%; adjust to your baseline).
+compatible_agents: [generic, claude, codex]
+notes: Export oee-log.csv from your MES's downtime and count records — this is a standard availability x performance x quality OEE calculation, not a substitute for the line-level downtime-cause detail in production-line-downtime-watch.

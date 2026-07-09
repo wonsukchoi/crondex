@@ -1,8 +1,24 @@
-# crondex
+<div align="center">
 
-Pre-made cron jobs any AI agent (Claude, Codex, Hermes, OpenClaw, or a plain
-LLM with shell access) can pull, tweak, and schedule. A directory, not a
-framework.
+```
+  ______________  ____  ____/ /__  _  __
+ / ___/ ___/ __ \/ __ \/ __  / _ \| |/_/
+/ /__/ /  / /_/ / / / / /_/ /  __/>  <
+\___/_/   \____/_/ /_/\__,_/\___/_/|_|
+```
+
+**Pre-made cron jobs any AI agent can pull, tweak, and schedule.**
+A directory, not a framework.
+
+[![npm version](https://img.shields.io/npm/v/@wonsukchoi/crondex.svg)](https://www.npmjs.com/package/@wonsukchoi/crondex)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
+
+---
+
+Works with Claude, Codex, Hermes, OpenClaw, or any plain LLM with shell
+access.
 
 ## Get a job
 
@@ -24,6 +40,8 @@ No install needed — `npx` always runs against the latest catalog. Prefer
 installing once? `npm install -g @wonsukchoi/crondex`, then drop the `npx`
 prefix (run `npm update -g` later to pick up new jobs). Prefer no npm at
 all? `git clone` this repo and run `node bin/crondex.js list`.
+
+---
 
 ## What's in a job
 
@@ -58,6 +76,8 @@ then hand `command`/`prompt` plus `schedule` to whatever scheduler you have
 (system crontab, a hosted cron, your agent's own scheduling mechanism). This
 repo defines *what* to run and *when*, not the executor. Full field spec:
 [`schema/job.schema.json`](schema/job.schema.json).
+
+---
 
 ## Browse the catalog
 
@@ -110,6 +130,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `travel` | 5 |
 <!-- END JOB SUMMARY -->
 
+---
+
 ## Layout
 
 ```
@@ -122,11 +144,15 @@ crondex/
 └── scripts/               build-catalog.js, validate-jobs.js, lint-shell.js
 ```
 
+---
+
 ## Contributing a job
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`
 (or run `crondex init`), fill it in, `npm run validate && npm run
 build-catalog`, open a PR.
+
+---
 
 ## License
 

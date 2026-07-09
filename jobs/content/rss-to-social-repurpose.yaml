@@ -1,0 +1,36 @@
+id: rss-to-social-repurpose
+version: 1
+name: RSS-to-Social Repurpose Draft
+description: >
+  Checks your blog/RSS feed for new posts and drafts a set of social posts
+  repurposing each one, instead of publishing and moving on without ever
+  promoting it. Use this if you've ever shipped a blog post and then simply
+  forgot to tell anyone it existed.
+category: content
+tags: [content, rss, social, repurposing]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{feed_url}} for posts published in the last {{lookback_hours}}
+  hours.
+  1. For each new post, read the title/summary (fetch the full post if the
+     feed only has a snippet).
+  2. Draft {{platforms}} versions: a short one for X/Bluesky-style
+     character limits, and a longer one for LinkedIn-style posts — each
+     written to stand alone, not just "new post: [link]".
+  3. Suggest one pull-quote or stat from the post that would work as a
+     standalone hook.
+  4. If no new posts, say so in one line.
+variables:
+  feed_url:
+    default: "https://example.com/rss.xml"
+    description: URL of the RSS/Atom feed to check.
+  lookback_hours:
+    default: 24
+    description: How far back to check for new posts.
+  platforms:
+    default: "X, LinkedIn"
+    description: Comma-separated list of platforms to draft posts for.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before posting, and adjust tone/length per platform's actual current norms rather than trusting fixed character-count assumptions.

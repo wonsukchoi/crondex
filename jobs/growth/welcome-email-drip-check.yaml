@@ -1,0 +1,36 @@
+id: welcome-email-drip-check
+version: 1
+name: Welcome Email Drip Check
+description: >
+  Checks that everyone who signed up recently actually received the
+  welcome email, and flags anyone who fell through the cracks. Use this if
+  a welcome-email automation has ever silently failed for a batch of new
+  users and nobody noticed until support tickets started asking "where's
+  my onboarding email?"
+category: growth
+tags: [growth, email, onboarding, welcome-email]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{signup_source}} for accounts created in the last
+  {{lookback_hours}} hours, and cross-reference against
+  {{email_platform}} send logs for the welcome email campaign.
+  1. List any new signup with no corresponding welcome email send logged.
+  2. Note how long ago they signed up, sorted oldest-first.
+  3. If any gap is found, flag whether it looks like an isolated miss or a
+     systemic failure (e.g. every signup in a time window is missing it,
+     which points at the automation itself breaking).
+  4. If everyone got their email, say so in one line.
+variables:
+  signup_source:
+    default: "your user database or signup form"
+    description: Where new signups are recorded.
+  email_platform:
+    default: "your transactional email platform (e.g. Postmark, SendGrid, Customer.io)"
+    description: Where welcome-email sends are logged.
+  lookback_hours:
+    default: 24
+    description: How far back to check for new signups.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check — wire up a manual resend for anyone flagged rather than having this job send email directly.

@@ -1,0 +1,34 @@
+id: downloads-folder-auto-organize
+version: 1
+name: Downloads Folder Auto-Organize
+description: >
+  Sorts files sitting in your downloads folder into subfolders by type
+  (images, documents, archives, installers), so it doesn't turn into an
+  unsearchable pile. Use this if your downloads folder has ever hit
+  hundreds of files with zero structure.
+category: personal
+tags: [files, organization, downloads, cleanup]
+schedule: "0 3 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  dir="{{downloads_dir}}";
+  cd "$dir" || exit 1;
+  mkdir -p images documents archives installers other;
+  for f in *; do
+    [ -f "$f" ] || continue;
+    case "$f" in
+      *.jpg|*.jpeg|*.png|*.gif|*.webp|*.heic) mv -n "$f" images/ ;;
+      *.pdf|*.doc|*.docx|*.txt|*.md|*.xlsx|*.csv) mv -n "$f" documents/ ;;
+      *.zip|*.tar|*.gz|*.7z|*.rar) mv -n "$f" archives/ ;;
+      *.dmg|*.pkg|*.exe|*.msi|*.deb) mv -n "$f" installers/ ;;
+      *) mv -n "$f" other/ ;;
+    esac;
+  done;
+  echo "sorted $(find images documents archives installers other -type f 2>/dev/null | wc -l) file(s) in $dir"
+variables:
+  downloads_dir:
+    default: "$HOME/Downloads"
+    description: Path to the downloads folder to organize.
+compatible_agents: [generic, claude, codex]
+notes: Only sorts files sitting directly in the folder (not subfolders you've already made), and never overwrites a same-named file already in the destination (`mv -n`).

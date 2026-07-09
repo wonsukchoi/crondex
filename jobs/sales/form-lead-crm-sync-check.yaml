@@ -1,0 +1,36 @@
+id: form-lead-crm-sync-check
+version: 1
+name: Form Lead CRM Sync Check
+description: >
+  Checks that leads submitted through your web forms actually landed in
+  your CRM, catching a broken integration instead of a slow rep. Use this
+  if a form-to-CRM zap/integration has ever quietly broken and leads piled
+  up on the form provider's side while sales thought the pipeline was just
+  empty.
+category: sales
+tags: [sales, leads, crm, integration]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{form_platform}} for form submissions in the last
+  {{lookback_hours}} hours, and check {{crm_platform}} for matching lead
+  records (by email).
+  1. List any form submission with no matching CRM record.
+  2. If there's a gap, note how many are missing and since when — a
+     sudden cluster of misses starting at a specific time usually means
+     the integration itself broke, not that leads are individually
+     falling through.
+  3. If everything matches, say so in one line.
+variables:
+  form_platform:
+    default: "your web form tool (e.g. Typeform, HubSpot forms, a custom form)"
+    description: Where form submissions are recorded.
+  crm_platform:
+    default: "your CRM (e.g. HubSpot, Salesforce, Pipedrive)"
+    description: Where leads should be showing up.
+  lookback_hours:
+    default: 2
+    description: How far back to check for submissions, tight enough to catch a break quickly.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — this catches the gap, but reprocessing missed leads into the CRM is a separate, deliberate action.

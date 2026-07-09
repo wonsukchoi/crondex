@@ -1,0 +1,37 @@
+id: youtube-clip-repurposing
+version: 1
+name: YouTube Clip Repurposing Draft
+description: >
+  Checks for a newly published long-form video and drafts a shortlist of
+  moments worth cutting into shorts/clips for other platforms. Use this if
+  a video has ever gone up and just sat there as one long upload instead of
+  becoming five pieces of content.
+category: creator
+tags: [youtube, video, clips, repurposing]
+schedule: "0 12 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{channel_url}} for videos published in the last
+  {{lookback_hours}} hours.
+  1. For any new video, pull the transcript/chapters if available.
+  2. Identify {{clip_count}} moments (with approximate timestamps) that
+     would work as standalone short-form clips — look for a strong hook in
+     the first few seconds, a self-contained point, or a punchy reaction.
+  3. Draft a one-line caption per clip suited for {{short_platforms}}.
+  4. If no new video, say so in one line.
+variables:
+  channel_url:
+    default: "https://www.youtube.com/@yourchannel"
+    description: Channel or specific video URL to check.
+  lookback_hours:
+    default: 24
+    description: How far back to check for a new upload.
+  clip_count:
+    default: 3
+    description: How many clip candidates to suggest per video.
+  short_platforms:
+    default: "YouTube Shorts, TikTok, Instagram Reels"
+    description: Comma-separated short-form platforms to caption for.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Suggests timestamps and captions only — actual cutting/editing still needs a video tool; this just removes the "which moments are worth clipping" decision.

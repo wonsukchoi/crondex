@@ -5,9 +5,17 @@ well-formed YAML file plus a regenerated catalog. That's it.
 
 ## Steps
 
-1. Copy the template:
+0. Check nobody already covers this:
+   ```bash
+   node bin/crondex.js recommend "<what your job would do>"
+   ```
+   If a close match exists, prefer improving it over adding a near-duplicate.
+
+1. Copy the template — either by hand, or scaffold it:
    ```bash
    cp templates/job.template.yaml jobs/<category>/<id>.yaml
+   # or:
+   node bin/crondex.js init <id> --category <category> --dest jobs/<category>/<id>.yaml
    ```
    Use an existing category folder (`devops`, `productivity`) if your job
    fits, or create a new one — don't pre-plan the taxonomy, just add a

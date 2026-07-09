@@ -28,15 +28,19 @@ function printHelp() {
 
 Usage:
   crondex list [--category <name>] [--tag <name>]
+  crondex categories
   crondex show <id>
   crondex add <id> [--dest <path>]
   crondex recommend "<what you want done>" [--limit <n>]
+  crondex init <id> [--category <name>] [--dest <path>]
 
 Examples:
   crondex list --category devops
+  crondex categories
   crondex show dependency-audit
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
   crondex recommend "warn me before my SSL cert expires"
+  crondex init ssl-cert-expiry-check --category security
 `);
 }
 
@@ -147,6 +151,36 @@ function show(id) {
   console.log(readFileSync(join(ROOT, findJob(id).path), "utf8"));
 }
 
+function categories() {
+  const counts = {};
+  for (const j of CATALOG.jobs) counts[j.category] = (counts[j.category] ?? 0) + 1;
+  console.log(catalogInfoLine());
+  console.log();
+  for (const [cat, n] of Object.entries(counts).sort(([a], [b]) => a.localeCompare(b))) {
+    console.log(`${cat}  (${n})`);
+  }
+}
+
+const ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+function init(id) {
+  if (!ID_RE.test(id)) {
+    console.error(`"${id}" isn't a valid job id — use lowercase letters, digits, and hyphens (e.g. ssl-cert-expiry-check).`);
+    process.exit(1);
+  }
+  const category = flag("category") ?? "productivity";
+  const dest = flag("dest") ?? `./${id}.yaml`;
+  if (existsSync(dest)) {
+    console.error(`${dest} already exists — refusing to overwrite. Pass --dest to choose another path.`);
+    process.exit(1);
+  }
+  const template = readFileSync(join(ROOT, "templates/job.template.yaml"), "utf8")
+    .replace("id: your-job-id", `id: ${id}`)
+    .replace("category: devops", `category: ${category}`);
+  writeFileSync(dest, template);
+  console.log(`wrote ${dest} — fill in the fields, then \`npm run validate\` (see CONTRIBUTING.md to submit it upstream).`);
+}
+
 function add(id) {
   const meta = findJob(id);
   const dest = flag("dest") ?? `./${id}.yaml`;
@@ -161,6 +195,16 @@ function add(id) {
 switch (cmd) {
   case "list":
     list();
+    break;
+  case "categories":
+    categories();
+    break;
+  case "init":
+    if (!args[0]) {
+      console.error("usage: crondex init <id> [--category <name>] [--dest <path>]");
+      process.exit(1);
+    }
+    init(args[0]);
     break;
   case "show":
     if (!args[0]) {

@@ -1,0 +1,44 @@
+id: newly-funded-leads-scout
+version: 1
+name: Newly Funded Companies Lead Scout
+description: >
+  Checks funding-announcement sources for companies that just raised in
+  your target market and drafts a first-outreach message for each. Use
+  this if you sell to companies that spend differently right after a
+  funding round and you want to reach them before every other vendor does.
+category: sales
+tags: [sales, leads, funding, outreach, prospecting]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{funding_sources}} for companies that announced a funding round in
+  the last {{lookback_days}} days matching: industry "{{target_industry}}",
+  stage "{{target_stage}}".
+  1. List each company: name, round size/stage, and a one-line note on why
+     they fit the target profile.
+  2. For each, note the most relevant contact if discoverable (founder,
+     head of the department your product serves).
+  3. Draft a short, non-generic first-touch outreach message per company
+     that references the funding news and ties it to a concrete reason
+     they'd need {{your_product}} now.
+  4. Skip companies already in {{existing_crm_note}} to avoid duplicate
+     outreach.
+variables:
+  funding_sources:
+    default: "Crunchbase, TechCrunch funding news, or your preferred funding-news feed"
+    description: Sources to check for funding announcements.
+  target_industry:
+    default: "SaaS"
+    description: Industry/vertical to filter for.
+  target_stage:
+    default: "Seed or Series A"
+    description: Funding stage(s) worth prospecting.
+  your_product:
+    default: "your product"
+    description: One-line description of what you sell, for the outreach draft to reference.
+  existing_crm_note:
+    default: "no CRM connected — skip duplicate check"
+    description: Where to check for companies already in your pipeline, to avoid re-outreaching.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before sending, and check the funding source's terms of use before scraping instead of using an official API/RSS feed.

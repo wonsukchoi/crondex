@@ -1,0 +1,44 @@
+id: subscription-price-hike-watch
+version: 1
+name: Subscription Price Hike Watch
+description: >
+  Checks a tracked subscription's current price against the last price you
+  recorded and flags any increase. Use this if a service has ever quietly
+  raised its price and you only noticed months later scrolling through a
+  bank statement.
+category: finance
+tags: [subscriptions, price, billing, finance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  history_file="{{price_history_path}}";
+  touch "$history_file";
+  current_price=$(curl -s -A "Mozilla/5.0" "{{pricing_page_url}}" | grep -o '{{price_pattern}}' | head -1);
+  if [ -z "$current_price" ]; then
+    echo "could not extract a price from {{pricing_page_url}} — check {{price_pattern}} still matches the page.";
+    exit 0;
+  fi
+  last_price=$(tail -1 "$history_file" | cut -d',' -f2);
+  today=$(date +%Y-%m-%d);
+  echo "$today,$current_price" >> "$history_file";
+  if [ -n "$last_price" ] && [ "$current_price" != "$last_price" ]; then
+    echo "PRICE CHANGED for {{service_name}}: $last_price -> $current_price";
+  else
+    echo "{{service_name}} price unchanged: $current_price";
+  fi
+variables:
+  service_name:
+    default: "your subscription service"
+    description: Name of the subscription being tracked.
+  pricing_page_url:
+    default: "https://example.com/pricing"
+    description: Public pricing page URL to check.
+  price_pattern:
+    default: "\\$[0-9]+\\.[0-9][0-9]"
+    description: A grep pattern that extracts the price text from the page (adjust per site's markup).
+  price_history_path:
+    default: "./subscription-price-history.csv"
+    description: Local CSV file to append price observations to over time.
+compatible_agents: [generic, claude, codex]
+notes: Extraction is a simple grep on rendered HTML — pages that render price via JS won't match; use an agent-prompt job or a headless browser if that's the case for your target service.

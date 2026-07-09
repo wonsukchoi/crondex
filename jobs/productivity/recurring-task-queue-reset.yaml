@@ -1,0 +1,37 @@
+id: recurring-task-queue-reset
+version: 1
+name: Recurring Task Queue Reset
+description: >
+  Clears out last week's completed recurring-task checklist and creates a
+  fresh one from your template, so every cycle starts with the same
+  predefined owners and checklist instead of a copy-pasted mess. Use this
+  if your recurring weekly checklist has ever quietly drifted because
+  someone edited last week's copy instead of starting clean.
+category: productivity
+tags: [productivity, checklist, recurring, template]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ ! -f "{{template_path}}" ]; then
+    echo "template not found at {{template_path}} — nothing to reset from.";
+    exit 1;
+  fi
+  week_label=$(date +%G-W%V);
+  dest="{{output_dir}}/${week_label}.md";
+  mkdir -p "{{output_dir}}";
+  if [ -f "$dest" ]; then
+    echo "$dest already exists — not overwriting this week's checklist.";
+  else
+    cp "{{template_path}}" "$dest";
+    echo "created fresh checklist: $dest";
+  fi
+variables:
+  template_path:
+    default: "./templates/weekly-checklist.md"
+    description: Path to the checklist template with predefined owners/items.
+  output_dir:
+    default: "./weekly-checklists"
+    description: Directory where each week's fresh checklist file is written.
+compatible_agents: [generic, claude, codex]
+notes: File-based by default for portability — swap `cp` for your task tool's API call (Notion, Asana, ClickUp) if you want it created there instead of as a local file.

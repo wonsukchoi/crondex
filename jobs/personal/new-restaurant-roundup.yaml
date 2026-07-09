@@ -1,0 +1,35 @@
+id: new-restaurant-roundup
+version: 1
+name: New Restaurant Roundup
+description: >
+  Checks for restaurants that newly opened near you in the last week and
+  gives you a short list to consider. Use this if you like trying new
+  places but never remember to actually go looking for what just opened.
+category: personal
+tags: [restaurants, local, discovery, weekly]
+schedule: "0 17 * * 5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check for restaurants that newly opened within {{radius_miles}} miles of
+  {{location}} in the last {{lookback_days}} days (via Yelp, Google Maps,
+  local news, or whatever local-discovery source is available).
+  1. List each new place: name, cuisine, and distance.
+  2. Note anything getting early buzz (a write-up, strong early reviews).
+  3. Keep it to the top {{max_results}} most promising — this is a quick
+     Friday-evening list, not a research report.
+variables:
+  location:
+    default: "your city/neighborhood"
+    description: Location to search around.
+  radius_miles:
+    default: 5
+    description: Search radius in miles.
+  lookback_days:
+    default: 14
+    description: How recently a restaurant must have opened to count as "new."
+  max_results:
+    default: 5
+    description: Max number of places to list.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Quality depends on local coverage in whatever source the agent can reach — sparser in small towns than big cities.

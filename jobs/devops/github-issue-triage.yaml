@@ -1,0 +1,38 @@
+id: github-issue-triage
+version: 1
+name: GitHub Issue Triage
+description: >
+  Reviews new GitHub issues opened since the last run and sorts them into
+  urgent/normal/low-priority with a suggested label and one-line reason.
+  Use this if issues pile up untriaged and the urgent ones get lost in the
+  noise until someone stumbles on them days later.
+category: devops
+tags: [github, issues, triage, devops]
+schedule: "0 8,14 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  List issues opened in {{repo}} in the last {{lookback_hours}} hours (via
+  `gh issue list` or the GitHub API) that don't yet have a priority label.
+  1. For each, classify as urgent / normal / low-priority based on: does it
+     describe a crash, data loss, or security issue (urgent); a real bug
+     with a workaround (normal); or a feature request/question
+     (low-priority).
+  2. Give a one-line reason for the classification.
+  3. Suggest the matching label from: {{priority_labels}}.
+  4. List anything you'd flag for a human to look at today regardless of
+     label, separately at the top.
+  5. Do not apply labels or comment automatically — output a review-ready
+     list only.
+variables:
+  repo:
+    default: "owner/repo"
+    description: GitHub repo to triage, in owner/repo form.
+  lookback_hours:
+    default: 24
+    description: How far back to check for untriaged issues.
+  priority_labels:
+    default: "priority:urgent, priority:normal, priority:low"
+    description: Comma-separated label names to suggest, matching your repo's label scheme.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only triage suggestions — wire up label/comment application separately once you trust the classifications, and requires `gh` CLI auth or API token with issue read access.

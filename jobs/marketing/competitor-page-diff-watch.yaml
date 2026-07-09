@@ -1,0 +1,48 @@
+id: competitor-page-diff-watch
+version: 1
+name: Competitor Page Diff Watch
+description: >
+  Snapshots a competitor's pricing or landing page and diffs it against the
+  last snapshot, turning any real change into a short action memo instead
+  of a wall of markup diff. Use this if a competitor has ever changed
+  pricing or repositioned a page and you found out from a customer instead
+  of noticing it yourself.
+category: marketing
+tags: [competitor, monitoring, pricing, marketing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  snapshot_dir="{{snapshot_dir}}";
+  mkdir -p "$snapshot_dir";
+  today_file="$snapshot_dir/$(date +%Y-%m-%d).html";
+  curl -s -A "Mozilla/5.0" "{{competitor_url}}" -o "$today_file";
+  prev_file=$(ls -1 "$snapshot_dir" | grep -v "$(basename "$today_file")" | sort | tail -1);
+  if [ -n "$prev_file" ]; then
+    diff "$snapshot_dir/$prev_file" "$today_file" | head -100;
+  else
+    echo "first snapshot taken, nothing to diff against yet.";
+  fi
+prompt: |
+  Compare today's snapshot of {{competitor_url}} against the previous one
+  (raw HTML diff provided by the script, or fetch and compare yourself).
+  1. Ignore markup/whitespace/tracking-param noise.
+  2. Summarize any real content change: pricing, plan names, feature
+     claims, or messaging changes.
+  3. If nothing meaningful changed, say so in one line.
+  4. If something did change, draft a short internal action memo: what
+     changed, why it might matter, and one suggested response (match
+     pricing, update our comparison page, no action needed).
+script_note: >
+  `command` only saves a raw HTML diff — full of markup and whitespace
+  noise, no interpretation of what actually changed or whether it matters.
+  `prompt` filters the noise and produces an actionable summary.
+variables:
+  competitor_url:
+    default: "https://example.com/pricing"
+    description: Competitor page URL to monitor (pricing/landing pages work best).
+  snapshot_dir:
+    default: "./competitor-snapshots"
+    description: Local directory to store daily HTML snapshots for diffing.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Respect the target site's robots.txt/terms before scraping; some sites render pricing via JS and won't diff meaningfully from raw HTML alone.

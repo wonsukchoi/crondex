@@ -1,0 +1,42 @@
+id: morning-briefing-digest
+version: 1
+name: Morning Briefing Digest
+description: >
+  Pulls together overnight email, today's calendar, and any connected
+  analytics/monitoring dashboards into one short digest waiting for you at
+  the start of the day. Use this if you start your morning tab-hopping
+  across five dashboards before you've even had coffee.
+category: productivity
+tags: [briefing, digest, morning, calendar, email]
+schedule: "0 7 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Build a short morning briefing covering:
+  1. Calendar: today's meetings from {{calendar_source}}, flagging any
+     back-to-back blocks with no prep time.
+  2. Email: unread messages from {{email_source}} in the last
+     {{lookback_hours}} hours that look like they need a same-day reply —
+     skip newsletters/notifications.
+  3. Metrics: anything notable from {{dashboard_sources}} (traffic spike or
+     drop, error rate change, ranking movement) — only report real changes,
+     not routine noise.
+  4. End with a single "top 3 things to do today" list synthesized from the
+     above.
+  Keep the whole digest to one screen — this replaces tab-hopping, it
+  shouldn't become its own chore to read.
+variables:
+  calendar_source:
+    default: "your calendar (e.g. Google Calendar)"
+    description: Calendar to pull today's meetings from.
+  email_source:
+    default: "your inbox (e.g. Gmail)"
+    description: Inbox to scan for messages needing a same-day reply.
+  dashboard_sources:
+    default: "analytics/search console/uptime monitoring, whatever you have connected"
+    description: Comma-separated list of dashboards/metrics sources to check.
+  lookback_hours:
+    default: 16
+    description: How far back to scan email (covers overnight since last workday).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Value scales with how many sources you connect — start with just calendar+email and add dashboards as they're available.

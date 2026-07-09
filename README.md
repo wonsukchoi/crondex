@@ -42,22 +42,11 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
   (matched by its `id` field) against the current catalog, print a diff of
   what changed, and overwrite it in place. `--dry-run` shows the diff
   without applying it.
-- `deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler] [--var name=value ...]`
-  — turn a job into something that actually runs: prints a ready crontab
-  line (or installs it into your own crontab with `--install`), writes a
-  scheduled GitHub Actions workflow file, writes a systemd
-  `<id>.service` + `<id>.timer` pair, writes a Dockerfile + `/etc/cron.d`
-  entry that runs the job on its own schedule in a container, or writes a
-  self-contained `batch/v1` CronJob manifest (`k8s-cronjob`). `eventbridge`
-  and `cloud-scheduler` print a ready `aws`/`gcloud` CLI command instead —
-  those services invoke a target (Lambda/ECS/HTTP endpoint) rather than
-  running a shell command directly, so the command leaves that target as a
-  TODO for you to wire up. `--var` overrides a variable's default
-  (repeatable). `hybrid` jobs deploy their `command` by default; pass
-  `--mode prompt` to deploy the `prompt` side instead — for
-  crontab/systemd/docker/k8s targets that means wiring in your own agent
-  CLI via a `CRONDEX_AGENT_CLI` env var, since crondex can't guess its
-  syntax.
+- `deploy <id> --target <crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler> [--var name=value ...]`
+  — turn a job into something that actually runs (crontab line, GitHub
+  Actions workflow, systemd timer, Dockerfile, k8s CronJob, or a ready
+  `aws`/`gcloud` command). `--var` overrides a variable's default. `hybrid`
+  jobs deploy `command` by default; add `--mode prompt` for the prompt side.
 - `deploy --list-installed` — show every crondex-managed line in your
   crontab (the ones left by `--install`)
 - `uninstall <id>` — remove one of those installed crontab entries
@@ -66,10 +55,7 @@ Add `--json` to `list`/`categories`/`show`/`recommend` for machine-readable
 output — useful when an agent is parsing the result programmatically
 instead of a human reading it.
 
-No install needed — `npx` always runs against the latest catalog. Prefer
-installing once? `npm install -g @wonsukchoi/crondex`, then drop the `npx`
-prefix (run `npm update -g` later to pick up new jobs). Prefer no npm at
-all? `git clone` this repo and run `node bin/crondex.js list`.
+No install needed — `npx` always runs against the latest catalog.
 
 ---
 

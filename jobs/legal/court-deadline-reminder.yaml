@@ -1,0 +1,40 @@
+id: court-deadline-reminder
+version: 1
+name: Court Deadline Reminder
+description: >
+  Checks a tracked list of court/filing deadlines and warns before any come
+  due. Use this if a filing deadline has ever been missed because it lived
+  only in one person's head or a sticky note instead of a shared, checked
+  calendar.
+category: legal
+tags: [legal, court, deadline, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "DUE SOON: %s — %s due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{deadlines_csv_path}}"
+variables:
+  deadlines_csv_path:
+    default: "./court-deadlines.csv"
+    description: "Path to a CSV with columns: matter_name,deadline_type,due_date (YYYY-MM-DD) — e.g. one row per filing/response/statute-of-limitations deadline."
+  warn_days_before:
+    default: 14
+    description: How many days before a deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a plain date-threshold check, not a rules-based calendaring
+  engine — it won't calculate deadlines from court rules the way dedicated
+  legal calendaring software does. Export computed due dates from that
+  system into the CSV, or maintain them manually, and use this as the
+  "did anyone actually notice" backstop.

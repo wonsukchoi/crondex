@@ -1,0 +1,35 @@
+id: property-maintenance-inspection-reminder
+version: 1
+name: Property Maintenance Inspection Reminder
+description: >
+  Tracks when each property was last inspected and flags any that are due
+  for their next routine walkthrough. Use this if a property has ever gone
+  a year or more without a proper inspection because nothing forced anyone
+  to schedule one.
+category: realestate
+tags: [realestate, maintenance, inspection, property]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{inspection_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      if (days_since >= days) {
+        printf "DUE: %s — last inspected %s (%d days ago)\n", $1, $2, days_since;
+      }
+    }
+  ' "{{properties_csv_path}}"
+variables:
+  properties_csv_path:
+    default: "./property-inspections.csv"
+    description: "Path to a CSV with columns: property_name,last_inspection_date (YYYY-MM-DD)."
+  inspection_interval_days:
+    default: 180
+    description: How often each property should be inspected, in days.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV of last-inspection dates per property — export it from whatever property management system you use, or update it manually after each walkthrough.

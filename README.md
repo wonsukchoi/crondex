@@ -91,7 +91,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-187 jobs across 37 categories:
+189 jobs across 37 categories:
 
 | category | jobs |
 |---|---|
@@ -117,7 +117,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `inventory` | 3 |
 | `investing` | 3 |
 | `learning` | 5 |
-| `legal` | 3 |
+| `legal` | 4 |
 | `logistics` | 3 |
 | `manufacturing` | 3 |
 | `marketing` | 4 |
@@ -125,7 +125,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `personal` | 9 |
 | `podcast` | 3 |
 | `productivity` | 9 |
-| `realestate` | 3 |
+| `realestate` | 4 |
 | `restaurant` | 3 |
 | `sales` | 5 |
 | `security` | 14 |

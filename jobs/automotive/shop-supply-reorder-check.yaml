@@ -1,0 +1,31 @@
+id: shop-supply-reorder-check
+version: 1
+name: Shop Supply & Consumables Reorder Check
+description: >
+  Checks bulk shop consumables (shop towels, degreaser, disposable
+  gloves, oil dry, bulk fluids) against reorder thresholds and flags
+  anything running low. Use this if a tech has ever had to stop mid-job
+  because the shop ran out of a supply nobody tracks as closely as
+  billable parts.
+category: automotive
+tags: [automotive, shop-supplies, consumables, reorder]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      onhand = $2 + 0;
+      reorder_point = $3 + 0;
+      if (onhand <= reorder_point) {
+        printf "REORDER: %s — %s %s on hand, reorder point %s %s\n", $1, $2, $4, $3, $4;
+      }
+    }
+  ' "{{shop_supplies_csv_path}}"
+variables:
+  shop_supplies_csv_path:
+    default: "./shop-supplies-stock.csv"
+    description: "Path to a CSV with columns: supply_name,qty_on_hand,reorder_point,unit."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `parts-reorder-point-check` — that job tracks customer-billable repair parts; this one tracks internal bulk consumables that never hit a repair order.

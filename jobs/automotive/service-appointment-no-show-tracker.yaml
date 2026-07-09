@@ -1,0 +1,38 @@
+id: service-appointment-no-show-tracker
+version: 1
+name: Service Appointment No-Show Tracker
+description: >
+  Checks today's service appointment schedule partway through the day
+  and flags customers who booked a slot but never checked in, so the bay
+  can be reopened to a walk-in instead of sitting empty. Use this if a
+  bay has ever sat idle all morning because a no-show was never noticed
+  until the tech asked what happened to their 9 o'clock.
+category: automotive
+tags: [automotive, service-bay, no-show, scheduling]
+schedule: "30 9,13 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%H:%M);
+  awk -F',' -v now="$now" -v grace="{{grace_minutes}}" '
+    NR==1 {next}
+    $3 == "scheduled" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline slot_epoch; close(cmd);
+      cmd2 = "date -d \"" now "\" +%s 2>/dev/null || date -j -f %H:%M \"" now "\" +%s 2>/dev/null";
+      cmd2 | getline now_epoch; close(cmd2);
+      late_min = (now_epoch - slot_epoch) / 60;
+      if (late_min >= grace) {
+        printf "NO-SHOW: %s — appointment %s (%d min past slot, not checked in)\n", $1, $2, late_min;
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./service-appointments-today.csv"
+    description: "Path to a CSV with columns: customer_name,appointment_time (HH:MM),status (scheduled/checked-in/completed)."
+  grace_minutes:
+    default: 30
+    description: Minutes past the scheduled time before a missed appointment counts as a no-show.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from fieldservice's `tech-eta-no-show-check` — that job flags the shop's own technician running late to a customer site; this one flags the customer not showing up to the shop.

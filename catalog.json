@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 569,
+  "count": 582,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -490,6 +490,31 @@
         "codex"
       ],
       "path": "jobs/publishing/arc-review-copy-followup.yaml"
+    },
+    {
+      "id": "ase-certification-expiry-check",
+      "version": 1,
+      "name": "ASE Certification Expiry Check",
+      "description": "Checks technician ASE (or equivalent manufacturer) certifications against their expiration date and flags any expiring soon. Use this if a tech has ever kept working on certified-only repair categories after their certification quietly lapsed, putting warranty reimbursement at risk.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "technician",
+        "certification",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/ase-certification-expiry-check.yaml"
     },
     {
       "id": "assignment-grading-backlog-check",
@@ -2920,6 +2945,56 @@
       "path": "jobs/support/csat-score-watch.yaml"
     },
     {
+      "id": "csi-score-monitor",
+      "version": 1,
+      "name": "Customer Satisfaction Index (CSI) Score Monitor",
+      "description": "Checks incoming customer satisfaction (CSI) survey scores from service and sales against a minimum threshold and flags any individual score low enough to put the dealership's manufacturer standing at risk. Use this if a bad CSI score has ever sat unnoticed in a survey inbox until the manufacturer's monthly report flagged it first.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "csi",
+        "customer-satisfaction",
+        "survey"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/csi-score-monitor.yaml"
+    },
+    {
+      "id": "customer-pay-warranty-pay-mix-tracker",
+      "version": 1,
+      "name": "Customer-Pay vs Warranty-Pay Mix Tracker",
+      "description": "Checks the weekly split of repair order revenue between customer-pay, warranty-pay, and internal-pay against your target mix and flags a drift. Use this if a service department has ever found out at month-end that warranty work quietly ate into the higher-margin customer-pay volume nobody was tracking day to day.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "revenue-mix",
+        "warranty",
+        "service-department"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/customer-pay-warranty-pay-mix-tracker.yaml"
+    },
+    {
       "id": "customs-clearance-check",
       "version": 1,
       "name": "Customs Clearance Check",
@@ -4574,6 +4649,33 @@
         "generic"
       ],
       "path": "jobs/devops/feature-flag-staleness-audit.yaml"
+    },
+    {
+      "id": "fi-product-attachment-rate-tracker",
+      "version": 1,
+      "name": "F&I Product Attachment Rate Tracker",
+      "description": "Reviews the past week's vehicle sales against how many attached an F&I product (extended warranty, gap insurance, service contract) and flags a drop against target, plus which products are underperforming. Use this if F&I income has ever slipped for weeks before anyone noticed the attach rate had quietly drifted down.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "finance-insurance",
+        "fi",
+        "attachment-rate"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/automotive/fi-product-attachment-rate-tracker.yaml"
     },
     {
       "id": "field-soil-test-due-reminder",
@@ -7129,6 +7231,31 @@
       "path": "jobs/finance/loan-covenant-compliance-check.yaml"
     },
     {
+      "id": "loaner-fleet-availability-check",
+      "version": 1,
+      "name": "Loaner Fleet Availability Check",
+      "description": "Checks how many loaner vehicles are currently available against tomorrow's scheduled service appointments that requested one, and flags a shortfall before it becomes a counter argument. Use this if a customer has ever shown up for a scheduled loaner only to be told the fleet was already fully checked out.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "loaner",
+        "fleet",
+        "availability"
+      ],
+      "schedule": "0 16 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/loaner-fleet-availability-check.yaml"
+    },
+    {
       "id": "loaner-vehicle-return-reminder",
       "version": 1,
       "name": "Loaner Vehicle Return Reminder",
@@ -7501,6 +7628,33 @@
         "codex"
       ],
       "path": "jobs/realestate/maintenance-request-sla-check.yaml"
+    },
+    {
+      "id": "manufacturer-recall-notice-check",
+      "version": 1,
+      "name": "Manufacturer Recall Notice Check",
+      "description": "Cross-references newly issued manufacturer recall notices against vehicles in service history and current inventory, flagging any match that hasn't been contacted or scheduled yet. Use this if a customer has ever found out about a safety recall on their own before the shop that services their car did.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "recall",
+        "safety",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/automotive/manufacturer-recall-notice-check.yaml"
     },
     {
       "id": "manuscript-deadline-tracker",
@@ -8766,6 +8920,31 @@
         "codex"
       ],
       "path": "jobs/fieldservice/parts-low-stock-reorder-check.yaml"
+    },
+    {
+      "id": "parts-reorder-point-check",
+      "version": 1,
+      "name": "Parts Department Reorder Point Check",
+      "description": "Checks parts counter stock-on-hand against each SKU's reorder point and flags anything that's dropped below it, so a routine oil filter or brake pad isn't out of stock when a tech needs it mid-repair. Use this if a common part has ever run out because nobody was watching the shelf until it was already empty.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "parts",
+        "inventory",
+        "reorder"
+      ],
+      "schedule": "0 6 * * 1-6",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/parts-reorder-point-check.yaml"
     },
     {
       "id": "passport-expiry-check",
@@ -10766,6 +10945,33 @@
       "path": "jobs/realestate/rental-vacancy-check.yaml"
     },
     {
+      "id": "repair-cycle-time-trend-monitor",
+      "version": 1,
+      "name": "Repair Order Cycle Time Trend Monitor",
+      "description": "Reviews closed repair orders from the past week and compares the average check-in-to-checkout cycle time against your rolling baseline, flagging a trend drift even when no single order looks late. Use this if turnaround has ever quietly crept up week over week without any one repair order tripping an aging alert.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "repair-shop",
+        "cycle-time",
+        "trend"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/automotive/repair-cycle-time-trend-monitor.yaml"
+    },
+    {
       "id": "repair-order-aging-check",
       "version": 1,
       "name": "Repair Order Aging Check",
@@ -11670,6 +11876,56 @@
       "path": "jobs/marketing/seo-rank-drop-watch.yaml"
     },
     {
+      "id": "service-appointment-no-show-tracker",
+      "version": 1,
+      "name": "Service Appointment No-Show Tracker",
+      "description": "Checks today's service appointment schedule partway through the day and flags customers who booked a slot but never checked in, so the bay can be reopened to a walk-in instead of sitting empty. Use this if a bay has ever sat idle all morning because a no-show was never noticed until the tech asked what happened to their 9 o'clock.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "service-bay",
+        "no-show",
+        "scheduling"
+      ],
+      "schedule": "30 9,13 * * 1-6",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/service-appointment-no-show-tracker.yaml"
+    },
+    {
+      "id": "service-bay-utilization-check",
+      "version": 1,
+      "name": "Service Bay Utilization Check",
+      "description": "Checks each service bay's scheduled hours against its available hours for the day and flags bays running well under or over target utilization. Use this if a shop has ever had techs standing around on one side of the floor while the other side is double-booked, and nobody noticed until the day was already gone.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "service-bay",
+        "scheduling",
+        "utilization"
+      ],
+      "schedule": "0 7 * * 1-6",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/service-bay-utilization-check.yaml"
+    },
+    {
       "id": "service-ticket-churn-risk-review",
       "version": 1,
       "name": "Service Ticket Churn Risk Review",
@@ -11796,6 +12052,31 @@
         "codex"
       ],
       "path": "jobs/ecommerce/shipping-delay-check.yaml"
+    },
+    {
+      "id": "shop-supply-reorder-check",
+      "version": 1,
+      "name": "Shop Supply & Consumables Reorder Check",
+      "description": "Checks bulk shop consumables (shop towels, degreaser, disposable gloves, oil dry, bulk fluids) against reorder thresholds and flags anything running low. Use this if a tech has ever had to stop mid-job because the shop ran out of a supply nobody tracks as closely as billable parts.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "shop-supplies",
+        "consumables",
+        "reorder"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/shop-supply-reorder-check.yaml"
     },
     {
       "id": "sitemap-freshness-check",
@@ -13315,6 +13596,33 @@
       "path": "jobs/gaming/tournament-registration-deadline-check.yaml"
     },
     {
+      "id": "trade-in-appraisal-variance-check",
+      "version": 1,
+      "name": "Trade-In Appraisal Variance Check",
+      "description": "Compares trade-in vehicles' initial appraised value against their actual wholesale/auction sale price once sold, and flags appraisers or vehicle categories with a consistent gap. Use this if trade-in appraisals have ever quietly run high (or low) for months before anyone lined them up against what the cars actually brought at auction.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "trade-in",
+        "appraisal",
+        "wholesale"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/automotive/trade-in-appraisal-variance-check.yaml"
+    },
+    {
       "id": "trademark-infringement-watch",
       "version": 1,
       "name": "Trademark Infringement Watch",
@@ -13641,6 +13949,31 @@
         "codex"
       ],
       "path": "jobs/devops/uptime-ping-check.yaml"
+    },
+    {
+      "id": "used-vehicle-inventory-aging-check",
+      "version": 1,
+      "name": "Used Vehicle Inventory Aging Check",
+      "description": "Checks used vehicle inventory against days-on-lot and flags anything past your reconditioning or pricing review threshold. Use this if a used car has ever sat on the lot for two months quietly losing value before anyone noticed it needed a price cut.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "used-vehicle",
+        "inventory",
+        "aging"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/used-vehicle-inventory-aging-check.yaml"
     },
     {
       "id": "utility-bill-anomaly-check",

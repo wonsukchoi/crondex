@@ -1,0 +1,35 @@
+id: used-vehicle-inventory-aging-check
+version: 1
+name: Used Vehicle Inventory Aging Check
+description: >
+  Checks used vehicle inventory against days-on-lot and flags anything
+  past your reconditioning or pricing review threshold. Use this if a
+  used car has ever sat on the lot for two months quietly losing value
+  before anyone noticed it needed a price cut.
+category: automotive
+tags: [automotive, used-vehicle, inventory, aging]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{aging_threshold_days}}" -v today="$today" '
+    NR==1 {next}
+    $4 != "sold" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline acquired_epoch; close(cmd);
+      age_days = (today - acquired_epoch) / 86400;
+      if (age_days >= days) {
+        printf "AGING: %s (%s) — %d days on lot, listed at $%s\n", $1, $3, age_days, $5;
+      }
+    }
+  ' "{{used_inventory_csv_path}}"
+variables:
+  used_inventory_csv_path:
+    default: "./used-vehicle-inventory.csv"
+    description: "Path to a CSV with columns: vin,acquired_date (YYYY-MM-DD),description,status,listed_price."
+  aging_threshold_days:
+    default: 60
+    description: Days on lot before a used vehicle counts as aging and worth a pricing/reconditioning review.
+compatible_agents: [generic, claude, codex]
+notes: Pricing decisions still need a human call — this job only surfaces which units have crossed the aging threshold.

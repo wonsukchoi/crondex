@@ -1,0 +1,38 @@
+id: service-bay-utilization-check
+version: 1
+name: Service Bay Utilization Check
+description: >
+  Checks each service bay's scheduled hours against its available hours
+  for the day and flags bays running well under or over target
+  utilization. Use this if a shop has ever had techs standing around on
+  one side of the floor while the other side is double-booked, and
+  nobody noticed until the day was already gone.
+category: automotive
+tags: [automotive, service-bay, scheduling, utilization]
+schedule: "0 7 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v low="{{low_utilization_pct}}" -v high="{{high_utilization_pct}}" '
+    NR==1 {next}
+    {
+      available = $2 + 0;
+      scheduled = $3 + 0;
+      if (available <= 0) next;
+      pct = (scheduled / available) * 100;
+      if (pct < low) printf "UNDER-BOOKED: bay %s — %.0f%% scheduled (%s of %s hrs)\n", $1, pct, $3, $2;
+      else if (pct > high) printf "OVER-BOOKED: bay %s — %.0f%% scheduled (%s of %s hrs)\n", $1, pct, $3, $2;
+    }
+  ' "{{bay_schedule_csv_path}}"
+variables:
+  bay_schedule_csv_path:
+    default: "./bay-schedule.csv"
+    description: "Path to a CSV with columns: bay_id,available_hours,scheduled_hours (both for today)."
+  low_utilization_pct:
+    default: 50
+    description: Below this percent scheduled, a bay counts as under-booked and available for walk-ins.
+  high_utilization_pct:
+    default: 95
+    description: Above this percent scheduled, a bay counts as over-booked and at risk of running late all day.
+compatible_agents: [generic, claude, codex]
+notes: Rebalance jobs across bays/techs once flagged — this job only surfaces the imbalance, it doesn't move appointments.

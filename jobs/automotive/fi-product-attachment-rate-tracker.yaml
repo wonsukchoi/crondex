@@ -1,0 +1,39 @@
+id: fi-product-attachment-rate-tracker
+version: 1
+name: F&I Product Attachment Rate Tracker
+description: >
+  Reviews the past week's vehicle sales against how many attached an F&I
+  product (extended warranty, gap insurance, service contract) and flags
+  a drop against target, plus which products are underperforming. Use
+  this if F&I income has ever slipped for weeks before anyone noticed the
+  attach rate had quietly drifted down.
+category: automotive
+tags: [automotive, finance-insurance, fi, attachment-rate]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the vehicle sales and F&I product records in {{sales_records_path}}
+  for the last 7 days at {{dealership_name}}.
+  1. Calculate the overall attachment rate: percent of vehicle sales with
+     at least one F&I product attached.
+  2. Break the rate down per product (extended warranty, gap insurance,
+     service contract, etc.) if the data supports it.
+  3. Compare the overall rate to the target of {{target_attachment_rate_pct}}
+     percent and flag if it's below target.
+  4. Call out which individual F&I manager or salesperson, if tracked in
+     the data, has the lowest attach rate this week.
+  5. Summarize as: overall rate vs target, per-product breakdown, and any
+     notable underperformer.
+variables:
+  sales_records_path:
+    default: "./vehicle-sales-fi-records.csv"
+    description: "Path to a CSV of the week's vehicle sales with F&I product flags, e.g. columns like sale_id, fi_manager, extended_warranty, gap_insurance, service_contract."
+  dealership_name:
+    default: "the dealership"
+    description: Name of the dealership, for report context.
+  target_attachment_rate_pct:
+    default: 45
+    description: Target percent of vehicle sales that should carry at least one F&I product.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Coaching or process changes still need a manager's judgment — this job only surfaces where the attach rate is slipping.

@@ -1,0 +1,36 @@
+id: ase-certification-expiry-check
+version: 1
+name: ASE Certification Expiry Check
+description: >
+  Checks technician ASE (or equivalent manufacturer) certifications
+  against their expiration date and flags any expiring soon. Use this if
+  a tech has ever kept working on certified-only repair categories after
+  their certification quietly lapsed, putting warranty reimbursement at
+  risk.
+category: automotive
+tags: [automotive, technician, certification, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "EXPIRING: %s — %s certification expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{tech_certs_csv_path}}"
+variables:
+  tech_certs_csv_path:
+    default: "./technician-certifications.csv"
+    description: "Path to a CSV with columns: technician_name,certification_name,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before expiry to start warning, giving time to schedule recertification testing.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from fieldservice's `tech-license-renewal-check` — same pattern applied to a different credential (ASE/manufacturer certs for auto technicians vs EPA/electrician/plumbing licenses for field trades).

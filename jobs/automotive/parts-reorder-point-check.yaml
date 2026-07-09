@@ -1,0 +1,36 @@
+id: parts-reorder-point-check
+version: 1
+name: Parts Department Reorder Point Check
+description: >
+  Checks parts counter stock-on-hand against each SKU's reorder point and
+  flags anything that's dropped below it, so a routine oil filter or brake
+  pad isn't out of stock when a tech needs it mid-repair. Use this if a
+  common part has ever run out because nobody was watching the shelf until
+  it was already empty.
+category: automotive
+tags: [automotive, parts, inventory, reorder]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      onhand = $2 + 0;
+      reorder_point = $3 + 0;
+      if (onhand <= reorder_point) {
+        printf "REORDER: %s (%s) — %d on hand, reorder point %d\n", $1, $4, onhand, reorder_point;
+      }
+    }
+  ' "{{parts_stock_csv_path}}"
+variables:
+  parts_stock_csv_path:
+    default: "./parts-stock.csv"
+    description: "Path to a CSV with columns: part_number,qty_on_hand,reorder_point,description."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `parts-backorder-check` — that job tracks parts already
+  ordered and now late from the supplier; this one tracks shelf stock
+  levels before an order is even placed. Also distinct from fieldservice's
+  `parts-low-stock-reorder-check`, which watches traveling techs' truck
+  and warehouse stock rather than a dealership parts counter.

@@ -1,0 +1,40 @@
+id: loaner-fleet-availability-check
+version: 1
+name: Loaner Fleet Availability Check
+description: >
+  Checks how many loaner vehicles are currently available against
+  tomorrow's scheduled service appointments that requested one, and flags
+  a shortfall before it becomes a counter argument. Use this if a
+  customer has ever shown up for a scheduled loaner only to be told the
+  fleet was already fully checked out.
+category: automotive
+tags: [automotive, loaner, fleet, availability]
+schedule: "0 16 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2 == "available" {available++}
+    {total++}
+    END {
+      printf "LOANER FLEET: %d of %d loaners available\n", available+0, total+0;
+    }
+  ' "{{loaner_fleet_csv_path}}";
+  requested=$(awk -F',' -v d="{{tomorrow_date}}" 'NR>1 && $1==d && $2=="loaner-requested" {c++} END{print c+0}' "{{appointments_csv_path}}");
+  available=$(awk -F',' 'NR>1 && $2=="available" {c++} END{print c+0}' "{{loaner_fleet_csv_path}}");
+  if [ "$requested" -gt "$available" ]; then
+    echo "SHORTFALL: $requested loaners requested for {{tomorrow_date}}, only $available currently available";
+  fi
+variables:
+  loaner_fleet_csv_path:
+    default: "./loaner-fleet-status.csv"
+    description: "Path to a CSV with columns: loaner_vehicle_id,status (available/checked-out/in-service)."
+  appointments_csv_path:
+    default: "./service-appointments.csv"
+    description: "Path to a CSV with columns: appointment_date (YYYY-MM-DD),status (loaner-requested/no-loaner/...)."
+  tomorrow_date:
+    default: "$(date -v+1d +%Y-%m-%d 2>/dev/null || date -d '+1 day' +%Y-%m-%d)"
+    description: Date to check demand against, defaults to tomorrow.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `loaner-vehicle-return-reminder` — that job chases individual overdue loaners; this one looks at fleet-wide availability against near-term demand.

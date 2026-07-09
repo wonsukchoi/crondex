@@ -1,0 +1,39 @@
+id: trade-in-appraisal-variance-check
+version: 1
+name: Trade-In Appraisal Variance Check
+description: >
+  Compares trade-in vehicles' initial appraised value against their
+  actual wholesale/auction sale price once sold, and flags appraisers or
+  vehicle categories with a consistent gap. Use this if trade-in
+  appraisals have ever quietly run high (or low) for months before
+  anyone lined them up against what the cars actually brought at auction.
+category: automotive
+tags: [automotive, trade-in, appraisal, wholesale]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the trade-in records in {{trade_in_records_path}} for
+  {{dealership_name}} covering vehicles both appraised and subsequently
+  sold wholesale/at auction in the last month.
+  1. For each vehicle, calculate the variance between appraised_value and
+     actual_sale_price as both a dollar amount and a percent.
+  2. Flag any vehicle where the variance exceeds {{variance_threshold_pct}}
+     percent in either direction.
+  3. Aggregate variance by appraiser (if tracked) and by vehicle category
+     to identify whether the gap is a person-specific or category-specific
+     pattern rather than noise.
+  4. Summarize: average variance overall, worst individual outliers, and
+     any appraiser or category trending consistently high or low.
+variables:
+  trade_in_records_path:
+    default: "./trade-in-appraisals.csv"
+    description: "Path to a CSV with columns like vin, appraiser, category, appraised_value, actual_sale_price, sale_date."
+  dealership_name:
+    default: "the dealership"
+    description: Name of the dealership, for report context.
+  variance_threshold_pct:
+    default: 10
+    description: Percent variance between appraised and actual sale price that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A pattern here can mean retraining an appraiser or adjusting a valuation guide — this job only surfaces the gap.

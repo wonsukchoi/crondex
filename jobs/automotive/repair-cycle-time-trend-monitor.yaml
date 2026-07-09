@@ -1,0 +1,42 @@
+id: repair-cycle-time-trend-monitor
+version: 1
+name: Repair Order Cycle Time Trend Monitor
+description: >
+  Reviews closed repair orders from the past week and compares the
+  average check-in-to-checkout cycle time against your rolling baseline,
+  flagging a trend drift even when no single order looks late. Use this
+  if turnaround has ever quietly crept up week over week without any one
+  repair order tripping an aging alert.
+category: automotive
+tags: [automotive, repair-shop, cycle-time, trend]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Using the closed repair orders in {{closed_ros_path}} for the last 7
+  days, for {{shop_name}}:
+  1. Calculate the average cycle time (checkin_date to checkout_date, in
+     hours) across all closed repair orders in the period.
+  2. Compare it to the rolling baseline of {{baseline_cycle_hours}} hours.
+  3. Flag a drift if the weekly average is more than {{drift_threshold_pct}}
+     percent above baseline.
+  4. Break down the average by repair type or department if that data is
+     present, and call out which category is driving the drift.
+  5. Summarize as: this week's average, baseline, percent change, and the
+     likely driver if identifiable (e.g. one tech, one repair type, parts
+     delays).
+variables:
+  closed_ros_path:
+    default: "./closed-repair-orders.csv"
+    description: "Path to a CSV of closed ROs with columns like ro_number, checkin_date, checkout_date, repair_type, technician."
+  shop_name:
+    default: "the shop"
+    description: Name of the dealership or repair shop, for report context.
+  baseline_cycle_hours:
+    default: 48
+    description: The shop's target/rolling-average cycle time in hours to compare against.
+  drift_threshold_pct:
+    default: 15
+    description: Percent above baseline that counts as a meaningful drift worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `repair-order-aging-check` — that job flags individual open ROs sitting past a per-repair target today; this one watches the trend across closed ROs over time to catch slow process drift.

@@ -1,0 +1,39 @@
+id: manufacturer-recall-notice-check
+version: 1
+name: Manufacturer Recall Notice Check
+description: >
+  Cross-references newly issued manufacturer recall notices against
+  vehicles in service history and current inventory, flagging any match
+  that hasn't been contacted or scheduled yet. Use this if a customer has
+  ever found out about a safety recall on their own before the shop that
+  services their car did.
+category: automotive
+tags: [automotive, recall, safety, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare the new recall bulletins in {{recall_bulletins_path}} against
+  the vehicle records in {{vehicle_records_path}} for {{shop_name}}.
+  1. Match recalls by make/model/year range and, where given, VIN range
+     against the vehicle records.
+  2. For each match, check whether the vehicle record already shows a
+     "recall_contacted" or "recall_scheduled" status for that recall
+     campaign number.
+  3. List every matched vehicle without that status: VIN, owner contact
+     info if available, recall campaign number, and a one-line summary of
+     the defect/remedy from the bulletin.
+  4. Flag any recall bulletin that mentions a stop-drive or do-not-drive
+     warning separately at the top, since those need same-day outreach.
+variables:
+  recall_bulletins_path:
+    default: "./recall-bulletins.csv"
+    description: "Path to a CSV/export of open recall bulletins with columns like campaign_number, make, model, year_range, vin_range, defect_summary."
+  vehicle_records_path:
+    default: "./vehicle-service-records.csv"
+    description: "Path to the shop's vehicle records (service history and/or inventory) with VIN, make, model, year, owner_contact, recall_status columns."
+  shop_name:
+    default: "the shop"
+    description: Name of the dealership or repair shop, for report context.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Outreach and scheduling still need a human or a separate workflow — this job only identifies which vehicles are affected and unresolved.

@@ -1,0 +1,33 @@
+id: csi-score-monitor
+version: 1
+name: Customer Satisfaction Index (CSI) Score Monitor
+description: >
+  Checks incoming customer satisfaction (CSI) survey scores from service
+  and sales against a minimum threshold and flags any individual score
+  low enough to put the dealership's manufacturer standing at risk. Use
+  this if a bad CSI score has ever sat unnoticed in a survey inbox until
+  the manufacturer's monthly report flagged it first.
+category: automotive
+tags: [automotive, csi, customer-satisfaction, survey]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min="{{minimum_score}}" '
+    NR==1 {next}
+    {
+      score = $3 + 0;
+      if (score < min) {
+        printf "LOW CSI: %s — score %s for %s (%s)\n", $1, $3, $4, $2;
+      }
+    }
+  ' "{{csi_surveys_csv_path}}"
+variables:
+  csi_surveys_csv_path:
+    default: "./csi-surveys.csv"
+    description: "Path to a CSV with columns: ro_or_sale_id,survey_date (YYYY-MM-DD),score (e.g. 1-10),department (service/sales)."
+  minimum_score:
+    default: 7
+    description: Score below which a survey response counts as low and worth a manager follow-up.
+compatible_agents: [generic, claude, codex]
+notes: A low score is worth a direct callback while the visit is still fresh in the customer's mind — this job only flags it, it doesn't reach out.

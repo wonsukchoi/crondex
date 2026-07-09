@@ -1,0 +1,47 @@
+id: customer-pay-warranty-pay-mix-tracker
+version: 1
+name: Customer-Pay vs Warranty-Pay Mix Tracker
+description: >
+  Checks the weekly split of repair order revenue between customer-pay,
+  warranty-pay, and internal-pay against your target mix and flags a
+  drift. Use this if a service department has ever found out at
+  month-end that warranty work quietly ate into the higher-margin
+  customer-pay volume nobody was tracking day to day.
+category: automotive
+tags: [automotive, revenue-mix, warranty, service-department]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_customer_pay_pct}}" -v tolerance="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      pay_type = $3;
+      amount = $4 + 0;
+      total += amount;
+      sums[pay_type] += amount;
+    }
+    END {
+      if (total <= 0) { print "NO DATA: no repair order revenue found for the period"; exit; }
+      cp_pct = (sums["customer-pay"] / total) * 100;
+      printf "MIX: customer-pay %.1f%%, warranty-pay %.1f%%, internal-pay %.1f%% (total $%.2f)\n", \
+        cp_pct, (sums["warranty-pay"] / total) * 100, (sums["internal-pay"] / total) * 100, total;
+      diff = cp_pct - target;
+      if (diff < 0) diff = -diff;
+      if (diff > tolerance) {
+        printf "DRIFT: customer-pay share %.1f%% is more than %.1f points off target %.1f%%\n", cp_pct, tolerance, target;
+      }
+    }
+  ' "{{repair_order_revenue_csv_path}}"
+variables:
+  repair_order_revenue_csv_path:
+    default: "./repair-order-revenue.csv"
+    description: "Path to a CSV with columns: ro_number,closed_date,pay_type (customer-pay/warranty-pay/internal-pay),amount."
+  target_customer_pay_pct:
+    default: 65
+    description: Target share of revenue that should be customer-pay.
+  tolerance_pct:
+    default: 8
+    description: Percentage points of drift from target allowed before flagging.
+compatible_agents: [generic, claude, codex]
+notes: A drift toward warranty-pay isn't automatically bad — it can mean a recall push — but it's worth knowing before it shows up as a margin surprise.

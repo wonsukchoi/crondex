@@ -1,87 +1,70 @@
 # crondex
 
-A public, growing directory of pre-made cron jobs — built so any AI agent
-(Claude, Codex, Hermes, OpenClaw, or a plain LLM with shell access) can pull
-one, tweak it, and schedule it. Clone it, grab a job, adjust the knobs, run it.
+Pre-made cron jobs any AI agent (Claude, Codex, Hermes, OpenClaw, or a plain
+LLM with shell access) can pull, tweak, and schedule. A directory, not a
+framework.
 
-## Quick start
-
-```bash
-git clone https://github.com/wonsukchoi/crondex.git
-cat crondex/catalog.json          # browse what's available
-cat crondex/jobs/devops/dependency-audit.yaml   # read one job
-```
-
-Give an agent the repo and a goal ("set up something that checks my repo
-health every morning") — it reads `catalog.json`, finds the closest match,
-adjusts `schedule`/`variables`, and wires it into whatever scheduler it has.
-
-## CLI
-
-Published on npm as `@wonsukchoi/crondex` (the plain name `crondex` was
-blocked by npm's anti-typosquat check). The command itself is still
-`crondex` once installed — only the package name is scoped:
+## Get a job
 
 ```bash
-npx @wonsukchoi/crondex list                          # browse everything
-npx @wonsukchoi/crondex list --category devops        # filter by category or --tag
-npx @wonsukchoi/crondex categories                    # list categories with job counts
-npx @wonsukchoi/crondex show backup-reminder          # print one job's YAML
-npx @wonsukchoi/crondex add backup-reminder --dest ./cron/backup-reminder.yaml
 npx @wonsukchoi/crondex recommend "warn me before my SSL cert expires"
-npx @wonsukchoi/crondex init ssl-cert-expiry-check --category security
+npx @wonsukchoi/crondex show ssl-cert-expiry-check
+npx @wonsukchoi/crondex add ssl-cert-expiry-check --dest ./cron/ssl-cert-expiry-check.yaml
 ```
 
-`recommend` takes a free-text description of what you want and ranks the
-catalog against it (weighted keyword match over tags/name/id/category/
-description, zero tokens, no network call) — handy for an agent that just
-got asked "can you set up something for X" and needs to check whether a
-ready-made job already covers it before writing one from scratch. Add
-`--limit <n>` to control how many results come back (default 5).
+- `recommend "<what you want>"` — find the closest matching job (zero
+  tokens, no network call, so an agent can check before writing one from
+  scratch)
+- `list [--category x] [--tag y]` / `categories` — browse everything
+- `show <id>` — print a job's full YAML
+- `add <id> [--dest path]` — copy it into your project to edit
+- `init <id> [--category x]` — scaffold a brand-new job from the template
 
-`init` scaffolds a new job file from `templates/job.template.yaml` into your
-own project (default `./<id>.yaml`) — for writing a job that isn't in the
-catalog yet, whether or not you plan to contribute it back.
+No install needed — `npx` always runs against the latest catalog. Prefer
+installing once? `npm install -g @wonsukchoi/crondex`, then drop the `npx`
+prefix (run `npm update -g` later to pick up new jobs). Prefer no npm at
+all? `git clone` this repo and run `node bin/crondex.js list`.
 
-Or install once and drop the scope prefix on every call:
+## What's in a job
 
-```bash
-npm install -g @wonsukchoi/crondex
-crondex list
+Every job is one YAML file:
+
+```yaml
+id: dependency-audit
+version: 1
+name: Dependency Vulnerability Audit
+category: devops
+schedule: "0 8 * * 1"    # standard 5-field cron
+runner: hybrid            # shell | agent-prompt | hybrid
+command: |                 # for runner: shell/hybrid
+  ...raw shell audit, zero tokens...
+prompt: |                  # for runner: agent-prompt/hybrid
+  ...instructions with {{repo_path}}, LLM synthesizes+prioritizes...
+script_note: what you lose by using `command` instead of `prompt`
+variables:
+  repo_path:
+    default: "."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
 ```
 
-`add` copies the job's YAML as-is into your project — it's yours to edit
-from there. `npx` always pulls the latest published catalog; a global
-install needs `npm update -g @wonsukchoi/crondex` to see new jobs (`crondex
-list` prints a reminder either way).
+- **`shell`** — runs `command` only. Zero LLM tokens, deterministic.
+- **`agent-prompt`** — hands `prompt` to an LLM each run. Costs tokens, but
+  can synthesize, prioritize, and draft prose.
+- **`hybrid`** — ships both, pick per run: script to save tokens, prompt for
+  more judgment. `script_note` explains the tradeoff.
 
-A clone works too, no npm required:
+`{{placeholders}}` resolve from `variables` — override them for your case,
+then hand `command`/`prompt` plus `schedule` to whatever scheduler you have
+(system crontab, a hosted cron, your agent's own scheduling mechanism). This
+repo defines *what* to run and *when*, not the executor. Full field spec:
+[`schema/job.schema.json`](schema/job.schema.json).
 
-```bash
-git clone https://github.com/wonsukchoi/crondex.git && cd crondex
-node bin/crondex.js list
-```
+## Browse the catalog
 
-## Layout
-
-```
-crondex/
-├── bin/crondex.js         CLI: list / categories / show / add / recommend / init
-├── catalog.json           generated index of every job — read this first
-├── schema/job.schema.json spec every job file follows
-├── jobs/                  one YAML per job, grouped by category subdirectory
-└── scripts/
-    ├── build-catalog.js   regenerates catalog.json + the summary below from jobs/**/*.yaml
-    └── validate-jobs.js   validates every job against the schema
-```
-
-## Available jobs
-
-Full details (description, tags, variables) live in `catalog.json` and each
-job's YAML file — run `crondex list`, `crondex recommend "<what you want>"`,
-or browse `jobs/<category>/` for the plain-language rundown of each. The
-counts below are regenerated by `npm run build-catalog`, so they never drift
-from what's actually in `jobs/`.
+The table below is regenerated by `npm run build-catalog`, so it never
+drifts from what's actually in `jobs/`. For full details (description,
+tags, variables) use `crondex list`, `crondex recommend`, or browse
+`jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
 182 jobs across 37 categories:
@@ -127,63 +110,23 @@ from what's actually in `jobs/`.
 | `travel` | 5 |
 <!-- END JOB SUMMARY -->
 
-## How a job works
+## Layout
 
-Every job is one YAML file with a `runner`:
-
-- **`shell`** — run `command` directly. Zero LLM tokens, deterministic, no
-  judgment calls.
-- **`agent-prompt`** — hand the `prompt` field to an LLM agent each run.
-  Costs tokens, but can synthesize, prioritize, and draft prose.
-- **`hybrid`** — ships both. You (or your agent) pick per run: `command` to
-  save tokens and get raw data, or `prompt` when you want the LLM to
-  interpret it. `script_note` on the job explains exactly what you trade
-  away by choosing the script.
-
-`{{placeholders}}` in `command`/`prompt` resolve from `variables`. Each job
-also carries a `version` — bumped whenever `prompt`/`command` behavior
-changes, so if you've already scheduled a job elsewhere you can tell when
-the upstream copy has moved on without you.
-
-```yaml
-id: dependency-audit
-version: 1
-name: Dependency Vulnerability Audit
-description: ...
-category: devops
-tags: [security, dependencies]
-schedule: "0 8 * * 1"        # standard 5-field cron
-timezone: "UTC"
-runner: hybrid
-command: |
-  ...raw shell audit, zero tokens...
-prompt: |
-  ...instructions with {{repo_path}}, LLM synthesizes+prioritizes...
-script_note: what you lose by using `command` instead of `prompt`
-variables:
-  repo_path:
-    default: "."
-    description: ...
-compatible_agents: [claude, codex, hermes, openclaw, generic]
 ```
-
-Full spec: [`schema/job.schema.json`](schema/job.schema.json).
-
-## Using a job
-
-1. Pick a job from `catalog.json` — check `modes` to see if it's script-only,
-   agent-prompt-only, or both.
-2. Decide script vs. agent-prompt if the job is `hybrid`: script saves
-   tokens, agent-prompt gives you more detail/judgment (see `script_note`).
-3. Override any `variables` and `schedule` for your case.
-4. Hand `command` or `prompt` plus `schedule` to your scheduler — system
-   crontab, a hosted cron, or your agent's own scheduling mechanism. This
-   repo defines *what* to run and *when*, not the executor.
+crondex/
+├── bin/crondex.js         CLI: list / categories / show / add / recommend / init
+├── lib/recommend.js       recommend's scoring logic (unit tested in test/)
+├── catalog.json           generated index of every job — read this first
+├── schema/job.schema.json spec every job file follows
+├── jobs/                  one YAML per job, grouped by category subdirectory
+└── scripts/               build-catalog.js, validate-jobs.js, lint-shell.js
+```
 
 ## Contributing a job
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`,
-fill it in, `npm run validate && npm run build-catalog`, open a PR.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`
+(or run `crondex init`), fill it in, `npm run validate && npm run
+build-catalog`, open a PR.
 
 ## License
 

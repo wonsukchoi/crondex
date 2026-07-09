@@ -19,7 +19,11 @@ well-formed YAML file plus a regenerated catalog. That's it.
    ```
    Use an existing category folder (`devops`, `productivity`) if your job
    fits, or create a new one — don't pre-plan the taxonomy, just add a
-   folder when nothing existing fits.
+   folder when nothing existing fits. If you do create a new category, add
+   a one-line entry for it in
+   [`lib/category-descriptions.js`](lib/category-descriptions.js) — `npm
+   run build-catalog` warns (and `npm test` fails) if a category has no
+   description.
 
 2. Fill in the fields. Read the comments in the template, or the full spec
    at [`schema/job.schema.json`](schema/job.schema.json). Delete the

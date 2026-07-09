@@ -1,0 +1,42 @@
+id: leave-of-absence-return-tracker
+version: 1
+name: Leave of Absence Return Tracker
+description: >
+  Tracks employees on FMLA, parental, medical, or other formal leave and
+  flags upcoming or overdue return dates. Use this if a return-to-work
+  date has ever been missed — either the team wasn't ready for someone
+  coming back, or nobody noticed an expected return date came and went
+  with no check-in.
+category: hr
+tags: [hr, leave-of-absence, fmla, parental-leave, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 != "active" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline return_epoch; close(cmd);
+      diff_days = (return_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "OVERDUE RETURN: %s — %s leave, expected back %s (%d day(s) past, still marked active)\n", $1, $2, $3, -diff_days;
+      } else if (diff_days <= warn) {
+        printf "RETURN UPCOMING: %s — %s leave, expected back %s (%d day(s))\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{leave_tracking_csv_path}}"
+variables:
+  leave_tracking_csv_path:
+    default: "./leave-of-absence-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,leave_type,expected_return_date (YYYY-MM-DD),status (active/returned)."
+  warn_days_before:
+    default: 10
+    description: How many days before the expected return date to start flagging as upcoming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained export from HR/leave-administration tracking active
+  leaves; this is the backstop that flags dates, not a substitute for
+  legally required FMLA/state-leave notices or interactive-process steps.

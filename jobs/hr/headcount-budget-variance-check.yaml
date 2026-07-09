@@ -1,0 +1,37 @@
+id: headcount-budget-variance-check
+version: 1
+name: Headcount vs. Budget Variance Check
+description: >
+  Compares actual headcount per department against the planned/budgeted
+  headcount and flags departments that are over or under plan. Use this
+  if a department has ever quietly overhired (or sat understaffed) for a
+  quarter before finance and HR compared notes and noticed.
+category: hr
+tags: [hr, headcount, budget, finance, planning]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{variance_threshold}}" '
+    NR==1 {next}
+    {
+      variance = $3 - $2;
+      abs_variance = (variance < 0 ? -variance : variance);
+      if (abs_variance >= threshold) {
+        direction = (variance > 0 ? "OVER PLAN" : "UNDER PLAN");
+        printf "%s: %s — budgeted %d, actual %d (variance %+d)\n", direction, $1, $2, $3, variance;
+      }
+    }
+  ' "{{headcount_budget_csv_path}}"
+variables:
+  headcount_budget_csv_path:
+    default: "./headcount-budget.csv"
+    description: "Path to a CSV with columns: department,budgeted_headcount,actual_headcount."
+  variance_threshold:
+    default: 2
+    description: Minimum absolute headcount variance (in people) before a department is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained monthly export reconciling the HRIS actual
+  headcount against finance's approved plan by department. Zero-token —
+  no synthesis or interpretation beyond the raw variance.

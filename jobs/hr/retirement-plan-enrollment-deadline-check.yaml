@@ -1,0 +1,40 @@
+id: retirement-plan-enrollment-deadline-check
+version: 1
+name: Retirement Plan Enrollment Deadline Check
+description: >
+  Flags employees who are eligible for the 401(k)/retirement plan but
+  haven't enrolled or waived as their enrollment deadline approaches. Use
+  this if someone has ever missed the window to make an active election
+  and got dropped into a default auto-enrollment deferral rate they didn't
+  actually want.
+category: hr
+tags: [hr, retirement, 401k, benefits, deadline]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "ENROLLMENT DEADLINE: %s — eligible since %s, deadline %s (%d days), no election on file\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{retirement_tracking_csv_path}}"
+variables:
+  retirement_tracking_csv_path:
+    default: "./retirement-plan-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,eligibility_date (YYYY-MM-DD),enrollment_deadline (YYYY-MM-DD),election_status (enrolled/waived, blank if no election yet)."
+  warn_days_before:
+    default: 14
+    description: How many days before the enrollment deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Many plans auto-enroll non-responders at a default deferral rate after
+  the deadline rather than defaulting to no contribution — confirm your
+  plan document's actual default behavior rather than assuming.

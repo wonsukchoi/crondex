@@ -1,0 +1,58 @@
+id: pay-equity-band-outlier-check
+version: 1
+name: Pay Equity Band Outlier Check
+description: >
+  Scans a salary-band export for employees paid outside their role's band
+  or unusually far from the band midpoint, and summarizes any patterns
+  worth a closer look. Use this if pay outliers have ever gone unnoticed
+  for a review cycle simply because nobody cross-checked salaries against
+  bands until an audit or a pay-equity complaint forced the issue.
+category: hr
+tags: [hr, pay-equity, compensation, compliance]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      band_min=$3; band_max=$4; salary=$5;
+      low_bound = band_min * (1 - tol/100);
+      high_bound = band_max * (1 + tol/100);
+      if (salary < low_bound) {
+        printf "BELOW BAND: %s (%s) — $%d vs band $%d-$%d\n", $1, $2, salary, band_min, band_max;
+      } else if (salary > high_bound) {
+        printf "ABOVE BAND: %s (%s) — $%d vs band $%d-$%d\n", $1, $2, salary, band_min, band_max;
+      }
+    }
+  ' "{{salary_band_csv_path}}"
+prompt: |
+  Run the outlier check above against {{salary_band_csv_path}} (columns:
+  employee_name, role, band_min, band_max, current_salary). Using the
+  BELOW BAND / ABOVE BAND lines it produces:
+  1. Group outliers by role/level and note any pattern (e.g. one role
+     consistently under band, one department skewing above).
+  2. Do not draw conclusions about protected-class pay gaps — this export
+     has no demographic data. Just flag the raw outliers and patterns for
+     HR/legal to review with proper pay-equity analysis tooling.
+  3. Summarize as a short list HR can triage, ranked by how far outside
+     the band each person is.
+script_note: >
+  The command gives you the raw list of employees outside their band for
+  free. The prompt adds pattern-level grouping (by role/department) to
+  help HR prioritize triage — it does not perform statistical pay-equity
+  analysis or draw demographic conclusions.
+variables:
+  salary_band_csv_path:
+    default: "./salary-bands.csv"
+    description: "Path to an anonymized/exported CSV with columns: employee_name,role,band_min,band_max,current_salary. No demographic fields."
+  tolerance_pct:
+    default: 0
+    description: Percent tolerance outside the band before flagging (0 = flag anything strictly outside min/max).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This is a band-boundary check, not a statistical pay-equity or
+  disparate-impact analysis — it deliberately excludes demographic data.
+  Route real pay-equity audits through legal counsel and proper
+  statistical tooling. Assumes an already-exported salary-band CSV rather
+  than live comp-system access.

@@ -1,0 +1,42 @@
+id: workers-comp-claim-status-check
+version: 1
+name: Workers' Comp Claim Status Check
+description: >
+  Checks open workers' compensation claims with the carrier and flags ones
+  that have gone quiet or are approaching an expected return-to-work date
+  with no update. Use this if an injured employee's claim has ever
+  stalled with the carrier for weeks with nobody at the company noticing
+  or following up.
+category: hr
+tags: [hr, workers-comp, compliance, safety]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{wc_carrier}} for open workers' compensation claims and
+  cross-reference against {{hris_system}} for each claimant's expected
+  return-to-work date, if any.
+  1. List each open claim: employee name, date of injury, days since last
+     status update, and expected return date (if set).
+  2. Flag any claim with no status update in the last {{stale_days}} days,
+     or with a return date within {{escalate_within_days}} days and no
+     recent update, as needing a follow-up call with the carrier.
+  3. If everything is progressing normally, say so in one line.
+variables:
+  wc_carrier:
+    default: "your workers' compensation carrier/TPA"
+    description: Where claim status is tracked (the insurance carrier or third-party administrator portal).
+  hris_system:
+    default: "your HRIS"
+    description: Where employee return-to-work dates and leave status are recorded.
+  stale_days:
+    default: 14
+    description: Days with no status update before a claim is flagged as stalled.
+  escalate_within_days:
+    default: 7
+    description: Days before an expected return date at which a claim with no recent update becomes urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only status check — actually contacting the carrier, adjusting
+  duties, or making return-to-work decisions is for HR/legal/safety to
+  handle. No generic script mode since carrier portals vary widely.

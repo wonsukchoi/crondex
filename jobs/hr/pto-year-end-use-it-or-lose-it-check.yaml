@@ -1,0 +1,49 @@
+id: pto-year-end-use-it-or-lose-it-check
+version: 1
+name: Company-Wide PTO Use-It-or-Lose-It Check
+description: >
+  Scans the full employee roster for anyone whose unused PTO balance is
+  above the policy cap or won't be usable before the year-end reset, so
+  HR/payroll can send a bulk nudge. Use this if payout or forfeiture
+  disputes have ever come up in December because nobody flagged high
+  balances company-wide until it was too late to schedule time off. This
+  is the HR-wide roster check — for tracking just your own balance, use
+  team/pto-balance-check instead.
+category: hr
+tags: [hr, pto, vacation, compliance, payroll]
+schedule: "0 9 1 10,11,12 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  cutoff_epoch=$(date -d "{{year_end_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{year_end_date}}" +%s);
+  days_left=$(( (cutoff_epoch - today_epoch) / 86400 ));
+  awk -F',' -v cap="{{cap_hours}}" -v days_left="$days_left" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      if ($2 > cap) {
+        printf "OVER CAP: %s — %s hours unused (cap %s)\n", $1, $2, cap;
+      } else if (days_left <= warn && $2 > 0) {
+        printf "USE-IT-OR-LOSE-IT: %s — %s hours unused, %d day(s) until year-end reset (%s)\n", $1, $2, days_left, "{{year_end_date}}";
+      }
+    }
+  ' "{{pto_roster_csv_path}}"
+variables:
+  pto_roster_csv_path:
+    default: "./pto-balances.csv"
+    description: "Path to a CSV export with columns: employee_name,pto_balance_hours."
+  cap_hours:
+    default: 80
+    description: Company policy cap on unused PTO hours, above which balances are flagged regardless of date.
+  year_end_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) unused PTO resets or is forfeited under company policy.
+  warn_days_before:
+    default: 45
+    description: How many days before year_end_date to start flagging nonzero balances.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained roster export from payroll/HRIS with current PTO
+  balances for every employee. Distinct from team/pto-balance-check,
+  which is a single self-maintained personal reminder, not a company-wide
+  audit.

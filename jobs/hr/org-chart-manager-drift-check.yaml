@@ -1,0 +1,40 @@
+id: org-chart-manager-drift-check
+version: 1
+name: Org Chart Manager Drift Check
+description: >
+  Compares the manager field in the HRIS against a separately maintained
+  org-chart source of truth and flags mismatches. Use this if the
+  "reports to" field has ever gone stale after a reorg, leaving reviews,
+  approvals, or reminders routed to someone's old manager for months.
+category: hr
+tags: [hr, org-chart, data-quality, hris]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR>1) hris_mgr[$1]=$2;
+      next;
+    }
+    FNR==1 {next}
+    {
+      if (($1 in hris_mgr) && hris_mgr[$1] != $2) {
+        printf "MANAGER DRIFT: %s — HRIS says \"%s\", org chart says \"%s\"\n", $1, hris_mgr[$1], $2;
+      } else if (!($1 in hris_mgr)) {
+        printf "MISSING FROM HRIS: %s — in org chart reporting to \"%s\" but not found in HRIS export\n", $1, $2;
+      }
+    }
+  ' "{{hris_manager_csv_path}}" "{{org_chart_csv_path}}"
+variables:
+  hris_manager_csv_path:
+    default: "./hris-manager-export.csv"
+    description: "Path to a CSV export from the HRIS with columns: employee_name,manager_name."
+  org_chart_csv_path:
+    default: "./org-chart-source.csv"
+    description: "Path to a CSV from your org-chart source of truth (e.g. an org-design tool or a maintained spreadsheet) with columns: employee_name,manager_name."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matches purely on employee_name strings — dedupe/normalize names (or
+  swap in employee IDs) before relying on this for a large or
+  name-collision-prone roster.

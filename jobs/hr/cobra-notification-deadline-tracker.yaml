@@ -1,0 +1,47 @@
+id: cobra-notification-deadline-tracker
+version: 1
+name: COBRA Notification Deadline Tracker
+description: >
+  Flags terminated employees who are approaching or past the deadline for
+  their COBRA election notice with no notice sent on record. Use this if
+  a COBRA notice has ever gone out late — or not at all — because
+  offboarding paperwork got deprioritized once the employee's last day
+  had already passed.
+category: hr
+tags: [hr, cobra, offboarding, compliance, benefits]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v deadline_days="{{notice_deadline_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline term_epoch; close(cmd);
+      days_since_term = (today - term_epoch) / 86400;
+      days_left = deadline_days - days_since_term;
+      if (days_left < 0) {
+        printf "COBRA NOTICE OVERDUE: %s — terminated %s, %d day(s) past the %d-day notice deadline, no notice sent\n", $1, $2, -days_left, deadline_days;
+      } else if (days_left <= warn) {
+        printf "COBRA NOTICE DUE: %s — terminated %s, %d day(s) left of the %d-day notice deadline, no notice sent\n", $1, $2, days_left, deadline_days;
+      }
+    }
+  ' "{{cobra_tracking_csv_path}}"
+variables:
+  cobra_tracking_csv_path:
+    default: "./cobra-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,termination_date (YYYY-MM-DD),notice_sent_date (blank if not yet sent)."
+  notice_deadline_days:
+    default: 44
+    description: Days from the qualifying event (termination) to get the COBRA election notice out, per your plan's timeline (federal rules generally allow up to 44 days combined; confirm against your plan administrator's actual deadline).
+  warn_days_before:
+    default: 10
+    description: How many days before the deadline to start flagging as due.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Federal COBRA timelines and state mini-COBRA rules vary — confirm the
+  actual notice_deadline_days with your plan administrator or counsel
+  rather than relying on the default. Assumes an already-exported
+  termination/notice CSV rather than live benefits-system access.

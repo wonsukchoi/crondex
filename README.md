@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-388 jobs across 48 categories:
+400 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -129,7 +129,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 7 | Hotel ops — guest reviews, inspections, maintenance requests. |
-| `hr` | 7 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `hr` | 19 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 7 | Policy tracking — renewals, claims, coverage, certificates. |
 | `inventory` | 7 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 7 | Portfolio tracking — prices, dividends, rebalancing, taxes. |

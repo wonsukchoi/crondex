@@ -1,0 +1,41 @@
+id: compliance-training-completion-check
+version: 1
+name: Compliance Training Completion Check
+description: >
+  Flags employees with a required compliance training (harassment
+  prevention, safety cert, data-privacy, etc.) approaching or past its due
+  date with no completion on record. Use this if a training deadline has
+  ever been missed and only surfaced when a regulator or auditor asked for
+  proof of completion.
+category: hr
+tags: [hr, compliance, training, deadline]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "TRAINING DUE: %s — \"%s\" due %s (%d days), not completed\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{training_tracking_csv_path}}"
+variables:
+  training_tracking_csv_path:
+    default: "./compliance-training-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,training_name,due_date (YYYY-MM-DD),completed_date (blank if not yet done). One row per required training per employee."
+  warn_days_before:
+    default: 14
+    description: How many days before a training's due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained export from your LMS/HRIS listing one row per
+  employee per required training. Distinct from new-hire-paperwork-check,
+  which covers one-time onboarding documents rather than recurring/annual
+  compliance training.

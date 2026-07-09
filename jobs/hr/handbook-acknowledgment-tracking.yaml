@@ -1,0 +1,34 @@
+id: handbook-acknowledgment-tracking
+version: 1
+name: Employee Handbook Acknowledgment Tracking
+description: >
+  Checks the full roster against the current handbook version and flags
+  anyone who hasn't signed off on it yet — including existing employees
+  after a handbook update, not just new hires. Use this if a handbook
+  revision has ever gone out and only a fraction of the company actually
+  acknowledged it, which nobody discovered until it mattered in a dispute.
+category: hr
+tags: [hr, handbook, compliance, policy]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v current="{{current_handbook_version}}" '
+    NR==1 {next}
+    $2 != current {
+      printf "NOT ACKNOWLEDGED: %s — on file for v%s, current is v%s\n", $1, ($2 == "" ? "none" : $2), current;
+    }
+  ' "{{handbook_ack_csv_path}}"
+variables:
+  handbook_ack_csv_path:
+    default: "./handbook-acknowledgments.csv"
+    description: "Path to a CSV with columns: employee_name,acknowledged_version (blank if never acknowledged any version)."
+  current_handbook_version:
+    default: "2026.1"
+    description: Version label of the currently effective handbook, updated whenever a new revision goes out.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained acknowledgment export covering the whole roster.
+  Distinct from new-hire-paperwork-check, which bundles the initial
+  handbook sign-off into a new hire's first-30-days checklist rather than
+  tracking re-acknowledgment across the whole company after updates.

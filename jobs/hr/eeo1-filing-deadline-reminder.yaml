@@ -1,0 +1,37 @@
+id: eeo1-filing-deadline-reminder
+version: 1
+name: EEO-1 Filing Deadline Reminder
+description: >
+  Counts down to the annual EEO-1 component filing deadline so data
+  collection and submission don't get rushed at the last minute. Use this
+  if the EEO-1 window has ever snuck up because it only comes around once
+  a year and nobody put it on a recurring calendar.
+category: hr
+tags: [hr, eeo1, compliance, filing, deadline]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  deadline_epoch=$(date -d "{{filing_deadline}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{filing_deadline}}" +%s);
+  days_left=$(( (deadline_epoch - today_epoch) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "note: this cycle's EEO-1 deadline ({{filing_deadline}}) has passed — update filing_deadline for next year's cycle.";
+  elif [ "$days_left" -le {{warn_days_before}} ]; then
+    echo "EEO-1 FILING DUE: $days_left day(s) until deadline ({{filing_deadline}}). Confirm workforce snapshot data and file via the EEOC portal.";
+  else
+    echo "OK: $days_left day(s) until EEO-1 filing deadline ({{filing_deadline}}).";
+  fi
+variables:
+  filing_deadline:
+    default: "YYYY-MM-DD"
+    description: This cycle's EEO-1 Component 1 filing deadline, published annually by the EEOC — update each cycle.
+  warn_days_before:
+    default: 30
+    description: How many days before the deadline to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only applies to employers required to file (generally 100+ employees, or
+  federal contractors meeting lower thresholds) — confirm your filing
+  obligation and the current cycle's exact deadline on the EEOC's site
+  rather than assuming last year's date still applies.

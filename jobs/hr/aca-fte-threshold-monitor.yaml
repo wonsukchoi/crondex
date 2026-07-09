@@ -1,0 +1,44 @@
+id: aca-fte-threshold-monitor
+version: 1
+name: ACA Full-Time-Equivalent Threshold Monitor
+description: >
+  Estimates the company's total ACA full-time-equivalent count from a
+  headcount/hours export and warns when it's approaching the Applicable
+  Large Employer threshold. Use this if the company has ever crossed 50
+  FTEs without anyone noticing until a compliance filing requirement
+  suddenly applied.
+category: hr
+tags: [hr, aca, compliance, headcount]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{fte_threshold}}" -v buffer="{{warn_buffer}}" '
+    NR==1 {next}
+    $2 == "full-time" {ft_count++; next}
+    {pt_hours += $3}
+    END {
+      pt_fte = pt_hours / 120;
+      total_fte = ft_count + pt_fte;
+      printf "Full-time headcount: %d, part-time/variable FTE-equivalent: %.1f, total ACA FTE estimate: %.1f\n", ft_count, pt_fte, total_fte;
+      if (total_fte >= (threshold - buffer)) {
+        printf "WARNING: total FTE estimate %.1f is within %d of the ALE threshold of %d — review ACA Applicable Large Employer status.\n", total_fte, buffer, threshold;
+      }
+    }
+  ' "{{aca_headcount_csv_path}}"
+variables:
+  aca_headcount_csv_path:
+    default: "./aca-headcount-hours.csv"
+    description: "Path to a CSV with columns: employee_name,employment_type (full-time/part-time/variable),monthly_hours (only used for non-full-time rows)."
+  fte_threshold:
+    default: 50
+    description: The ACA Applicable Large Employer FTE threshold to watch for (50 under current federal rules; confirm against current law).
+  warn_buffer:
+    default: 5
+    description: How close to the threshold (in FTE count) triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a rough monthly estimate using the standard 120-hours-per-month
+  divisor for part-time/variable-hour employees, not a substitute for the
+  IRS's official monthly measurement method — consult counsel/a benefits
+  advisor before relying on it for actual ALE determination.

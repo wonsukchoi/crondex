@@ -1,0 +1,35 @@
+id: lease-renewal-offer-window-check
+version: 1
+name: Lease Renewal Offer Window Check
+description: >
+  Flags leases approaching expiry where no renewal offer has been sent
+  yet, so tenants get a decision window before they start apartment
+  hunting elsewhere. Use this if a good tenant has ever given notice to
+  leave simply because nobody proactively offered them a renewal in time.
+category: realestate
+tags: [realestate, lease-renewal, retention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{offer_lead_days}}" '
+    NR==1 {next}
+    $3 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline end_ts; close(cmd);
+      days_left = int((end_ts - today) / 86400);
+      if (days_left <= lead && days_left >= 0) {
+        printf "SEND RENEWAL OFFER: %s (unit %s) lease ends in %d day(s), no offer sent yet\n", $1, $4, days_left;
+      }
+    }
+  ' "{{leases_csv}}"
+variables:
+  leases_csv:
+    default: "./lease-renewal-status.csv"
+    description: "CSV with header row, columns: tenant_name,lease_end_date(YYYY-MM-DD),renewal_offer_sent(yes/no),unit."
+  offer_lead_days:
+    default: 90
+    description: Days before lease end by which a renewal offer should have been sent.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from lease-expiry-reminder, which just warns that an end date is approaching — this tracks whether the renewal-offer action itself has been taken, flip renewal_offer_sent to "yes" once the offer goes out.

@@ -1,0 +1,32 @@
+id: capital-reserve-fund-threshold-check
+version: 1
+name: Capital Reserve Fund Threshold Check
+description: >
+  Compares each property's or HOA's capital reserve fund balance against
+  its target minimum and flags any that have dropped below threshold.
+  Use this if a roof or elevator replacement has ever turned into a
+  surprise special assessment because nobody was watching the reserve
+  balance drift down over time.
+category: realestate
+tags: [realestate, reserve-fund, capex, budgeting]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      pct_of_target = ($3 > 0) ? ($2 / $3 * 100) : 0;
+      if ($2 < $3) {
+        printf "BELOW TARGET: %s reserve fund $%.2f is %.1f%% of target $%.2f (short $%.2f)\n", $1, $2, pct_of_target, $3, $3 - $2;
+      } else {
+        printf "OK: %s reserve fund $%.2f meets target $%.2f\n", $1, $2, $3;
+      }
+    }
+  ' "{{reserve_fund_csv}}"
+variables:
+  reserve_fund_csv:
+    default: "./capital-reserve-fund.csv"
+    description: "CSV with header row, columns: property_name,current_balance,target_balance."
+compatible_agents: [generic, claude, codex]
+notes: Target balance should come from a reserve study or capital plan, not a guess — update target_balance when major capital items age closer to replacement.

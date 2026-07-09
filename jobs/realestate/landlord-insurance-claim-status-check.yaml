@@ -1,0 +1,35 @@
+id: landlord-insurance-claim-status-check
+version: 1
+name: Landlord Insurance Claim Status Check
+description: >
+  Tracks open property insurance claims and flags any that haven't had a
+  status update within a set number of days. Use this if a claim has ever
+  gone quiet for weeks with the adjuster because nobody was following up
+  on where it stood.
+category: realestate
+tags: [realestate, insurance, claims, follow-up]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_days}}" '
+    NR==1 {next}
+    $5 == "open" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline update_ts; close(cmd);
+      days_stale = int((today - update_ts) / 86400);
+      if (days_stale >= stale) {
+        printf "CLAIM NEEDS FOLLOW-UP: %s — claim #%s (%s), last update %d day(s) ago\n", $1, $2, $3, days_stale;
+      }
+    }
+  ' "{{insurance_claims_csv}}"
+variables:
+  insurance_claims_csv:
+    default: "./insurance-claims-tracker.csv"
+    description: "CSV with header row, columns: property_name,claim_number,claim_type,last_update_date(YYYY-MM-DD),status(open/closed)."
+  stale_days:
+    default: 14
+    description: Days without a status update before an open claim is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from insurance-policy-renewal-reminder, which only watches policy renewal dates — this tracks the lifecycle of active claims after a loss, from filing to settlement.

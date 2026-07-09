@@ -1,0 +1,37 @@
+id: eviction-notice-deadline-tracker
+version: 1
+name: Eviction / Notice-to-Quit Deadline Tracker
+description: >
+  Tracks active notice-to-quit and eviction filings against their next
+  legal deadline (cure period expiry, court date, response window) and
+  flags anything coming up. Use this if a case has ever stalled or been
+  dismissed on a technicality because a filing or hearing deadline was
+  missed.
+category: realestate
+tags: [realestate, eviction, legal, deadline, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline deadline_ts; close(cmd);
+      days_left = int((deadline_ts - today) / 86400);
+      if (days_left <= warn) {
+        status = (days_left < 0) ? "PAST DEADLINE" : "DEADLINE APPROACHING";
+        printf "%s: unit %s — %s deadline %s (%d day(s))\n", status, $1, $2, $3, days_left;
+      }
+    }
+  ' "{{eviction_cases_csv}}"
+variables:
+  eviction_cases_csv:
+    default: "./eviction-case-tracker.csv"
+    description: "CSV with header row, columns: unit,next_deadline_type(cure_period/response_window/court_date),next_deadline_date(YYYY-MM-DD),case_status(open/closed)."
+  warn_days:
+    default: 5
+    description: Days before an upcoming legal deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Eviction procedure and timelines are highly jurisdiction-specific and often require an attorney — this only tracks dates you've already entered, it does not calculate legal deadlines for you.

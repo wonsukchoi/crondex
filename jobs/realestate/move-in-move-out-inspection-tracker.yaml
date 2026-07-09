@@ -1,0 +1,35 @@
+id: move-in-move-out-inspection-tracker
+version: 1
+name: Move-In/Move-Out Inspection Checklist Tracker
+description: >
+  Flags move-ins and move-outs where the condition inspection checklist
+  hasn't been completed within a set number of days of the move date. Use
+  this if a deposit dispute has ever fallen apart because there was no
+  signed move-in or move-out condition report to point to.
+category: realestate
+tags: [realestate, inspection, move-in, move-out, documentation]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_days}}" '
+    NR==1 {next}
+    $4 == "incomplete" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline move_ts; close(cmd);
+      days_since = int((today - move_ts) / 86400);
+      if (days_since >= grace) {
+        printf "MISSING CHECKLIST: %s unit %s — %s inspection incomplete, %d day(s) since move date %s\n", $1, $2, $5, days_since, $3;
+      }
+    }
+  ' "{{inspections_csv}}"
+variables:
+  inspections_csv:
+    default: "./move-inspection-tracker.csv"
+    description: "CSV with header row, columns: tenant_name,unit,move_date(YYYY-MM-DD),checklist_status(complete/incomplete),move_type(move_in/move_out)."
+  grace_days:
+    default: 3
+    description: Days after the move date before an incomplete checklist gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: A completed, signed checklist with photos is usually the single biggest factor in winning a security deposit dispute — mark checklist_status complete only once it's actually signed and filed.

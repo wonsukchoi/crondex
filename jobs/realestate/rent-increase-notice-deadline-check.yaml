@@ -1,0 +1,54 @@
+id: rent-increase-notice-deadline-check
+version: 1
+name: Rent Increase Notice Deadline Check
+description: >
+  Checks upcoming lease anniversaries against the legally required notice
+  period for a rent increase, and drafts the increase notice once one is
+  due. Use this if you've ever missed the window to raise rent at renewal
+  because the required notice lead time (30/60/90 days, depending on
+  jurisdiction) quietly passed.
+category: realestate
+tags: [realestate, rent, rent-increase, notice, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{notice_lead_days}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline anniv_ts; close(cmd);
+      days_out = int((anniv_ts - today) / 86400);
+      notice_deadline_days = days_out - lead;
+      if (days_out >= 0 && notice_deadline_days <= 7) {
+        printf "NOTICE DUE SOON: %s renews %s — send rent increase notice within %d day(s) to meet the %d-day requirement\n", $1, $2, lead, notice_deadline_days;
+      }
+    }
+  ' "{{leases_csv}}"
+prompt: >
+  A property manager needs rent increase notices drafted for leases flagged
+  by the attached check as needing notice within the next 7 days. For each
+  flagged tenant/unit, draft a short, compliant rent increase notice letter
+  stating the current rent, new rent (using {{increase_pct}}% as the default
+  increase unless a specific figure is provided), effective date, and the
+  jurisdiction's required minimum notice period ({{notice_lead_days}} days).
+  Keep tone professional and neutral, and flag if the requested effective
+  date does not leave the full required notice period.
+script_note: >
+  The shell command flags which leases need a notice sent this week using
+  static date math; it does not draft the actual notice letter or account
+  for jurisdiction-specific required legal language, both of which the
+  prompt pass adds.
+variables:
+  leases_csv:
+    default: "./lease-anniversaries.csv"
+    description: "CSV with header row, columns: tenant_name,anniversary_date(YYYY-MM-DD)."
+  notice_lead_days:
+    default: 60
+    description: Minimum days of advance notice required before a rent increase takes effect (check local law).
+  increase_pct:
+    default: 3
+    description: Default percentage rent increase to propose when drafting a notice.
+compatible_agents: [claude, codex, generic]
+notes: Required notice periods vary widely by state/city and by increase size — verify local rules before sending; this job does not know your jurisdiction's specific statute.

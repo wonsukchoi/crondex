@@ -1,0 +1,35 @@
+id: tenant-application-review-backlog-check
+version: 1
+name: Tenant Application Review Backlog Check
+description: >
+  Flags rental applications that have been sitting in review too long
+  without a decision. Use this if a good applicant has ever gone with a
+  different landlord because your screening process sat on their
+  application for a week before anyone looked at it.
+category: realestate
+tags: [realestate, tenant-screening, applications, backlog]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_review_days}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline sub_ts; close(cmd);
+      days_pending = int((today - sub_ts) / 86400);
+      if (days_pending >= max_days) {
+        printf "STALE APPLICATION: %s applied for unit %s %d day(s) ago, still pending review\n", $1, $4, days_pending;
+      }
+    }
+  ' "{{applications_csv}}"
+variables:
+  applications_csv:
+    default: "./tenant-applications.csv"
+    description: "CSV with header row, columns: applicant_name,submitted_date(YYYY-MM-DD),status(pending/approved/denied),unit."
+  max_review_days:
+    default: 3
+    description: Days an application can sit pending before it's flagged as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: Keep status updated to approved/denied as decisions are made so this only ever flags genuinely stalled applications, not ones already actioned.

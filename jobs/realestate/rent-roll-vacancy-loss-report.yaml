@@ -1,0 +1,32 @@
+id: rent-roll-vacancy-loss-report
+version: 1
+name: Rent Roll Vacancy Loss Report
+description: >
+  Rolls up the whole portfolio's rent ledger to calculate total dollar
+  vacancy loss (market rent for every vacant unit, summed) for the
+  period. Use this if you've ever known "a few units are empty" without
+  knowing what that's actually costing you in dollars this month.
+category: realestate
+tags: [realestate, vacancy, rent-roll, reporting]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      total_units++;
+      total_market_rent += $3;
+      if ($4 == "vacant") { vacant_units++; vacancy_loss += $3; }
+    }
+    END {
+      vacancy_rate = (total_units > 0) ? (vacant_units / total_units * 100) : 0;
+      printf "VACANCY LOSS REPORT: %d of %d unit(s) vacant (%.1f%%), lost market rent = $%.2f of $%.2f total portfolio potential\n", vacant_units, total_units, vacancy_rate, vacancy_loss, total_market_rent;
+    }
+  ' "{{rent_roll_csv}}"
+variables:
+  rent_roll_csv:
+    default: "./rent-roll.csv"
+    description: "CSV with header row, columns: unit,tenant_name,market_rent,occupancy_status(occupied/vacant)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from rental-vacancy-check, which watches a single listing's days-vacant clock — this rolls up the whole rent roll into a dollar vacancy-loss figure for the period, useful for owner reporting.

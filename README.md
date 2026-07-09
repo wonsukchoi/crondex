@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-439 jobs across 48 categories:
+452 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -143,7 +143,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `podcast` | 7 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 7 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
-| `realestate` | 7 | Property management — leases, rent, vacancy, inspections, tax. |
+| `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 7 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
 | `retail` | 7 | Store ops — till reconciliation, opening checklist, scheduling. |
 | `sales` | 7 | Pipeline ops — leads, deals, quota, CRM sync. |

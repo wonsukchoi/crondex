@@ -1,0 +1,35 @@
+id: rental-license-renewal-check
+version: 1
+name: Rental License / Registration Renewal Check
+description: >
+  Warns before a municipal rental license, landlord registration, or
+  certificate of occupancy for rental use is due to expire. Use this if
+  a city has ever fined you, or blocked a new lease, because a rental
+  registration lapsed and nobody was tracking its renewal cycle.
+category: realestate
+tags: [realestate, rental-license, municipal, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) {
+        printf "LICENSE RENEWAL DUE: %s — %s license (#%s) expires in %d day(s)\n", $1, $2, $4, days_left;
+      }
+    }
+  ' "{{rental_licenses_csv}}"
+variables:
+  rental_licenses_csv:
+    default: "./rental-licenses.csv"
+    description: "CSV with header row, columns: property_name,license_type,expiration_date(YYYY-MM-DD),license_number."
+  warn_days:
+    default: 45
+    description: Days before expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from property-maintenance-inspection-reminder (routine walkthroughs) and construction/permit-expiry-check (building permits during construction) — this tracks the ongoing municipal license/registration a unit needs to be legally rented, not a build-phase permit.

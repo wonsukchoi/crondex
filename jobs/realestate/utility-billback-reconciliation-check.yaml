@@ -1,0 +1,41 @@
+id: utility-billback-reconciliation-check
+version: 1
+name: Utility Bill-Back Reconciliation Check
+description: >
+  Compares submetered tenant utility charges against the property's
+  master utility bill and flags a mismatch beyond a set tolerance. Use
+  this if tenant bill-backs have ever quietly drifted from the actual
+  master bill, either undercharging the owner or overcharging tenants.
+category: realestate
+tags: [realestate, utilities, billing, reconciliation]
+schedule: "0 8 3 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      billed_total += $3;
+      master = $2;
+      property = $1;
+    }
+    END {
+      diff = billed_total - master;
+      pct = (master > 0) ? (diff / master * 100) : 0;
+      if (pct < 0) pct = -pct;
+      if (pct >= tol) {
+        printf "RECONCILIATION MISMATCH: %s — tenant bill-backs total $%.2f vs master bill $%.2f (%.1f%% variance)\n", property, billed_total, master, pct;
+      } else {
+        printf "OK: %s bill-backs reconcile within tolerance ($%.2f vs $%.2f)\n", property, billed_total, master;
+      }
+    }
+  ' "{{billback_csv}}"
+variables:
+  billback_csv:
+    default: "./utility-billback-ledger.csv"
+    description: "CSV with header row, columns: property_name,master_bill_amount,tenant_billed_amount — one row per submetered unit for the current billing period, master_bill_amount repeated per row for the property."
+  tolerance_pct:
+    default: 5
+    description: Allowed percentage variance between total tenant bill-backs and the master bill before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a per-period export of submeter charges alongside the master bill amount — adjust the CSV shape to match your submetering vendor or utility management software's export.

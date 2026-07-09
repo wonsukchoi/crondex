@@ -1,0 +1,39 @@
+id: maintenance-request-sla-check
+version: 1
+name: Maintenance Request SLA Check
+description: >
+  Scans open tenant maintenance requests and flags any that have blown
+  past your response or resolution SLA. Use this if a leaky faucet or
+  broken heater has ever sat unaddressed for weeks because the request
+  got logged and then forgotten.
+category: realestate
+tags: [realestate, maintenance, sla, tenant-requests]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla_normal="{{sla_hours_normal}}" -v sla_urgent="{{sla_hours_urgent}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s";
+      cmd | getline opened_ts; close(cmd);
+      hours_open = (today - opened_ts) / 3600;
+      sla = ($3 == "urgent") ? sla_urgent : sla_normal;
+      if (hours_open >= sla) {
+        printf "SLA BREACH: unit %s — \"%s\" open %.0f hrs (priority: %s, SLA: %s hrs)\n", $1, $5, hours_open, $3, sla;
+      }
+    }
+  ' "{{maintenance_requests_csv}}"
+variables:
+  maintenance_requests_csv:
+    default: "./maintenance-requests.csv"
+    description: "CSV with header row, columns: unit,opened_at(YYYY-MM-DD HH:MM),priority(normal/urgent),status(open/closed),description."
+  sla_hours_normal:
+    default: 72
+    description: Hours allowed to resolve a normal-priority request before it counts as an SLA breach.
+  sla_hours_urgent:
+    default: 12
+    description: Hours allowed to resolve an urgent-priority request (e.g. no heat, active leak) before it counts as an SLA breach.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from the routine walkthrough tracked by property-maintenance-inspection-reminder — this watches tenant-initiated repair tickets against a response/resolution clock, not scheduled inspections.

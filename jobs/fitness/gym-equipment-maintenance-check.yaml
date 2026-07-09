@@ -1,0 +1,35 @@
+id: gym-equipment-maintenance-check
+version: 1
+name: Gym Equipment Maintenance Check
+description: >
+  Tracks usage hours or calendar time against manufacturer service
+  intervals for cardio and strength equipment, and flags what's coming
+  due. Use this if a treadmill has ever broken down mid-workout because
+  its service interval quietly passed unnoticed.
+category: fitness
+tags: [fitness, equipment, maintenance, gym]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "SERVICE DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{equipment_csv_path}}"
+variables:
+  equipment_csv_path:
+    default: "./gym-equipment-service.csv"
+    description: "Path to a CSV with columns: equipment_name,next_service_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before service is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Taking equipment out of rotation for service before it fails is safer for members than waiting for a breakdown mid-use.

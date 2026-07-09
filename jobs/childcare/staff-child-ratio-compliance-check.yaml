@@ -1,0 +1,30 @@
+id: staff-child-ratio-compliance-check
+version: 1
+name: Staff-to-Child Ratio Compliance Check
+description: >
+  Checks each classroom/group's staff-to-child ratio for the day against
+  your licensing requirement and flags anything out of compliance. Use
+  this if a ratio has ever slipped out of compliance mid-shift because
+  someone called in sick and nobody recalculated the numbers.
+category: childcare
+tags: [childcare, ratio, compliance, staffing]
+schedule: "0 7,12 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      required_max = $4;
+      actual_ratio = $3 / $2;
+      if ($2 > required_max || actual_ratio > 1) {
+        printf "OUT OF RATIO: %s — %d staff for %d children (max %d children/staff)\n", $1, $2, $3, $4;
+      }
+    }
+  ' "{{classrooms_csv_path}}"
+variables:
+  classrooms_csv_path:
+    default: "./classroom-ratios.csv"
+    description: "Path to a CSV with columns: classroom_name,staff_count,child_count,max_children_per_staff (your licensing requirement for that age group)."
+compatible_agents: [generic, claude, codex]
+notes: Recompute this whenever staffing or headcount changes during the day (e.g. a callout, a late pickup) — it's only as current as the last update to the CSV.

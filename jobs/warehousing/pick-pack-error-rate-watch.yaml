@@ -1,0 +1,35 @@
+id: pick-pack-error-rate-watch
+version: 1
+name: Pick/Pack Error Rate Watch
+description: >
+  Checks recent order fulfillment error rate (wrong item, wrong quantity,
+  missing item) against a target and flags it when it climbs. Use this if
+  a fulfillment error rate has ever crept up for weeks before a spike in
+  return/complaint volume made the problem impossible to ignore.
+category: warehousing
+tags: [warehousing, fulfillment, quality, errors]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_error_rate_pct}}" '
+    NR==1 {next}
+    { total++; if ($2 == "error") errors++ }
+    END {
+      pct = (total > 0) ? (errors / total) * 100 : 0;
+      if (pct > target) {
+        printf "ABOVE TARGET: %.2f%% error rate (%d of %d orders), target %.2f%%\n", pct, errors, total, target;
+      } else {
+        printf "OK: %.2f%% error rate (%d of %d orders)\n", pct, errors, total;
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./fulfillment-log.csv"
+    description: "Path to a CSV with columns: order_id,outcome (ok/error) — one row per fulfilled order in the period."
+  target_error_rate_pct:
+    default: 1.0
+    description: Target maximum error rate as a percentage.
+compatible_agents: [generic, claude, codex]
+notes: If errors cluster on a specific picker, shift, or SKU, that's worth investigating separately — this job only flags the aggregate rate crossing target.

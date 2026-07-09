@@ -1,0 +1,33 @@
+id: constituent-casework-followup-check
+version: 1
+name: Constituent Casework Follow-Up Check
+description: >
+  Checks open constituent casework (a resident's request for help with a
+  government agency, benefit, or service issue) and flags anything
+  sitting without an update. Use this if a constituent has ever called
+  back asking for a status update because their case quietly went quiet
+  on staff's end too.
+category: government
+tags: [government, constituent-services, casework, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{casework_system}} for open constituent cases with no update
+  logged in the last {{stale_after_days}} days.
+  1. List each: constituent name (or case ID), issue summary, and days
+     since the last update.
+  2. Flag anything involving a time-sensitive issue (eviction, benefits
+     cutoff, utility shutoff) as higher priority regardless of how long
+     it's been open.
+  3. Draft a short status-check message per stale case for the assigned
+     staffer.
+variables:
+  casework_system:
+    default: "your constituent services/casework tracking system"
+    description: Where casework and update history are tracked.
+  stale_after_days:
+    default: 10
+    description: Days without an update before a case counts as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — status updates to constituents or follow-ups with the relevant agency go through whatever process your office already uses.

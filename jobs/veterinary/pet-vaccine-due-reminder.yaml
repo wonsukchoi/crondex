@@ -1,0 +1,34 @@
+id: pet-vaccine-due-reminder
+version: 1
+name: Pet Vaccine Due Reminder
+description: >
+  Checks which patients are due or overdue for a vaccine and lists them
+  for outreach. Use this if a pet has ever gone a year past due for a
+  core vaccine because the reminder postcard got lost in the mail.
+category: veterinary
+tags: [veterinary, vaccine, patients, reminder]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "VACCINE DUE: %s (%s) — %s due %s (%d days)\n", $1, $2, $4, $3, diff_days;
+      }
+    }
+  ' "{{patients_csv_path}}"
+variables:
+  patients_csv_path:
+    default: "./pet-vaccines.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,due_date (YYYY-MM-DD),vaccine_type."
+  warn_days_before:
+    default: 14
+    description: How many days before (or past) the due date to start listing.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained export from your practice management software — this is the "did anyone actually check the due list" backstop.

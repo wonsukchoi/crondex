@@ -1,0 +1,33 @@
+id: pos-till-reconciliation-check
+version: 1
+name: POS Till Reconciliation Check
+description: >
+  Checks each register's end-of-day cash count against expected POS
+  totals and flags any discrepancy. Use this if a till has ever come up
+  short for days running before anyone connected the pattern to a
+  specific shift or register.
+category: retail
+tags: [retail, pos, cash, reconciliation]
+schedule: "0 23 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{tolerance_usd}}" '
+    NR==1 {next}
+    {
+      diff = $3 - $2;
+      abs_diff = (diff < 0) ? -diff : diff;
+      if (abs_diff > tolerance) {
+        printf "DISCREPANCY: register %s — expected $%.2f, counted $%.2f (diff $%.2f)\n", $1, $2, $3, diff;
+      }
+    }
+  ' "{{till_counts_csv_path}}"
+variables:
+  till_counts_csv_path:
+    default: "./till-counts.csv"
+    description: "Path to a CSV with columns: register_id,pos_expected_total,counted_total — one row per register per closing shift."
+  tolerance_usd:
+    default: 5.00
+    description: Acceptable discrepancy in dollars before flagging.
+compatible_agents: [generic, claude, codex]
+notes: A repeated discrepancy on the same register or shift is a much bigger signal than a single one-off — worth tracking over time, not just per-day.

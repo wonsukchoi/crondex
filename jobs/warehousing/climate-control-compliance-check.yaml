@@ -1,0 +1,40 @@
+id: climate-control-compliance-check
+version: 1
+name: Warehouse Climate Control Compliance Check
+description: >
+  Checks temperature/humidity logs for climate-controlled storage areas
+  and flags any reading outside the safe range. Use this if product has
+  ever been damaged or spoiled because a climate-controlled zone drifted
+  out of range and nobody noticed until the next physical walk-through.
+category: warehousing
+tags: [warehousing, climate-control, compliance, storage]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_t="{{min_temp_f}}" -v max_t="{{max_temp_f}}" -v min_h="{{min_humidity_pct}}" -v max_h="{{max_humidity_pct}}" '
+    NR==1 {next}
+    {
+      if ($2 < min_t || $2 > max_t || $3 < min_h || $3 > max_h) {
+        printf "OUT OF RANGE: %s — %sF, %s%% humidity (limits %s-%sF, %s-%s%%)\n", $1, $2, $3, min_t, max_t, min_h, max_h;
+      }
+    }
+  ' "{{readings_csv_path}}"
+variables:
+  readings_csv_path:
+    default: "./climate-readings.csv"
+    description: "Path to a CSV with columns: zone_name,temperature_f,humidity_pct — latest sensor readings per zone."
+  min_temp_f:
+    default: 60
+    description: Minimum acceptable temperature in Fahrenheit.
+  max_temp_f:
+    default: 75
+    description: Maximum acceptable temperature in Fahrenheit.
+  min_humidity_pct:
+    default: 30
+    description: Minimum acceptable relative humidity percentage.
+  max_humidity_pct:
+    default: 60
+    description: Maximum acceptable relative humidity percentage.
+compatible_agents: [generic, claude, codex]
+notes: Assumes readings are exported from your sensor/IoT system on a schedule matching this job's frequency — adjust thresholds per what's actually stored in each zone.

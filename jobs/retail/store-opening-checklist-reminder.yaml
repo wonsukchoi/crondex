@@ -1,0 +1,30 @@
+id: store-opening-checklist-reminder
+version: 1
+name: Store Opening Checklist Reminder
+description: >
+  Reminds the opening shift of the standard opening checklist every day,
+  not just when a manager happens to be on site to run it from memory.
+  Use this if the store has ever opened late, or opened with something
+  missed (lights, POS not booted, signage not out), because the checklist
+  lived only in one person's head.
+category: retail
+tags: [retail, checklist, opening, operations]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  echo "Store opening checklist ({{checklist_path}}):";
+  if [ -f "{{checklist_path}}" ]; then cat "{{checklist_path}}"; else
+  echo "- Unlock doors, disarm alarm";
+  echo "- Turn on lights, signage, music";
+  echo "- Boot and log into POS terminals";
+  echo "- Count starting cash drawer";
+  echo "- Check overnight deliveries/restocking needs";
+  echo "- Walk the floor for cleanliness/facing";
+  fi
+variables:
+  checklist_path:
+    default: "./store-opening-checklist.txt"
+    description: Optional path to your own custom checklist file; falls back to a standard baseline if not found.
+compatible_agents: [generic, claude, codex]
+notes: A recurring reminder/checklist print, not an automated door-unlock or alarm system — pair with your actual physical security systems as needed.

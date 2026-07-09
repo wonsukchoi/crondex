@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 236,
+  "count": 257,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -412,6 +412,31 @@
         "generic"
       ],
       "path": "jobs/nonprofit/board-action-item-followup-check.yaml"
+    },
+    {
+      "id": "boarding-checkout-reminder",
+      "version": 1,
+      "name": "Boarding/Kennel Checkout Reminder",
+      "description": "Lists pets scheduled to check out of boarding today or tomorrow, plus anyone past their scheduled checkout with no extension logged. Use this if a boarded pet has ever stayed an extra unplanned day because nobody cross-checked the boarding calendar against who was actually still there.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "boarding",
+        "kennel",
+        "schedule"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/boarding-checkout-reminder.yaml"
     },
     {
       "id": "broken-link-check",
@@ -865,6 +890,56 @@
       "path": "jobs/insurance/claim-status-check.yaml"
     },
     {
+      "id": "class-utilization-check",
+      "version": 1,
+      "name": "Class Utilization Check",
+      "description": "Checks upcoming class signups against capacity and flags classes running well under-booked. Use this if a class has ever quietly run half-empty for months before anyone pulled the numbers and considered cutting or rescheduling it.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "classes",
+        "utilization",
+        "scheduling"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/class-utilization-check.yaml"
+    },
+    {
+      "id": "climate-control-compliance-check",
+      "version": 1,
+      "name": "Warehouse Climate Control Compliance Check",
+      "description": "Checks temperature/humidity logs for climate-controlled storage areas and flags any reading outside the safe range. Use this if product has ever been damaged or spoiled because a climate-controlled zone drifted out of range and nobody noticed until the next physical walk-through.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "climate-control",
+        "compliance",
+        "storage"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/climate-control-compliance-check.yaml"
+    },
+    {
       "id": "competitor-page-diff-watch",
       "version": 2,
       "name": "Competitor Page Diff Watch",
@@ -946,6 +1021,33 @@
       "path": "jobs/learning/conference-cfp-deadline-reminder.yaml"
     },
     {
+      "id": "constituent-casework-followup-check",
+      "version": 1,
+      "name": "Constituent Casework Follow-Up Check",
+      "description": "Checks open constituent casework (a resident's request for help with a government agency, benefit, or service issue) and flags anything sitting without an update. Use this if a constituent has ever called back asking for a status update because their case quietly went quiet on staff's end too.",
+      "category": "government",
+      "tags": [
+        "government",
+        "constituent-services",
+        "casework",
+        "followup"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/government/constituent-casework-followup-check.yaml"
+    },
+    {
       "id": "container-demurrage-fee-watch",
       "version": 1,
       "name": "Container Demurrage/Detention Fee Watch",
@@ -1017,6 +1119,33 @@
         "codex"
       ],
       "path": "jobs/legal/contract-renewal-reminder.yaml"
+    },
+    {
+      "id": "controlled-substance-log-audit",
+      "version": 1,
+      "name": "Controlled Substance Log Audit",
+      "description": "Checks the controlled-substance usage log for gaps or unreconciled counts. Use this if a discrepancy in the controlled-drug log has ever gone unnoticed for weeks instead of being caught the same day it happened, which is exactly what a DEA/board inspection will ask about.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "controlled-substances",
+        "compliance",
+        "audit"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/veterinary/controlled-substance-log-audit.yaml"
     },
     {
       "id": "cost-alert",
@@ -1502,6 +1631,33 @@
       "path": "jobs/devops/dns-record-check.yaml"
     },
     {
+      "id": "dock-schedule-conflict-check",
+      "version": 1,
+      "name": "Loading Dock Schedule Conflict Check",
+      "description": "Checks tomorrow's dock appointments for double-bookings or gaps too tight to actually unload a truck in. Use this if two carriers have ever shown up for the same dock door at the same time because scheduling was done in a shared spreadsheet nobody cross-checked.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "dock-scheduling",
+        "logistics",
+        "conflicts"
+      ],
+      "schedule": "0 16 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/warehousing/dock-schedule-conflict-check.yaml"
+    },
+    {
       "id": "docker-image-prune",
       "version": 1,
       "name": "Docker Image & Container Prune",
@@ -1625,6 +1781,31 @@
         "codex"
       ],
       "path": "jobs/marketing/email-deliverability-check.yaml"
+    },
+    {
+      "id": "employee-shift-gap-check",
+      "version": 1,
+      "name": "Employee Shift Gap Check",
+      "description": "Checks the upcoming schedule for unfilled shifts and flags them while there's still time to find coverage. Use this if a shift has ever gone unfilled and nobody noticed until the store was short-staffed that morning.",
+      "category": "retail",
+      "tags": [
+        "retail",
+        "scheduling",
+        "staffing",
+        "shifts"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/retail/employee-shift-gap-check.yaml"
     },
     {
       "id": "end-of-day-wrap-message",
@@ -2076,6 +2257,31 @@
       "path": "jobs/productivity/focus-block-reminder.yaml"
     },
     {
+      "id": "foia-request-deadline-check",
+      "version": 1,
+      "name": "Public Records Request Deadline Check",
+      "description": "Checks open public records (FOIA/state equivalent) requests against their statutory response deadline and flags anything close to due. Use this if a records request has ever blown past its legal response window because it sat in an inbox instead of on a tracked deadline list.",
+      "category": "government",
+      "tags": [
+        "government",
+        "foia",
+        "public-records",
+        "deadline"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/government/foia-request-deadline-check.yaml"
+    },
+    {
       "id": "food-cost-percentage-watch",
       "version": 1,
       "name": "Food Cost Percentage Watch",
@@ -2486,6 +2692,56 @@
       "path": "jobs/hospitality/guest-review-response-check.yaml"
     },
     {
+      "id": "gym-equipment-maintenance-check",
+      "version": 1,
+      "name": "Gym Equipment Maintenance Check",
+      "description": "Tracks usage hours or calendar time against manufacturer service intervals for cardio and strength equipment, and flags what's coming due. Use this if a treadmill has ever broken down mid-workout because its service interval quietly passed unnoticed.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "equipment",
+        "maintenance",
+        "gym"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/gym-equipment-maintenance-check.yaml"
+    },
+    {
+      "id": "gym-membership-renewal-reminder",
+      "version": 1,
+      "name": "Gym Membership Renewal Reminder",
+      "description": "Warns you before a member's contract term ends so there's time to reach out before they quietly let it lapse. Use this if a membership has ever ended and the member just never came back, without anyone reaching out during the window when a renewal conversation could've happened.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "membership",
+        "renewal",
+        "retention"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/gym-membership-renewal-reminder.yaml"
+    },
+    {
       "id": "habit-checkin",
       "version": 1,
       "name": "Daily Habit Check-in",
@@ -2654,6 +2910,33 @@
         "codex"
       ],
       "path": "jobs/content/image-alt-text-audit.yaml"
+    },
+    {
+      "id": "immunization-record-compliance-check",
+      "version": 1,
+      "name": "Immunization Record Compliance Check",
+      "description": "Checks enrolled children's immunization records against your state's required schedule and flags anyone missing required documentation. Use this if a compliance gap has ever gone unnoticed until a state licensing inspection found it first.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "immunization",
+        "compliance",
+        "licensing"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/childcare/immunization-record-compliance-check.yaml"
     },
     {
       "id": "inbox-triage",
@@ -3136,6 +3419,31 @@
         "codex"
       ],
       "path": "jobs/agriculture/livestock-feed-stock-check.yaml"
+    },
+    {
+      "id": "loaner-vehicle-return-reminder",
+      "version": 1,
+      "name": "Loaner Vehicle Return Reminder",
+      "description": "Warns you before a loaner vehicle is due back, and flags anything already overdue. Use this if a loaner has ever gone weeks without coming back because nobody was tracking who had which car out.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "loaner",
+        "fleet",
+        "reminder"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/loaner-vehicle-return-reminder.yaml"
     },
     {
       "id": "log-cleanup",
@@ -3666,6 +3974,31 @@
       "path": "jobs/content/page-speed-regression-watch.yaml"
     },
     {
+      "id": "parts-backorder-check",
+      "version": 1,
+      "name": "Parts Backorder Check",
+      "description": "Checks ordered parts against their expected arrival date and flags anything overdue from the supplier. Use this if a repair has ever stalled for a week because a part was quietly backordered and nobody followed up with the supplier until a customer asked why their car wasn't ready.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "parts",
+        "backorder",
+        "supplier"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/parts-backorder-check.yaml"
+    },
+    {
       "id": "passport-expiry-check",
       "version": 1,
       "name": "Passport Expiry Check",
@@ -3793,6 +4126,31 @@
       "path": "jobs/hr/performance-review-cycle-reminder.yaml"
     },
     {
+      "id": "permit-application-backlog-check",
+      "version": 1,
+      "name": "Permit Application Backlog Check",
+      "description": "Checks how many permit applications are sitting in review past your target processing time, from the issuing agency's side. Use this if applications have ever piled up in a queue for weeks with no one tracking total backlog size or average age.",
+      "category": "government",
+      "tags": [
+        "government",
+        "permits",
+        "backlog",
+        "processing"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/government/permit-application-backlog-check.yaml"
+    },
+    {
       "id": "permit-expiry-check",
       "version": 1,
       "name": "Building Permit Expiry Check",
@@ -3815,6 +4173,56 @@
         "codex"
       ],
       "path": "jobs/construction/permit-expiry-check.yaml"
+    },
+    {
+      "id": "pet-vaccine-due-reminder",
+      "version": 1,
+      "name": "Pet Vaccine Due Reminder",
+      "description": "Checks which patients are due or overdue for a vaccine and lists them for outreach. Use this if a pet has ever gone a year past due for a core vaccine because the reminder postcard got lost in the mail.",
+      "category": "veterinary",
+      "tags": [
+        "veterinary",
+        "vaccine",
+        "patients",
+        "reminder"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/veterinary/pet-vaccine-due-reminder.yaml"
+    },
+    {
+      "id": "pick-pack-error-rate-watch",
+      "version": 1,
+      "name": "Pick/Pack Error Rate Watch",
+      "description": "Checks recent order fulfillment error rate (wrong item, wrong quantity, missing item) against a target and flags it when it climbs. Use this if a fulfillment error rate has ever crept up for weeks before a spike in return/complaint volume made the problem impossible to ignore.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "fulfillment",
+        "quality",
+        "errors"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/pick-pack-error-rate-watch.yaml"
     },
     {
       "id": "plant-watering-reminder",
@@ -3944,6 +4352,31 @@
         "generic"
       ],
       "path": "jobs/investing/portfolio-rebalance-check.yaml"
+    },
+    {
+      "id": "pos-till-reconciliation-check",
+      "version": 1,
+      "name": "POS Till Reconciliation Check",
+      "description": "Checks each register's end-of-day cash count against expected POS totals and flags any discrepancy. Use this if a till has ever come up short for days running before anyone connected the pattern to a specific shift or register.",
+      "category": "retail",
+      "tags": [
+        "retail",
+        "pos",
+        "cash",
+        "reconciliation"
+      ],
+      "schedule": "0 23 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/retail/pos-till-reconciliation-check.yaml"
     },
     {
       "id": "premium-payment-due-reminder",
@@ -4309,6 +4742,31 @@
         "codex"
       ],
       "path": "jobs/realestate/rental-vacancy-check.yaml"
+    },
+    {
+      "id": "repair-order-aging-check",
+      "version": 1,
+      "name": "Repair Order Aging Check",
+      "description": "Checks open repair orders and flags any vehicle that's been sitting in the shop past your target turnaround with no status update. Use this if a car has ever sat on a lift for days with no visible progress because it fell out of the technician's mental queue.",
+      "category": "automotive",
+      "tags": [
+        "automotive",
+        "repair-shop",
+        "workflow",
+        "aging"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/automotive/repair-order-aging-check.yaml"
     },
     {
       "id": "repo-health-check",
@@ -4936,6 +5394,31 @@
       "path": "jobs/devops/ssl-cert-expiry-check.yaml"
     },
     {
+      "id": "staff-child-ratio-compliance-check",
+      "version": 1,
+      "name": "Staff-to-Child Ratio Compliance Check",
+      "description": "Checks each classroom/group's staff-to-child ratio for the day against your licensing requirement and flags anything out of compliance. Use this if a ratio has ever slipped out of compliance mid-shift because someone called in sick and nobody recalculated the numbers.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "ratio",
+        "compliance",
+        "staffing"
+      ],
+      "schedule": "0 7,12 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/staff-child-ratio-compliance-check.yaml"
+    },
+    {
       "id": "staging-prod-config-diff",
       "version": 1,
       "name": "Staging vs Production Config Diff",
@@ -5059,6 +5542,31 @@
         "codex"
       ],
       "path": "jobs/productivity/stale-todo-sweep.yaml"
+    },
+    {
+      "id": "store-opening-checklist-reminder",
+      "version": 1,
+      "name": "Store Opening Checklist Reminder",
+      "description": "Reminds the opening shift of the standard opening checklist every day, not just when a manager happens to be on site to run it from memory. Use this if the store has ever opened late, or opened with something missed (lights, POS not booted, signage not out), because the checklist lived only in one person's head.",
+      "category": "retail",
+      "tags": [
+        "retail",
+        "checklist",
+        "opening",
+        "operations"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/retail/store-opening-checklist-reminder.yaml"
     },
     {
       "id": "stream-schedule-reminder",
@@ -5561,6 +6069,31 @@
         "generic"
       ],
       "path": "jobs/growth/trial-expiring-nudge.yaml"
+    },
+    {
+      "id": "tuition-payment-late-check",
+      "version": 1,
+      "name": "Tuition Payment Late Check",
+      "description": "Flags families whose tuition payment is overdue past the grace period. Use this if a late payment has ever gone unnoticed for weeks because nobody was cross-checking the payment ledger against who'd actually paid.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "tuition",
+        "payment",
+        "billing"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/tuition-payment-late-check.yaml"
     },
     {
       "id": "uptime-ping-check",

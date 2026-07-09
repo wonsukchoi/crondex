@@ -1,0 +1,32 @@
+id: class-utilization-check
+version: 1
+name: Class Utilization Check
+description: >
+  Checks upcoming class signups against capacity and flags classes
+  running well under-booked. Use this if a class has ever quietly run
+  half-empty for months before anyone pulled the numbers and considered
+  cutting or rescheduling it.
+category: fitness
+tags: [fitness, classes, utilization, scheduling]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_utilization_pct}}" '
+    NR==1 {next}
+    {
+      pct = ($3 / $2) * 100;
+      if (pct < min_pct) {
+        printf "UNDER-BOOKED: %s on %s — %d of %d spots (%.0f%%)\n", $1, $4, $3, $2, pct;
+      }
+    }
+  ' "{{classes_csv_path}}"
+variables:
+  classes_csv_path:
+    default: "./upcoming-classes.csv"
+    description: "Path to a CSV with columns: class_name,capacity,signed_up,class_date."
+  min_utilization_pct:
+    default: 40
+    description: Minimum percentage of capacity filled before a class is flagged as under-booked.
+compatible_agents: [generic, claude, codex]
+notes: A pattern of under-booking on the same class/time slot is worth more attention than a single slow week — track over time before deciding to cut anything.

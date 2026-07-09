@@ -1,0 +1,36 @@
+id: foia-request-deadline-check
+version: 1
+name: Public Records Request Deadline Check
+description: >
+  Checks open public records (FOIA/state equivalent) requests against
+  their statutory response deadline and flags anything close to due. Use
+  this if a records request has ever blown past its legal response
+  window because it sat in an inbox instead of on a tracked deadline
+  list.
+category: government
+tags: [government, foia, public-records, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "RESPONSE DUE: request %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{requests_csv_path}}"
+variables:
+  requests_csv_path:
+    default: "./records-requests.csv"
+    description: "Path to a CSV with columns: request_id,statutory_due_date (YYYY-MM-DD),status (open/closed)."
+  warn_days_before:
+    default: 5
+    description: How many days before the statutory deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Statutory response windows vary by jurisdiction and request type — compute `statutory_due_date` per your actual applicable law before loading it into the CSV.

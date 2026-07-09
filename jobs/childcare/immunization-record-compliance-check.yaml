@@ -1,0 +1,33 @@
+id: immunization-record-compliance-check
+version: 1
+name: Immunization Record Compliance Check
+description: >
+  Checks enrolled children's immunization records against your state's
+  required schedule and flags anyone missing required documentation. Use
+  this if a compliance gap has ever gone unnoticed until a state licensing
+  inspection found it first.
+category: childcare
+tags: [childcare, immunization, compliance, licensing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check enrolled children's immunization records in {{records_system}}
+  against the required schedule for {{jurisdiction}}.
+  1. List any child with missing or expired required immunization
+     documentation, or a filed exemption that needs renewal.
+  2. Flag anyone enrolled more than {{grace_period_days}} days ago with
+     still-incomplete records as past the grace period.
+  3. Draft a short reminder to the family for each incomplete record.
+variables:
+  records_system:
+    default: "your childcare management system"
+    description: Where enrollment and immunization records are tracked.
+  jurisdiction:
+    default: "your state/locality"
+    description: Which jurisdiction's required immunization schedule applies.
+  grace_period_days:
+    default: 30
+    description: Days a new enrollment can be missing records before it's past grace period.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — confirm your jurisdiction's actual required schedule and exemption rules, which vary and change; don't rely on this job to know them for you.

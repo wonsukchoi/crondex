@@ -1,0 +1,35 @@
+id: repair-order-aging-check
+version: 1
+name: Repair Order Aging Check
+description: >
+  Checks open repair orders and flags any vehicle that's been sitting in
+  the shop past your target turnaround with no status update. Use this if
+  a car has ever sat on a lift for days with no visible progress because
+  it fell out of the technician's mental queue.
+category: automotive
+tags: [automotive, repair-shop, workflow, aging]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{target_turnaround_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline checkin_epoch; close(cmd);
+      age_days = (today - checkin_epoch) / 86400;
+      if (age_days > days) {
+        printf "AGING: RO %s — checked in %s (%d days)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{repair_orders_csv_path}}"
+variables:
+  repair_orders_csv_path:
+    default: "./repair-orders.csv"
+    description: "Path to a CSV with columns: ro_number,checkin_date (YYYY-MM-DD),status (open/closed)."
+  target_turnaround_days:
+    default: 3
+    description: Target days to complete a typical repair before it counts as aging.
+compatible_agents: [generic, claude, codex]
+notes: A vehicle waiting on a backordered part is a different problem than one just sitting unassigned — check `parts-backorder-check` alongside this to tell the two apart.

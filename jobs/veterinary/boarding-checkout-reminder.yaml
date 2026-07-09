@@ -1,0 +1,29 @@
+id: boarding-checkout-reminder
+version: 1
+name: Boarding/Kennel Checkout Reminder
+description: >
+  Lists pets scheduled to check out of boarding today or tomorrow, plus
+  anyone past their scheduled checkout with no extension logged. Use this
+  if a boarded pet has ever stayed an extra unplanned day because nobody
+  cross-checked the boarding calendar against who was actually still
+  there.
+category: veterinary
+tags: [veterinary, boarding, kennel, schedule]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      if ($3 == today) print "CHECKOUT TODAY: " $1 " (" $2 ")";
+      else if ($3 < today && $4 != "extended") print "OVERDUE CHECKOUT: " $1 " (" $2 ") — was due " $3;
+    }
+  ' "{{boarding_csv_path}}"
+variables:
+  boarding_csv_path:
+    default: "./boarding-schedule.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkout_date (YYYY-MM-DD),status (or 'extended' if the stay was extended)."
+compatible_agents: [generic, claude, codex]
+notes: Update the CSV whenever a stay is extended so it doesn't get flagged as overdue — this just cross-checks dates, it doesn't know about a phone call extending someone's stay.

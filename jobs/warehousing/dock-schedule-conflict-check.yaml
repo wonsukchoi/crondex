@@ -1,0 +1,30 @@
+id: dock-schedule-conflict-check
+version: 1
+name: Loading Dock Schedule Conflict Check
+description: >
+  Checks tomorrow's dock appointments for double-bookings or gaps too
+  tight to actually unload a truck in. Use this if two carriers have ever
+  shown up for the same dock door at the same time because scheduling was
+  done in a shared spreadsheet nobody cross-checked.
+category: warehousing
+tags: [warehousing, dock-scheduling, logistics, conflicts]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check tomorrow's dock appointment schedule from {{scheduling_source}}.
+  1. Flag any two appointments assigned to the same dock door with
+     overlapping time windows.
+  2. Flag any appointment scheduled with less than
+     {{min_turnaround_minutes}} minutes between it and the next one at
+     the same door — likely too tight for an actual unload.
+  3. If the schedule is clean, say so in one line.
+variables:
+  scheduling_source:
+    default: "your dock scheduling system or shared spreadsheet"
+    description: Where dock appointments are booked.
+  min_turnaround_minutes:
+    default: 30
+    description: Minimum minutes needed between appointments at the same dock door.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only conflict check — resolving a found conflict (rebooking one carrier) is a dispatcher decision.

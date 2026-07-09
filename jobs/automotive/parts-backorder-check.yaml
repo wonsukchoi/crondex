@@ -1,0 +1,33 @@
+id: parts-backorder-check
+version: 1
+name: Parts Backorder Check
+description: >
+  Checks ordered parts against their expected arrival date and flags
+  anything overdue from the supplier. Use this if a repair has ever
+  stalled for a week because a part was quietly backordered and nobody
+  followed up with the supplier until a customer asked why their car
+  wasn't ready.
+category: automotive
+tags: [automotive, parts, backorder, supplier]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      if (today > expected_epoch) {
+        overdue_days = (today - expected_epoch) / 86400;
+        printf "OVERDUE: %s for RO %s — expected %s (%d days late)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{parts_orders_csv_path}}"
+variables:
+  parts_orders_csv_path:
+    default: "./parts-orders.csv"
+    description: "Path to a CSV with columns: part_name,ro_number,expected_arrival_date (YYYY-MM-DD),status (pending/received)."
+compatible_agents: [generic, claude, codex]
+notes: Follow up directly with the supplier once a part is flagged overdue — this job only surfaces the gap, it doesn't contact anyone.

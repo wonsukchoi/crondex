@@ -1,0 +1,33 @@
+id: controlled-substance-log-audit
+version: 1
+name: Controlled Substance Log Audit
+description: >
+  Checks the controlled-substance usage log for gaps or unreconciled
+  counts. Use this if a discrepancy in the controlled-drug log has ever
+  gone unnoticed for weeks instead of being caught the same day it
+  happened, which is exactly what a DEA/board inspection will ask about.
+category: veterinary
+tags: [veterinary, controlled-substances, compliance, audit]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read today's controlled-substance log from {{log_source}} for
+  {{substances_tracked}}.
+  1. Check that every entry has a matching patient/case reference — flag
+     any entry missing one.
+  2. Compare running balance against the last physical count on record;
+     flag any mismatch.
+  3. Flag any day with zero entries logged if the practice was open and
+     controlled substances are known to be in regular use — a
+     suspiciously quiet log is itself worth a second look.
+  4. If everything reconciles, say so in one line.
+variables:
+  log_source:
+    default: "your controlled-substance log (paper log photographed/transcribed, or e-log system)"
+    description: Where the controlled-substance usage log is recorded.
+  substances_tracked:
+    default: "ketamine, butorphanol, and other Schedule II-IV substances kept on site"
+    description: Which substances this log covers.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only reconciliation check — does not replace your practice's actual DEA-compliant logging system, and any discrepancy found should go through your normal reporting/investigation process.

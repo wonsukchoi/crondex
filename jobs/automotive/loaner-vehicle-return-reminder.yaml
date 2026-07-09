@@ -1,0 +1,35 @@
+id: loaner-vehicle-return-reminder
+version: 1
+name: Loaner Vehicle Return Reminder
+description: >
+  Warns you before a loaner vehicle is due back, and flags anything
+  already overdue. Use this if a loaner has ever gone weeks without
+  coming back because nobody was tracking who had which car out.
+category: automotive
+tags: [automotive, loaner, fleet, reminder]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days <= days) {
+        if (diff_days < 0) printf "OVERDUE: %s with %s — was due %s (%d days late)\n", $1, $2, $3, -diff_days;
+        else printf "DUE SOON: %s with %s — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{loaners_csv_path}}"
+variables:
+  loaners_csv_path:
+    default: "./loaner-vehicles.csv"
+    description: "Path to a CSV with columns: loaner_vehicle_id,customer_name,return_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 1
+    description: How many days before the return date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `equipment-rental-return-reminder` in construction — this tracks vehicles the shop lends out, not equipment the shop rents in.

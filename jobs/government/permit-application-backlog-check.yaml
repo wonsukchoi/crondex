@@ -1,0 +1,37 @@
+id: permit-application-backlog-check
+version: 1
+name: Permit Application Backlog Check
+description: >
+  Checks how many permit applications are sitting in review past your
+  target processing time, from the issuing agency's side. Use this if
+  applications have ever piled up in a queue for weeks with no one
+  tracking total backlog size or average age.
+category: government
+tags: [government, permits, backlog, processing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{target_processing_days}}" -v today="$today" '
+    NR==1 {next}
+    $2 == "in-review" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      age_days = (today - submitted_epoch) / 86400;
+      total++;
+      if (age_days > days) over_target++;
+    }
+    END {
+      printf "%d applications in review, %d over the %d-day target\n", total, over_target, days;
+    }
+  ' "{{applications_csv_path}}"
+variables:
+  applications_csv_path:
+    default: "./permit-applications.csv"
+    description: "Path to a CSV with columns: application_id,status (in-review/approved/denied),submitted_date (YYYY-MM-DD)."
+  target_processing_days:
+    default: 30
+    description: Target number of days to process a permit application.
+compatible_agents: [generic, claude, codex]
+notes: This is the issuing agency's view of the backlog — distinct from `permit-expiry-check` in construction, which tracks an already-issued permit's expiry from the applicant's side.

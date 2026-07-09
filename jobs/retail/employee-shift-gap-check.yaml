@@ -1,0 +1,35 @@
+id: employee-shift-gap-check
+version: 1
+name: Employee Shift Gap Check
+description: >
+  Checks the upcoming schedule for unfilled shifts and flags them while
+  there's still time to find coverage. Use this if a shift has ever gone
+  unfilled and nobody noticed until the store was short-staffed that
+  morning.
+category: retail
+tags: [retail, scheduling, staffing, shifts]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{lookahead_days}}" '
+    NR==1 {next}
+    $3 == "unfilled" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline shift_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (shift_epoch - now_epoch) / 86400;
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "UNFILLED: %s shift on %s (%d days out)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{schedule_csv_path}}"
+variables:
+  schedule_csv_path:
+    default: "./employee-schedule.csv"
+    description: "Path to a CSV with columns: shift_name,shift_date (YYYY-MM-DD),status (filled/unfilled)."
+  lookahead_days:
+    default: 7
+    description: How many days ahead to check for unfilled shifts.
+compatible_agents: [generic, claude, codex]
+notes: Export this from your scheduling software (When I Work, Homebase, Deputy) on a schedule to keep the CSV current.

@@ -1,0 +1,41 @@
+id: staff-cme-credit-tracking
+version: 1
+name: Staff CME Credit Tracking
+description: >
+  Checks each clinician's continuing medical education (CME) credit hours
+  completed against what's required by their cycle end date and warns
+  before anyone falls short. Use this if a provider has ever discovered
+  close to renewal that they were short on CME hours needed to keep their
+  license active — distinct from license-credential-expiry-check, which
+  tracks the license's own expiry date rather than the ongoing education
+  requirement to renew it.
+category: healthcare
+tags: [healthcare, cme, compliance, licensing, staff]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_cycle_end}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline cycle_end_epoch; close(cmd);
+      diff_days = (cycle_end_epoch - today) / 86400;
+      shortfall = ($4 + 0) - ($3 + 0);
+      if (diff_days <= warn_days && shortfall > 0) {
+        printf "CME SHORTFALL: %s — %d/%d hours completed, %d short, cycle ends %s (%d days)\n", $1, $3, $4, shortfall, $5, diff_days;
+      }
+    }
+  ' "{{cme_tracking_csv_path}}"
+variables:
+  cme_tracking_csv_path:
+    default: "./staff-cme-credits.csv"
+    description: "Path to a CSV with columns: staff_name,license_type,cme_hours_completed,cme_hours_required,cycle_end_date (YYYY-MM-DD)."
+  warn_days_before_cycle_end:
+    default: 90
+    description: How many days before the CME cycle ends to start warning about a shortfall.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained CSV export from your CME tracking or HR/credentialing
+  system, updated whenever a provider logs completed CME hours.

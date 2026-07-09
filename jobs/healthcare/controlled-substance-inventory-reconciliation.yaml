@@ -1,0 +1,42 @@
+id: controlled-substance-inventory-reconciliation
+version: 1
+name: Controlled Substance Inventory Reconciliation
+description: >
+  Reviews the practice's controlled-substance dispensing/administration log
+  (e.g. in-office injectable opioids, ketamine, testosterone, Schedule II-V
+  medications kept on site) for gaps or unreconciled counts. Use this if a
+  discrepancy in a controlled-drug count has ever gone unnoticed for weeks
+  in a human practice instead of being caught same-day — this covers a
+  clinic's own in-office stock, the same DEA-style pattern as
+  jobs/veterinary/controlled-substance-log-audit.yaml but for a human
+  medical/dental practice rather than an animal clinic, so both are kept as
+  separate jobs.
+category: healthcare
+tags: [healthcare, controlled-substances, compliance, audit, dea]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read today's controlled-substance log from {{log_source}} for
+  {{substances_tracked}}.
+  1. Check that every entry has a matching patient/encounter reference —
+     flag any entry missing one.
+  2. Compare the running balance against the last physical count on record;
+     flag any mismatch.
+  3. Flag any day with zero entries logged if the practice was open and
+     controlled substances are known to be in regular use — a suspiciously
+     quiet log is itself worth a second look.
+  4. If everything reconciles, say so in one line.
+variables:
+  log_source:
+    default: "your controlled-substance log (paper log photographed/transcribed, or e-log system)"
+    description: Where the controlled-substance usage log is recorded.
+  substances_tracked:
+    default: "injectable opioids, ketamine, and other Schedule II-V substances kept on site"
+    description: Which substances this log covers.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only reconciliation check — does not replace your practice's actual
+  DEA-compliant logging system, and any discrepancy found should go through your
+  normal reporting/investigation process. Assumes an already-exported or
+  transcribed log rather than live PHI system access.

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 400,
+  "count": 413,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -307,6 +307,35 @@
         "codex"
       ],
       "path": "jobs/spa/appointment-no-show-tracker.yaml"
+    },
+    {
+      "id": "appointment-slot-utilization-check",
+      "version": 1,
+      "name": "Appointment Slot Utilization and Schedule Gap Check",
+      "description": "Computes daily/weekly appointment slot utilization from the schedule and flags days running well under capacity, then suggests what to do about the gaps. Use this if provider schedules have ever had large unbooked gaps that nobody noticed until the day arrived nearly empty, wasting billable capacity that a recall push or same-day-opening alert could have filled.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "scheduling",
+        "utilization",
+        "operations",
+        "capacity"
+      ],
+      "schedule": "0 16 * * 5",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/appointment-slot-utilization-check.yaml"
     },
     {
       "id": "arc-review-copy-followup",
@@ -1317,6 +1346,32 @@
       "path": "jobs/insurance/claim-status-check.yaml"
     },
     {
+      "id": "claims-denial-resubmission-check",
+      "version": 1,
+      "name": "Claims Denial Resubmission Check",
+      "description": "Checks denied insurance claims against their payer resubmission or appeal deadline and flags anything still open as the deadline approaches or has already passed. Use this if a denied claim has ever quietly aged past the window to resubmit or appeal it, turning recoverable revenue into a write-off nobody meant to take.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "billing",
+        "claims",
+        "denials",
+        "revenue-cycle"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/claims-denial-resubmission-check.yaml"
+    },
+    {
       "id": "class-utilization-check",
       "version": 1,
       "name": "Class Utilization Check",
@@ -1415,6 +1470,32 @@
         "codex"
       ],
       "path": "jobs/warehousing/climate-control-compliance-check.yaml"
+    },
+    {
+      "id": "clinical-supply-low-stock-check",
+      "version": 1,
+      "name": "Clinical Supply and PPE Low-Stock Check",
+      "description": "Scans clinical supply and PPE inventory (gloves, masks, gowns, syringes, exam table paper, sanitizer) against reorder thresholds and flags what's running low. Use this if a clinic has ever discovered it was out of gloves or exam paper mid-morning because nobody was watching stock levels between deliveries.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "inventory",
+        "supplies",
+        "ppe",
+        "operations"
+      ],
+      "schedule": "0 7 * * 1,4",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/clinical-supply-low-stock-check.yaml"
     },
     {
       "id": "cobra-notification-deadline-tracker",
@@ -1675,6 +1756,34 @@
         "codex"
       ],
       "path": "jobs/legal/contract-renewal-reminder.yaml"
+    },
+    {
+      "id": "controlled-substance-inventory-reconciliation",
+      "version": 1,
+      "name": "Controlled Substance Inventory Reconciliation",
+      "description": "Reviews the practice's controlled-substance dispensing/administration log (e.g. in-office injectable opioids, ketamine, testosterone, Schedule II-V medications kept on site) for gaps or unreconciled counts. Use this if a discrepancy in a controlled-drug count has ever gone unnoticed for weeks in a human practice instead of being caught same-day — this covers a clinic's own in-office stock, the same DEA-style pattern as jobs/veterinary/controlled-substance-log-audit.yaml but for a human medical/dental practice rather than an animal clinic, so both are kept as separate jobs.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "controlled-substances",
+        "compliance",
+        "audit",
+        "dea"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/controlled-substance-inventory-reconciliation.yaml"
     },
     {
       "id": "controlled-substance-log-audit",
@@ -4150,6 +4259,35 @@
       "path": "jobs/restaurant/health-inspection-prep-reminder.yaml"
     },
     {
+      "id": "hipaa-access-log-audit",
+      "version": 1,
+      "name": "HIPAA Chart Access Log Audit",
+      "description": "Scans the EHR's chart-access log for high-volume, off-hours, or otherwise unusual access patterns and has an agent judge which are worth a closer look. Use this if unauthorized or curious chart access (a coworker's family member, a local celebrity, an ex-spouse) has ever gone unnoticed because nobody was reviewing the access log until an audit or complaint forced it.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "hipaa",
+        "compliance",
+        "audit",
+        "security"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/hipaa-access-log-audit.yaml"
+    },
+    {
       "id": "hoa-fee-collection-check",
       "version": 1,
       "name": "HOA Fee Collection Check",
@@ -6181,6 +6319,84 @@
       "path": "jobs/legal/patent-maintenance-fee-reminder.yaml"
     },
     {
+      "id": "patient-balance-collections-aging-check",
+      "version": 1,
+      "name": "Overdue Patient Balance Aging Check",
+      "description": "Buckets outstanding self-pay patient balances by how long they've been unpaid (30/60/90+ days) and flags the oldest ones for collections follow-up. Use this if patient balances have ever quietly aged past the point of easy recovery because nobody was reviewing accounts receivable by age, only by total dollar amount.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "billing",
+        "collections",
+        "accounts-receivable",
+        "patients"
+      ],
+      "schedule": "0 8 1,15 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/patient-balance-collections-aging-check.yaml"
+    },
+    {
+      "id": "patient-immunization-schedule-check",
+      "version": 1,
+      "name": "Patient Immunization Schedule Check",
+      "description": "Checks which patients are due or overdue for a scheduled immunization and lists them for outreach. Use this if a patient (child or adult) has ever fallen behind on a vaccine series because nobody was tracking due dates against the immunization schedule between visits — this is for human patients, distinct from jobs/veterinary/pet-vaccine-due-reminder.yaml which tracks pet vaccines at an animal clinic.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "immunization",
+        "vaccine",
+        "patients",
+        "preventive-care"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/patient-immunization-schedule-check.yaml"
+    },
+    {
+      "id": "patient-portal-message-backlog-check",
+      "version": 1,
+      "name": "Patient Portal Message Backlog Check",
+      "description": "Checks unanswered patient portal messages against a response-time SLA and flags anything overdue. Use this if a patient message has ever sat unanswered in the portal inbox for days because it scrolled off the top of a busy staff member's queue and nobody was tracking age.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "patient-portal",
+        "messaging",
+        "sla",
+        "patients"
+      ],
+      "schedule": "0 */2 * * 1-6",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/patient-portal-message-backlog-check.yaml"
+    },
+    {
       "id": "patient-recall-reminder",
       "version": 1,
       "name": "Patient Recall Reminder",
@@ -6206,6 +6422,35 @@
         "generic"
       ],
       "path": "jobs/healthcare/patient-recall-reminder.yaml"
+    },
+    {
+      "id": "patient-satisfaction-survey-tracking",
+      "version": 1,
+      "name": "Patient Satisfaction Survey Response Tracking",
+      "description": "Tallies patient satisfaction survey response rates and surfaces low scores with comments for follow-up. Use this if low-scoring survey responses have ever sat unread in an inbox, or a slipping response rate went unnoticed for months — distinct from generic online reviews, this tracks a practice's own post-visit survey instrument.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "patient-satisfaction",
+        "survey",
+        "feedback",
+        "patients"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/healthcare/patient-satisfaction-survey-tracking.yaml"
     },
     {
       "id": "pay-equity-band-outlier-check",
@@ -6740,6 +6985,32 @@
       "path": "jobs/insurance/premium-payment-due-reminder.yaml"
     },
     {
+      "id": "prescription-refill-request-backlog-check",
+      "version": 1,
+      "name": "Prescription Refill Request Backlog Check",
+      "description": "Checks pending prescription refill requests against how long they've been waiting and flags anything past a reasonable turnaround. Use this if a refill request has ever sat in a queue long enough that a patient ran out of a maintenance medication before the practice got to it.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "prescriptions",
+        "refills",
+        "patients",
+        "medication"
+      ],
+      "schedule": "0 9,15 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/prescription-refill-request-backlog-check.yaml"
+    },
+    {
       "id": "preventive-maintenance-due-check",
       "version": 1,
       "name": "Preventive Maintenance Due Check",
@@ -6787,6 +7058,32 @@
         "codex"
       ],
       "path": "jobs/publishing/print-run-reorder-threshold-check.yaml"
+    },
+    {
+      "id": "prior-authorization-expiry-check",
+      "version": 1,
+      "name": "Prior Authorization Expiry Check",
+      "description": "Checks treatment-specific prior-authorization requests for approvals about to expire before the procedure happens, and for requests still stuck awaiting payer response. Use this if a procedure has ever been delayed or denied because the prior auth expired, or the payer never responded and nobody was tracking it — distinct from insurance-eligibility-verification-check, which covers general visit eligibility rather than a specific treatment's authorization.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "prior-authorization",
+        "billing",
+        "insurance",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/prior-authorization-expiry-check.yaml"
     },
     {
       "id": "probation-period-review-reminder",
@@ -8487,6 +8784,32 @@
       "path": "jobs/childcare/staff-child-ratio-compliance-check.yaml"
     },
     {
+      "id": "staff-cme-credit-tracking",
+      "version": 1,
+      "name": "Staff CME Credit Tracking",
+      "description": "Checks each clinician's continuing medical education (CME) credit hours completed against what's required by their cycle end date and warns before anyone falls short. Use this if a provider has ever discovered close to renewal that they were short on CME hours needed to keep their license active — distinct from license-credential-expiry-check, which tracks the license's own expiry date rather than the ongoing education requirement to renew it.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "cme",
+        "compliance",
+        "licensing",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/staff-cme-credit-tracking.yaml"
+    },
+    {
       "id": "staging-prod-config-diff",
       "version": 1,
       "name": "Staging vs Production Config Diff",
@@ -9036,6 +9359,32 @@
         "codex"
       ],
       "path": "jobs/fieldservice/tech-license-renewal-check.yaml"
+    },
+    {
+      "id": "telehealth-session-issue-check",
+      "version": 1,
+      "name": "Telehealth Session No-Show/Tech-Failure Check",
+      "description": "Reviews recent telehealth appointments for no-shows and technical-failure disconnects, and flags patients hitting either problem repeatedly. Use this if a telehealth visit has ever quietly failed to happen — patient never joined, or the call dropped and was never rebooked — with nobody tracking it the way an in-person no-show would normally get tracked.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "telehealth",
+        "no-show",
+        "appointments",
+        "patients"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/telehealth-session-issue-check.yaml"
     },
     {
       "id": "terraform-drift-check",

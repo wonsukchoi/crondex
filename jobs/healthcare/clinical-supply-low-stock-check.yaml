@@ -1,0 +1,30 @@
+id: clinical-supply-low-stock-check
+version: 1
+name: Clinical Supply and PPE Low-Stock Check
+description: >
+  Scans clinical supply and PPE inventory (gloves, masks, gowns, syringes,
+  exam table paper, sanitizer) against reorder thresholds and flags what's
+  running low. Use this if a clinic has ever discovered it was out of
+  gloves or exam paper mid-morning because nobody was watching stock levels
+  between deliveries.
+category: healthcare
+tags: [healthcare, inventory, supplies, ppe, operations]
+schedule: "0 7 * * 1,4"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    ($3 + 0) <= ($4 + 0) {
+      printf "LOW STOCK: %s (%s) — %d on hand, reorder threshold %d\n", $1, $2, $3, $4;
+    }
+  ' "{{supply_inventory_csv_path}}"
+variables:
+  supply_inventory_csv_path:
+    default: "./clinical-supply-inventory.csv"
+    description: "Path to a CSV with columns: item_name,category,current_qty,reorder_threshold."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, read-only check. Assumes a maintained inventory export (manual count
+  or supply-management software) — this is the "did anyone check the shelf" backstop,
+  it doesn't place the reorder itself.

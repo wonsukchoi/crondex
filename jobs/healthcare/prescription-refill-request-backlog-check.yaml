@@ -1,0 +1,38 @@
+id: prescription-refill-request-backlog-check
+version: 1
+name: Prescription Refill Request Backlog Check
+description: >
+  Checks pending prescription refill requests against how long they've been
+  waiting and flags anything past a reasonable turnaround. Use this if a
+  refill request has ever sat in a queue long enough that a patient ran out
+  of a maintenance medication before the practice got to it.
+category: healthcare
+tags: [healthcare, prescriptions, refills, patients, medication]
+schedule: "0 9,15 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v hours="{{escalate_after_hours}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      age_hours = (today - requested_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "REFILL PENDING: %s — %s requested %s (%d hrs ago)\n", $1, $2, $3, age_hours;
+      }
+    }
+  ' "{{refill_requests_csv_path}}"
+variables:
+  refill_requests_csv_path:
+    default: "./refill-requests.csv"
+    description: "Path to a CSV with columns: patient_name,medication,requested_date (YYYY-MM-DD),status (pending/approved/denied)."
+  escalate_after_hours:
+    default: 48
+    description: Hours a refill request can sit pending before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your e-prescribing/EHR system rather than
+  live PHI system access. Read-only triage — actual approval/denial of a refill is a
+  clinical decision made by the prescriber, not this job.

@@ -1,0 +1,43 @@
+id: claims-denial-resubmission-check
+version: 1
+name: Claims Denial Resubmission Check
+description: >
+  Checks denied insurance claims against their payer resubmission or appeal
+  deadline and flags anything still open as the deadline approaches or has
+  already passed. Use this if a denied claim has ever quietly aged past the
+  window to resubmit or appeal it, turning recoverable revenue into a
+  write-off nobody meant to take.
+category: healthcare
+tags: [healthcare, billing, claims, denials, revenue-cycle]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $6 != "open" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      diff_days = (deadline_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "PAST DEADLINE: %s — claim %s (%s) resubmission deadline was %s (%d days ago)\n", $1, $2, $3, $5, -diff_days;
+      } else if (diff_days <= warn_days) {
+        printf "RESUBMIT SOON: %s — claim %s (%s) deadline %s (%d days left)\n", $1, $2, $3, $5, diff_days;
+      }
+    }
+  ' "{{denied_claims_csv_path}}"
+variables:
+  denied_claims_csv_path:
+    default: "./denied-claims.csv"
+    description: "Path to a CSV with columns: patient_name,claim_number,payer,denial_date (YYYY-MM-DD),resubmission_deadline (YYYY-MM-DD),status (open/resubmitted/appealed/written-off)."
+  warn_days_before_deadline:
+    default: 7
+    description: How many days before the resubmission/appeal deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your billing/clearinghouse system rather than
+  live PHI system access. Distinct from insurance-eligibility-verification-check
+  (pre-visit) and prior-authorization-expiry-check (treatment approval) — this is
+  post-visit claims that already got denied.

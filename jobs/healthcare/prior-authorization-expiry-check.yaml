@@ -1,0 +1,53 @@
+id: prior-authorization-expiry-check
+version: 1
+name: Prior Authorization Expiry Check
+description: >
+  Checks treatment-specific prior-authorization requests for approvals about
+  to expire before the procedure happens, and for requests still stuck
+  awaiting payer response. Use this if a procedure has ever been delayed or
+  denied because the prior auth expired, or the payer never responded and
+  nobody was tracking it — distinct from insurance-eligibility-verification-check,
+  which covers general visit eligibility rather than a specific treatment's
+  authorization.
+category: healthcare
+tags: [healthcare, prior-authorization, billing, insurance, compliance]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_expiry}}" -v stale_days="{{pending_stale_days}}" '
+    NR==1 {next}
+    {
+      if ($4 == "approved" && $6 != "") {
+        cmd = "date -d \"" $6 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $6 "\" +%s 2>/dev/null";
+        cmd | getline expiry_epoch; close(cmd);
+        diff_days = (expiry_epoch - today) / 86400;
+        if (diff_days <= warn_days) {
+          printf "AUTH EXPIRING: %s — %s (%s) expires %s (%d days)\n", $1, $2, $3, $6, diff_days;
+        }
+      } else if ($4 == "pending") {
+        cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+        cmd | getline submitted_epoch; close(cmd);
+        pending_days = (today - submitted_epoch) / 86400;
+        if (pending_days >= stale_days) {
+          printf "AUTH STUCK PENDING: %s — %s (%s) submitted %s (%d days, no payer decision)\n", $1, $2, $3, $5, pending_days;
+        }
+      }
+    }
+  ' "{{prior_auth_csv_path}}"
+variables:
+  prior_auth_csv_path:
+    default: "./prior-authorizations.csv"
+    description: "Path to a CSV with columns: patient_name,procedure,payer,status (pending/approved/denied),submitted_date (YYYY-MM-DD),auth_expiry_date (YYYY-MM-DD, blank if still pending)."
+  warn_days_before_expiry:
+    default: 14
+    description: How many days before an approved auth expires to start warning.
+  pending_stale_days:
+    default: 10
+    description: Days a request can sit pending with no payer decision before it's flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your billing/prior-auth tracking system rather
+  than live EHR or payer-portal access. Read-only — this flags what needs a call to
+  the payer, it doesn't submit or chase the request itself.

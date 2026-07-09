@@ -1,0 +1,51 @@
+id: telehealth-session-issue-check
+version: 1
+name: Telehealth Session No-Show/Tech-Failure Check
+description: >
+  Reviews recent telehealth appointments for no-shows and technical-failure
+  disconnects, and flags patients hitting either problem repeatedly. Use
+  this if a telehealth visit has ever quietly failed to happen — patient
+  never joined, or the call dropped and was never rebooked — with nobody
+  tracking it the way an in-person no-show would normally get tracked.
+category: healthcare
+tags: [healthcare, telehealth, no-show, appointments, patients]
+schedule: "0 18 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback="{{lookback_days}}" -v repeat_threshold="{{repeat_issue_threshold}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      age_days = (today - appt_epoch) / 86400;
+      if (age_days < 0 || age_days > lookback) next;
+      if ($3 == "no-show" || $3 == "tech-failure" || $3 == "disconnected") {
+        printf "SESSION ISSUE: %s — %s on %s (%s)\n", $1, $3, $2, $4;
+        count[$1]++;
+      }
+    }
+    END {
+      for (p in count) {
+        if (count[p] >= repeat_threshold) {
+          printf "REPEAT ISSUE: %s has had %d telehealth issues in the last %d days\n", p, count[p], lookback;
+        }
+      }
+    }
+  ' "{{telehealth_sessions_csv_path}}"
+variables:
+  telehealth_sessions_csv_path:
+    default: "./telehealth-sessions.csv"
+    description: "Path to a CSV with columns: patient_name,appointment_date (YYYY-MM-DD),status (completed/no-show/tech-failure/disconnected),provider_name."
+  lookback_days:
+    default: 7
+    description: How many days back to review telehealth sessions.
+  repeat_issue_threshold:
+    default: 2
+    description: Number of session issues within the lookback window before a patient is flagged as a repeat case (may need an in-person alternative offered).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your telehealth platform or scheduling
+  system rather than live PHI system access. Read-only — repeat cases are worth
+  offering an in-person or phone alternative rather than retrying video indefinitely.

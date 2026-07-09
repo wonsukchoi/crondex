@@ -1,0 +1,74 @@
+id: hipaa-access-log-audit
+version: 1
+name: HIPAA Chart Access Log Audit
+description: >
+  Scans the EHR's chart-access log for high-volume, off-hours, or otherwise
+  unusual access patterns and has an agent judge which are worth a closer
+  look. Use this if unauthorized or curious chart access (a coworker's
+  family member, a local celebrity, an ex-spouse) has ever gone unnoticed
+  because nobody was reviewing the access log until an audit or complaint
+  forced it.
+category: healthcare
+tags: [healthcare, hipaa, compliance, audit, security]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' -v threshold="{{daily_access_threshold}}" -v off_start="{{off_hours_start}}" -v off_end="{{off_hours_end}}" '
+    NR==1 {next}
+    {
+      day = substr($3,1,10); hour = substr($3,12,2) + 0;
+      key = $1 SUBSEP day;
+      count[key]++;
+      staffname[key] = $1; dayval[key] = day;
+      if (hour >= off_start || hour < off_end) {
+        printf "OFF-HOURS ACCESS: %s accessed %s at %s (action: %s)\n", $1, $2, $3, $4;
+      }
+    }
+    END {
+      for (k in count) {
+        if (count[k] > threshold) {
+          printf "HIGH-VOLUME ACCESS: %s accessed %d distinct log entries on %s (threshold %d)\n", staffname[k], count[k], dayval[k], threshold;
+        }
+      }
+    }
+  ' "{{access_log_csv_path}}"
+prompt: |
+  Run the flagged entries from the access-log scan above (high-volume days
+  and off-hours access events) through a closer read.
+  1. For each flagged staff member/day, look at which patient records were
+     touched and whether the access pattern looks consistent with normal
+     clinical or front-desk duties for that role (e.g. a nurse pulling
+     charts for today's patient panel) versus inconsistent with it (e.g.
+     access to a patient not on that staff member's schedule, repeated
+     access to the same non-assigned patient, or a name match suggesting a
+     coworker, family member, or public figure).
+  2. Rank flags from "likely benign, no action" to "recommend compliance
+     officer review."
+  3. Do not name a possible relationship as fact — describe the pattern
+     observed and let a human confirm it.
+  4. If nothing stands out beyond routine volume, say so in one line.
+variables:
+  access_log_csv_path:
+    default: "./chart-access-log.csv"
+    description: "Path to a CSV with columns: staff_name,patient_name,access_timestamp (YYYY-MM-DD HH:MM),action (view/edit/print)."
+  daily_access_threshold:
+    default: 40
+    description: Number of chart access events by one staff member in one day that triggers a high-volume flag.
+  off_hours_start:
+    default: 20
+    description: Hour (0-23, local clinic time) after which access counts as off-hours.
+  off_hours_end:
+    default: 6
+    description: Hour (0-23) before which access still counts as off-hours.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The command gives you the raw high-volume and off-hours flags for free, purely
+  from counts and timestamps. Only the prompt pass can judge whether a flagged
+  pattern looks like inappropriate snooping versus legitimate clinical coverage —
+  that judgment call is what the LLM pass adds.
+notes: >
+  Assumes an already-exported, de-identified-where-possible access log rather than
+  live EHR/PHI system access — export staff name, patient identifier, timestamp,
+  and action only. Any confirmed concern should go through your practice's actual
+  HIPAA compliance/privacy officer process, not this job.

@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-400 jobs across 48 categories:
+413 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -125,7 +125,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `gaming` | 7 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 7 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 7 | Lifecycle marketing — churn, trials, onboarding, reviews. |
-| `healthcare` | 7 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 7 | Hotel ops — guest reviews, inspections, maintenance requests. |

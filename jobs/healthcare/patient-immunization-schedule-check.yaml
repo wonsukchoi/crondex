@@ -1,0 +1,41 @@
+id: patient-immunization-schedule-check
+version: 1
+name: Patient Immunization Schedule Check
+description: >
+  Checks which patients are due or overdue for a scheduled immunization and
+  lists them for outreach. Use this if a patient (child or adult) has ever
+  fallen behind on a vaccine series because nobody was tracking due dates
+  against the immunization schedule between visits — this is for human
+  patients, distinct from jobs/veterinary/pet-vaccine-due-reminder.yaml
+  which tracks pet vaccines at an animal clinic.
+category: healthcare
+tags: [healthcare, immunization, vaccine, patients, preventive-care]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "IMMUNIZATION DUE: %s — %s due %s (%d days)\n", $1, $4, $3, diff_days;
+      }
+    }
+  ' "{{patients_csv_path}}"
+variables:
+  patients_csv_path:
+    default: "./patient-immunizations.csv"
+    description: "Path to a CSV with columns: patient_name,date_of_birth,due_date (YYYY-MM-DD),vaccine_name."
+  warn_days_before:
+    default: 21
+    description: How many days before (or past) the due date to start listing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your EHR/immunization registry rather than
+  live PHI system access. Read-only backstop check — cross-verify against your
+  state immunization registry before contacting patients, since due dates can shift
+  based on catch-up schedules.

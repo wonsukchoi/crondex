@@ -1,0 +1,59 @@
+id: patient-satisfaction-survey-tracking
+version: 1
+name: Patient Satisfaction Survey Response Tracking
+description: >
+  Tallies patient satisfaction survey response rates and surfaces low
+  scores with comments for follow-up. Use this if low-scoring survey
+  responses have ever sat unread in an inbox, or a slipping response rate
+  went unnoticed for months — distinct from generic online reviews, this
+  tracks a practice's own post-visit survey instrument.
+category: healthcare
+tags: [healthcare, patient-satisfaction, survey, feedback, patients]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' -v low="{{low_score_threshold}}" '
+    NR==1 {next}
+    { sent++; }
+    $3 != "" { responded++; }
+    ($3 != "" && $4 != "" && ($4+0) <= low) {
+      printf "LOW SCORE: %s — score %s: \"%s\" (responded %s)\n", $1, $4, $5, $3;
+    }
+    END {
+      rate = (sent > 0) ? (responded / sent * 100) : 0;
+      printf "RESPONSE RATE: %d/%d sent (%.1f%%)\n", responded, sent, rate;
+    }
+  ' "{{survey_csv_path}}"
+prompt: |
+  Look at the low-score rows and comments flagged by the tally above (from
+  {{survey_csv_path}}).
+  1. Group the comments into common themes (e.g. wait time, billing
+     confusion, communication, front-desk experience).
+  2. For each theme, note how many respondents mentioned it and give one
+     representative quote.
+  3. For any response that names a specific, addressable problem, draft a
+     short, warm outreach note to that patient acknowledging the feedback —
+     draft-only, for staff to review before sending.
+  4. If the response rate this run is notably lower than
+     {{expected_response_rate}}%, flag that as worth investigating
+     separately from the score themes.
+variables:
+  survey_csv_path:
+    default: "./patient-satisfaction-surveys.csv"
+    description: "Path to a CSV with columns: patient_name,visit_date,response_date (blank if no response),score (1-5, blank if no response),comment."
+  low_score_threshold:
+    default: 3
+    description: Scores at or below this value are flagged as low.
+  expected_response_rate:
+    default: 25
+    description: Expected survey response rate (%) — used only as a reference point for flagging an unusually low run.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The command gives you the response rate and raw low-score rows for free. Only the
+  prompt pass groups comments into themes and drafts a tactful outreach note to an
+  unhappy patient — that synthesis is what the LLM pass adds.
+notes: >
+  Assumes an already-exported CSV from your survey tool (e.g. post-visit SMS/email
+  survey) rather than live PHI system access. Outreach drafts must be reviewed by
+  staff before sending.

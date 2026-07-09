@@ -1,0 +1,39 @@
+id: patient-portal-message-backlog-check
+version: 1
+name: Patient Portal Message Backlog Check
+description: >
+  Checks unanswered patient portal messages against a response-time SLA and
+  flags anything overdue. Use this if a patient message has ever sat
+  unanswered in the portal inbox for days because it scrolled off the top
+  of a busy staff member's queue and nobody was tracking age.
+category: healthcare
+tags: [healthcare, patient-portal, messaging, sla, patients]
+schedule: "0 */2 * * 1-6"
+timezone: "America/New_York"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v sla="{{sla_hours}}" '
+    NR==1 {next}
+    $4 == "unanswered" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      age_hours = (now - received_epoch) / 3600;
+      if (age_hours >= sla) {
+        printf "OVERDUE MESSAGE: %s — \"%s\" received %s (%d hrs ago, unanswered)\n", $1, $3, $2, age_hours;
+      }
+    }
+  ' "{{portal_messages_csv_path}}"
+variables:
+  portal_messages_csv_path:
+    default: "./portal-messages.csv"
+    description: "Path to a CSV with columns: patient_name,received_at (YYYY-MM-DD HH:MM),subject,status (unanswered/answered)."
+  sla_hours:
+    default: 24
+    description: Hours a message can go unanswered before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from your patient portal/EHR messaging module
+  rather than live access to message content — export subject lines only if full
+  message bodies raise PHI-export concerns for your practice. Read-only — does not
+  reply to patients.

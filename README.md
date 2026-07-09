@@ -188,7 +188,8 @@ crondex/
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`
 (or run `crondex init`), fill it in, `npm run validate && npm run
-build-catalog`, open a PR.
+build-catalog`, open a PR. See [`ROADMAP.md`](ROADMAP.md) for what's
+prioritized right now and what's deliberately not built yet.
 
 ---
 

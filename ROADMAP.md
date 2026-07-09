@@ -1,0 +1,95 @@
+# Roadmap
+
+Where crondex stands and what's worth working on next. Not a promise
+schedule — just the priority order to work through when picking up a
+session with no other ask in mind.
+
+## Where things stand (as of 0.19.0)
+
+- **Catalog**: 309 jobs across 44 categories, all at 6+ jobs deep.
+- **CLI**: `list`, `categories`, `show`, `add`, `recommend`, `init`,
+  `update` (with diff + `--dry-run`), `deploy` (7 targets: crontab,
+  github-actions, systemd, docker, k8s-cronjob, eventbridge,
+  cloud-scheduler), `deploy --list-installed`, `uninstall`.
+- **Quality gates**: schema validation, shellcheck, near-duplicate
+  detection, and a local sandboxed smoke-test all run in CI (smoke-test is
+  local-only — some job defaults make real network calls).
+- **Recommend**: zero-token/offline keyword matching with a
+  catalog-grounded synonym set and bounded edit-distance fuzzy fallback.
+- **Community surface**: `.github/ISSUE_TEMPLATE/` for job proposals and
+  bug reports.
+
+No known gaps in the CLI or tooling right now — the last audit (see git
+log around the `k8s-cronjob`/`eventbridge`/`cloud-scheduler` and `update`
+diff commits) closed out everything found. That means **primary effort
+going forward is catalog growth**: more jobs, deeper categories, maybe new
+categories. Treat the sections below as what to reach for *between* growth
+sessions, or when growth itself surfaces a real gap (like the `templates/`
+packaging bug or the missing `crondex init` npm-files entry did).
+
+## 1. Catalog growth (primary, ongoing)
+
+No fixed target — driven by what's actually useful, not a round number.
+Two directions, pick based on what's thin:
+
+- **Deepen**: push existing categories past 6 jobs where a category
+  clearly has more real, narrow, nameable jobs to give (a category with
+  6 generic jobs isn't "done" if obvious 7th/8th jobs are still missing).
+- **Widen**: add categories for domains not yet covered. No pre-planned
+  taxonomy — add a folder when a real, recurring cron-shaped task doesn't
+  fit anywhere existing.
+
+Quality bar (from CONTRIBUTING.md, worth re-reading before a big batch):
+narrow and nameable, plain-language description, safe by default
+(dry-run/draft-only for anything destructive or outbound), portable
+shell, tunables in `variables` not hardcoded. Every batch must pass
+`npm run validate`, `npm run lint-shell`, `npm run check-duplicates`
+before commit, and `npm run build-catalog` to sync `catalog.json` +
+README's job table.
+
+For large batches (10+ jobs), parallelizing across a handful of
+general-purpose agents — each owns a small set of categories, writes
+YAML only, no npm scripts — then validating/building/committing myself
+in one pass has worked well and scales better than one job at a time.
+
+## 2. Maintenance backlog (reach for when growth stalls or surfaces a need)
+
+- **Version-bump discipline**: `version` field is manually maintained per
+  CONTRIBUTING.md's convention but under-followed (most jobs have never
+  moved past `version: 1` even after edits). Not urgent — `crondex update`
+  now shows a real diff regardless of whether `version` was bumped — but
+  worth a periodic spot-check on jobs that get meaningfully edited.
+- **CI cost/speed**: currently fast (schema + shellcheck + duplicate scan,
+  no network calls). Revisit only if catalog growth makes any of these
+  noticeably slow.
+- **`smoke-test` coverage**: local-only by design (network-dependent
+  job defaults would make CI flaky). Fine as-is; don't try to force it
+  into CI without solving that flakiness first.
+
+## 3. Speculative / not yet justified
+
+Ideas that came up and were deliberately *not* built because the cost
+didn't clear the bar yet. Revisit only if the underlying assumption
+changes.
+
+- **Semantic/embedding-based `recommend`**: would need either a network
+  call (breaks the "zero tokens, no network call" guarantee) or a bundled
+  local model (bloats the npx CLI). Keyword+synonym+fuzzy matching isn't
+  degraded at 309 jobs. Revisit if/when `recommend` starts visibly missing
+  good matches that a human can tell should've ranked higher.
+- **More deploy targets** (Terraform, Nomad, Windows Task Scheduler,
+  etc.): only add one when someone actually needs it — the existing 7
+  cover crontab/CI/systemd/containers/k8s/major clouds already.
+- **A hosted/searchable catalog website**: `catalog.json` + `llms.txt` +
+  README already make the catalog agent- and human-browsable. A website
+  is a real project, not an incremental add — don't start it casually.
+
+## How to pick up a session with no specific ask
+
+1. Check `CONTEXT.md` for what was last in flight.
+2. If nothing in flight: run `node bin/crondex.js categories` (or check
+   `catalog.json` counts) to see which categories are thinnest, and grow
+   those.
+3. Before publishing: `npm run validate && npm run lint-shell && npm run
+   check-duplicates && npm test`, then `npm run build-catalog`, commit,
+   bump `package.json` version, `npm publish`.

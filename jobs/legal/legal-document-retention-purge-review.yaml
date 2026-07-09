@@ -1,0 +1,39 @@
+id: legal-document-retention-purge-review
+version: 1
+name: Legal Document Retention Purge Review
+description: >
+  Checks contracts and legal documents against their retention schedule
+  and flags anything past its retention period as eligible for archival
+  or destruction review. Use this if signed contracts and legal files
+  have ever piled up indefinitely because nobody was checking them
+  against how long the business's own retention policy actually requires
+  keeping them.
+category: legal
+tags: [legal, records-retention, document-management, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      if (today >= exp_epoch) {
+        printf "RETENTION EXPIRED: %s (%s) — retention ended %s, check for holds before purging\n", $1, $2, $3;
+      }
+    }
+  ' "{{records_csv_path}}"
+variables:
+  records_csv_path:
+    default: "./legal-records-retention-schedule.csv"
+    description: "Path to a CSV with columns: document_id,document_type,retention_end_date (YYYY-MM-DD),reviewed (yes/no). One row per contract/legal document tracked under the retention policy."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Business's own contract/legal-file retention schedule — distinct from
+  `public-records-retention-purge-check` in government (public-sector
+  records law) and from `litigation-hold-acknowledgment-tracker` in this
+  category. Always cross-check against any active litigation hold before
+  destroying anything this flags — a hold overrides the normal retention
+  schedule.

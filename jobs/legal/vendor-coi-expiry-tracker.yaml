@@ -1,0 +1,37 @@
+id: vendor-coi-expiry-tracker
+version: 1
+name: Vendor Certificate of Insurance Expiry Tracker
+description: >
+  Checks certificates of insurance you've collected from vendors and
+  contractors and warns before any expire, so a lapsed COI doesn't sit
+  unnoticed in the file. Use this if a vendor's insurance has ever lapsed
+  mid-contract and nobody found out until a claim needed it.
+category: legal
+tags: [legal, vendor-management, coi, contractor-compliance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: COI for \"" $1 "\" (" $2 ") expires in " days_left " days (" $3 ")";
+    }
+  ' {{vendor_cois_csv}}
+variables:
+  vendor_cois_csv:
+    default: "vendor-certificates-of-insurance.csv"
+    description: "CSV with header row, columns: vendor_name,coverage_type (e.g. general-liability, workers-comp),expiry_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a vendor's COI expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Opposite direction from insurance's `certificate-of-insurance-request-check`
+  (which tracks fulfilling requests for your own COI) — this tracks
+  certificates other parties gave you, as a contract-compliance/vendor-risk
+  check rather than an insurance-desk workflow. Update the CSV whenever a
+  vendor sends a new or renewed COI.

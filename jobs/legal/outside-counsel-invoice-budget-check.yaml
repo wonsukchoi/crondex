@@ -1,0 +1,37 @@
+id: outside-counsel-invoice-budget-check
+version: 1
+name: Outside Counsel Invoice Budget Check
+description: >
+  Compares outside counsel invoices billed to date against each matter's
+  approved budget and flags matters approaching or over budget. Use this
+  if a matter budget has ever been blown through silently because
+  invoices got approved one at a time without anyone tracking the
+  running total against the budget set at intake.
+category: legal
+tags: [legal, outside-counsel, billing, budget]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_pct="{{warn_at_percent}}" '
+    NR==1 {next}
+    {
+      budget = $3 + 0;
+      billed = $4 + 0;
+      if (budget > 0) {
+        pct = (billed / budget) * 100;
+        if (pct >= warn_pct) {
+          printf "BUDGET ALERT: %s (firm: %s) — billed $%.2f of $%.2f budget (%.0f%%)\n", $1, $2, billed, budget, pct;
+        }
+      }
+    }
+  ' "{{matter_budgets_csv_path}}"
+variables:
+  matter_budgets_csv_path:
+    default: "./outside-counsel-matter-budgets.csv"
+    description: "Path to a CSV with columns: matter_name,firm_name,approved_budget,billed_to_date. One row per matter with active outside counsel."
+  warn_at_percent:
+    default: 80
+    description: Percent of approved budget billed at which a matter gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Update billed_to_date from approved invoices (e.g. e-billing/LEDES exports) before each run — this only compares numbers you supply, it doesn't parse invoices itself.

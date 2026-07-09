@@ -1,0 +1,61 @@
+id: data-privacy-request-deadline-tracker
+version: 1
+name: Data Privacy Request (GDPR/CCPA) Deadline Tracker
+description: >
+  Flags open data subject access/deletion requests approaching their
+  statutory response deadline and drafts a status summary for whoever
+  owns the response. Use this if a GDPR or CCPA-style privacy request has
+  ever come uncomfortably close to its response window because tracking
+  it lived in someone's inbox instead of a real deadline list.
+category: legal
+tags: [legal, data-privacy, gdpr, ccpa, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $5 == "open" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "PRIVACY REQUEST DUE: %s — %s request, due %s (%d days)\n", $1, $2, $4, diff_days;
+      }
+    }
+  ' "{{privacy_requests_csv_path}}"
+prompt: |
+  Here is the raw list of open data privacy requests approaching their
+  deadline (from the shell check): {{command_output}}. For each one:
+  1. Note the request type ({{request_types_hint}}) and which regulation's
+     clock applies (e.g. GDPR's ~30-day window, CCPA's 45-day window).
+  2. Flag anything with fewer than {{urgent_within_days}} days left as
+     urgent and needing an owner today.
+  3. Draft a short status update summarizing what's open, what's urgent,
+     and who should act next, suitable for pasting into a privacy/legal
+     ops channel.
+variables:
+  privacy_requests_csv_path:
+    default: "./data-privacy-requests.csv"
+    description: "Path to a CSV with columns: request_id,request_type (access/deletion/correction/opt-out),regulation (gdpr/ccpa/other),response_due_date (YYYY-MM-DD),status (open/closed)."
+  warn_days_before:
+    default: 7
+    description: Days before the statutory response deadline to start flagging.
+  urgent_within_days:
+    default: 2
+    description: Days left at which an open request becomes urgent in the drafted summary.
+  request_types_hint:
+    default: "access, deletion, correction, or opt-out of sale"
+    description: Short reminder of the request categories your intake form uses.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of requests inside the warning
+  window from date math alone; the prompt adds regulation-specific
+  framing and a drafted, prioritized summary a non-lawyer can act on
+  without re-reading each row.
+notes: >
+  Actual statutory deadlines, extensions, and exceptions vary by
+  regulation and request type — confirm with privacy counsel. This is a
+  tracking and drafting aid, not a substitute for legal review of any
+  individual request.

@@ -1,0 +1,31 @@
+id: corporate-minute-book-completeness-check
+version: 1
+name: Corporate Minute Book Completeness Check
+description: >
+  Checks the corporate minute book against the list of resolutions and
+  actions that should be documented for the year and flags anything
+  missing. Use this if a board resolution or annual consent has ever been
+  discussed and acted on but never actually got written up and filed in
+  the minute book, which surfaces at the worst time — due diligence for
+  a financing or sale.
+category: legal
+tags: [legal, corporate-governance, board-resolutions, minute-book]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4 == "no" {
+      printf "MISSING FROM MINUTE BOOK: %s — %s (required by %s, not yet filed)\n", $1, $2, $3;
+    }
+  ' "{{minute_book_checklist_csv_path}}"
+variables:
+  minute_book_checklist_csv_path:
+    default: "./minute-book-checklist.csv"
+    description: "Path to a CSV with columns: item_id,description (e.g. 'annual board consent', 'officer appointment resolution'),required_by_date (YYYY-MM-DD or a plain label like 'Q2'),filed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes someone maintains the checklist whenever a resolution, consent,
+  or corporate action is decided — this only checks whether the paper
+  trail is complete, it doesn't draft the resolutions themselves.

@@ -1,0 +1,40 @@
+id: litigation-hold-acknowledgment-tracker
+version: 1
+name: Litigation Hold Acknowledgment Tracker
+description: >
+  Checks active litigation hold notices against the custodian list and
+  flags anyone who hasn't acknowledged receipt yet. Use this if a
+  litigation hold has ever gone out and nobody could later prove every
+  custodian actually got and confirmed it, which is exactly what gets
+  picked apart in a spoliation motion.
+category: legal
+tags: [legal, litigation, litigation-hold, ediscovery, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{escalate_after_days}}" '
+    NR==1 {next}
+    $5 == "active" && $4 == "" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      pending_days = (now_epoch - sent_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "NOT ACKNOWLEDGED: %s — hold \"%s\" sent %s (%d days ago)\n", $1, $2, $3, pending_days;
+      }
+    }
+  ' "{{holds_csv_path}}"
+variables:
+  holds_csv_path:
+    default: "./litigation-holds.csv"
+    description: "Path to a CSV with columns: custodian_name,matter_name,notice_sent_date (YYYY-MM-DD),acknowledged_date (blank if not yet acknowledged),hold_status (active/released)."
+  escalate_after_days:
+    default: 5
+    description: Days a sent hold notice can go unacknowledged before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes counsel maintains the CSV whenever a hold is issued, released, or
+  a custodian confirms receipt. Distinct from court-deadline-reminder
+  (filing/response deadlines within a matter) — this tracks preservation
+  obligations and custodian acknowledgment instead.

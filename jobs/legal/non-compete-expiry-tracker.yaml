@@ -1,0 +1,37 @@
+id: non-compete-expiry-tracker
+version: 1
+name: Non-Compete / Non-Solicit Expiry Tracker
+description: >
+  Tracks the restricted-period end date of non-compete and non-solicit
+  agreements for departed employees and warns as each one is about to
+  expire. Use this if you've ever needed to know exactly when a former
+  employee's restrictive covenant runs out — before deciding whether to
+  act on a suspected violation, or before it's too late to.
+category: legal
+tags: [legal, non-compete, non-solicit, restrictive-covenants, employment]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $2 " covenant for " $1 " expires in " days_left " days (" $3 ")";
+    }
+  ' {{covenants_csv}}
+variables:
+  covenants_csv:
+    default: "non-compete-covenants.csv"
+    description: "CSV with header row, columns: former_employee_name,covenant_type (non-compete/non-solicit),restricted_period_end_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before the restricted period ends to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Enforceability of these covenants varies a lot by state/country and has
+  been narrowing in many jurisdictions — confirm with counsel before
+  relying on any covenant as still enforceable. Update the CSV whenever
+  an employee with a covenant departs.

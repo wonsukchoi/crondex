@@ -1,0 +1,43 @@
+id: trademark-infringement-watch
+version: 1
+name: Trademark Infringement Watch
+description: >
+  Searches for new trademark applications, domain registrations, and
+  marketplace listings that look like they could infringe on your
+  registered marks, and summarizes anything worth a closer look. Use
+  this if you've ever found out about a confusingly similar competitor
+  mark or copycat domain months after it started causing customer
+  confusion, instead of when it first appeared.
+category: legal
+tags: [legal, trademark, ip, infringement-watch]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check for potential infringement of these registered marks:
+  {{marks_to_watch}} (owned in classes/goods: {{goods_or_classes}}).
+  1. Search recent trademark application filings (e.g. via the relevant
+     trademark office's public search/TESS-style database) for new marks
+     confusingly similar in name or logo, filed in overlapping
+     goods/services classes.
+  2. Search for newly registered domain names that are close
+     misspellings or lookalikes of {{marks_to_watch}}.
+  3. Spot-check major marketplaces/app stores for listings using the mark
+     or a confusing variant without authorization.
+  4. For each hit, summarize: what was found, how similar it is, and
+     whether it looks like routine noise or worth flagging to counsel.
+  5. This is a monitoring aid, not legal advice on whether infringement
+     exists — say so, and recommend counsel review anything flagged.
+variables:
+  marks_to_watch:
+    default: "list your registered trademark(s) here"
+    description: The registered mark(s)/brand name(s) to watch for lookalikes.
+  goods_or_classes:
+    default: "your registered goods/services classes"
+    description: The goods/services or trademark classes your registration covers, to judge overlap.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `trademark-renewal-reminder`, which tracks renewing your
+  own registration — this watches for others potentially infringing it.
+  Search coverage depends on what databases/tools the agent can actually
+  reach; a paid watch service will catch more than open search alone.

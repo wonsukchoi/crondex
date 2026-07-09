@@ -1,0 +1,39 @@
+id: timekeeper-billable-hours-compliance-check
+version: 1
+name: Timekeeper Billable Hours Compliance Check
+description: >
+  Checks attorneys and paralegals against their weekly timesheet
+  submission and minimum billable-hour targets, and flags anyone missing
+  or short. Use this if unbilled time has ever quietly leaked out of a
+  matter because a timekeeper fell behind on entering hours and nobody
+  caught it before the billing cycle closed.
+category: legal
+tags: [legal, timekeeping, billable-hours, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{min_weekly_hours}}" '
+    NR==1 {next}
+    {
+      hours = $3 + 0;
+      if ($3 == "" ) {
+        printf "MISSING TIMESHEET: %s — week of %s not submitted\n", $1, $2;
+      } else if (hours < target) {
+        printf "SHORT OF TARGET: %s — week of %s logged %.1f hrs (target %s)\n", $1, $2, hours, target;
+      }
+    }
+  ' "{{timesheets_csv_path}}"
+variables:
+  timesheets_csv_path:
+    default: "./timekeeper-hours.csv"
+    description: "Path to a CSV with columns: timekeeper_name,week_start_date (YYYY-MM-DD),billable_hours_logged (blank if not yet submitted). One row per timekeeper per week."
+  min_weekly_hours:
+    default: 30
+    description: Minimum billable hours expected per timekeeper per week before flagging a shortfall.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from any HR timesheet/payroll job — this checks billable-hour
+  compliance for legal timekeepers against matter-billing targets, not
+  hourly payroll attendance. Export the CSV from your time & billing
+  system before each run.

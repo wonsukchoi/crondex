@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 427,
+  "count": 439,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1733,6 +1733,31 @@
       "path": "jobs/learning/conference-cfp-deadline-reminder.yaml"
     },
     {
+      "id": "conflict-of-interest-check-tracker",
+      "version": 1,
+      "name": "Conflict-of-Interest Check Tracker",
+      "description": "Checks new matters or clients waiting on a conflict-of-interest clearance and flags any that have sat unresolved past a set number of days. Use this if a new engagement has ever started before the conflicts check actually cleared, because the request got sent and then forgotten.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "conflicts-check",
+        "intake",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/conflict-of-interest-check-tracker.yaml"
+    },
+    {
       "id": "constituent-casework-followup-check",
       "version": 1,
       "name": "Constituent Casework Follow-Up Check",
@@ -1911,6 +1936,31 @@
         "generic"
       ],
       "path": "jobs/veterinary/controlled-substance-log-audit.yaml"
+    },
+    {
+      "id": "corporate-minute-book-completeness-check",
+      "version": 1,
+      "name": "Corporate Minute Book Completeness Check",
+      "description": "Checks the corporate minute book against the list of resolutions and actions that should be documented for the year and flags anything missing. Use this if a board resolution or annual consent has ever been discussed and acted on but never actually got written up and filed in the minute book, which surfaces at the worst time — due diligence for a financing or sale.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "corporate-governance",
+        "board-resolutions",
+        "minute-book"
+      ],
+      "schedule": "0 9 1 1,4,7,10 *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/corporate-minute-book-completeness-check.yaml"
     },
     {
       "id": "cost-alert",
@@ -2344,6 +2394,35 @@
         "generic"
       ],
       "path": "jobs/productivity/daily-standup-summary.yaml"
+    },
+    {
+      "id": "data-privacy-request-deadline-tracker",
+      "version": 1,
+      "name": "Data Privacy Request (GDPR/CCPA) Deadline Tracker",
+      "description": "Flags open data subject access/deletion requests approaching their statutory response deadline and drafts a status summary for whoever owns the response. Use this if a GDPR or CCPA-style privacy request has ever come uncomfortably close to its response window because tracking it lived in someone's inbox instead of a real deadline list.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "data-privacy",
+        "gdpr",
+        "ccpa",
+        "deadline"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/data-privacy-request-deadline-tracker.yaml"
     },
     {
       "id": "db-backup-verify",
@@ -3001,6 +3080,31 @@
         "codex"
       ],
       "path": "jobs/childcare/enrollment-waitlist-followup-check.yaml"
+    },
+    {
+      "id": "entity-authority-document-expiry-check",
+      "version": 1,
+      "name": "Entity Authority Document Expiry Check",
+      "description": "Warns before a power of attorney, corporate signing-authority certificate, or other entity-authority document reaches its expiration date. Use this if a bank, counterparty, or government office has ever rejected a signature because the power of attorney or authority certificate backing it had quietly expired.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "power-of-attorney",
+        "corporate-authority",
+        "compliance"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/entity-authority-document-expiry-check.yaml"
     },
     {
       "id": "env-drift-check",
@@ -5268,6 +5372,31 @@
       "path": "jobs/hr/leave-of-absence-return-tracker.yaml"
     },
     {
+      "id": "legal-document-retention-purge-review",
+      "version": 1,
+      "name": "Legal Document Retention Purge Review",
+      "description": "Checks contracts and legal documents against their retention schedule and flags anything past its retention period as eligible for archival or destruction review. Use this if signed contracts and legal files have ever piled up indefinitely because nobody was checking them against how long the business's own retention policy actually requires keeping them.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "records-retention",
+        "document-management",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/legal-document-retention-purge-review.yaml"
+    },
+    {
       "id": "license-compliance-check",
       "version": 1,
       "name": "Dependency License Compliance Check",
@@ -5365,6 +5494,32 @@
         "codex"
       ],
       "path": "jobs/telecom/link-capacity-threshold-alert.yaml"
+    },
+    {
+      "id": "litigation-hold-acknowledgment-tracker",
+      "version": 1,
+      "name": "Litigation Hold Acknowledgment Tracker",
+      "description": "Checks active litigation hold notices against the custodian list and flags anyone who hasn't acknowledged receipt yet. Use this if a litigation hold has ever gone out and nobody could later prove every custodian actually got and confirmed it, which is exactly what gets picked apart in a spoliation motion.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "litigation",
+        "litigation-hold",
+        "ediscovery",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/litigation-hold-acknowledgment-tracker.yaml"
     },
     {
       "id": "livestock-feed-stock-check",
@@ -6199,6 +6354,32 @@
       "path": "jobs/crypto/nft-floor-price-watch.yaml"
     },
     {
+      "id": "non-compete-expiry-tracker",
+      "version": 1,
+      "name": "Non-Compete / Non-Solicit Expiry Tracker",
+      "description": "Tracks the restricted-period end date of non-compete and non-solicit agreements for departed employees and warns as each one is about to expire. Use this if you've ever needed to know exactly when a former employee's restrictive covenant runs out — before deciding whether to act on a suspected violation, or before it's too late to.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "non-compete",
+        "non-solicit",
+        "restrictive-covenants",
+        "employment"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/non-compete-expiry-tracker.yaml"
+    },
+    {
       "id": "offer-expiry-reminder",
       "version": 1,
       "name": "Offer Expiry Reminder",
@@ -6394,6 +6575,31 @@
         "codex"
       ],
       "path": "jobs/devops/orphaned-branch-cleanup.yaml"
+    },
+    {
+      "id": "outside-counsel-invoice-budget-check",
+      "version": 1,
+      "name": "Outside Counsel Invoice Budget Check",
+      "description": "Compares outside counsel invoices billed to date against each matter's approved budget and flags matters approaching or over budget. Use this if a matter budget has ever been blown through silently because invoices got approved one at a time without anyone tracking the running total against the budget set at intake.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "outside-counsel",
+        "billing",
+        "budget"
+      ],
+      "schedule": "0 9 1,15 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/outside-counsel-invoice-budget-check.yaml"
     },
     {
       "id": "overdue-library-materials-check",
@@ -8735,6 +8941,31 @@
       "path": "jobs/telecom/service-ticket-churn-risk-review.yaml"
     },
     {
+      "id": "settlement-payment-schedule-tracker",
+      "version": 1,
+      "name": "Settlement Payment Schedule Tracker",
+      "description": "Checks scheduled settlement agreement installment payments — both owed and owed to you — and flags anything due soon or missed. Use this if a settlement installment has ever been paid late (risking default terms kicking back in) or received late without anyone noticing until the next reconciliation.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "settlement",
+        "payment-schedule",
+        "litigation"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/settlement-payment-schedule-tracker.yaml"
+    },
+    {
       "id": "shipment-delay-watch",
       "version": 1,
       "name": "Shipment Delay Watch",
@@ -9786,6 +10017,31 @@
       "path": "jobs/support/ticket-reopened-rate-watch.yaml"
     },
     {
+      "id": "timekeeper-billable-hours-compliance-check",
+      "version": 1,
+      "name": "Timekeeper Billable Hours Compliance Check",
+      "description": "Checks attorneys and paralegals against their weekly timesheet submission and minimum billable-hour targets, and flags anyone missing or short. Use this if unbilled time has ever quietly leaked out of a matter because a timekeeper fell behind on entering hours and nobody caught it before the billing cycle closed.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "timekeeping",
+        "billable-hours",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/timekeeper-billable-hours-compliance-check.yaml"
+    },
+    {
       "id": "timezone-meeting-conflict-check",
       "version": 1,
       "name": "Timezone Meeting Conflict Check",
@@ -9886,6 +10142,33 @@
         "codex"
       ],
       "path": "jobs/gaming/tournament-registration-deadline-check.yaml"
+    },
+    {
+      "id": "trademark-infringement-watch",
+      "version": 1,
+      "name": "Trademark Infringement Watch",
+      "description": "Searches for new trademark applications, domain registrations, and marketplace listings that look like they could infringe on your registered marks, and summarizes anything worth a closer look. Use this if you've ever found out about a confusingly similar competitor mark or copycat domain months after it started causing customer confusion, instead of when it first appeared.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "trademark",
+        "ip",
+        "infringement-watch"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/trademark-infringement-watch.yaml"
     },
     {
       "id": "trademark-renewal-reminder",
@@ -10283,6 +10566,31 @@
         "codex"
       ],
       "path": "jobs/fleet/vehicle-registration-expiry-check.yaml"
+    },
+    {
+      "id": "vendor-coi-expiry-tracker",
+      "version": 1,
+      "name": "Vendor Certificate of Insurance Expiry Tracker",
+      "description": "Checks certificates of insurance you've collected from vendors and contractors and warns before any expire, so a lapsed COI doesn't sit unnoticed in the file. Use this if a vendor's insurance has ever lapsed mid-contract and nobody found out until a claim needed it.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "vendor-management",
+        "coi",
+        "contractor-compliance"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/vendor-coi-expiry-tracker.yaml"
     },
     {
       "id": "vendor-early-pay-discount-tracker",

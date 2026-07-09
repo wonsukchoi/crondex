@@ -1,0 +1,38 @@
+id: conflict-of-interest-check-tracker
+version: 1
+name: Conflict-of-Interest Check Tracker
+description: >
+  Checks new matters or clients waiting on a conflict-of-interest clearance
+  and flags any that have sat unresolved past a set number of days. Use
+  this if a new engagement has ever started before the conflicts check
+  actually cleared, because the request got sent and then forgotten.
+category: legal
+tags: [legal, conflicts-check, intake, compliance]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{overdue_days}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      pending_days = (now_epoch - requested_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "CONFLICTS CHECK PENDING: %s (matter: %s) — requested %s (%d days ago)\n", $1, $2, $3, pending_days;
+      }
+    }
+  ' "{{conflicts_csv_path}}"
+variables:
+  conflicts_csv_path:
+    default: "./conflict-checks.csv"
+    description: "Path to a CSV with columns: client_or_matter_name,proposed_matter,check_requested_date (YYYY-MM-DD),status (pending/cleared/conflict-identified)."
+  overdue_days:
+    default: 2
+    description: Days a conflicts check can remain pending before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This tracks whether a conflicts check was run and resolved before
+  engagement start — it does not run the conflicts search itself, which
+  depends on your practice management/conflicts database.

@@ -1,0 +1,34 @@
+id: settlement-payment-schedule-tracker
+version: 1
+name: Settlement Payment Schedule Tracker
+description: >
+  Checks scheduled settlement agreement installment payments — both
+  owed and owed to you — and flags anything due soon or missed. Use this
+  if a settlement installment has ever been paid late (risking default
+  terms kicking back in) or received late without anyone noticing until
+  the next reconciliation.
+category: legal
+tags: [legal, settlement, payment-schedule, litigation]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $5 == "unpaid" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left < 0) print "MISSED: " $1 " installment #" $2 " ($" $3 ") was due " $4 " (" (days_left*-1) " days overdue)";
+      else if (days_left <= warn) print "DUE SOON: " $1 " installment #" $2 " ($" $3 ") due " $4 " (" days_left " days)";
+    }
+  ' {{settlements_csv}}
+variables:
+  settlements_csv:
+    default: "settlement-payment-schedule.csv"
+    description: "CSV with header row, columns: matter_or_counterparty,installment_number,amount,due_date(YYYY-MM-DD),status(paid/unpaid)."
+  warn_days:
+    default: 7
+    description: Days before an installment's due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Update the status column as each installment clears — this only reads dates and status you supply, it doesn't confirm receipt/disbursement of funds itself.

@@ -1,0 +1,37 @@
+id: entity-authority-document-expiry-check
+version: 1
+name: Entity Authority Document Expiry Check
+description: >
+  Warns before a power of attorney, corporate signing-authority
+  certificate, or other entity-authority document reaches its expiration
+  date. Use this if a bank, counterparty, or government office has ever
+  rejected a signature because the power of attorney or authority
+  certificate backing it had quietly expired.
+category: legal
+tags: [legal, power-of-attorney, corporate-authority, compliance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: \"" $1 "\" (" $2 ") expires in " days_left " days (" $3 ")";
+    }
+  ' {{authority_docs_csv}}
+variables:
+  authority_docs_csv:
+    default: "entity-authority-documents.csv"
+    description: "CSV with header row, columns: document_name,document_type (e.g. power-of-attorney, signing-authority-certificate),expiry_date(YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `business-license-renewal-check` (operating licenses/permits)
+  — this tracks documents that grant someone authority to act or sign on
+  the entity's behalf. Update the CSV whenever an authority document is
+  issued, renewed, or revoked.

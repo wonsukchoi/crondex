@@ -1,0 +1,36 @@
+id: planogram-compliance-audit-check
+version: 1
+name: Planogram Compliance Audit Check
+description: >
+  Reviews a store's shelf/floor photos against the current planogram and
+  flags sections that are out of compliance. Use this if a reset has ever
+  quietly drifted out of plan for weeks — wrong facings, missing
+  end-caps, product in the wrong bay — before a district visit caught it.
+category: retail
+tags: [retail, planogram, merchandising, compliance]
+schedule: "0 8 * * 3"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Compare this week's shelf photos ({{shelf_photos_path}}) against the
+  current planogram document ({{planogram_doc_path}}) for store
+  {{store_id}}.
+  1. Go section by section and note any bay where product placement,
+     facing count, or signage doesn't match the planogram.
+  2. Flag missing or expired promotional signage separately from pure
+     placement drift.
+  3. Rank findings by sections that drive the most revenue first (per the
+     planogram's priority notes, if included).
+  4. Produce a short punch list a store associate could act on today.
+variables:
+  shelf_photos_path:
+    default: "./planogram-photos/"
+    description: Folder or path containing this cycle's shelf/section photos for the store.
+  planogram_doc_path:
+    default: "./current-planogram.pdf"
+    description: Path to the current approved planogram document or image set.
+  store_id:
+    default: "store-001"
+    description: Identifier for the store being audited.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Needs visual comparison and judgment about what counts as meaningful drift versus a shopper-caused mess — not a fit for a fixed script.

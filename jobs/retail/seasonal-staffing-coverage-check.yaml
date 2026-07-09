@@ -1,0 +1,35 @@
+id: seasonal-staffing-coverage-check
+version: 1
+name: Seasonal Staffing Coverage Check
+description: >
+  Compares scheduled labor hours against a forecasted seasonal-peak
+  staffing plan and flags stores that are under-scheduled. Use this if a
+  store has ever gone into a holiday or back-to-school rush understaffed
+  because the seasonal plan and the actual schedule quietly drifted apart.
+category: retail
+tags: [retail, staffing, seasonal, scheduling]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v gap_pct="{{coverage_gap_threshold_pct}}" '
+    NR==1 {next}
+    {
+      planned = $2; scheduled = $3;
+      if (planned > 0) {
+        gap = ((planned - scheduled) / planned) * 100;
+        if (gap >= gap_pct) {
+          printf "UNDER-SCHEDULED: store %s — planned %.0f hrs, scheduled %.0f hrs (%.1f%% short)\n", $1, planned, scheduled, gap;
+        }
+      }
+    }
+  ' "{{seasonal_staffing_csv}}"
+variables:
+  seasonal_staffing_csv:
+    default: "./seasonal-staffing-plan.csv"
+    description: "CSV with header row, columns: store_id,planned_hours,scheduled_hours — one row per store for the upcoming seasonal window."
+  coverage_gap_threshold_pct:
+    default: 10
+    description: Percentage shortfall between planned and scheduled hours that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Complements `employee-shift-gap-check` (day-to-day unfilled shifts) by checking whether the whole store is resourced against a seasonal peak plan, weeks ahead of the rush rather than shift by shift.

@@ -1,0 +1,41 @@
+id: damaged-merchandise-writeoff-tracker
+version: 1
+name: Damaged Merchandise Write-Off Tracker
+description: >
+  Reviews logged damaged/defective merchandise write-offs for patterns
+  worth a closer look — a single SKU with a recurring damage reason, or
+  one store writing off well above the chain average. Use this if
+  write-offs have ever just gotten rubber-stamped monthly instead of
+  getting checked for a root cause (bad packaging, a rough receiving
+  process, or something less innocent).
+category: retail
+tags: [retail, damage, write-off, loss-prevention]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review this period's damaged merchandise write-off log
+  ({{writeoff_log_path}}) across stores.
+  1. Identify any SKU that recurs as a write-off reason more than
+     {{recurring_sku_threshold}} times — that points at a packaging or
+     handling issue worth escalating to the vendor or receiving process,
+     not just re-approving the write-off.
+  2. Flag any store whose total write-off dollar amount is more than
+     {{store_outlier_multiplier}}x the average store in the file.
+  3. Separate write-offs with a documented cause (damaged in transit,
+     customer damage, expired) from those marked "unknown" — a high rate
+     of "unknown" is itself worth flagging.
+  4. Summarize findings in a short list a loss-prevention or merchandising
+     manager could act on.
+variables:
+  writeoff_log_path:
+    default: "./damaged-merchandise-writeoffs.csv"
+    description: "CSV with columns: store_id,sku,writeoff_amount,reason — one row per write-off in the period."
+  recurring_sku_threshold:
+    default: 3
+    description: Number of times a SKU must recur as a write-off before flagging a possible systemic cause.
+  store_outlier_multiplier:
+    default: 2
+    description: How many times the average store's write-off total counts as an outlier worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Judging what counts as a meaningful pattern versus normal variance across stores and reasons needs an agent, not a fixed threshold script.

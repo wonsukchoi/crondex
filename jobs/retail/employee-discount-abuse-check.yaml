@@ -1,0 +1,39 @@
+id: employee-discount-abuse-check
+version: 1
+name: Employee Discount Abuse Check
+description: >
+  Reviews employee discount usage for patterns that look like abuse —
+  unusually high dollar volume, discounts applied to gift cards, or
+  discounts rung up under an employee's number when they weren't
+  scheduled to work. Use this if employee-discount abuse has ever quietly
+  eaten margin for months because each transaction looked fine in
+  isolation.
+category: retail
+tags: [retail, employee-discount, fraud, loss-prevention]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review this period's employee discount transaction log
+  ({{discount_log_path}}) against the shift schedule
+  ({{schedule_csv_path}}).
+  1. Flag any employee whose total discounted purchase volume for the
+     period exceeds ${{monthly_volume_threshold_usd}}.
+  2. Flag any discount applied to a gift card purchase — most policies
+     disallow this.
+  3. Cross-reference discount timestamps against the schedule and flag
+     any discount rung up on a day the employee wasn't scheduled to work
+     (a common sign of a shared or misused employee number).
+  4. Summarize flagged employees with the specific reason for each flag.
+variables:
+  discount_log_path:
+    default: "./employee-discount-log.csv"
+    description: "CSV with columns: employee_id,transaction_date,amount,item_type,discount_pct."
+  schedule_csv_path:
+    default: "./employee-schedule.csv"
+    description: CSV of scheduled shifts to cross-reference against discount timestamps.
+  monthly_volume_threshold_usd:
+    default: 500
+    description: Total discounted purchase volume per employee in the period that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A flag is a prompt for HR/loss prevention review, not an accusation — cross-referencing two data sources and judging intent needs an agent, not a fixed script.

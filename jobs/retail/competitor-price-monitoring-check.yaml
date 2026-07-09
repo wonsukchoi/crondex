@@ -1,0 +1,42 @@
+id: competitor-price-monitoring-check
+version: 1
+name: Competitor Price Monitoring Check
+description: >
+  Reviews a nearby competitor's weekly ad/flyer or in-store price shots
+  against your own shelf prices for a shortlist of high-traffic items.
+  Use this if you've ever found out you were losing foot traffic to a
+  competitor's price on a staple item only because a customer mentioned
+  it at the register.
+category: retail
+tags: [retail, pricing, competitor, monitoring]
+schedule: "0 9 * * 5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Compare the competitor's current weekly ad/flyer or in-store price
+  photos ({{competitor_source_path}}) against our own shelf prices
+  ({{our_price_list_csv}}) for the tracked item list.
+  1. For each tracked item, find the competitor's current price if it
+     appears in the source material.
+  2. Flag any item where the competitor's price is at least
+     ${{diff_threshold_usd}} cheaper than ours.
+  3. Note any item the competitor doesn't appear to be carrying anymore
+     versus one you simply couldn't find a price for.
+  4. Summarize as a short list ranked by dollar gap, for the store
+     manager to decide on a price-match or promo response this week.
+variables:
+  competitor_source_path:
+    default: "./competitor-flyers/"
+    description: Folder of this week's competitor flyer scans or in-store price photos.
+  our_price_list_csv:
+    default: "./tracked-items-price-list.csv"
+    description: "CSV with columns: sku,item_name,our_price — the shortlist of high-traffic items being watched."
+  diff_threshold_usd:
+    default: 1.00
+    description: Minimum price gap in dollars worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Physical-store competitor price checks off flyers/photos, distinct from
+  ecommerce's `competitor-price-watch`, which scrapes a competitor's live
+  product page URL per SKU — there's no comparable URL for a
+  brick-and-mortar competitor's shelf price. See duplicates-allowlist.js.

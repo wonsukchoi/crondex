@@ -1,0 +1,32 @@
+id: store-closing-checklist-compliance-check
+version: 1
+name: Store Closing Checklist Compliance Check
+description: >
+  Reviews logged closing checklist completions and flags stores or shifts
+  that skipped required steps, rather than just reminding staff of the
+  checklist. Use this if a store has ever opened the next morning to a
+  safe left unlocked, alarm not set, or cash not dropped because closing
+  execution was never actually checked afterward.
+category: retail
+tags: [retail, checklist, closing, compliance, loss-prevention]
+schedule: "0 7 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($3 == "incomplete" || $3 == "") {
+        printf "INCOMPLETE CLOSE: store %s on %s — missing step: %s\n", $1, $2, $4;
+      }
+    }
+  ' "{{closing_log_csv}}"
+variables:
+  closing_log_csv:
+    default: "./closing-checklist-log.csv"
+    description: "CSV with header row, columns: store_id,close_date,status(complete/incomplete),missing_step — one row per required closing step per night."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `store-opening-checklist-reminder`, which just prints the
+  standard checklist as a reminder — this audits a logged closing record
+  after the fact to catch steps that were actually skipped.

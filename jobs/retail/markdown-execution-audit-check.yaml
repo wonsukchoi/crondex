@@ -1,0 +1,29 @@
+id: markdown-execution-audit-check
+version: 1
+name: Markdown Execution Audit Check
+description: >
+  Confirms that approved markdowns were actually applied at the register,
+  not just flagged as candidates. Use this if a markdown has ever been
+  approved on paper but never keyed into the POS, so the item kept
+  ringing at full price for weeks while it sat on the clearance rack.
+category: retail
+tags: [retail, markdown, pricing, audit]
+schedule: "0 8 * * 2"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      approved = $2; pos_current = $3;
+      if (approved != pos_current) {
+        printf "NOT APPLIED: SKU %s — approved markdown price $%s, POS still shows $%s\n", $1, approved, pos_current;
+      }
+    }
+  ' "{{markdown_approvals_csv}}"
+variables:
+  markdown_approvals_csv:
+    default: "./markdown-approvals.csv"
+    description: "CSV with header row, columns: sku,approved_markdown_price,pos_current_price — one row per approved markdown."
+compatible_agents: [generic, claude, codex]
+notes: Complements `markdown-aging-inventory-check` (flags candidates for markdown) by auditing the other end — whether an already-approved markdown was actually executed at the register.

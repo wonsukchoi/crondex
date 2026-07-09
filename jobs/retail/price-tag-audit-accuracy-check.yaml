@@ -1,0 +1,37 @@
+id: price-tag-audit-accuracy-check
+version: 1
+name: Price Tag Audit Accuracy Check
+description: >
+  Reviews photos of shelf price tags against the current POS price file
+  and flags mismatches. Use this if a customer has ever caught a
+  scan-versus-tag price discrepancy at the register before the store did
+  — those add up fast in refunds, complaints, and occasional fines.
+category: retail
+tags: [retail, pricing, audit, compliance]
+schedule: "0 8 * * 4"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Compare this week's shelf tag photos ({{tag_photos_path}}) against the
+  current POS price export ({{pos_price_file}}) for store {{store_id}}.
+  1. Read the SKU and posted price off each tag photo (OCR/read the
+     image directly).
+  2. Match each tag to its POS price by SKU and flag any mismatch,
+     noting whether the tag is higher or lower than the register price.
+  3. Prioritize mismatches where the tag price is lower than the POS
+     price — those are the ones customers will notice and complain about
+     first, and in some states are a pricing-accuracy compliance risk.
+  4. Summarize as a punch list: SKU, tag price, POS price, and which tag
+     needs reprinting.
+variables:
+  tag_photos_path:
+    default: "./shelf-tag-photos/"
+    description: Folder of this week's shelf price tag photos for the store.
+  pos_price_file:
+    default: "./pos-price-export.csv"
+    description: Current POS price export, columns sku,price.
+  store_id:
+    default: "store-001"
+    description: Identifier for the store being audited.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Reading prices off photographed tags and matching them against a price list needs visual judgment a fixed script can't reliably do.

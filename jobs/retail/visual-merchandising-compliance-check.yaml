@@ -1,0 +1,40 @@
+id: visual-merchandising-compliance-check
+version: 1
+name: Visual Merchandising Compliance Check
+description: >
+  Reviews store-front and window display photos against the current
+  visual merchandising directive and flags stores that haven't executed
+  it. Use this if a seasonal window or entrance display has ever stayed
+  up stale for weeks after corporate sent the new directive.
+category: retail
+tags: [retail, merchandising, visual, compliance]
+schedule: "0 8 * * 5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Compare this week's store-front/window/entrance photos
+  ({{store_photos_path}}) against the current visual merchandising
+  directive ({{vm_directive_path}}) for store {{store_id}}.
+  1. Note whether the required theme, signage, mannequin styling, and
+     entrance table match the directive.
+  2. Flag anything stale (a prior season's display still up) separately
+     from anything simply missing.
+  3. Note any obviously damaged or faded display elements that need
+     replacing regardless of the current directive.
+  4. Give a short, actionable punch list, not a general aesthetic
+     critique.
+variables:
+  store_photos_path:
+    default: "./vm-photos/"
+    description: Folder of this week's store-front and window display photos.
+  vm_directive_path:
+    default: "./current-vm-directive.pdf"
+    description: Path to the current corporate visual merchandising directive.
+  store_id:
+    default: "store-001"
+    description: Identifier for the store being reviewed.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `planogram-compliance-audit-check`, which audits shelf/bay
+  product placement inside the store — this covers window, entrance, and
+  seasonal display execution instead.

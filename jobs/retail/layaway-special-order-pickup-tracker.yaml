@@ -1,0 +1,33 @@
+id: layaway-special-order-pickup-tracker
+version: 1
+name: Layaway & Special Order Pickup Tracker
+description: >
+  Flags layaway and special-order items that have been ready for pickup
+  past a set number of days. Use this if a paid-for special order has
+  ever sat in the back room for weeks because nobody was tracking pickup
+  age, only whether the item had arrived.
+category: retail
+tags: [retail, layaway, special-order, customer-service]
+schedule: "0 9 * * 2"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{overdue_days_threshold}} '
+    NR==1 {next}
+    $4 == "ready" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline ready_ts; close(cmd);
+      days_waiting = int((today - ready_ts) / 86400);
+      if (days_waiting >= warn) printf "OVERDUE PICKUP: order %s for %s ready %d days (since %s)\n", $1, $2, days_waiting, $3;
+    }
+  ' "{{orders_csv}}"
+variables:
+  orders_csv:
+    default: "./layaway-special-orders.csv"
+    description: "CSV with header row, columns: order_id,customer_name,ready_date(YYYY-MM-DD),status(pending/ready/picked-up)."
+  overdue_days_threshold:
+    default: 14
+    description: Days an order can sit marked "ready" before it counts as overdue for pickup.
+compatible_agents: [generic, claude, codex]
+notes: A long-overdue pickup is worth a courtesy call before it becomes a restocking/refund headache or a customer dispute.

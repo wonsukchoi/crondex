@@ -1,0 +1,36 @@
+id: sales-per-square-foot-tracker
+version: 1
+name: Sales Per Square Foot Tracker
+description: >
+  Calculates each store's sales-per-square-foot for the period and flags
+  stores falling below a benchmark. Use this if underperforming store
+  footprints have ever gone unnoticed until an annual real-estate review
+  instead of getting flagged while there was still time to act.
+category: retail
+tags: [retail, sales, performance, benchmarking]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v floor="{{benchmark_sales_per_sqft}}" '
+    NR==1 {next}
+    {
+      sqft = $3;
+      if (sqft > 0) {
+        rate = $2 / sqft;
+        status = (rate < floor) ? "BELOW BENCHMARK" : "ok";
+        if (status == "BELOW BENCHMARK") {
+          printf "BELOW BENCHMARK: store %s — $%.2f/sqft (benchmark $%.2f/sqft)\n", $1, rate, floor;
+        }
+      }
+    }
+  ' "{{store_sales_csv}}"
+variables:
+  store_sales_csv:
+    default: "./store-sales-sqft.csv"
+    description: "CSV with header row, columns: store_id,period_sales_usd,selling_sqft — one row per store for the period."
+  benchmark_sales_per_sqft:
+    default: 300
+    description: Minimum acceptable sales-per-square-foot for the period before a store gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: A single low period isn't necessarily a problem store — track the trend across periods before drawing conclusions about a location.

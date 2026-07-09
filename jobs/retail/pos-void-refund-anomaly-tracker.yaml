@@ -1,0 +1,42 @@
+id: pos-void-refund-anomaly-tracker
+version: 1
+name: POS Void & Refund Anomaly Tracker
+description: >
+  Flags cashiers or registers with an unusually high rate of transaction
+  voids and refunds instead of treating each one as an isolated event.
+  Use this if register-level fraud or sweethearting has ever gone
+  unnoticed for months because void/refund activity was never rolled up
+  per employee.
+category: retail
+tags: [retail, pos, fraud, loss-prevention]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v void_pct_max="{{void_rate_threshold_pct}}" '
+    NR==1 {next}
+    {
+      employee[$1] += 1;
+      total[$1] += 1;
+      if ($2 == "void" || $2 == "refund") flagged[$1] += 1;
+    }
+    END {
+      for (e in total) {
+        if (total[e] > 0) {
+          pct = (flagged[e] / total[e]) * 100;
+          if (pct >= void_pct_max) {
+            printf "HIGH VOID/REFUND RATE: %s — %.1f%% of %d transactions (%d void/refund)\n", e, pct, total[e], flagged[e];
+          }
+        }
+      }
+    }
+  ' "{{transactions_csv_path}}"
+variables:
+  transactions_csv_path:
+    default: "./pos-transactions.csv"
+    description: "Path to a CSV with columns: employee_id,transaction_type (sale/void/refund) — one row per transaction in the period."
+  void_rate_threshold_pct:
+    default: 8
+    description: Percentage of an employee's transactions that are voids/refunds before flagging for review.
+compatible_agents: [generic, claude, codex]
+notes: A flag is a prompt for a manager to review video/receipts, not proof of wrongdoing — some roles (returns desk) will legitimately run higher.

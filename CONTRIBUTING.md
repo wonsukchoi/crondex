@@ -42,14 +42,18 @@ well-formed YAML file plus a regenerated catalog. That's it.
 5. Install deps once, then validate and rebuild the catalog:
    ```bash
    npm install
-   npm run validate        # checks your job against the schema
-   npm run lint-shell       # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
-   npm run build-catalog   # regenerates catalog.json — commit this too
+   npm run validate          # checks your job against the schema
+   npm run lint-shell        # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
+   npm run check-duplicates  # flags near-duplicate tag/description overlap with an existing job
+   npm run build-catalog     # regenerates catalog.json — commit this too
    ```
 
-6. Open a PR. CI re-runs all checks and fails if `catalog.json` is
-   stale, a job doesn't match the schema, or a shell command doesn't pass
-   shellcheck.
+6. Open a PR. CI re-runs all checks and fails if `catalog.json` is stale, a
+   job doesn't match the schema, a shell command doesn't pass shellcheck, or
+   a job looks like a near-duplicate of an existing one. That last one is a
+   heuristic (tag + description overlap), not certainty — if it flags a
+   pair that's genuinely distinct, say so in the PR description; it's a
+   nudge for review, not an absolute rule.
 
 ## Editing the CLI
 

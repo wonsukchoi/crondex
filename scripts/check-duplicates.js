@@ -10,6 +10,7 @@ import { join, relative } from "node:path";
 import yaml from "js-yaml";
 import { tokenize, stem } from "../lib/recommend.js";
 import { findDuplicates } from "../lib/duplicates.js";
+import { isAllowedPair } from "../lib/duplicates-allowlist.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const JOBS_DIR = join(ROOT, "jobs");
@@ -38,7 +39,15 @@ const jobs = walk(JOBS_DIR).map((file) => {
   };
 });
 
-const flagged = findDuplicates(jobs, { tagThreshold: TAG_THRESHOLD, descThreshold: DESC_THRESHOLD });
+const allFlagged = findDuplicates(jobs, { tagThreshold: TAG_THRESHOLD, descThreshold: DESC_THRESHOLD });
+const allowed = allFlagged.filter(({ a, b }) => isAllowedPair(a.id, b.id));
+const flagged = allFlagged.filter(({ a, b }) => !isAllowedPair(a.id, b.id));
+
+if (allowed.length > 0) {
+  console.log(`${allowed.length} pair(s) matched but are on the reviewed allowlist (lib/duplicates-allowlist.js):`);
+  for (const { a, b } of allowed) console.log(`  ${a.id}  <->  ${b.id}`);
+  console.log();
+}
 
 if (flagged.length > 0) {
   console.error(`${flagged.length} possible near-duplicate job pair(s) — review before merging:\n`);
@@ -49,11 +58,11 @@ if (flagged.length > 0) {
     console.error(`    tag overlap: ${tagSim.toFixed(2)}, description overlap: ${descSim.toFixed(2)}\n`);
   }
   console.error(
-    "If these are genuinely distinct jobs, this isn't a hard failure — it's just a nudge to double-check " +
-      "before merging. Tune via CRONDEX_DUP_TAG_THRESHOLD / CRONDEX_DUP_DESC_THRESHOLD env vars if this " +
-      "fires too eagerly."
+    "If these are genuinely distinct jobs, add them to lib/duplicates-allowlist.js with a reason instead of " +
+      "re-litigating it on every future run. Tune via CRONDEX_DUP_TAG_THRESHOLD / CRONDEX_DUP_DESC_THRESHOLD " +
+      "env vars if this fires too eagerly across the board."
   );
   process.exit(1);
 }
 
-console.log("no near-duplicate jobs found");
+console.log("no unreviewed near-duplicate jobs found");

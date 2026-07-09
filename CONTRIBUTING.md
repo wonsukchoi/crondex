@@ -55,9 +55,12 @@ well-formed YAML file plus a regenerated catalog. That's it.
 6. Open a PR. CI re-runs all checks and fails if `catalog.json` is stale, a
    job doesn't match the schema, a shell command doesn't pass shellcheck, or
    a job looks like a near-duplicate of an existing one. That last one is a
-   heuristic (tag + description overlap), not certainty — if it flags a
-   pair that's genuinely distinct, say so in the PR description; it's a
-   nudge for review, not an absolute rule.
+   heuristic (tag + description overlap), not certainty — if it flags a pair
+   that's genuinely distinct after you actually compare them, add the pair
+   to [`lib/duplicates-allowlist.js`](lib/duplicates-allowlist.js) with a
+   one-line reason rather than leaving CI red; the check is a real gate, not
+   decoration, so it still fails the build until either the job changes or
+   the pair is recorded there.
 
 ## Editing the CLI or scripts
 

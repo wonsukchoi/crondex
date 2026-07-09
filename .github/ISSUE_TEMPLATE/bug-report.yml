@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in a job, the CLI, or the catalog is broken or wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where's the bug?
+      options:
+        - A specific job (command/prompt doesn't work as described)
+        - CLI (bin/crondex.js — list/show/add/init/update/recommend/deploy/uninstall)
+        - Catalog data (catalog.json, schema, category info)
+        - Docs (README/CONTRIBUTING/llms.txt)
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: job-id
+    attributes:
+      label: Job id (if applicable)
+      placeholder: ssl-cert-expiry-check
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include the exact command you ran and its full output/error.
+      placeholder: |
+        $ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --target k8s-cronjob
+        <paste output/error here>
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: crondex version
+      description: "`npx @wonsukchoi/crondex list` prints this on the first line."
+      placeholder: 0.17.0
+    validations:
+      required: true

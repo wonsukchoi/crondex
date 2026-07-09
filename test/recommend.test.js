@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { stem, tokenize, scoreJob, rankJobs } from "../lib/recommend.js";
+import { stem, tokenize, scoreJob, rankJobs, canonicalize, editDistance } from "../lib/recommend.js";
 
 test("stem: strips plural suffixes", () => {
   assert.equal(stem("checks"), "check");
@@ -11,19 +11,44 @@ test("stem: strips plural suffixes", () => {
   assert.equal(stem("cat"), "cat"); // too short to strip
 });
 
-test("tokenize: lowercases, strips punctuation, drops stopwords, stems", () => {
+test("tokenize: lowercases, strips punctuation, drops stopwords, stems, canonicalizes synonyms", () => {
   assert.deepEqual(
+    // "warn" canonicalizes to "alert" (see SYNONYM_GROUPS) so it lines up with jobs
+    // tagged/described using a different word from the same synonym group.
     tokenize("Can you warn me before my SSL certs expire?"),
-    ["warn", "before", "ssl", "cert", "expire"]
+    ["alert", "before", "ssl", "cert", "expire"]
   );
 });
 
 test("tokenize: hyphens split into separate tokens", () => {
-  assert.deepEqual(tokenize("no-show reminder"), ["no", "show", "reminder"]);
+  // "reminder" canonicalizes to "alert", same group as "warn"/"notify"/"remind".
+  assert.deepEqual(tokenize("no-show reminder"), ["no", "show", "alert"]);
 });
 
 test("tokenize: empty/all-stopword query yields no tokens", () => {
   assert.deepEqual(tokenize("can you help me with this"), []);
+});
+
+test("canonicalize: maps every word in a synonym group to the same term", () => {
+  assert.equal(canonicalize("warn"), canonicalize("notify"));
+  assert.equal(canonicalize("notify"), canonicalize("remind"));
+});
+
+test("canonicalize: leaves words with no synonym group untouched", () => {
+  assert.equal(canonicalize("ssl"), "ssl");
+});
+
+test("editDistance: identical strings are zero apart", () => {
+  assert.equal(editDistance("expiry", "expiry"), 0);
+});
+
+test("editDistance: single substitution/insertion/deletion counts as one", () => {
+  assert.equal(editDistance("expiry", "expiery"), 1);
+  assert.equal(editDistance("backup", "backpu"), 2);
+});
+
+test("editDistance: short-circuits past max rather than computing the full distance", () => {
+  assert.equal(editDistance("expiry", "completely-different"), 3);
 });
 
 const jobFixture = (overrides = {}) => ({
@@ -58,6 +83,22 @@ test("scoreJob: no match yields zero score and no matched terms", () => {
   const result = scoreJob(["gardening"], jobFixture());
   assert.equal(result.score, 0);
   assert.deepEqual(result.matchedTerms, []);
+});
+
+test("scoreJob: a typo'd query term still fuzzy-matches, at reduced weight vs. an exact hit", () => {
+  // scoreJob takes already-tokenized/canonicalized query terms (as rankJobs feeds it
+  // via tokenize) — go through tokenize() here too so canonicalization is consistent
+  // between the query and the job's own fields.
+  const job = jobFixture({ tags: ["backup"], description: "Runs a nightly backup." });
+  const exact = scoreJob(tokenize("backup"), job);
+  const typo = scoreJob(tokenize("bacup"), job); // dropped the "k"
+  assert.ok(typo.score > 0, "typo should still score via fuzzy fallback");
+  assert.ok(typo.score < exact.score, "fuzzy match should score lower than an exact match");
+});
+
+test("scoreJob: short words don't fuzzy-match each other (avoids false positives like ssl/sql)", () => {
+  const result = scoreJob(["sql"], jobFixture({ tags: ["ssl"], description: "" }));
+  assert.equal(result.score, 0);
 });
 
 test("scoreJob: plural/singular query still matches via stemming", () => {

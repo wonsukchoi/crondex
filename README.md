@@ -30,7 +30,10 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 
 - `recommend "<what you want>"` — find the closest matching job (zero
   tokens, no network call, so an agent can check before writing one from
-  scratch)
+  scratch). Matching handles plurals, a small catalog-grounded synonym set
+  (e.g. "notify"/"warn"/"remind" all match jobs tagged `reminder`), and
+  falls back to fuzzy (edit-distance) matching on typos when nothing
+  matches exactly.
 - `list [--category x] [--tag y]` / `categories` — browse everything
 - `show <id>` — print a job's full YAML
 - `add <id> [--dest path]` — copy it into your project to edit

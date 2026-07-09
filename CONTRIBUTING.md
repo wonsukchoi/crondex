@@ -3,6 +3,9 @@
 crondex is a directory, not a framework — a good contribution is one
 well-formed YAML file plus a regenerated catalog. That's it.
 
+Not planning to open a PR yourself? [Propose a job](../../issues/new?template=new-job-proposal.yml)
+or [file a bug](../../issues/new?template=bug-report.yml) instead.
+
 ## Steps
 
 0. Check nobody already covers this:

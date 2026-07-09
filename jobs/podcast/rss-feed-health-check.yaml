@@ -1,0 +1,25 @@
+id: rss-feed-health-check
+version: 1
+name: Podcast RSS Feed Health Check
+description: >
+  Checks that your podcast's RSS feed is reachable and still valid XML with
+  the required podcast tags. Use this if a feed has ever silently broken
+  (bad edit, hosting hiccup, malformed enclosure) and stopped new episodes
+  from reaching Apple Podcasts or Spotify for days before anyone noticed.
+category: podcast
+tags: [podcast, rss, feed, distribution]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  http_code=$(curl -s -o /tmp/rss-feed-check.xml -w "%{http_code}" "{{feed_url}}");
+  if [ "$http_code" != "200" ]; then echo "FAIL: feed_url returned HTTP $http_code"; exit 1; fi;
+  if ! grep -q "<rss" /tmp/rss-feed-check.xml; then echo "FAIL: response is not RSS XML"; exit 1; fi;
+  if ! grep -q "<enclosure" /tmp/rss-feed-check.xml; then echo "WARNING: no <enclosure> tag found — feed may have no episodes"; exit 1; fi;
+  echo "OK: feed reachable and looks valid"
+variables:
+  feed_url:
+    default: "https://example.com/podcast/feed.xml"
+    description: Public URL of your podcast's RSS feed.
+compatible_agents: [generic, claude, codex]
+notes: A passing check confirms the feed is reachable and structurally sane — it doesn't validate against the full RSS/iTunes spec, so still run a dedicated feed validator before a big launch.

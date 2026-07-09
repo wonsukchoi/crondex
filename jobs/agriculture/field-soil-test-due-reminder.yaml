@@ -1,0 +1,35 @@
+id: field-soil-test-due-reminder
+version: 1
+name: Field Soil Test Due Reminder
+description: >
+  Checks each field's last soil test date against a retest interval and
+  flags any field that's overdue. Use this if you've ever applied
+  fertilizer off a soil test that was two years stale because nobody was
+  tracking when each field was last sampled.
+category: agriculture
+tags: [agriculture, soil, testing, fields]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v interval="{{retest_interval_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      days_since = (today - last_ts) / 86400;
+      if (days_since > interval) {
+        printf "OVERDUE: %s — last tested %s (%d days ago)\n", $1, $2, days_since;
+      }
+    }
+  ' "{{fields_csv_path}}"
+variables:
+  fields_csv_path:
+    default: "./fields.csv"
+    description: "Path to a CSV with columns: field_name,last_soil_test_date (YYYY-MM-DD)."
+  retest_interval_days:
+    default: 730
+    description: Days allowed between soil tests before a field counts as overdue (default ~2 years).
+compatible_agents: [generic, claude, codex]
+notes: Keep fields.csv updated whenever a new soil sample comes back from the lab — one row per field.

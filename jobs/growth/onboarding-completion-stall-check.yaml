@@ -1,0 +1,38 @@
+id: onboarding-completion-stall-check
+version: 1
+name: Onboarding Completion Stall Check
+description: >
+  Checks new users against your onboarding checklist and flags anyone
+  who's been stuck on the same step for too long. Use this if new users
+  have ever quietly abandoned setup partway through and nobody reached
+  out until they'd already churned.
+category: growth
+tags: [growth, onboarding, activation, retention]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v stall_days="{{stall_days}}" -v last_step="{{final_step}}" '
+    NR==1 {next}
+    $2 != last_step {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline step_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - step_epoch) / 86400;
+      if (diff_days >= stall_days) {
+        printf "STALLED: %s — stuck on \"%s\" for %d day(s)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{onboarding_status_csv_path}}"
+variables:
+  onboarding_status_csv_path:
+    default: "./onboarding-status.csv"
+    description: "Path to a CSV with columns: user_email,current_step,step_reached_date (YYYY-MM-DD)."
+  final_step:
+    default: "complete"
+    description: The value in current_step that marks onboarding as finished (users at this step are never flagged).
+  stall_days:
+    default: 3
+    description: Days a user can sit on the same non-final step before being flagged as stalled.
+compatible_agents: [generic, claude, codex]
+notes: You maintain onboarding-status.csv yourself (update current_step and step_reached_date as your product tracks progress) — doesn't integrate with any analytics platform directly.

@@ -1,0 +1,36 @@
+id: lost-and-found-item-aging-check
+version: 1
+name: Lost and Found Item Aging Check
+description: >
+  Checks logged lost-and-found items against your retention policy and
+  flags any that are old enough to donate, discard, or ship back to a
+  guest. Use this if a lost-and-found closet has ever turned into a pile
+  nobody knows what to do with because items just sat there indefinitely.
+category: hospitality
+tags: [hospitality, lost-and-found, guest-services, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{retention_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline found_epoch; close(cmd);
+      age_days = (today - found_epoch) / 86400;
+      if (age_days >= days) {
+        printf "AGED OUT: %s (room %s) found %s (%d days, unclaimed) — dispose or donate per policy\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{lost_found_csv_path}}"
+variables:
+  lost_found_csv_path:
+    default: "./lost-and-found.csv"
+    description: "Path to a CSV with columns: item_description,room_or_area,found_date (YYYY-MM-DD),claimed_date (blank if still unclaimed)."
+  retention_days:
+    default: 90
+    description: Days an item can sit unclaimed before it's flagged as past your retention policy.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV log of found items from front desk/housekeeping; check local law on retention periods for items of value (cash, electronics, IDs) before disposing.

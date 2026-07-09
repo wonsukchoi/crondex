@@ -1,0 +1,35 @@
+id: flight-layover-buffer-check
+version: 1
+name: Flight Layover Buffer Check
+description: >
+  Checks your upcoming itinerary for connections shorter than a safe
+  minimum layover time. Use this if you've ever booked a multi-leg trip
+  and only noticed a 35-minute connection the night before flying.
+category: travel
+tags: [travel, flights, layover, itinerary]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_minutes="{{min_layover_minutes}}" '
+    NR==1 {next}
+    {
+      cmd1 = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd1 | getline arrival_epoch; close(cmd1);
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline next_departure_epoch; close(cmd2);
+      layover_minutes = (next_departure_epoch - arrival_epoch) / 60;
+      if (layover_minutes < min_minutes) {
+        printf "TIGHT LAYOVER: %s — only %d minute(s) between arrival and next departure\n", $1, layover_minutes;
+      }
+    }
+  ' "{{itinerary_csv_path}}"
+variables:
+  itinerary_csv_path:
+    default: "./flight-itinerary.csv"
+    description: "Path to a CSV with columns: connection_airport,arrival_time (YYYY-MM-DD HH:MM),next_departure_time (YYYY-MM-DD HH:MM)."
+  min_layover_minutes:
+    default: 60
+    description: Minimum minutes between arrival and next departure before a connection counts as tight. Raise this for connections requiring a terminal change, customs, or international-to-domestic transfers.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You maintain the itinerary CSV yourself — this doesn't pull from any airline or booking system. Times should be in the connection airport's local timezone.

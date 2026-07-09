@@ -1,0 +1,35 @@
+id: patent-maintenance-fee-reminder
+version: 1
+name: Patent Maintenance Fee Reminder
+description: >
+  Warns you before a patent maintenance (annuity) fee comes due so the
+  patent doesn't lapse. Use this if a patent has ever gone abandoned
+  because a maintenance fee deadline was missed.
+category: legal
+tags: [legal, patents, ip, maintenance-fees]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: patent \"" $1 "\" maintenance fee due in " days_left " days (" $2 ")";
+    }
+  ' "{{patents_csv}}"
+variables:
+  patents_csv:
+    default: "patent-maintenance-fees.csv"
+    description: "CSV with header row, columns: patent_name_or_number,fee_due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 60
+    description: Days before a maintenance fee due date to start warning — most jurisdictions allow a grace period but with a surcharge, so warn early.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Keep patent-maintenance-fees.csv updated with each patent's next fee due
+  date (from your IP counsel or the relevant patent office schedule) —
+  fee intervals and amounts vary by jurisdiction, so this job only tracks
+  dates you supply.

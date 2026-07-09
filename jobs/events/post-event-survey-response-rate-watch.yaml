@@ -1,0 +1,39 @@
+id: post-event-survey-response-rate-watch
+version: 1
+name: Post-Event Survey Response Rate Watch
+description: >
+  Compares how many attendees were sent a post-event survey against how
+  many actually responded, and flags events with a weak response rate.
+  Use this if you've ever sent a feedback survey after an event and had
+  no idea whether the response rate was normal or a sign nobody cared to
+  reply.
+category: events
+tags: [events, survey, feedback, response-rate]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_response_pct}}" '
+    NR==1 {next}
+    {
+      sent[$1] += 1;
+      if ($3 == "yes") responded[$1] += 1;
+    }
+    END {
+      for (event in sent) {
+        pct = (responded[event] / sent[event]) * 100;
+        if (pct < min_pct) {
+          printf "LOW RESPONSE RATE: %s — %d of %d responded (%.0f%%)\n", event, responded[event], sent[event], pct;
+        }
+      }
+    }
+  ' "{{survey_sends_csv_path}}"
+variables:
+  survey_sends_csv_path:
+    default: "./event-survey-sends.csv"
+    description: "Path to a CSV with columns: event_name,attendee_email,responded (yes/no)."
+  min_response_pct:
+    default: 25
+    description: Minimum survey response percentage before an event is flagged as low-response.
+compatible_agents: [generic, claude, codex]
+notes: Update the responded column as replies come in — this only reads whatever the CSV currently reflects, it doesn't poll a survey tool directly.

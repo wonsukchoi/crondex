@@ -1,0 +1,31 @@
+id: loyalty-points-expiry-reminder
+version: 1
+name: Loyalty Points Expiry Reminder
+description: >
+  Finds customers whose loyalty/reward points are about to expire unused.
+  Use this if points have ever quietly expired on customers who would have
+  redeemed them if someone had just reminded them in time.
+category: retail
+tags: [retail, loyalty, customers, rewards]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn && days_left >= 0 && $2 > 0) print "EXPIRING: " $1 " has " $2 " points expiring in " days_left " days (" $3 ")";
+    }
+  ' {{loyalty_csv}}
+variables:
+  loyalty_csv:
+    default: "loyalty-points.csv"
+    description: "CSV with header row, columns: customer_name,points_balance,expiration_date(YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: Days before expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Export loyalty-points.csv from your loyalty/POS platform on a schedule that matches how it tracks per-point expiration.

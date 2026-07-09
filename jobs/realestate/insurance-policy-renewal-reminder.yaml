@@ -1,0 +1,31 @@
+id: insurance-policy-renewal-reminder
+version: 1
+name: Property Insurance Policy Renewal Reminder
+description: >
+  Flags property insurance policies that are coming up for renewal within a
+  set window. Use this if a policy has ever lapsed because the renewal
+  notice got buried in an inbox and nobody caught it in time.
+category: realestate
+tags: [realestate, insurance, renewals, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "RENEWAL DUE: " $1 " policy " $2 " expires in " days_left " days (" $3 ")";
+    }
+  ' {{policies_csv}}
+variables:
+  policies_csv:
+    default: "property-insurance-policies.csv"
+    description: "CSV with header row, columns: property_name,policy_number,expiration_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep property-insurance-policies.csv updated whenever a policy is bound, renewed, or switched carriers.

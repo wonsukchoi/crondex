@@ -1,0 +1,24 @@
+id: quote-expiry-reminder
+version: 1
+name: Sales Quote Expiry Reminder
+description: >
+  Flags outstanding price quotes that are about to expire before the
+  customer has accepted them. Use this if a quote has ever lapsed and
+  forced a re-negotiation because nobody followed up before the locked-in
+  pricing ran out.
+category: sales
+tags: [sales, quotes, pricing, followup]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_name, owner, quote_number, expires_at from quotes where status = 'sent' and expires_at < now() + interval '{{warn_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the quotes/CPQ database.
+  warn_days:
+    default: 5
+    description: Days before expires_at to start flagging a quote.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `quotes` table with `status`, `expires_at`, and `owner` columns — adjust the query to your CPQ or CRM's schema.

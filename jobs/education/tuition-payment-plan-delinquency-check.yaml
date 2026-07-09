@@ -1,0 +1,35 @@
+id: tuition-payment-plan-delinquency-check
+version: 1
+name: Tuition Payment Plan Delinquency Check
+description: >
+  Checks tuition installment plans against their due dates and flags
+  accounts that have missed a payment. Use this if a family has ever
+  fallen behind on a payment plan for weeks before anyone in the office
+  noticed and followed up.
+category: education
+tags: [education, tuition, payments, billing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{grace_days}}" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - due_epoch) / 86400;
+      if (diff_days >= grace) {
+        printf "DELINQUENT: %s — installment $%s due %s (%d days overdue)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{payment_plans_csv_path}}"
+variables:
+  payment_plans_csv_path:
+    default: "./tuition-payment-plans.csv"
+    description: "Path to a CSV with columns: student_name,installment_amount,due_date (YYYY-MM-DD),paid (yes/no)."
+  grace_days:
+    default: 5
+    description: Days past the due date before an unpaid installment is flagged as delinquent.
+compatible_agents: [generic, claude, codex]
+notes: Mark the paid column as soon as a payment clears, or a settled installment will keep showing up as delinquent.

@@ -1,0 +1,37 @@
+id: energy-consumption-spike-check
+version: 1
+name: Energy Consumption Spike Check
+description: >
+  Compares today's logged energy usage against a rolling baseline and
+  flags an unusual spike. Use this if a jump in electricity use has ever
+  gone unnoticed until the utility bill arrived, when it could have
+  pointed to a failing motor, a stuck compressor, or equipment left
+  running.
+category: manufacturing
+tags: [manufacturing, energy, utilities, anomaly]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold={{spike_pct_threshold}} '
+    NR>1 { sum += $2; count++; readings[count] = $2 }
+    END {
+      if (count < 2) { print "OK: not enough readings yet to establish a baseline"; exit 0 }
+      latest = readings[count];
+      baseline_sum = sum - latest;
+      baseline_avg = baseline_sum / (count - 1);
+      if (baseline_avg == 0) { print "OK: baseline average is zero, skipping comparison"; exit 0 }
+      pct_over = ((latest - baseline_avg) / baseline_avg) * 100;
+      if (pct_over >= threshold) printf "SPIKE: latest reading %.1f kWh is %.1f%% above the %.1f kWh rolling baseline\n", latest, pct_over, baseline_avg;
+      else printf "OK: latest reading %.1f kWh is within %.1f%% of the %.1f kWh rolling baseline\n", latest, threshold, baseline_avg;
+    }
+  ' "{{energy_readings_csv}}"
+variables:
+  energy_readings_csv:
+    default: "energy-readings.csv"
+    description: "CSV with header row, columns: date,kwh — one row per day, most recent row last."
+  spike_pct_threshold:
+    default: 25
+    description: Percent above the rolling baseline average that counts as a spike worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: Append a row to energy-readings.csv daily (from a smart meter export or utility portal) — the baseline is just the average of all prior rows, so accuracy improves as history builds up.

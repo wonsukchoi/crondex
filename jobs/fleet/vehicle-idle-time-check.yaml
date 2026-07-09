@@ -1,0 +1,31 @@
+id: vehicle-idle-time-check
+version: 1
+name: Vehicle Idle Time Check
+description: >
+  Checks each vehicle's daily engine idle time against a threshold and
+  flags the ones burning excess fuel sitting still. Use this if a
+  telematics report has ever shown a surprise fuel bill and nobody could
+  tell how much of it came from vehicles just left running.
+category: fleet
+tags: [fleet, fuel, idling, telematics]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_min="{{max_idle_minutes}}" '
+    NR==1 {next}
+    {
+      if ($3 > max_min) {
+        printf "EXCESS IDLE: vehicle %s on %s — %d idle minutes (limit %d)\n", $1, $2, $3, max_min;
+      }
+    }
+  ' "{{idle_report_csv_path}}"
+variables:
+  idle_report_csv_path:
+    default: "./vehicle-idle-report.csv"
+    description: "Path to a daily telematics export CSV with columns: vehicle_id,report_date (YYYY-MM-DD),idle_minutes."
+  max_idle_minutes:
+    default: 60
+    description: Maximum idle minutes per day before a vehicle is flagged for excess idling.
+compatible_agents: [generic, claude, codex]
+notes: Requires a telematics/GPS provider that exports a daily idle-minutes-per-vehicle report to CSV; format varies by provider so you may need to reshape the export first.

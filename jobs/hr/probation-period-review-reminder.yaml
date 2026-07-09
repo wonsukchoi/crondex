@@ -1,0 +1,36 @@
+id: probation-period-review-reminder
+version: 1
+name: Probation Period Review Reminder
+description: >
+  Warns you before a new hire's probation period ends so a manager can
+  complete the required review before it lapses automatically. Use this
+  if a probation deadline has ever passed with no review on file and
+  nobody caught it until it became a compliance headache.
+category: hr
+tags: [hr, probation, new-hire, compliance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (end_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "REVIEW DUE: %s — probation ends %s (%d days), no review on file\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{probation_tracking_csv_path}}"
+variables:
+  probation_tracking_csv_path:
+    default: "./probation-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,probation_end_date (YYYY-MM-DD),review_completed_date (blank if not yet done)."
+  warn_days_before:
+    default: 14
+    description: How many days before probation ends to start warning if no review is on file.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV export from your HRIS tracking probation end dates and review completion; distinct from performance-review-cycle-reminder, which covers ongoing cyclical reviews rather than one-time new-hire probation.

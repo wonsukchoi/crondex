@@ -1,0 +1,31 @@
+id: class-waitlist-overflow-check
+version: 1
+name: Class Waitlist Overflow Check
+description: >
+  Checks upcoming classes for waitlists that have grown past a threshold,
+  a sign there's enough demand to justify adding another session. Use
+  this if a popular class has ever kept a long waitlist for months
+  without anyone noticing there was room to add a second time slot.
+category: fitness
+tags: [fitness, classes, waitlist, demand]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_wait="{{min_waitlist_size}}" '
+    NR==1 {next}
+    {
+      if ($3 >= min_wait) {
+        printf "WAITLIST OVERFLOW: %s on %s — %d people waiting\n", $1, $4, $3;
+      }
+    }
+  ' "{{classes_csv_path}}"
+variables:
+  classes_csv_path:
+    default: "./upcoming-classes.csv"
+    description: "Path to a CSV with columns: class_name,capacity,waitlist_count,class_date."
+  min_waitlist_size:
+    default: 5
+    description: Minimum number of people on a waitlist before the class is flagged as overflowing.
+compatible_agents: [generic, claude, codex]
+notes: A class that overflows the same slot week after week is a stronger signal to add a session than a single busy day.

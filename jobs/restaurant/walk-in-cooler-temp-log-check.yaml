@@ -1,0 +1,31 @@
+id: walk-in-cooler-temp-log-check
+version: 1
+name: Walk-In Cooler Temperature Log Check
+description: >
+  Scans today's logged cooler/freezer temperature readings and flags any
+  that fall outside the safe range. Use this if an out-of-range reading has
+  ever sat unnoticed in a paper log until a health inspector found it.
+category: restaurant
+tags: [restaurant, food-safety, temperature, compliance]
+schedule: "0 11,17,23 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min="{{min_safe_f}}" -v max="{{max_safe_f}}" '
+    NR==1 {next}
+    {
+      if ($3 < min || $3 > max) printf "OUT OF RANGE: %s %s reading %.1fF at %s\n", $1, $2, $3, $4;
+    }
+  ' "{{temp_log_csv}}"
+variables:
+  temp_log_csv:
+    default: "./cooler-temp-log.csv"
+    description: "CSV with header row, columns: unit_name,unit_type,temp_f,logged_at — one row per temperature check."
+  min_safe_f:
+    default: 33
+    description: Minimum safe temperature in Fahrenheit for a walk-in cooler/freezer reading.
+  max_safe_f:
+    default: 40
+    description: Maximum safe temperature in Fahrenheit for a walk-in cooler/freezer reading.
+compatible_agents: [generic, claude, codex]
+notes: Freezer units need a separate, much lower range — run this job once per unit_type with min_safe_f/max_safe_f set accordingly, or pre-filter the CSV.

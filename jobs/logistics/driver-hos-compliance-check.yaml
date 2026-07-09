@@ -1,0 +1,38 @@
+id: driver-hos-compliance-check
+version: 1
+name: Driver Hours-of-Service Compliance Check
+description: >
+  Checks logged driving hours against the daily hours-of-service limit and
+  flags any driver close to or over it. Use this if a driver has ever run
+  over their legal on-duty hours because nobody was tallying it in real
+  time.
+category: logistics
+tags: [logistics, drivers, hos, compliance, safety]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v limit={{daily_hours_limit}} -v warn={{warn_hours_remaining}} '
+    NR>1 {
+      driver = $1; hours_today = $2;
+      remaining = limit - hours_today;
+      if (hours_today >= limit) print "OVER LIMIT: " driver " has logged " hours_today "h, exceeds the " limit "h daily limit";
+      else if (remaining <= warn) print "WARNING: " driver " has logged " hours_today "h, only " remaining "h remaining before the " limit "h daily limit";
+    }
+  ' "{{driver_hours_csv}}"
+variables:
+  driver_hours_csv:
+    default: "driver-hours-today.csv"
+    description: "CSV with header row, columns: driver_name,hours_logged_today — update from your ELD (electronic logging device) export."
+  daily_hours_limit:
+    default: 11
+    description: Maximum on-duty driving hours allowed per day under your governing HOS rules.
+  warn_hours_remaining:
+    default: 1
+    description: Hours remaining before the limit at which to start warning a driver is close.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Defaults reflect the US FMCSA 11-hour driving limit — adjust
+  daily_hours_limit for your jurisdiction's rules. This is a schedule-side
+  check against a CSV you export from your ELD/telematics system, not a
+  replacement for that system's own compliance logging.

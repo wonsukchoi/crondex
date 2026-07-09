@@ -1,0 +1,28 @@
+id: classroom-supply-low-stock-check
+version: 1
+name: Classroom Supply Low Stock Check
+description: >
+  Checks consumable classroom supplies like diapers, wipes, and formula
+  against a reorder threshold per item and flags anything running low.
+  Use this if a classroom has ever run out of diapers or wipes mid-day
+  because nobody noticed the shelf was nearly empty.
+category: childcare
+tags: [childcare, supplies, inventory, classroom]
+schedule: "0 7 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($2+0 <= $3+0) {
+        printf "LOW STOCK: %s — %d on hand (reorder at %d)\n", $1, $2, $3;
+      }
+    }
+  ' "{{supplies_csv_path}}"
+variables:
+  supplies_csv_path:
+    default: "./classroom-supplies.csv"
+    description: "Path to a CSV with columns: item_name,current_stock,reorder_threshold."
+compatible_agents: [generic, claude, codex]
+notes: Update classroom-supplies.csv whenever a supply count is taken — one row per consumable item tracked.

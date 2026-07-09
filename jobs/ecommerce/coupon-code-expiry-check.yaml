@@ -1,0 +1,36 @@
+id: coupon-code-expiry-check
+version: 1
+name: Coupon Code Expiry Check
+description: >
+  Checks active promo and coupon codes against their expiry date and flags
+  any expiring soon so you can decide to extend, replace, or let them
+  lapse on purpose. Use this if a customer has ever complained a code from
+  your last campaign stopped working and nobody on the team knew it had
+  quietly expired.
+category: ecommerce
+tags: [ecommerce, coupons, promotions, marketing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "WARNING: code %s expires %s (%d days left)\n", $1, $2, days_left;
+      }
+    }
+  ' "{{coupons_csv_path}}"
+variables:
+  coupons_csv_path:
+    default: "./coupons.csv"
+    description: "Path to a CSV with columns: coupon_code,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 7
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Update coupons.csv whenever a new promo code is created or an existing one is deactivated — one row per active code.

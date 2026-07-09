@@ -1,0 +1,39 @@
+id: knowledge-base-article-staleness-check
+version: 1
+name: Knowledge Base Article Staleness Check
+description: >
+  Flags published help center articles that haven't been reviewed or
+  updated in a long time. Use this if a stale article has ever kept giving
+  customers outdated instructions because nobody was tracking when it was
+  last touched.
+category: support
+tags: [support, knowledge-base, content, self-service]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  curl -s -H "Authorization: Bearer {{api_token}}" "{{kb_api_url}}" | grep -o '"title":"[^"]*","updated_at":"[^"]*"' | while IFS= read -r line; do
+    title=$(echo "$line" | sed -E 's/.*"title":"([^"]*)".*/\1/');
+    updated=$(echo "$line" | sed -E 's/.*"updated_at":"([^"]*)".*/\1/');
+    upd_ts=$(date -d "$updated" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$updated" +%s 2>/dev/null);
+    if [ -n "$upd_ts" ]; then
+      age_days=$(( (today - upd_ts) / 86400 ));
+      if [ "$age_days" -ge {{stale_days}} ]; then echo "STALE: \"$title\" last updated $age_days days ago"; fi;
+    fi;
+  done
+variables:
+  kb_api_url:
+    default: "https://api.example-helpdesk.com/help_center/articles?status=published"
+    description: Help center API endpoint listing published articles with title and updated_at fields.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the help center API.
+  stale_days:
+    default: 365
+    description: Days since last update before an article counts as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  The JSON field extraction here is deliberately simple (grep/sed, no jq
+  dependency) — if your help center API's JSON is nested or multi-line,
+  swap in `jq` for reliable parsing instead.

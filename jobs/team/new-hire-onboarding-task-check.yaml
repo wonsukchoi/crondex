@@ -1,0 +1,32 @@
+id: new-hire-onboarding-task-check
+version: 1
+name: New Hire Onboarding Task Check
+description: >
+  Checks which new hires have onboarding tasks (accounts, equipment,
+  paperwork) that are still open past their target date. Use this if a
+  new hire has ever shown up without laptop access or benefits paperwork
+  because a checklist item silently slipped through the cracks.
+category: team
+tags: [team, onboarding, new-hire, checklist]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      age_days = (today - due_epoch) / 86400;
+      if (age_days >= 0) {
+        printf "OVERDUE: %s — task \"%s\" due %s (%d day(s) late)\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{onboarding_tasks_csv_path}}"
+variables:
+  onboarding_tasks_csv_path:
+    default: "./onboarding-tasks.csv"
+    description: "Path to a CSV with columns: new_hire_name,task_name,due_date (YYYY-MM-DD),status (open/done)."
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained onboarding checklist export (from an HRIS or a spreadsheet) — this is the backstop that flags what's still open past its due date, not a source of truth for the checklist itself.

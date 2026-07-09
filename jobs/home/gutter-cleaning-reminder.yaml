@@ -1,0 +1,30 @@
+id: gutter-cleaning-reminder
+version: 1
+name: Gutter Cleaning Reminder
+description: >
+  Reminds you to clean out your gutters based on how long it's been
+  since the last cleaning. Use this if you've ever noticed water
+  overflowing or plants sprouting in your gutters because it had been
+  way longer than you thought.
+category: home
+tags: [home, maintenance, gutters, seasonal]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_cleaned_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: gutters last cleaned $days_since day(s) ago (every ${interval} months) — clean them.";
+  else echo "OK: gutters cleaned $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_cleaned_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last cleaned the gutters — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to clean the gutters, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_cleaned_date yourself each time you actually clean them; adjust interval_months if you have heavy tree cover.

@@ -1,0 +1,33 @@
+id: purchase-order-receiving-delay-check
+version: 1
+name: Purchase Order Receiving Delay Check
+description: >
+  Checks open purchase orders against their expected delivery date and
+  flags any that are overdue and not yet marked received. Use this if
+  stock has ever run out because a purchase order was quietly late and
+  nobody chased the supplier until shelves were already empty.
+category: inventory
+tags: [inventory, purchase-orders, receiving, suppliers]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      overdue_days = (today - expected_epoch) / 86400;
+      if (overdue_days > 0) {
+        printf "OVERDUE: PO %s from %s expected %s (%d days late, not received)\n", $1, $2, $4, overdue_days;
+      }
+    }
+  ' "{{purchase_orders_csv_path}}"
+variables:
+  purchase_orders_csv_path:
+    default: "./purchase-orders.csv"
+    description: "Path to a CSV with columns: po_number,supplier_name,order_date (YYYY-MM-DD),expected_delivery_date (YYYY-MM-DD),received_date (blank if not yet received)."
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV export from your procurement/inventory system; distinct from supplier-lead-time-drift-check, which tracks aggregate lead-time trends rather than individual overdue POs.

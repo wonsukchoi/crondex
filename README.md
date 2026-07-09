@@ -117,54 +117,54 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-309 jobs across 44 categories:
+347 jobs across 44 categories:
 
 | category | jobs | description |
 |---|---|---|
-| `agriculture` | 6 | Farm operations — weather risk, irrigation, equipment, market prices. |
-| `automotive` | 6 | Repair shop workflow — repair orders, parts, loaners. |
-| `childcare` | 6 | Daycare compliance and ops — ratios, immunizations, tuition. |
-| `construction` | 6 | Job site compliance — permits, inspections, change orders, rentals. |
+| `agriculture` | 7 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `automotive` | 7 | Repair shop workflow — repair orders, parts, loaners. |
+| `childcare` | 7 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `construction` | 7 | Job site compliance — permits, inspections, change orders, rentals. |
 | `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
-| `creator` | 6 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 6 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `creator` | 7 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
+| `crypto` | 7 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
-| `ecommerce` | 6 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 6 | Classroom ops — grading, attendance, deadlines, permission slips. |
-| `events` | 6 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `ecommerce` | 7 | Storefront ops — carts, stock, returns, reviews. |
+| `education` | 7 | Classroom ops — grading, attendance, deadlines, permission slips. |
+| `events` | 7 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `finance` | 10 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
-| `fitness` | 6 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 6 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
-| `gaming` | 6 | Streaming and community server ops — schedules, patches, tournaments. |
-| `government` | 6 | Public-sector ops — records requests, permits, constituent casework. |
-| `growth` | 6 | Lifecycle marketing — churn, trials, onboarding, reviews. |
-| `healthcare` | 6 | Clinic ops — appointments, recalls, licenses, lab results. |
-| `hiring` | 6 | Recruiting pipeline — candidates, offers, interviews, reqs. |
-| `home` | 6 | Household reminders — maintenance, warranties, plants, safety. |
-| `hospitality` | 6 | Hotel ops — guest reviews, inspections, maintenance requests. |
-| `hr` | 6 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
-| `insurance` | 6 | Policy tracking — renewals, claims, coverage, certificates. |
-| `inventory` | 6 | Stock accuracy — counts, shrinkage, expiry, overstock. |
-| `investing` | 6 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
-| `learning` | 6 | Personal learning — certs, courses, flashcards, reading. |
-| `legal` | 6 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 6 | Shipping ops — customs, freight, delays, fees. |
-| `manufacturing` | 6 | Production ops — downtime, defects, maintenance, suppliers, materials. |
-| `marketing` | 6 | Campaign ops — ad spend, SEO rank, deliverability, competitors. |
-| `nonprofit` | 6 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `fitness` | 7 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fleet` | 7 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
+| `gaming` | 7 | Streaming and community server ops — schedules, patches, tournaments. |
+| `government` | 7 | Public-sector ops — records requests, permits, constituent casework. |
+| `growth` | 7 | Lifecycle marketing — churn, trials, onboarding, reviews. |
+| `healthcare` | 7 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
+| `hospitality` | 7 | Hotel ops — guest reviews, inspections, maintenance requests. |
+| `hr` | 7 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `insurance` | 7 | Policy tracking — renewals, claims, coverage, certificates. |
+| `inventory` | 7 | Stock accuracy — counts, shrinkage, expiry, overstock. |
+| `investing` | 7 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `learning` | 7 | Personal learning — certs, courses, flashcards, reading. |
+| `legal` | 7 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `logistics` | 7 | Shipping ops — customs, freight, delays, fees. |
+| `manufacturing` | 7 | Production ops — downtime, defects, maintenance, suppliers, materials. |
+| `marketing` | 7 | Campaign ops — ad spend, SEO rank, deliverability, competitors. |
+| `nonprofit` | 7 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
-| `podcast` | 6 | Show ops — publish cadence, guests, sponsors, ratings. |
+| `podcast` | 7 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
-| `realestate` | 6 | Property management — leases, rent, vacancy, inspections, tax. |
-| `restaurant` | 6 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
-| `retail` | 6 | Store ops — till reconciliation, opening checklist, scheduling. |
-| `sales` | 6 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `realestate` | 7 | Property management — leases, rent, vacancy, inspections, tax. |
+| `restaurant` | 7 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
+| `retail` | 7 | Store ops — till reconciliation, opening checklist, scheduling. |
+| `sales` | 7 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
-| `support` | 6 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
-| `team` | 6 | Team ops — 1:1s, on-call, PTO, anniversaries. |
-| `travel` | 6 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `veterinary` | 6 | Clinic ops for animals — vaccines, controlled substances, boarding. |
-| `warehousing` | 6 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |
+| `support` | 7 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `team` | 7 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `travel` | 7 | Trip logistics — flights, passports, visas, insurance, miles. |
+| `veterinary` | 7 | Clinic ops for animals — vaccines, controlled substances, boarding. |
+| `warehousing` | 7 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |
 <!-- END JOB SUMMARY -->
 
 ---

@@ -1,0 +1,35 @@
+id: pallet-putaway-delay-check
+version: 1
+name: Pallet Putaway Delay Check
+description: >
+  Checks how long received pallets have been sitting in the receiving
+  area before getting put away, and flags anything stuck too long. Use
+  this if inventory has ever gone "missing" only to turn up still
+  shrink-wrapped on a receiving pallet from three days ago.
+category: warehousing
+tags: [warehousing, receiving, putaway, inventory]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v max_hours="{{max_hours_in_receiving}}" '
+    NR==1 {next}
+    $4 == "received" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      age_hours = (now - received_epoch) / 3600;
+      if (age_hours >= max_hours) {
+        printf "STUCK: pallet %s — received %s (%d hour(s) ago), still not put away\n", $1, $2, age_hours;
+      }
+    }
+  ' "{{receiving_log_csv_path}}"
+variables:
+  receiving_log_csv_path:
+    default: "./receiving-log.csv"
+    description: "Path to a CSV with columns: pallet_id,received_time (YYYY-MM-DD HH:MM),zone,status (received/put_away)."
+  max_hours_in_receiving:
+    default: 24
+    description: Hours a pallet can sit in receiving before it's flagged as a putaway delay.
+compatible_agents: [generic, claude, codex]
+notes: This checks time-in-receiving only — pair with `cycle-count-schedule-check` for whether the eventual putaway locations get counted on schedule.

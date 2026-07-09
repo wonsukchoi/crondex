@@ -1,0 +1,37 @@
+id: nft-floor-price-watch
+version: 1
+name: NFT Floor Price Watch
+description: >
+  Checks an NFT collection's floor price via a public marketplace API and
+  alerts if it drops below a threshold. Use this if you've ever wanted a
+  heads-up when a collection you hold or track dips below a price level
+  you care about, without staring at a marketplace tab all day.
+category: crypto
+tags: [crypto, nft, floor-price, marketplace]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  floor=$(curl -s -H "accept: application/json" "{{floor_price_api_url}}" |
+    grep -o '"floor_price":[0-9.]*' | head -1 | cut -d: -f2);
+  if [ -n "$floor" ]; then
+    echo "Floor price for {{collection_slug}}: $floor {{price_unit}}";
+    awk -v floor="$floor" -v min="{{min_floor_price}}" 'BEGIN{if (floor+0 < min+0) print "LOW FLOOR ALERT: below " min " " "{{price_unit}}" " threshold"}';
+  else
+    echo "Could not fetch floor price — check API URL/collection slug.";
+  fi
+variables:
+  floor_price_api_url:
+    default: "https://api.opensea.io/api/v2/collections/{{collection_slug}}/stats"
+    description: Marketplace API endpoint returning a floor_price field for the collection.
+  collection_slug:
+    default: "your-collection-slug"
+    description: Marketplace slug/identifier for the NFT collection to watch.
+  min_floor_price:
+    default: 0.1
+    description: Floor price threshold below which to alert.
+  price_unit:
+    default: "ETH"
+    description: Unit the floor price is denominated in, for display only.
+compatible_agents: [generic, claude, codex]
+notes: Read-only public API call — some marketplace APIs require a free API key in a header; add it via a wrapper script or an authenticated endpoint if needed.

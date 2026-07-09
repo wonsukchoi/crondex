@@ -1,0 +1,35 @@
+id: crew-safety-cert-expiry-check
+version: 1
+name: Crew Safety Certification Expiry Check
+description: >
+  Checks each crew member's safety certifications, like OSHA 10/30 or
+  forklift operator cards, against their expiry date and flags anyone
+  lapsing soon. Use this if a worker has ever been pulled off a site
+  because their safety card expired and nobody caught it beforehand.
+category: construction
+tags: [construction, safety, certification, crew]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "WARNING: %s — %s expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{crew_certs_csv_path}}"
+variables:
+  crew_certs_csv_path:
+    default: "./crew-safety-certs.csv"
+    description: "Path to a CSV with columns: worker_name,cert_name,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from subcontractor-insurance-expiry-check — this tracks your own crew's individual safety cards, not a sub's company insurance policy.

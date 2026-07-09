@@ -1,0 +1,35 @@
+id: affiliate-link-expiry-check
+version: 1
+name: Affiliate Link Expiry Check
+description: >
+  Checks affiliate links and discount codes in your published content
+  against their expiry date and flags anything expiring soon. Use this if
+  a viewer has ever hit a dead discount code in an old video description
+  because nobody remembered to pull or update it before it lapsed.
+category: creator
+tags: [creator, affiliate, links, monetization]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "WARNING: code %s (%s) expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{affiliate_links_csv_path}}"
+variables:
+  affiliate_links_csv_path:
+    default: "./affiliate-links.csv"
+    description: "Path to a CSV with columns: code_or_link,associated_post,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Update affiliate-links.csv whenever you add a new sponsored link or code to a post — one row per tracked link.

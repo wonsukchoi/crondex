@@ -1,0 +1,37 @@
+id: endorsement-request-followup-check
+version: 1
+name: Policy Endorsement Request Follow-up Check
+description: >
+  Checks requested policy endorsements or amendments (e.g. adding a
+  driver, changing coverage limits) that haven't been confirmed processed
+  within a set window and flags them for follow-up. Use this if you've
+  ever submitted a change request to a carrier and only found out months
+  later it was never actually applied.
+category: insurance
+tags: [insurance, endorsement, policy-changes, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{overdue_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      pending_days = (today - requested_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "OVERDUE: %s — %s requested %s (%d days, not confirmed processed)\n", $1, $2, $3, pending_days;
+      }
+    }
+  ' "{{endorsements_csv_path}}"
+variables:
+  endorsements_csv_path:
+    default: "./endorsement-requests.csv"
+    description: "Path to a CSV with columns: policy_name,requested_change,requested_date (YYYY-MM-DD),confirmed_date (blank if not yet confirmed by the carrier)."
+  overdue_days:
+    default: 10
+    description: Days since an endorsement was requested, with no carrier confirmation, before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Maintain the CSV manually or export it from your broker/agency management system; distinct from claim-status-check, which tracks claims rather than policy change requests.

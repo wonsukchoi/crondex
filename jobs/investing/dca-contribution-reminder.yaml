@@ -1,0 +1,33 @@
+id: dca-contribution-reminder
+version: 1
+name: DCA Contribution Reminder
+description: >
+  Checks your dollar-cost-averaging log and warns if it's been longer than
+  your planned interval since the last logged contribution. Use this if
+  you've ever meant to invest a fixed amount on a schedule and let a month
+  slip by without actually placing the order.
+category: investing
+tags: [investing, dca, dollar-cost-averaging, contributions]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  last_line=$(tail -n 1 "{{contribution_log_csv}}" 2>/dev/null);
+  if [ -z "$last_line" ]; then echo "WARNING: no contributions logged yet in {{contribution_log_csv}}"; exit 1; fi;
+  last_date=$(echo "$last_line" | cut -d',' -f1);
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s 2>/dev/null);
+  today_ts=$(date +%s);
+  days_since=$(( (today_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{interval_days}}" ]; then
+    echo "WARNING: last DCA contribution was $days_since days ago (on $last_date) — due for another (${{interval_days}}-day interval)";
+    exit 1;
+  else echo "OK: last DCA contribution was $days_since days ago (on $last_date), within the ${{interval_days}}-day interval"; fi
+variables:
+  contribution_log_csv:
+    default: "dca-contributions.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),amount,ticker — append a row each time you invest."
+  interval_days:
+    default: 30
+    description: Expected number of days between contributions before this flags as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Append a row to dca-contributions.csv yourself (or via your brokerage export) each time you make a scheduled contribution.

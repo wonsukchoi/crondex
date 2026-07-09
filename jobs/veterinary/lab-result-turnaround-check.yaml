@@ -1,0 +1,35 @@
+id: lab-result-turnaround-check
+version: 1
+name: Lab Result Turnaround Check
+description: >
+  Checks which submitted lab orders still have no result logged past
+  their expected turnaround time. Use this if a sample has ever sat at
+  an outside lab for a week with nobody following up because no one was
+  tracking orders against their expected turnaround.
+category: veterinary
+tags: [veterinary, lab-results, patients, turnaround]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{overdue_after_days}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      age_days = (today - submitted_epoch) / 86400;
+      if (age_days >= warn_days) {
+        printf "OVERDUE RESULT: %s (%s) — %s submitted %s (%d day(s) ago, still pending)\n", $1, $2, $5, $3, age_days;
+      }
+    }
+  ' "{{lab_orders_csv_path}}"
+variables:
+  lab_orders_csv_path:
+    default: "./lab-orders.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,submitted_date (YYYY-MM-DD),status (pending/resulted),test_type."
+  overdue_after_days:
+    default: 5
+    description: Days since a sample was submitted before a still-pending result counts as overdue for follow-up with the lab.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained export from your practice management or lab-ordering system — this flags orders that fell out of tracking, it doesn't chase the lab itself.

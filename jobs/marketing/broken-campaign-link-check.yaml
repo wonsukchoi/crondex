@@ -1,0 +1,31 @@
+id: broken-campaign-link-check
+version: 1
+name: Broken Campaign Link Check
+description: >
+  Requests each active campaign's landing page URL and flags any that
+  return an error instead of loading. Use this if paid traffic has ever
+  kept flowing to a campaign whose landing page was quietly down or
+  redirecting to a 404.
+category: marketing
+tags: [marketing, campaigns, links, uptime]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=',' read -r name url; do
+    [ "$name" = "campaign_name" ] && continue;
+    [ -z "$url" ] && continue;
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time {{timeout_seconds}} "$url");
+    if [ "$code" -ge 400 ] || [ "$code" = "000" ]; then
+      echo "BROKEN: \"$name\" -> $url returned HTTP $code";
+    fi;
+  done < "{{campaign_urls_csv}}"
+variables:
+  campaign_urls_csv:
+    default: "campaign-urls.csv"
+    description: "CSV with header row, columns: campaign_name,landing_page_url — one row per active campaign."
+  timeout_seconds:
+    default: 10
+    description: Seconds to wait for each landing page before treating it as unreachable.
+compatible_agents: [generic, claude, codex]
+notes: Keep campaign-urls.csv in sync with whatever's currently live in your ad platform — a URL left in the file after a campaign ends will keep getting checked (and may false-flag if the page is intentionally retired).

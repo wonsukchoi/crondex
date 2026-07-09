@@ -1,0 +1,32 @@
+id: webinar-attendance-reminder
+version: 1
+name: Webinar Attendance Reminder
+description: >
+  Checks a list of webinars/workshops you've registered for and flags any
+  happening soon so you can block the time and prep. Use this if you've
+  ever signed up for a webinar and completely forgotten about it by the
+  time it started.
+category: learning
+tags: [learning, webinars, events, reminders]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline event_ts; close(cmd);
+      days_left = int((event_ts - today) / 86400);
+      if (days_left >= 0 && days_left <= warn) print "UPCOMING: \"" $1 "\" on " $2 " (in " days_left " day(s))";
+    }
+  ' "{{registrations_csv}}"
+variables:
+  registrations_csv:
+    default: "webinar-registrations.csv"
+    description: "CSV with header row, columns: title,date(YYYY-MM-DD)."
+  warn_days:
+    default: 3
+    description: Days ahead of a webinar to start flagging it as upcoming.
+compatible_agents: [generic, claude, codex]
+notes: Add a row to webinar-registrations.csv whenever you sign up for a webinar or workshop — this job only reads it, it doesn't register you anywhere.

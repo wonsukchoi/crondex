@@ -1,0 +1,32 @@
+id: public-records-retention-purge-check
+version: 1
+name: Public Records Retention Purge Check
+description: >
+  Checks records against their retention schedule and flags anything past
+  its retention period as eligible for archival review or purge. Use this
+  if a records room has ever quietly kept documents years past their
+  legally required retention window simply because nobody was tracking
+  expiry dates.
+category: government
+tags: [government, records, retention, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      if (today >= exp_epoch) {
+        printf "RETENTION EXPIRED: %s (%s) — retention ended %s\n", $1, $2, $3;
+      }
+    }
+  ' "{{records_csv_path}}"
+variables:
+  records_csv_path:
+    default: "./records-retention-schedule.csv"
+    description: "Path to a CSV with columns: record_id,record_type,retention_end_date (YYYY-MM-DD),reviewed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: This flags records as eligible for review, not for automatic deletion — always confirm against your jurisdiction's retention schedule and any legal hold before purging anything.

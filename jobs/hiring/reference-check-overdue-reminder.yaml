@@ -1,0 +1,36 @@
+id: reference-check-overdue-reminder
+version: 1
+name: Reference Check Overdue Reminder
+description: >
+  Checks candidates whose reference checks were requested but never came
+  back within a set window and flags them so recruiters can chase them
+  down. Use this if an offer has ever stalled because a reference check
+  quietly sat unanswered for weeks.
+category: hiring
+tags: [hiring, recruiting, references, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{overdue_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      pending_days = (today - requested_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "OVERDUE: %s — reference from %s requested %s (%d days, no response)\n", $1, $2, $3, pending_days;
+      }
+    }
+  ' "{{reference_checks_csv_path}}"
+variables:
+  reference_checks_csv_path:
+    default: "./reference-checks.csv"
+    description: "Path to a CSV with columns: candidate_name,referrer_name,requested_date (YYYY-MM-DD),completed_date (blank if not yet received)."
+  overdue_days:
+    default: 7
+    description: Days since a reference check was requested, with no completion date, before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a CSV export of reference-check requests from your ATS; distinct from background-check-status-check, which tracks third-party background screening rather than personal/professional references.

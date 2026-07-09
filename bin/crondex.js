@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
 import { tokenize, rankJobs } from "../lib/recommend.js";
+import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
@@ -134,11 +135,16 @@ function categories() {
   const counts = {};
   for (const j of CATALOG.jobs) counts[j.category] = (counts[j.category] ?? 0) + 1;
   const sorted = Object.entries(counts).sort(([a], [b]) => a.localeCompare(b));
-  if (hasFlag("json")) return printJson(sorted.map(([category, count]) => ({ category, count })));
+  if (hasFlag("json")) {
+    return printJson(
+      sorted.map(([category, count]) => ({ category, count, description: CATEGORY_DESCRIPTIONS[category] ?? "" }))
+    );
+  }
   console.log(catalogInfoLine());
   console.log();
   for (const [cat, n] of sorted) {
     console.log(`${cat}  (${n})`);
+    if (CATEGORY_DESCRIPTIONS[cat]) console.log(`  ${CATEGORY_DESCRIPTIONS[cat]}`);
   }
 }
 

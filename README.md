@@ -93,52 +93,52 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 <!-- BEGIN JOB SUMMARY -->
 257 jobs across 44 categories:
 
-| category | jobs |
-|---|---|
-| `agriculture` | 5 |
-| `automotive` | 3 |
-| `childcare` | 3 |
-| `construction` | 5 |
-| `content` | 13 |
-| `creator` | 5 |
-| `crypto` | 5 |
-| `devops` | 26 |
-| `ecommerce` | 5 |
-| `education` | 5 |
-| `events` | 5 |
-| `finance` | 10 |
-| `fitness` | 3 |
-| `fleet` | 5 |
-| `gaming` | 5 |
-| `government` | 3 |
-| `growth` | 5 |
-| `healthcare` | 5 |
-| `hiring` | 5 |
-| `home` | 5 |
-| `hospitality` | 5 |
-| `hr` | 5 |
-| `insurance` | 5 |
-| `inventory` | 5 |
-| `investing` | 5 |
-| `learning` | 5 |
-| `legal` | 5 |
-| `logistics` | 5 |
-| `manufacturing` | 5 |
-| `marketing` | 5 |
-| `nonprofit` | 5 |
-| `personal` | 9 |
-| `podcast` | 5 |
-| `productivity` | 9 |
-| `realestate` | 5 |
-| `restaurant` | 5 |
-| `retail` | 3 |
-| `sales` | 5 |
-| `security` | 14 |
-| `support` | 5 |
-| `team` | 5 |
-| `travel` | 5 |
-| `veterinary` | 3 |
-| `warehousing` | 3 |
+| category | jobs | description |
+|---|---|---|
+| `agriculture` | 5 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `automotive` | 3 | Repair shop workflow — repair orders, parts, loaners. |
+| `childcare` | 3 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `construction` | 5 | Job site compliance — permits, inspections, change orders, rentals. |
+| `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `creator` | 5 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
+| `crypto` | 5 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
+| `ecommerce` | 5 | Storefront ops — carts, stock, returns, reviews. |
+| `education` | 5 | Classroom ops — grading, attendance, deadlines, permission slips. |
+| `events` | 5 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `finance` | 10 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
+| `fitness` | 3 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fleet` | 5 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
+| `gaming` | 5 | Streaming and community server ops — schedules, patches, tournaments. |
+| `government` | 3 | Public-sector ops — records requests, permits, constituent casework. |
+| `growth` | 5 | Lifecycle marketing — churn, trials, onboarding, reviews. |
+| `healthcare` | 5 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `hiring` | 5 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `home` | 5 | Household reminders — maintenance, warranties, plants, safety. |
+| `hospitality` | 5 | Hotel ops — guest reviews, inspections, maintenance requests. |
+| `hr` | 5 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `insurance` | 5 | Policy tracking — renewals, claims, coverage, certificates. |
+| `inventory` | 5 | Stock accuracy — counts, shrinkage, expiry, overstock. |
+| `investing` | 5 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `learning` | 5 | Personal learning — certs, courses, flashcards, reading. |
+| `legal` | 5 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `logistics` | 5 | Shipping ops — customs, freight, delays, fees. |
+| `manufacturing` | 5 | Production ops — downtime, defects, maintenance, suppliers, materials. |
+| `marketing` | 5 | Campaign ops — ad spend, SEO rank, deliverability, competitors. |
+| `nonprofit` | 5 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
+| `podcast` | 5 | Show ops — publish cadence, guests, sponsors, ratings. |
+| `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
+| `realestate` | 5 | Property management — leases, rent, vacancy, inspections, tax. |
+| `restaurant` | 5 | Kitchen/FOH ops — food cost, labor cost, waste, inspections. |
+| `retail` | 3 | Store ops — till reconciliation, opening checklist, scheduling. |
+| `sales` | 5 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
+| `support` | 5 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `team` | 5 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `travel` | 5 | Trip logistics — flights, passports, visas, insurance, miles. |
+| `veterinary` | 3 | Clinic ops for animals — vaccines, controlled substances, boarding. |
+| `warehousing` | 3 | Warehouse ops — dock scheduling, pick/pack errors, climate control. |
 <!-- END JOB SUMMARY -->
 
 ---

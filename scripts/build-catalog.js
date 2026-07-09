@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import yaml from "js-yaml";
+import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const JOBS_DIR = join(ROOT, "jobs");
@@ -57,12 +58,19 @@ const byCategory = new Map();
 for (const j of jobs) byCategory.set(j.category, (byCategory.get(j.category) ?? 0) + 1);
 const categories = [...byCategory.keys()].sort();
 
+const missingDescriptions = categories.filter((c) => !CATEGORY_DESCRIPTIONS[c]);
+if (missingDescriptions.length > 0) {
+  console.warn(
+    `no entry in lib/category-descriptions.js for: ${missingDescriptions.join(", ")} — add one so the README table doesn't show a blank description.`
+  );
+}
+
 const summaryLines = [
   `${jobs.length} jobs across ${categories.length} categories:`,
   "",
-  "| category | jobs |",
-  "|---|---|",
-  ...categories.map((c) => `| \`${c}\` | ${byCategory.get(c)} |`),
+  "| category | jobs | description |",
+  "|---|---|---|",
+  ...categories.map((c) => `| \`${c}\` | ${byCategory.get(c)} | ${CATEGORY_DESCRIPTIONS[c] ?? ""} |`),
 ];
 
 const README_PATH = join(ROOT, "README.md");

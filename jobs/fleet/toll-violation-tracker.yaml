@@ -1,0 +1,34 @@
+id: toll-violation-tracker
+version: 1
+name: Toll & Parking Violation Tracker
+description: >
+  Flags unpaid tolls and parking citations against fleet vehicles before
+  they escalate into late fees, registration holds, or collections. Use
+  this if a parking ticket has ever turned into a much bigger bill because
+  it sat unnoticed until a renewal got blocked.
+category: fleet
+tags: [fleet, tolls, violations, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_due}}" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn_days)
+        print "UNPAID: vehicle " $1 " — " $2 " (" $5 " USD, due " $3 ", " days_left " days left)";
+    }
+  ' "{{violations_csv_path}}"
+variables:
+  violations_csv_path:
+    default: "./fleet-toll-parking-violations.csv"
+    description: "Path to a CSV with columns: vehicle_id,violation_type,due_date(YYYY-MM-DD),status(unpaid/paid),amount_usd."
+  warn_days_before_due:
+    default: 5
+    description: Days before the due date to start warning about an unpaid violation.
+compatible_agents: [generic, claude, codex]
+notes: Pull unpaid toll/citation exports from your toll transponder provider and city/county ticket portals into the CSV before each run.

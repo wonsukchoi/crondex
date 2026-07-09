@@ -1,0 +1,39 @@
+id: driver-safety-score-monitor
+version: 1
+name: Driver Safety Score Monitor
+description: >
+  Reviews telematics-derived driver safety scores (harsh braking, hard
+  acceleration, speeding events) and flags drivers trending toward risky
+  behavior. Use this if a driver's habits have ever gone unaddressed until
+  an accident or a spiked insurance premium made it impossible to ignore.
+category: fleet
+tags: [fleet, drivers, safety, telematics]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull this week's driver safety scorecards from {{telematics_provider_hint}}
+  for all tracked drivers.
+  1. Flag any driver whose composite safety score fell below
+     {{min_safety_score}} (0-100 scale).
+  2. Flag any driver with more than {{max_harsh_events}} combined harsh
+     braking/hard acceleration/speeding events this week.
+  3. Note drivers trending downward over the last {{trend_weeks}} weeks even
+     if still above threshold.
+  4. Report flagged drivers with score, event counts, and week-over-week
+     trend so a manager can decide on coaching.
+variables:
+  telematics_provider_hint:
+    default: "your telematics/GPS provider (Samsara, Motive, Geotab, etc.)"
+    description: Name of the telematics provider/portal driver scorecards come from.
+  min_safety_score:
+    default: 70
+    description: Composite safety score (0-100) below which a driver is flagged.
+  max_harsh_events:
+    default: 5
+    description: Combined harsh-driving events per week that triggers a flag.
+  trend_weeks:
+    default: 4
+    description: Number of trailing weeks to check for a declining trend.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — telematics scorecard formats vary by provider and trend judgment benefits from an agent rather than a fixed CSV parse. Distinct from `vehicle-idle-time-check`, which tracks fuel waste, not driving behavior.

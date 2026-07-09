@@ -1,0 +1,41 @@
+id: vehicle-tco-tracker
+version: 1
+name: Vehicle Total Cost of Ownership Tracker
+description: >
+  Reviews each vehicle's running cost per mile (fuel, maintenance,
+  insurance, depreciation) against a threshold and flags vehicles that
+  have quietly become more expensive to keep than to replace. Use this if
+  an aging vehicle has ever stayed on the road years past the point it
+  made financial sense.
+category: fleet
+tags: [fleet, cost, depreciation, tco]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review this month's fleet cost data from {{fleet_management_system_hint}}
+  covering fuel, maintenance, insurance, and depreciation for each vehicle.
+  1. Calculate or pull the trailing {{trailing_months}}-month cost per mile
+     (or cost per day if mileage isn't tracked) for each vehicle.
+  2. Flag any vehicle whose cost per mile exceeds {{max_cost_per_mile_usd}}
+     USD, or whose costs have risen more than {{cost_increase_pct}}% versus
+     the prior period.
+  3. For flagged vehicles, note vehicle age/mileage and whether recent
+     costs are dominated by maintenance (repair spiral) or fuel
+     (efficiency loss).
+  4. Report flagged vehicles ranked by cost per mile, highest first.
+variables:
+  fleet_management_system_hint:
+    default: "your fleet management/telematics system"
+    description: Name of the system fuel, maintenance, insurance, and depreciation data comes from.
+  trailing_months:
+    default: 3
+    description: Number of trailing months to average costs over.
+  max_cost_per_mile_usd:
+    default: 0.75
+    description: Cost per mile (USD) above which a vehicle is flagged.
+  cost_increase_pct:
+    default: 20
+    description: Percentage cost increase versus the prior period that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — cost data is scattered across fuel cards, maintenance logs, and insurance statements, and judging whether a rising cost trend means "replace this vehicle" needs more than a threshold check.

@@ -1,0 +1,37 @@
+id: vehicle-utilization-rate-check
+version: 1
+name: Vehicle Utilization Rate Check
+description: >
+  Flags fleet vehicles running well below or above a target utilization
+  rate (miles or days driven per period). Use this if a vehicle has ever
+  sat mostly idle in a lot racking up lease and insurance costs while
+  another vehicle got run into the ground.
+category: fleet
+tags: [fleet, vehicles, utilization]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v low="{{low_utilization_pct}}" -v high="{{high_utilization_pct}}" '
+    NR==1 {next}
+    {
+      pct = ($3 / $2) * 100;
+      if (pct < low) {
+        printf "UNDERUSED: vehicle %s — %.1f%% utilization (target %d-%d%%)\n", $1, pct, low, high;
+      } else if (pct > high) {
+        printf "OVERUSED: vehicle %s — %.1f%% utilization (target %d-%d%%)\n", $1, pct, low, high;
+      }
+    }
+  ' "{{utilization_csv_path}}"
+variables:
+  utilization_csv_path:
+    default: "./vehicle-utilization.csv"
+    description: "Path to a monthly CSV with columns: vehicle_id,available_days_or_miles,used_days_or_miles."
+  low_utilization_pct:
+    default: 30
+    description: Utilization percentage below which a vehicle is flagged as underused.
+  high_utilization_pct:
+    default: 90
+    description: Utilization percentage above which a vehicle is flagged as overused/at risk of premature wear.
+compatible_agents: [generic, claude, codex]
+notes: Pulls whatever "used" metric you track (days checked out, miles driven) against "available" — pick one unit and stay consistent across rows.

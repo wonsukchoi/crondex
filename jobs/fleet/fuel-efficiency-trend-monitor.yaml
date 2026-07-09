@@ -1,0 +1,33 @@
+id: fuel-efficiency-trend-monitor
+version: 1
+name: Fuel Efficiency Trend Monitor
+description: >
+  Tracks each vehicle's miles-per-gallon (or equivalent) trend over time
+  and flags vehicles losing efficiency, which often signals a mechanical
+  problem before it shows up as a breakdown. Use this if a vehicle's fuel
+  costs have ever crept up for months before a mechanic found the actual
+  cause.
+category: fleet
+tags: [fleet, fuel, efficiency, maintenance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v drop_pct="{{efficiency_drop_pct}}" '
+    NR==1 {next}
+    {
+      baseline=$2; current=$3;
+      drop = ((baseline - current) / baseline) * 100;
+      if (drop >= drop_pct)
+        printf "EFFICIENCY DROP: vehicle %s — %.1f%% below baseline (%.1f -> %.1f mpg)\n", $1, drop, baseline, current;
+    }
+  ' "{{fuel_efficiency_csv_path}}"
+variables:
+  fuel_efficiency_csv_path:
+    default: "./fleet-fuel-efficiency.csv"
+    description: "Path to a monthly CSV with columns: vehicle_id,baseline_mpg,current_month_mpg."
+  efficiency_drop_pct:
+    default: 15
+    description: Percentage drop from baseline mpg before a vehicle is flagged for a possible mechanical issue.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `fuel-card-anomaly-check` (fraud/misuse in individual transactions) and `vehicle-idle-time-check` (fuel burned while stationary) — this tracks actual driving efficiency degradation over time.

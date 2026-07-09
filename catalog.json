@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 594,
+  "count": 606,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -129,6 +129,31 @@
         "codex"
       ],
       "path": "jobs/hr/aca-fte-threshold-monitor.yaml"
+    },
+    {
+      "id": "accident-incident-report-tracker",
+      "version": 1,
+      "name": "Accident/Incident Report Tracker",
+      "description": "Flags open accident or incident reports that have gone too long without being closed out. Use this if a fender-bender report has ever sat unresolved for weeks because nobody was tracking it after the initial paperwork was filed.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "safety",
+        "incidents",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/accident-incident-report-tracker.yaml"
     },
     {
       "id": "accounts-payable-aging-check",
@@ -3764,6 +3789,58 @@
       "path": "jobs/fleet/driver-license-cdl-expiry-check.yaml"
     },
     {
+      "id": "driver-mvr-review-tracker",
+      "version": 1,
+      "name": "Driver MVR Review Tracker",
+      "description": "Tracks when each driver's motor vehicle record (MVR) was last pulled and reviewed, and flags drivers overdue for their periodic re-check. Use this if a driver has ever kept racking up points or violations on their record for a year or more before anyone at the company noticed.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "drivers",
+        "mvr",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/driver-mvr-review-tracker.yaml"
+    },
+    {
+      "id": "driver-safety-score-monitor",
+      "version": 1,
+      "name": "Driver Safety Score Monitor",
+      "description": "Reviews telematics-derived driver safety scores (harsh braking, hard acceleration, speeding events) and flags drivers trending toward risky behavior. Use this if a driver's habits have ever gone unaddressed until an accident or a spiked insurance premium made it impossible to ignore.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "drivers",
+        "safety",
+        "telematics"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/fleet/driver-safety-score-monitor.yaml"
+    },
+    {
       "id": "duplicate-payment-detection",
       "version": 1,
       "name": "Duplicate Payment Detection",
@@ -4322,6 +4399,31 @@
         "codex"
       ],
       "path": "jobs/automotive/estimate-approval-followup-check.yaml"
+    },
+    {
+      "id": "ev-battery-health-check",
+      "version": 1,
+      "name": "EV Battery Health & Charging Check",
+      "description": "Checks electric fleet vehicles' battery state-of-health and charging session logs, flagging vehicles with degrading batteries or charging problems. Use this if an EV has ever shown up for a route with far less range than expected because nobody was watching battery degradation between scheduled services.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "ev",
+        "battery",
+        "charging"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/ev-battery-health-check.yaml"
     },
     {
       "id": "event-budget-overrun-check",
@@ -5229,6 +5331,31 @@
       "path": "jobs/fleet/fuel-card-anomaly-check.yaml"
     },
     {
+      "id": "fuel-efficiency-trend-monitor",
+      "version": 1,
+      "name": "Fuel Efficiency Trend Monitor",
+      "description": "Tracks each vehicle's miles-per-gallon (or equivalent) trend over time and flags vehicles losing efficiency, which often signals a mechanical problem before it shows up as a breakdown. Use this if a vehicle's fuel costs have ever crept up for months before a mechanic found the actual cause.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "fuel",
+        "efficiency",
+        "maintenance"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/fuel-efficiency-trend-monitor.yaml"
+    },
+    {
       "id": "fuel-surcharge-rate-monitor",
       "version": 1,
       "name": "Fuel Surcharge Rate Monitor",
@@ -5379,6 +5506,33 @@
         "codex"
       ],
       "path": "jobs/crypto/gas-price-alert.yaml"
+    },
+    {
+      "id": "geofence-violation-check",
+      "version": 1,
+      "name": "GPS Geofence Violation Check",
+      "description": "Reviews telematics geofence alerts for fleet vehicles that left authorized zones or moved outside approved hours, and flags them for follow-up. Use this if a vehicle has ever turned up far outside its assigned route or job site and nobody knew until a fuel bill or mileage report gave it away.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "gps",
+        "geofence",
+        "telematics"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/fleet/geofence-violation-check.yaml"
     },
     {
       "id": "gift-card-expiry-check",
@@ -6952,6 +7106,33 @@
         "codex"
       ],
       "path": "jobs/realestate/lease-renewal-offer-window-check.yaml"
+    },
+    {
+      "id": "lease-return-condition-check",
+      "version": 1,
+      "name": "End-of-Lease Vehicle Return Condition Check",
+      "description": "Reviews vehicles approaching lease-end and flags condition issues (excess mileage, damage, missing equipment) that could trigger return fees, giving time to fix them before turn-in. Use this if a leased vehicle has ever come back with a surprise excess-wear bill because nobody inspected it until the leasing company did.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "leasing",
+        "inspection",
+        "cost"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/fleet/lease-return-condition-check.yaml"
     },
     {
       "id": "leave-of-absence-return-tracker",
@@ -13647,6 +13828,31 @@
       "path": "jobs/productivity/timezone-meeting-conflict-check.yaml"
     },
     {
+      "id": "tire-wear-replacement-check",
+      "version": 1,
+      "name": "Tire Wear & Replacement Check",
+      "description": "Checks tread depth readings against a safe minimum and flags tires approaching replacement. Use this if a fleet vehicle has ever failed a roadside inspection, or blown a tire on the road, because tread wear was only checked at annual service instead of tracked between visits.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "tires",
+        "maintenance",
+        "safety"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/tire-wear-replacement-check.yaml"
+    },
+    {
       "id": "tls-cipher-weak-check",
       "version": 1,
       "name": "Weak TLS Cipher/Protocol Check",
@@ -13696,6 +13902,31 @@
         "generic"
       ],
       "path": "jobs/crypto/token-unlock-vesting-watch.yaml"
+    },
+    {
+      "id": "toll-violation-tracker",
+      "version": 1,
+      "name": "Toll & Parking Violation Tracker",
+      "description": "Flags unpaid tolls and parking citations against fleet vehicles before they escalate into late fees, registration holds, or collections. Use this if a parking ticket has ever turned into a much bigger bill because it sat unnoticed until a renewal got blocked.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "tolls",
+        "violations",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/toll-violation-tracker.yaml"
     },
     {
       "id": "tooling-die-wear-check",
@@ -14278,6 +14509,30 @@
       "path": "jobs/automotive/vehicle-pickup-reminder.yaml"
     },
     {
+      "id": "vehicle-pool-scheduling-conflict-check",
+      "version": 1,
+      "name": "Vehicle Pool Scheduling Conflict Check",
+      "description": "Scans upcoming pool vehicle reservations for double-bookings and flags overlaps before two employees show up for the same vehicle. Use this if a pool vehicle has ever been double-booked because reservations were tracked in a shared calendar or spreadsheet with no overlap check.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "scheduling",
+        "pool-vehicles"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/vehicle-pool-scheduling-conflict-check.yaml"
+    },
+    {
       "id": "vehicle-registration-expiry-check",
       "version": 1,
       "name": "Fleet Vehicle Registration Expiry Check",
@@ -14300,6 +14555,57 @@
         "codex"
       ],
       "path": "jobs/fleet/vehicle-registration-expiry-check.yaml"
+    },
+    {
+      "id": "vehicle-tco-tracker",
+      "version": 1,
+      "name": "Vehicle Total Cost of Ownership Tracker",
+      "description": "Reviews each vehicle's running cost per mile (fuel, maintenance, insurance, depreciation) against a threshold and flags vehicles that have quietly become more expensive to keep than to replace. Use this if an aging vehicle has ever stayed on the road years past the point it made financial sense.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "cost",
+        "depreciation",
+        "tco"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/fleet/vehicle-tco-tracker.yaml"
+    },
+    {
+      "id": "vehicle-utilization-rate-check",
+      "version": 1,
+      "name": "Vehicle Utilization Rate Check",
+      "description": "Flags fleet vehicles running well below or above a target utilization rate (miles or days driven per period). Use this if a vehicle has ever sat mostly idle in a lot racking up lease and insurance costs while another vehicle got run into the ground.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "vehicles",
+        "utilization"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fleet/vehicle-utilization-rate-check.yaml"
     },
     {
       "id": "vendor-coi-expiry-tracker",

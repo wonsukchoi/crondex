@@ -1,0 +1,36 @@
+id: ev-battery-health-check
+version: 1
+name: EV Battery Health & Charging Check
+description: >
+  Checks electric fleet vehicles' battery state-of-health and charging
+  session logs, flagging vehicles with degrading batteries or charging
+  problems. Use this if an EV has ever shown up for a route with far less
+  range than expected because nobody was watching battery degradation
+  between scheduled services.
+category: fleet
+tags: [fleet, ev, battery, charging]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_soh="{{min_battery_soh_pct}}" -v max_hours="{{max_hours_since_charge}}" '
+    NR==1 {next}
+    {
+      if ($2 < min_soh)
+        printf "DEGRADED BATTERY: vehicle %s — %s%% state of health (min %s%%)\n", $1, $2, min_soh;
+      if ($3 > max_hours)
+        printf "NOT CHARGED: vehicle %s — %s hours since last charge (max %s)\n", $1, $3, max_hours;
+    }
+  ' "{{ev_fleet_csv_path}}"
+variables:
+  ev_fleet_csv_path:
+    default: "./ev-fleet-status.csv"
+    description: "Path to a CSV with columns: vehicle_id,battery_soh_pct,hours_since_last_charge."
+  min_battery_soh_pct:
+    default: 80
+    description: Battery state-of-health percentage below which a vehicle is flagged for degradation review.
+  max_hours_since_charge:
+    default: 24
+    description: Hours since last charging session before a vehicle is flagged as possibly not charging on schedule.
+compatible_agents: [generic, claude, codex]
+notes: Requires an EV telematics/charging-network export with state-of-health and last-charge data; format varies by provider (Ford Pro, Geotab EV, ChargePoint, etc.).

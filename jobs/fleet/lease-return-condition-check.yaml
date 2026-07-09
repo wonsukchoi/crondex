@@ -1,0 +1,33 @@
+id: lease-return-condition-check
+version: 1
+name: End-of-Lease Vehicle Return Condition Check
+description: >
+  Reviews vehicles approaching lease-end and flags condition issues
+  (excess mileage, damage, missing equipment) that could trigger return
+  fees, giving time to fix them before turn-in. Use this if a leased
+  vehicle has ever come back with a surprise excess-wear bill because
+  nobody inspected it until the leasing company did.
+category: fleet
+tags: [fleet, leasing, inspection, cost]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review fleet lease records and identify vehicles reaching lease-end
+  within the next {{lookahead_days}} days.
+  1. For each vehicle, compare current mileage against the lease's
+     allowed mileage; flag any vehicle projected to exceed the allowance
+     by return date.
+  2. Review the most recent condition/inspection notes for damage beyond
+     normal wear, missing equipment, or aftermarket modifications that
+     would need reverting.
+  3. Estimate likely excess-wear/excess-mileage fees where the lease
+     terms make that possible.
+  4. Report flagged vehicles with lease-end date, projected mileage
+     overage, and condition concerns, ranked by estimated fee exposure.
+variables:
+  lookahead_days:
+    default: 60
+    description: How many days ahead of lease-end to start reviewing a vehicle.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — estimating fee exposure from mileage and freeform condition notes needs judgment, not a fixed threshold. Distinct from `vehicle-maintenance-due-check`, which tracks routine service, not lease turn-in condition.

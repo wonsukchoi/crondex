@@ -1,0 +1,34 @@
+id: driver-mvr-review-tracker
+version: 1
+name: Driver MVR Review Tracker
+description: >
+  Tracks when each driver's motor vehicle record (MVR) was last pulled and
+  reviewed, and flags drivers overdue for their periodic re-check. Use
+  this if a driver has ever kept racking up points or violations on their
+  record for a year or more before anyone at the company noticed.
+category: fleet
+tags: [fleet, drivers, mvr, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_review}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      if (days_since >= max_days)
+        print "MVR REVIEW OVERDUE: " $1 " — last pulled " $2 " (" days_since " days ago)";
+    }
+  ' "{{mvr_review_csv_path}}"
+variables:
+  mvr_review_csv_path:
+    default: "./driver-mvr-reviews.csv"
+    description: "Path to a CSV with columns: driver_name,last_mvr_pull_date(YYYY-MM-DD)."
+  max_days_since_review:
+    default: 365
+    description: Days since a driver's last MVR pull before it's flagged as overdue for a re-check.
+compatible_agents: [generic, claude, codex]
+notes: Tracks the periodic driving-record re-check cadence, distinct from `driver-license-cdl-expiry-check`, which tracks license/CDL expiry dates specifically.

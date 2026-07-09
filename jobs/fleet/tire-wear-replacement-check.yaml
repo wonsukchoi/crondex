@@ -1,0 +1,30 @@
+id: tire-wear-replacement-check
+version: 1
+name: Tire Wear & Replacement Check
+description: >
+  Checks tread depth readings against a safe minimum and flags tires
+  approaching replacement. Use this if a fleet vehicle has ever failed a
+  roadside inspection, or blown a tire on the road, because tread wear was
+  only checked at annual service instead of tracked between visits.
+category: fleet
+tags: [fleet, tires, maintenance, safety]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_tread="{{min_tread_depth_32nds}}" '
+    NR==1 {next}
+    {
+      if ($3 <= min_tread)
+        printf "REPLACE TIRE: vehicle %s, position %s — %s/32\" tread (min %s/32\")\n", $1, $2, $3, min_tread;
+    }
+  ' "{{tire_tread_csv_path}}"
+variables:
+  tire_tread_csv_path:
+    default: "./fleet-tire-tread.csv"
+    description: "Path to a CSV with columns: vehicle_id,tire_position,tread_depth_32nds_inch."
+  min_tread_depth_32nds:
+    default: 4
+    description: Minimum tread depth in 32nds of an inch before a tire is flagged for replacement (legal minimum is commonly 2/32).
+compatible_agents: [generic, claude, codex]
+notes: Update fleet-tire-tread.csv from tread depth readings taken at fuel stops, inspections, or a telematics tire-pressure/tread add-on.

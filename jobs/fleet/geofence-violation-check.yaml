@@ -1,0 +1,37 @@
+id: geofence-violation-check
+version: 1
+name: GPS Geofence Violation Check
+description: >
+  Reviews telematics geofence alerts for fleet vehicles that left
+  authorized zones or moved outside approved hours, and flags them for
+  follow-up. Use this if a vehicle has ever turned up far outside its
+  assigned route or job site and nobody knew until a fuel bill or mileage
+  report gave it away.
+category: fleet
+tags: [fleet, gps, geofence, telematics]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review geofence alerts from {{telematics_provider_hint}} for the last
+  24 hours.
+  1. Flag any vehicle that exited an assigned geofence zone without a
+     matching dispatch/job assignment.
+  2. Flag any vehicle movement recorded outside approved operating hours
+     ({{operating_hours}}).
+  3. Group repeat offenders (same vehicle or driver flagged more than
+     {{repeat_offense_threshold}} times this week) separately.
+  4. Report flagged events with vehicle, driver (if known), zone/time, and
+     duration outside bounds.
+variables:
+  telematics_provider_hint:
+    default: "your telematics/GPS provider (Samsara, Motive, Geotab, etc.)"
+    description: Name of the telematics provider/portal geofence alerts come from.
+  operating_hours:
+    default: "06:00-19:00"
+    description: Normal operating hours; movement outside this window is flagged.
+  repeat_offense_threshold:
+    default: 2
+    description: Number of flagged events in a week that marks a vehicle/driver as a repeat offender.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — geofence alert volume and false-positive rate vary too much by provider/zone setup for a fixed script; judgment is needed to separate legitimate detours from real violations. Distinct from `vehicle-idle-time-check` (fuel waste) and `driver-safety-score-monitor` (driving behavior).

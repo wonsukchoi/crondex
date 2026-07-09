@@ -140,6 +140,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 
 ```
 crondex/
+├── llms.txt               agent-discovery manifest (llms.txt convention)
 ├── bin/crondex.js         CLI: list / categories / show / add / recommend / init
 ├── lib/recommend.js       recommend's scoring logic (unit tested in test/)
 ├── catalog.json           generated index of every job — read this first

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 530,
+  "count": 544,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2665,6 +2665,33 @@
       "path": "jobs/construction/crew-safety-cert-expiry-check.yaml"
     },
     {
+      "id": "critical-path-material-lead-time-review",
+      "version": 1,
+      "name": "Critical-Path Material Lead Time Review",
+      "description": "Reviews long-lead-time materials (elevators, structural steel, custom windows, switchgear, and similar) against the project schedule to catch items that haven't been ordered yet but need to be, given their lead time. Use this if a schedule has ever slipped months because a long-lead item wasn't placed on order until someone finally asked \"wait, did we order that yet?\"",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "procurement",
+        "schedule",
+        "long-lead"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/construction/critical-path-material-lead-time-review.yaml"
+    },
+    {
       "id": "critical-spare-parts-stock-check",
       "version": 1,
       "name": "Critical Spare Parts Stock Check",
@@ -2917,6 +2944,33 @@
         "codex"
       ],
       "path": "jobs/learning/daily-flashcard-review.yaml"
+    },
+    {
+      "id": "daily-jobsite-log-compliance-check",
+      "version": 1,
+      "name": "Daily Jobsite Log Compliance Check",
+      "description": "Reviews whether each active site's daily log/report was actually submitted and contains the expected substance (crew count, weather, work performed, delays) rather than being a rubber-stamped copy of the day before. Use this if a dispute has ever come down to \"what actually happened on site that day\" and the daily logs were too thin to help.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "daily-log",
+        "documentation",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 2-6",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/construction/daily-jobsite-log-compliance-check.yaml"
     },
     {
       "id": "daily-sales-flash-report",
@@ -3961,6 +4015,31 @@
         "codex"
       ],
       "path": "jobs/construction/equipment-rental-return-reminder.yaml"
+    },
+    {
+      "id": "equipment-utilization-cost-check",
+      "version": 1,
+      "name": "Equipment Utilization & Cost Check",
+      "description": "Calculates how many billable/working days each piece of rented or owned equipment actually logged against its rental or ownership cost, and flags anything sitting idle while still costing money. Use this if a rental has ever been kept \"just in case\" for weeks with nothing to show for it on a timesheet.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "equipment",
+        "cost",
+        "utilization"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/equipment-utilization-cost-check.yaml"
     },
     {
       "id": "error-rate-spike-watch",
@@ -5447,6 +5526,32 @@
       "path": "jobs/restaurant/health-inspection-prep-reminder.yaml"
     },
     {
+      "id": "heavy-equipment-inspection-compliance-check",
+      "version": 1,
+      "name": "Heavy Equipment Inspection Compliance Check",
+      "description": "Checks owned heavy equipment (excavators, cranes, lifts, and similar) against their required annual/periodic safety inspection dates and flags anything overdue or coming due. Use this if a piece of owned equipment has ever kept running past its inspection date because nobody was tracking it the way rentals get tracked.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "equipment",
+        "inspection",
+        "safety",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/heavy-equipment-inspection-compliance-check.yaml"
+    },
+    {
       "id": "hipaa-access-log-audit",
       "version": 1,
       "name": "HIPAA Chart Access Log Audit",
@@ -6034,6 +6139,33 @@
       "path": "jobs/hiring/job-posting-expiry-check.yaml"
     },
     {
+      "id": "jobsite-safety-incident-near-miss-tracker",
+      "version": 1,
+      "name": "Jobsite Safety Incident & Near-Miss Tracker",
+      "description": "Reviews recently logged safety incidents and near-misses across active sites for repeat causes, escalating severity, or a site racking up more reports than its peers. Use this if a serious incident has ever happened after a string of smaller near-misses that, in hindsight, pointed right at it.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "safety",
+        "incidents",
+        "near-miss"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/construction/jobsite-safety-incident-near-miss-tracker.yaml"
+    },
+    {
       "id": "k8s-pod-restart-watch",
       "version": 1,
       "name": "Kubernetes Pod Restart Watch",
@@ -6508,6 +6640,32 @@
         "codex"
       ],
       "path": "jobs/spa/license-renewal-tracker.yaml"
+    },
+    {
+      "id": "lien-waiver-collection-tracker",
+      "version": 1,
+      "name": "Lien Waiver Collection Tracker",
+      "description": "Checks that a signed lien waiver was collected from each subcontractor before their next payment goes out, so payments never run ahead of the paperwork that protects against a mechanic's lien. Use this if a subcontractor has ever been paid without a waiver on file, leaving the project exposed to a lien claim on money that was already paid out.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "lien-waiver",
+        "payments",
+        "compliance",
+        "subcontractor"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/lien-waiver-collection-tracker.yaml"
     },
     {
       "id": "linehaul-transit-time-variance-check",
@@ -8487,6 +8645,31 @@
       "path": "jobs/publishing/permissions-clearance-tracker.yaml"
     },
     {
+      "id": "permit-application-approval-backlog-check",
+      "version": 1,
+      "name": "Permit Application Approval Backlog Check",
+      "description": "Flags submitted permit applications that are still awaiting municipal approval past a reasonable turnaround window. Use this if a project has ever sat idle at the \"waiting on the city\" stage far longer than expected because nobody was tracking submission-to-approval time.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "permits",
+        "approvals",
+        "backlog"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/permit-application-approval-backlog-check.yaml"
+    },
+    {
       "id": "permit-application-backlog-check",
       "version": 1,
       "name": "Permit Application Backlog Check",
@@ -9325,6 +9508,31 @@
       "path": "jobs/manufacturing/production-schedule-adherence-check.yaml"
     },
     {
+      "id": "project-budget-variance-check",
+      "version": 1,
+      "name": "Project Budget vs. Actual Cost Variance Check",
+      "description": "Compares actual spend against budget by cost code for each active project and flags codes running over threshold. Use this if a project has ever \"felt fine\" right up until closeout, when the actual cost report showed a cost code had been bleeding over budget for months unnoticed.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "budget",
+        "cost-control",
+        "project-accounting"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/project-budget-variance-check.yaml"
+    },
+    {
       "id": "proof-of-delivery-reconciliation-check",
       "version": 1,
       "name": "Proof-of-Delivery Reconciliation Check",
@@ -9550,6 +9758,31 @@
         "codex"
       ],
       "path": "jobs/government/public-records-retention-purge-check.yaml"
+    },
+    {
+      "id": "punch-list-completion-tracker",
+      "version": 1,
+      "name": "Punch List Completion Tracker",
+      "description": "Tracks open punch list items against the project's target closeout date and flags projects falling behind on completion rate. Use this if a closeout has ever dragged on for months because punch items trickled in one at a time with nobody watching the overall burn-down.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "punch-list",
+        "closeout",
+        "completion"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/punch-list-completion-tracker.yaml"
     },
     {
       "id": "purchase-order-overdue-check",
@@ -10224,6 +10457,31 @@
       "path": "jobs/spa/retail-product-low-stock-check.yaml"
     },
     {
+      "id": "retainage-holdback-release-tracker",
+      "version": 1,
+      "name": "Retainage / Holdback Release Tracker",
+      "description": "Flags subcontractor retainage (holdback) that's eligible for release based on project completion percentage or elapsed lien period, so it doesn't sit uncollected for months after it was earned. Use this if a sub has ever had to chase a general contractor for retainage that was technically releasable but nobody flagged it.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "retainage",
+        "payments",
+        "subcontractor"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/retainage-holdback-release-tracker.yaml"
+    },
+    {
       "id": "retirement-plan-enrollment-deadline-check",
       "version": 1,
       "name": "Retirement Plan Enrollment Deadline Check",
@@ -10349,6 +10607,31 @@
         "codex"
       ],
       "path": "jobs/growth/review-request-nudge.yaml"
+    },
+    {
+      "id": "rfi-response-time-tracker",
+      "version": 1,
+      "name": "RFI Response Time Tracker",
+      "description": "Flags open Requests for Information (RFIs) that have gone unanswered longer than the agreed response window. Use this if a crew has ever stalled on a detail because an RFI sent to the architect or engineer sat unanswered for weeks with nobody chasing it.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "rfi",
+        "design-coordination",
+        "deadline"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/rfi-response-time-tracker.yaml"
     },
     {
       "id": "rights-license-expiry-check",
@@ -11632,6 +11915,59 @@
         "codex"
       ],
       "path": "jobs/construction/subcontractor-insurance-expiry-check.yaml"
+    },
+    {
+      "id": "subcontractor-pay-application-approval-tracker",
+      "version": 1,
+      "name": "Subcontractor Pay Application Approval Tracker",
+      "description": "Flags subcontractor pay applications (AIA G702/G703-style draw requests) that are still waiting on GC or owner approval past the normal turnaround, separate from the retainage that eventually gets held back on approved amounts. Use this if a sub has ever gone weeks without payment because their draw request just sat unreviewed in someone's queue.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "pay-application",
+        "payments",
+        "subcontractor",
+        "approvals"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/construction/subcontractor-pay-application-approval-tracker.yaml"
+    },
+    {
+      "id": "submittal-shop-drawing-review-check",
+      "version": 1,
+      "name": "Submittal / Shop Drawing Review Check",
+      "description": "Reviews the submittal log for shop drawings, product data, and samples sitting past their review due date, and spot-checks whether returned reviews actually addressed the spec section they were submitted against. Use this if a submittal has ever come back \"approved\" from a quick rubber stamp that missed a spec conflict, only to surface as a costly field problem later.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "submittals",
+        "shop-drawings",
+        "design-coordination"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/construction/submittal-shop-drawing-review-check.yaml"
     },
     {
       "id": "subrogation-recovery-tracker",
@@ -13217,6 +13553,34 @@
         "codex"
       ],
       "path": "jobs/personal/water-intake-reminder.yaml"
+    },
+    {
+      "id": "weather-delay-impact-log",
+      "version": 1,
+      "name": "Weather Delay Impact Log",
+      "description": "Reviews logged weather delay days against the project's schedule float and flags when accumulated weather delays threaten a milestone, plus checks whether the delay documentation is complete enough to support a time-extension claim later. Use this if a weather delay claim has ever been rejected because the daily documentation didn't clearly tie the weather to lost work.",
+      "category": "construction",
+      "tags": [
+        "construction",
+        "weather",
+        "delay",
+        "schedule",
+        "claims"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/construction/weather-delay-impact-log.yaml"
     },
     {
       "id": "weather-frost-alert",

@@ -1,0 +1,34 @@
+id: project-budget-variance-check
+version: 1
+name: Project Budget vs. Actual Cost Variance Check
+description: >
+  Compares actual spend against budget by cost code for each active
+  project and flags codes running over threshold. Use this if a project
+  has ever "felt fine" right up until closeout, when the actual cost
+  report showed a cost code had been bleeding over budget for months
+  unnoticed.
+category: construction
+tags: [construction, budget, cost-control, project-accounting]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{overrun_threshold_pct}}" '
+    NR==1 {next}
+    {
+      project=$1; cost_code=$2; budget=$3; actual=$4;
+      if (budget + 0 > 0) {
+        variance_pct = ((actual - budget) / budget) * 100;
+        if (variance_pct >= warn) printf "OVER BUDGET: %s / %s — budget $%.2f, actual $%.2f (%.1f%% over)\n", project, cost_code, budget, actual, variance_pct;
+      }
+    }
+  ' "{{cost_codes_csv}}"
+variables:
+  cost_codes_csv:
+    default: "./project-cost-codes.csv"
+    description: "Path to a CSV with columns: project_name,cost_code,budget_amount,actual_amount."
+  overrun_threshold_pct:
+    default: 10
+    description: Percentage over budget on a cost code before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Export budget/actual figures from your project accounting or job-costing system; this is a per-cost-code variance scan, not a full WIP report.

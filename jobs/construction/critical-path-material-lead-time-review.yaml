@@ -1,0 +1,43 @@
+id: critical-path-material-lead-time-review
+version: 1
+name: Critical-Path Material Lead Time Review
+description: >
+  Reviews long-lead-time materials (elevators, structural steel, custom
+  windows, switchgear, and similar) against the project schedule to catch
+  items that haven't been ordered yet but need to be, given their lead
+  time. Use this if a schedule has ever slipped months because a
+  long-lead item wasn't placed on order until someone finally asked "wait,
+  did we order that yet?"
+category: construction
+tags: [construction, procurement, schedule, long-lead]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare the long-lead material procurement log ({{procurement_log_path}})
+  against the project schedule milestones ({{schedule_path}}) for project
+  {{project_name}}.
+  1. For each material not yet marked "ordered," calculate the latest safe
+     order date by working backward from its need-by milestone using its
+     stated lead time.
+  2. Flag any item where today is at or past that latest safe order date,
+     or within {{buffer_days}} days of it.
+  3. Note which milestone each flagged item threatens if the order slips
+     further.
+  4. Summarize as a short action list: item, days of buffer remaining
+     (negative if already late), milestone at risk.
+variables:
+  procurement_log_path:
+    default: "./long-lead-procurement-log.csv"
+    description: "Path to the procurement log — expects columns like material, lead_time_days, need_by_milestone, status (ordered/not ordered)."
+  schedule_path:
+    default: "./project-schedule.csv"
+    description: Path to the project schedule with milestone dates.
+  project_name:
+    default: "the project"
+    description: Name of the project being reviewed.
+  buffer_days:
+    default: 14
+    description: How many days of buffer before the safe-order deadline to start flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from material-delivery-delay-check — that job flags materials already ordered and now overdue; this one catches items that should have been ordered already but weren't.

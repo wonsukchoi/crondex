@@ -103,14 +103,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-530 jobs across 48 categories:
+544 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agriculture` | 7 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 7 | Repair shop workflow — repair orders, parts, loaners. |
 | `childcare` | 7 | Daycare compliance and ops — ratios, immunizations, tuition. |
-| `construction` | 7 | Job site compliance — permits, inspections, change orders, rentals. |
+| `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `creator` | 7 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 7 | Wallets, gas prices, DeFi risk, and token unlock schedules. |

@@ -1,0 +1,27 @@
+id: lien-waiver-collection-tracker
+version: 1
+name: Lien Waiver Collection Tracker
+description: >
+  Checks that a signed lien waiver was collected from each subcontractor
+  before their next payment goes out, so payments never run ahead of the
+  paperwork that protects against a mechanic's lien. Use this if a
+  subcontractor has ever been paid without a waiver on file, leaving the
+  project exposed to a lien claim on money that was already paid out.
+category: construction
+tags: [construction, lien-waiver, payments, compliance, subcontractor]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4 == "scheduled" && $3 != "received" {
+      printf "MISSING WAIVER: %s — payment of $%s scheduled for %s, waiver status: %s\n", $1, $2, $5, $3;
+    }
+  ' "{{payments_waivers_csv}}"
+variables:
+  payments_waivers_csv:
+    default: "./payments-lien-waivers.csv"
+    description: "Path to a CSV with columns: subcontractor_name,payment_amount,waiver_status (received/pending/none),payment_status (scheduled/held/paid),payment_date."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from subcontractor-insurance-expiry-check — that job tracks COI expiry dates, not per-payment lien waiver paperwork.

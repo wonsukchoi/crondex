@@ -1,0 +1,33 @@
+id: rfi-response-time-tracker
+version: 1
+name: RFI Response Time Tracker
+description: >
+  Flags open Requests for Information (RFIs) that have gone unanswered
+  longer than the agreed response window. Use this if a crew has ever
+  stalled on a detail because an RFI sent to the architect or engineer sat
+  unanswered for weeks with nobody chasing it.
+category: construction
+tags: [construction, rfi, design-coordination, deadline]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{overdue_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_ts; close(cmd);
+      days_open = int((today - sent_ts) / 86400);
+      if (days_open >= warn) printf "RFI OVERDUE: #%s — %s — sent to %s on %s (%d days open)\n", $1, $2, $5, $3, days_open;
+    }
+  ' "{{rfi_log_csv}}"
+variables:
+  rfi_log_csv:
+    default: "./rfi-log.csv"
+    description: "Path to a CSV with columns: rfi_number,subject,sent_date (YYYY-MM-DD),status (open/answered/closed),sent_to."
+  overdue_days:
+    default: 7
+    description: Days an RFI can stay open before it's flagged for escalation.
+compatible_agents: [generic, claude, codex]
+notes: Design-coordination requests, not client-facing scope changes — see change-order-approval-reminder for the cost/scope side of the conversation.

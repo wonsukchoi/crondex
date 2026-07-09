@@ -1,0 +1,35 @@
+id: equipment-utilization-cost-check
+version: 1
+name: Equipment Utilization & Cost Check
+description: >
+  Calculates how many billable/working days each piece of rented or owned
+  equipment actually logged against its rental or ownership cost, and flags
+  anything sitting idle while still costing money. Use this if a rental has
+  ever been kept "just in case" for weeks with nothing to show for it on a
+  timesheet.
+category: construction
+tags: [construction, equipment, cost, utilization]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_util="{{min_utilization_pct}}" '
+    NR==1 {next}
+    {
+      equip=$1; days_on_site=$2; days_used=$3; daily_cost=$4;
+      utilization = (days_on_site > 0) ? (days_used / days_on_site * 100) : 0;
+      total_cost = days_on_site * daily_cost;
+      if (utilization < min_util) {
+        printf "LOW UTILIZATION: %s — used %d of %d days on site (%.0f%%), cost so far $%.2f\n", equip, days_used, days_on_site, utilization, total_cost;
+      }
+    }
+  ' "{{equipment_log_csv}}"
+variables:
+  equipment_log_csv:
+    default: "./equipment-utilization-log.csv"
+    description: "Path to a CSV with columns: equipment_name,days_on_site,days_used,daily_cost."
+  min_utilization_pct:
+    default: 50
+    description: Minimum acceptable utilization percentage before it's flagged as underused.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from equipment-rental-return-reminder — that job watches the return-by deadline; this one watches whether idle equipment is worth the cost while it's still on site.

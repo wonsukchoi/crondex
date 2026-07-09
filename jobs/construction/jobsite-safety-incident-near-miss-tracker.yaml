@@ -1,0 +1,35 @@
+id: jobsite-safety-incident-near-miss-tracker
+version: 1
+name: Jobsite Safety Incident & Near-Miss Tracker
+description: >
+  Reviews recently logged safety incidents and near-misses across active
+  sites for repeat causes, escalating severity, or a site racking up more
+  reports than its peers. Use this if a serious incident has ever happened
+  after a string of smaller near-misses that, in hindsight, pointed right
+  at it.
+category: construction
+tags: [construction, safety, incidents, near-miss]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the safety incident and near-miss log ({{incident_log_path}}) for
+  entries from the last {{lookback_days}} days.
+  1. Group entries by jobsite and by root cause category (falls, struck-by,
+     equipment, electrical, other).
+  2. Flag any site with more reports than its trailing average, and any
+     cause category that's recurring across 2+ separate incidents.
+  3. Call out any near-miss whose description suggests it could plausibly
+     have been a serious injury or fatality if circumstances were slightly
+     different.
+  4. Produce a short list of sites/causes that warrant a toolbox talk or
+     stand-down this week, in priority order.
+variables:
+  incident_log_path:
+    default: "./safety-incident-log.csv"
+    description: "Path to the incident/near-miss log — expects columns like date, site, description, severity, cause_category."
+  lookback_days:
+    default: 30
+    description: How many days of incident history to review each run.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from crew-safety-cert-expiry-check — that job tracks individual worker certification dates, not incident/near-miss event patterns across sites.

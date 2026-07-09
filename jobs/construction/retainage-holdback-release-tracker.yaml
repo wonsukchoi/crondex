@@ -1,0 +1,33 @@
+id: retainage-holdback-release-tracker
+version: 1
+name: Retainage / Holdback Release Tracker
+description: >
+  Flags subcontractor retainage (holdback) that's eligible for release
+  based on project completion percentage or elapsed lien period, so it
+  doesn't sit uncollected for months after it was earned. Use this if a
+  sub has ever had to chase a general contractor for retainage that was
+  technically releasable but nobody flagged it.
+category: construction
+tags: [construction, retainage, payments, subcontractor]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{release_threshold_pct}}" '
+    NR==1 {next}
+    $5 != "released" {
+      completion_pct=$3; retainage_amt=$4;
+      if (completion_pct + 0 >= min_pct + 0) {
+        printf "RELEASE ELIGIBLE: %s (%s) — %s%% complete, $%.2f retainage held, status: %s\n", $1, $2, completion_pct, retainage_amt, $5;
+      }
+    }
+  ' "{{retainage_ledger_csv}}"
+variables:
+  retainage_ledger_csv:
+    default: "./retainage-ledger.csv"
+    description: "Path to a CSV with columns: subcontractor_name,contract_number,completion_pct,retainage_amount,status (held/pending/released)."
+  release_threshold_pct:
+    default: 95
+    description: Completion percentage at or above which held retainage should be reviewed for release.
+compatible_agents: [generic, claude, codex]
+notes: Confirm local lien-period and contract terms before actually releasing funds — this job only surfaces eligibility, it doesn't authorize payment.

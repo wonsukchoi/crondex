@@ -1,0 +1,44 @@
+id: weather-delay-impact-log
+version: 1
+name: Weather Delay Impact Log
+description: >
+  Reviews logged weather delay days against the project's schedule float
+  and flags when accumulated weather delays threaten a milestone, plus
+  checks whether the delay documentation is complete enough to support a
+  time-extension claim later. Use this if a weather delay claim has ever
+  been rejected because the daily documentation didn't clearly tie the
+  weather to lost work.
+category: construction
+tags: [construction, weather, delay, schedule, claims]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the weather delay log ({{weather_delay_log_path}}) for project
+  {{project_name}} against the current schedule float
+  ({{schedule_float_days}} days).
+  1. Sum total weather delay days logged this month and compare against
+     remaining schedule float.
+  2. Flag if accumulated weather delays now exceed or come within
+     {{warn_margin_days}} days of consuming the available float.
+  3. For each logged weather delay entry, check it documents: date,
+     condition (rain/wind/extreme heat/etc.), specific work made
+     impossible, and crew affected. Flag entries missing this detail as
+     insufficient for a future claim.
+  4. Summarize: total delay days, days of float remaining, and any
+     entries needing better documentation before the record is relied on.
+variables:
+  weather_delay_log_path:
+    default: "./weather-delay-log.csv"
+    description: Path to the logged weather delay entries for the project.
+  project_name:
+    default: "the project"
+    description: Name of the project being reviewed.
+  schedule_float_days:
+    default: 10
+    description: Current schedule float/contingency in days, per the latest schedule update.
+  warn_margin_days:
+    default: 3
+    description: How close accumulated delays can get to consuming the float before flagging it.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Documentation-quality judgment doesn't fit a fixed script — pair with your contract's notice-of-delay requirements for actual claims.

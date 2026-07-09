@@ -1,0 +1,34 @@
+id: daily-jobsite-log-compliance-check
+version: 1
+name: Daily Jobsite Log Compliance Check
+description: >
+  Reviews whether each active site's daily log/report was actually
+  submitted and contains the expected substance (crew count, weather,
+  work performed, delays) rather than being a rubber-stamped copy of the
+  day before. Use this if a dispute has ever come down to "what actually
+  happened on site that day" and the daily logs were too thin to help.
+category: construction
+tags: [construction, daily-log, documentation, compliance]
+schedule: "0 7 * * 2-6"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review yesterday's daily jobsite logs ({{daily_logs_path}}) for each
+  active site listed in {{active_sites_path}}.
+  1. Flag any active site with no log submitted for yesterday.
+  2. For submitted logs, check each includes: crew headcount, weather
+     conditions, a description of work performed, and any delays or
+     issues noted.
+  3. Flag logs that look copy-pasted from the prior day (near-identical
+     wording with no site-specific detail) as low-substance.
+  4. Summarize: sites missing a log, sites with thin/low-substance logs,
+     sites fully compliant.
+variables:
+  daily_logs_path:
+    default: "./daily-logs/"
+    description: Folder containing yesterday's daily jobsite log submissions, one per site.
+  active_sites_path:
+    default: "./active-sites.csv"
+    description: CSV or list of currently active jobsite names/IDs expected to submit a daily log.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Judging log substance and copy-paste patterns needs reading comprehension, not a fit for a fixed script.

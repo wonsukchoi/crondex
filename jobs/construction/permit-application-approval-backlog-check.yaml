@@ -1,0 +1,33 @@
+id: permit-application-approval-backlog-check
+version: 1
+name: Permit Application Approval Backlog Check
+description: >
+  Flags submitted permit applications that are still awaiting municipal
+  approval past a reasonable turnaround window. Use this if a project has
+  ever sat idle at the "waiting on the city" stage far longer than expected
+  because nobody was tracking submission-to-approval time.
+category: construction
+tags: [construction, permits, approvals, backlog]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{stale_days}}" '
+    NR==1 {next}
+    $4 == "submitted" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sub_ts; close(cmd);
+      days_waiting = int((today - sub_ts) / 86400);
+      if (days_waiting >= warn) printf "STILL PENDING: %s permit for %s — submitted %s (%d days awaiting approval)\n", $2, $1, $3, days_waiting;
+    }
+  ' "{{permit_applications_csv}}"
+variables:
+  permit_applications_csv:
+    default: "./permit-applications.csv"
+    description: "Path to a CSV with columns: project_name,permit_type,submitted_date (YYYY-MM-DD),status (submitted/approved/rejected)."
+  stale_days:
+    default: 21
+    description: Days a submission can sit before it's flagged for a follow-up call to the jurisdiction.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from permit-expiry-check — that job watches active, already-issued permits nearing expiry; this one watches new applications stuck before issuance.

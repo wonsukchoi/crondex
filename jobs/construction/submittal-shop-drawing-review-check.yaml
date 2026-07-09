@@ -1,0 +1,45 @@
+id: submittal-shop-drawing-review-check
+version: 1
+name: Submittal / Shop Drawing Review Check
+description: >
+  Reviews the submittal log for shop drawings, product data, and samples
+  sitting past their review due date, and spot-checks whether returned
+  reviews actually addressed the spec section they were submitted
+  against. Use this if a submittal has ever come back "approved" from a
+  quick rubber stamp that missed a spec conflict, only to surface as a
+  costly field problem later.
+category: construction
+tags: [construction, submittals, shop-drawings, design-coordination]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the submittal log ({{submittal_log_path}}) for project
+  {{project_name}}.
+  1. Flag any submittal past its {{review_due_days}}-day review window
+     with no status update (still "under review" or "not submitted").
+  2. For submittals marked "approved" or "approved as noted" in the last
+     {{lookback_days}} days, spot-check a sample against the referenced
+     spec section ({{spec_index_path}}) for obvious conflicts (wrong
+     material grade, missing required data, mismatched dimensions).
+  3. Report overdue submittals separately from spot-check findings.
+  4. Summarize: submittals overdue for review, and any approved
+     submittals that look like they may need a second look.
+variables:
+  submittal_log_path:
+    default: "./submittal-log.csv"
+    description: "Path to the submittal log — expects columns like item, spec_section, submitted_date, status, review_due_date."
+  spec_index_path:
+    default: "./project-specifications/"
+    description: Folder or index of the project specification sections to check submittals against.
+  project_name:
+    default: "the project"
+    description: Name of the project being reviewed.
+  review_due_days:
+    default: 10
+    description: Standard review turnaround window in days before a submittal is considered overdue.
+  lookback_days:
+    default: 14
+    description: How many days of recently-approved submittals to spot-check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from rfi-response-time-tracker — RFIs resolve open questions about the documents; submittals are the contractor's proposed materials/shop drawings going back for approval against those documents.

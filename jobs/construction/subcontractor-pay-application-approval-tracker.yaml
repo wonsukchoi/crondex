@@ -1,0 +1,35 @@
+id: subcontractor-pay-application-approval-tracker
+version: 1
+name: Subcontractor Pay Application Approval Tracker
+description: >
+  Flags subcontractor pay applications (AIA G702/G703-style draw
+  requests) that are still waiting on GC or owner approval past the
+  normal turnaround, separate from the retainage that eventually gets
+  held back on approved amounts. Use this if a sub has ever gone weeks
+  without payment because their draw request just sat unreviewed in
+  someone's queue.
+category: construction
+tags: [construction, pay-application, payments, subcontractor, approvals]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{overdue_days}}" '
+    NR==1 {next}
+    $4 == "submitted" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sub_ts; close(cmd);
+      days_pending = int((today - sub_ts) / 86400);
+      if (days_pending >= warn) printf "PAY APP PENDING: %s — draw #%s for $%s submitted %s (%d days pending review)\n", $1, $2, $5, $3, days_pending;
+    }
+  ' "{{pay_apps_csv}}"
+variables:
+  pay_apps_csv:
+    default: "./subcontractor-pay-applications.csv"
+    description: "Path to a CSV with columns: subcontractor_name,draw_number,submitted_date (YYYY-MM-DD),status (submitted/approved/rejected),amount_requested."
+  overdue_days:
+    default: 10
+    description: Days a pay application can sit unreviewed before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from retainage-holdback-release-tracker — that job watches already-approved retainage becoming eligible for release; this one watches the underlying draw request getting approved in the first place.

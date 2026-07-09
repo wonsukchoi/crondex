@@ -1,0 +1,36 @@
+id: punch-list-completion-tracker
+version: 1
+name: Punch List Completion Tracker
+description: >
+  Tracks open punch list items against the project's target closeout date
+  and flags projects falling behind on completion rate. Use this if a
+  closeout has ever dragged on for months because punch items trickled in
+  one at a time with nobody watching the overall burn-down.
+category: construction
+tags: [construction, punch-list, closeout, completion]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_completion_pct}}" '
+    NR==1 {next}
+    {
+      project=$1; total[project]+=1;
+      if ($3 == "closed") closed[project]+=1;
+    }
+    END {
+      for (p in total) {
+        pct = (total[p] > 0) ? (closed[p] / total[p] * 100) : 0;
+        if (pct < min_pct) printf "BEHIND: %s — %d of %d punch items closed (%.0f%%)\n", p, closed[p], total[p], pct;
+      }
+    }
+  ' "{{punch_list_csv}}"
+variables:
+  punch_list_csv:
+    default: "./punch-list.csv"
+    description: "Path to a CSV with columns: project_name,item_description,status (open/closed)."
+  min_completion_pct:
+    default: 90
+    description: Minimum percentage of punch items that should be closed before closeout is considered on track.
+compatible_agents: [generic, claude, codex]
+notes: Aggregate burn-down view, not item-by-item detail — pair with the punch list document itself when a project shows up here.

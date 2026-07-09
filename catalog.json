@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 477,
+  "count": 490,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -50,6 +50,33 @@
         "codex"
       ],
       "path": "jobs/security/2fa-enrollment-audit.yaml"
+    },
+    {
+      "id": "3pl-performance-scorecard",
+      "version": 1,
+      "name": "3PL Performance Scorecard",
+      "description": "Reviews a third-party logistics provider's recent performance across on-time delivery, damage rate, and cost against your service agreement targets. Use this if a 3PL relationship has ever drifted from \"great at onboarding\" to \"quietly underperforming\" without a regular scorecard catching it.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "3pl",
+        "performance",
+        "scorecard"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/3pl-performance-scorecard.yaml"
     },
     {
       "id": "abandoned-cart-recovery-check",
@@ -719,6 +746,34 @@
       "path": "jobs/veterinary/boarding-checkout-reminder.yaml"
     },
     {
+      "id": "bol-freight-class-accuracy-audit",
+      "version": 1,
+      "name": "Bill of Lading Freight Class Accuracy Audit",
+      "description": "Reviews recent bills of lading for freight class or NMFC codes that look mismatched against the described commodity, which is a common cause of reclassification fees. Use this if a shipment has ever come back with a surprise reclass charge because the BOL freight class didn't match what was actually shipped.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "freight",
+        "bol",
+        "compliance",
+        "billing"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/bol-freight-class-accuracy-audit.yaml"
+    },
+    {
       "id": "bond-cd-maturity-reminder",
       "version": 1,
       "name": "Bond & CD Maturity Reminder",
@@ -1088,6 +1143,110 @@
         "codex"
       ],
       "path": "jobs/home/car-maintenance-due-reminder.yaml"
+    },
+    {
+      "id": "cargo-insurance-claim-status-check",
+      "version": 1,
+      "name": "Cargo Insurance Claim Status Check",
+      "description": "Checks open cargo loss/damage insurance claims for ones that have gone quiet and need a follow-up push. Use this if a damaged-freight claim has ever sat untouched with the insurer for months because nobody was tracking it against the filing deadline or a status update.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "cargo",
+        "insurance",
+        "claims"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/cargo-insurance-claim-status-check.yaml"
+    },
+    {
+      "id": "carrier-load-tender-acceptance-check",
+      "version": 1,
+      "name": "Carrier Load Tender Acceptance Check",
+      "description": "Checks recently tendered loads for carriers that haven't accepted or rejected within the expected window. Use this if a tendered load has ever sat unconfirmed until the ship date was already at risk.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "carrier",
+        "tender",
+        "booking"
+      ],
+      "schedule": "0 */3 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/carrier-load-tender-acceptance-check.yaml"
+    },
+    {
+      "id": "carrier-otd-performance-scorecard",
+      "version": 1,
+      "name": "Carrier On-Time Delivery Performance Scorecard",
+      "description": "Tracks each carrier's on-time delivery rate over recent shipments and flags any carrier that's dropped below your target. Use this if a carrier's reliability has ever quietly slipped for months before a customer complaint made it obvious.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "carrier",
+        "otd",
+        "performance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/carrier-otd-performance-scorecard.yaml"
+    },
+    {
+      "id": "carrier-rate-contract-renewal-check",
+      "version": 1,
+      "name": "Carrier Rate Contract Renewal Check",
+      "description": "Checks tracked carrier rate agreements against their expiry date and warns before they lapse. Use this if a freight contract has ever quietly expired and shipments kept moving on it anyway, until a rate dispute surfaced with no valid agreement backing it.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "carrier",
+        "contract",
+        "renewal"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/carrier-rate-contract-renewal-check.yaml"
     },
     {
       "id": "cart-abandonment-followup",
@@ -2370,6 +2529,31 @@
         "generic"
       ],
       "path": "jobs/agriculture/crop-price-market-watch.yaml"
+    },
+    {
+      "id": "cross-dock-dwell-time-watch",
+      "version": 1,
+      "name": "Cross-Dock Dwell Time Watch",
+      "description": "Checks freight moving through a cross-dock facility against a target dwell time and flags anything sitting too long between inbound and outbound legs. Use this if freight has ever quietly stalled at a cross-dock for days, turning a same-day transfer into a missed delivery window.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "cross-dock",
+        "dwell-time",
+        "freight"
+      ],
+      "schedule": "0 */2 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/cross-dock-dwell-time-watch.yaml"
     },
     {
       "id": "crosspost-lag-check",
@@ -4185,6 +4369,32 @@
       "path": "jobs/sales/form-lead-crm-sync-check.yaml"
     },
     {
+      "id": "freight-invoice-rate-audit",
+      "version": 1,
+      "name": "Freight Invoice Rate Audit",
+      "description": "Compares billed freight invoice amounts against the contracted rate for each shipment and flags overcharges. Use this if a carrier has ever quietly billed above the agreed rate and it only got caught months later during an annual freight spend review.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "freight",
+        "invoice",
+        "audit",
+        "billing"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/freight-invoice-rate-audit.yaml"
+    },
+    {
       "id": "freight-rate-spike-watch",
       "version": 1,
       "name": "Freight Rate Spike Watch",
@@ -4260,6 +4470,31 @@
         "generic"
       ],
       "path": "jobs/fleet/fuel-card-anomaly-check.yaml"
+    },
+    {
+      "id": "fuel-surcharge-rate-monitor",
+      "version": 1,
+      "name": "Fuel Surcharge Rate Monitor",
+      "description": "Checks the current published fuel surcharge index against your baseline and flags a jump. Use this if a carrier's fuel surcharge has ever crept up for weeks before it showed up as a bigger-than-expected line item on the freight invoice.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "freight",
+        "fuel-surcharge",
+        "rates"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/fuel-surcharge-rate-monitor.yaml"
     },
     {
       "id": "fx-rate-watch",
@@ -5172,6 +5407,34 @@
       "path": "jobs/realestate/insurance-policy-renewal-reminder.yaml"
     },
     {
+      "id": "international-shipment-documentation-check",
+      "version": 1,
+      "name": "International Shipment Documentation Completeness Check",
+      "description": "Checks upcoming international shipments for missing export/import paperwork before they're due to ship. Use this if a shipment has ever reached the port only to get held up because the commercial invoice or certificate of origin was never finalized.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "international",
+        "documentation",
+        "export",
+        "compliance"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/logistics/international-shipment-documentation-check.yaml"
+    },
+    {
       "id": "interview-feedback-overdue-check",
       "version": 1,
       "name": "Interview Feedback Overdue Check",
@@ -5799,6 +6062,31 @@
         "codex"
       ],
       "path": "jobs/spa/license-renewal-tracker.yaml"
+    },
+    {
+      "id": "linehaul-transit-time-variance-check",
+      "version": 1,
+      "name": "Linehaul Transit Time Variance Check",
+      "description": "Compares actual transit times against the scheduled transit time per lane and flags lanes running consistently slow. Use this if a lane's transit times have ever crept up gradually until service levels quietly missed the mark for a whole quarter.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "transit",
+        "lanes",
+        "performance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/linehaul-transit-time-variance-check.yaml"
     },
     {
       "id": "link-capacity-threshold-alert",
@@ -8280,6 +8568,31 @@
       "path": "jobs/manufacturing/production-schedule-adherence-check.yaml"
     },
     {
+      "id": "proof-of-delivery-reconciliation-check",
+      "version": 1,
+      "name": "Proof-of-Delivery Reconciliation Check",
+      "description": "Checks shipments marked delivered against whether a signed proof-of- delivery has actually been received and filed. Use this if a delivery dispute has ever dragged on for weeks because nobody could produce the POD to settle it.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "delivery",
+        "pod",
+        "reconciliation"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/proof-of-delivery-reconciliation-check.yaml"
+    },
+    {
       "id": "property-maintenance-inspection-reminder",
       "version": 1,
       "name": "Property Maintenance Inspection Reminder",
@@ -9277,6 +9590,31 @@
         "codex"
       ],
       "path": "jobs/content/robots-txt-check.yaml"
+    },
+    {
+      "id": "route-load-optimization-check",
+      "version": 1,
+      "name": "Route Load Optimization Check",
+      "description": "Checks planned truckload trailer fill rates and flags loads shipping significantly under capacity. Use this if a half-empty trailer has ever gone out the door because nobody checked fill rate before dispatch, paying full linehaul cost for a fraction of the freight.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "routing",
+        "load-planning",
+        "optimization"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/route-load-optimization-check.yaml"
     },
     {
       "id": "royalty-statement-due-check",

@@ -1,0 +1,36 @@
+id: international-shipment-documentation-check
+version: 1
+name: International Shipment Documentation Completeness Check
+description: >
+  Checks upcoming international shipments for missing export/import
+  paperwork before they're due to ship. Use this if a shipment has ever
+  reached the port only to get held up because the commercial invoice or
+  certificate of origin was never finalized.
+category: logistics
+tags: [logistics, international, documentation, export, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{shipment_system_hint}} for international shipments scheduled
+  to depart within the next {{lookahead_days}} days.
+  1. For each shipment, verify the required document set is present:
+     commercial invoice, packing list, certificate of origin, and any
+     destination-specific requirements (e.g. import license, phytosanitary
+     certificate) for {{destination_hint}}.
+  2. Flag any shipment missing one or more required documents.
+  3. For each flagged shipment, note which document is missing and who
+     typically owns producing it (shipper, freight forwarder, customs
+     broker).
+variables:
+  shipment_system_hint:
+    default: "your TMS or export documentation system"
+    description: Where upcoming international shipments and their document status are tracked.
+  lookahead_days:
+    default: 5
+    description: How many days ahead to check for shipments needing documentation.
+  destination_hint:
+    default: "your typical export destination(s)"
+    description: Destination country/countries, since required documents vary by destination.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — required document sets vary by destination country and commodity, and need judgment about which regulatory requirements apply.

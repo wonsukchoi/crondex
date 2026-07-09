@@ -1,0 +1,32 @@
+id: route-load-optimization-check
+version: 1
+name: Route Load Optimization Check
+description: >
+  Checks planned truckload trailer fill rates and flags loads shipping
+  significantly under capacity. Use this if a half-empty trailer has
+  ever gone out the door because nobody checked fill rate before
+  dispatch, paying full linehaul cost for a fraction of the freight.
+category: logistics
+tags: [logistics, routing, load-planning, optimization]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{min_fill_pct}}" '
+    NR==1 {next}
+    {
+      load=$1; fill_pct=$2;
+      if (fill_pct < threshold) {
+        printf "UNDERFILLED: load %s — %.1f%% trailer fill, below %d%% target\n", load, fill_pct, threshold;
+      }
+    }
+  ' "{{planned_loads_csv_path}}"
+variables:
+  planned_loads_csv_path:
+    default: "./planned-loads.csv"
+    description: "Path to a CSV with columns: load_id,fill_pct — one row per load planned for today's dispatch, exported from your routing/load planning system."
+  min_fill_pct:
+    default: 80
+    description: Minimum acceptable trailer fill percentage before a load is flagged as underfilled.
+compatible_agents: [generic, claude, codex]
+notes: Assumes your routing/load-building system can export planned fill rate per load before dispatch — this is the pre-dispatch check, not a route optimization engine itself.

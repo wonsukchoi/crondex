@@ -1,0 +1,39 @@
+id: cargo-insurance-claim-status-check
+version: 1
+name: Cargo Insurance Claim Status Check
+description: >
+  Checks open cargo loss/damage insurance claims for ones that have gone
+  quiet and need a follow-up push. Use this if a damaged-freight claim
+  has ever sat untouched with the insurer for months because nobody was
+  tracking it against the filing deadline or a status update.
+category: logistics
+tags: [logistics, cargo, insurance, claims]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{claims_portal_hint}} for open cargo loss/damage claims.
+  1. List each open claim: claim number, shipment reference, date filed,
+     and current status.
+  2. Flag any claim with no status update in the last
+     {{stale_days}} days, or approaching a filing/documentation deadline
+     within {{deadline_warn_days}} days.
+  3. Suggest the follow-up action for each flagged claim (submit missing
+     documentation, request adjuster update, escalate).
+variables:
+  claims_portal_hint:
+    default: "your cargo insurer's claims portal or broker"
+    description: Where open cargo insurance claims and their status are tracked.
+  stale_days:
+    default: 14
+    description: Days without a status update before a claim is flagged as stale.
+  deadline_warn_days:
+    default: 5
+    description: Days before a claim deadline to start warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Scoped to freight loss/damage claims against a cargo policy, tracked
+  per shipment through the insurer/broker — distinct from a general
+  claim-status job in that it follows freight-specific deadlines (e.g.
+  concealed damage notice windows) rather than a generic policyholder
+  claim.

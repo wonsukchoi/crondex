@@ -1,0 +1,38 @@
+id: proof-of-delivery-reconciliation-check
+version: 1
+name: Proof-of-Delivery Reconciliation Check
+description: >
+  Checks shipments marked delivered against whether a signed proof-of-
+  delivery has actually been received and filed. Use this if a delivery
+  dispute has ever dragged on for weeks because nobody could produce the
+  POD to settle it.
+category: logistics
+tags: [logistics, delivery, pod, reconciliation]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{missing_pod_warn_days}}" '
+    NR==1 {next}
+    {
+      shipment=$1; delivered_date=$2; pod_received=$3;
+      if (pod_received == "no" || pod_received == "") {
+        cmd = "date -d \"" delivered_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" delivered_date "\" +%s 2>/dev/null";
+        cmd | getline delivered_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_days = (now_epoch - delivered_epoch) / 86400;
+        if (age_days >= days) {
+          printf "MISSING POD: shipment %s delivered %s (%d days ago), no proof-of-delivery on file\n", shipment, delivered_date, age_days;
+        }
+      }
+    }
+  ' "{{delivered_shipments_csv}}"
+variables:
+  delivered_shipments_csv:
+    default: "./delivered-shipments.csv"
+    description: "Path to a CSV with columns: shipment_id,delivered_date,pod_received (yes/no) — export from your TMS or carrier POD feed."
+  missing_pod_warn_days:
+    default: 3
+    description: Days after delivery a POD can be missing before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes delivered status and POD receipt are both tracked in your TMS/carrier feed — this is the reconciliation backstop, not a POD capture system itself.

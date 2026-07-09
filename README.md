@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-477 jobs across 48 categories:
+490 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -135,7 +135,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `investing` | 7 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `learning` | 7 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 19 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 7 | Shipping ops — customs, freight, delays, fees. |
+| `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 7 | Campaign ops — ad spend, SEO rank, deliverability, competitors. |
 | `nonprofit` | 7 | Fundraising ops — grants, donors, volunteers, board follow-ups. |

@@ -1,0 +1,45 @@
+id: 3pl-performance-scorecard
+version: 1
+name: 3PL Performance Scorecard
+description: >
+  Reviews a third-party logistics provider's recent performance across
+  on-time delivery, damage rate, and cost against your service agreement
+  targets. Use this if a 3PL relationship has ever drifted from "great at
+  onboarding" to "quietly underperforming" without a regular scorecard
+  catching it.
+category: logistics
+tags: [logistics, 3pl, performance, scorecard]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the last {{period_days}} days of performance data for 3PL
+  provider {{provider_name}} from {{data_source_hint}}.
+  1. Summarize on-time delivery rate, damage/loss rate, and average
+     cost per shipment.
+  2. Compare each metric against the service agreement targets:
+     OTD >= {{otd_target_pct}}%, damage rate <= {{damage_target_pct}}%.
+  3. Flag any metric missing target, note the trend versus the prior
+     period if available, and suggest whether it warrants a QBR
+     conversation or is within normal variance.
+variables:
+  provider_name:
+    default: "your-3pl-provider"
+    description: Name of the 3PL provider being scored.
+  data_source_hint:
+    default: "your TMS or the 3PL's reporting portal"
+    description: Where shipment-level performance data for this 3PL can be pulled.
+  period_days:
+    default: 30
+    description: Lookback window for the scorecard period.
+  otd_target_pct:
+    default: 95
+    description: Contracted on-time delivery target.
+  damage_target_pct:
+    default: 1
+    description: Contracted maximum acceptable damage/loss rate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Aggregate multi-metric scorecard for an outsourced logistics provider,
+  distinct from carrier-otd-performance-scorecard which tracks a single
+  metric (on-time delivery) per carrier from your own shipment CSV.

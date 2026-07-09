@@ -1,0 +1,33 @@
+id: bol-freight-class-accuracy-audit
+version: 1
+name: Bill of Lading Freight Class Accuracy Audit
+description: >
+  Reviews recent bills of lading for freight class or NMFC codes that
+  look mismatched against the described commodity, which is a common
+  cause of reclassification fees. Use this if a shipment has ever come
+  back with a surprise reclass charge because the BOL freight class
+  didn't match what was actually shipped.
+category: logistics
+tags: [logistics, freight, bol, compliance, billing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the bills of lading listed in {{bol_source_hint}} for the last
+  {{lookback_days}} days.
+  1. For each BOL, compare the declared freight class/NMFC code against
+     the described commodity and dimensions/weight.
+  2. Flag any BOL where the class looks mismatched (e.g. density-based
+     class inconsistent with stated weight/cube, or a commodity code
+     that doesn't match the item description).
+  3. For each flagged BOL, note the likely correct class if determinable
+     and the estimated reclassification fee risk.
+variables:
+  bol_source_hint:
+    default: "your TMS or freight audit vendor's BOL archive"
+    description: Where recent bills of lading can be reviewed.
+  lookback_days:
+    default: 7
+    description: How many days of BOLs to review per run.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — freight classification judgment (NMFC density/commodity rules) isn't reliably scriptable from a CSV; this needs interpretation of the BOL description against the shipped item.

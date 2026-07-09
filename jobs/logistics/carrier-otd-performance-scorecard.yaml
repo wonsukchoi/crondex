@@ -1,0 +1,41 @@
+id: carrier-otd-performance-scorecard
+version: 1
+name: Carrier On-Time Delivery Performance Scorecard
+description: >
+  Tracks each carrier's on-time delivery rate over recent shipments and
+  flags any carrier that's dropped below your target. Use this if a
+  carrier's reliability has ever quietly slipped for months before a
+  customer complaint made it obvious.
+category: logistics
+tags: [logistics, carrier, otd, performance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{otd_target_pct}}" '
+    NR==1 {next}
+    {
+      total[$1]++;
+      if ($2 == "on-time") ontime[$1]++;
+    }
+    END {
+      for (c in total) {
+        pct = (ontime[c] / total[c]) * 100;
+        if (pct < target) {
+          printf "BELOW TARGET: %s — %.1f%% on-time (%d of %d shipments), target %d%%\n", c, pct, ontime[c], total[c], target;
+        }
+      }
+    }
+  ' "{{shipments_csv_path}}"
+variables:
+  shipments_csv_path:
+    default: "./carrier-shipments.csv"
+    description: "Path to a CSV with columns: carrier_name,status (on-time or late) — one row per recent outbound shipment."
+  otd_target_pct:
+    default: 90
+    description: Minimum acceptable on-time delivery percentage per carrier.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks outbound carrier delivery performance to customers, not inbound
+  supplier delivery of materials — pair with your TMS or carrier
+  scorecard export to keep the CSV current.

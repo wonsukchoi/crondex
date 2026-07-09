@@ -1,0 +1,40 @@
+id: fuel-surcharge-rate-monitor
+version: 1
+name: Fuel Surcharge Rate Monitor
+description: >
+  Checks the current published fuel surcharge index against your
+  baseline and flags a jump. Use this if a carrier's fuel surcharge has
+  ever crept up for weeks before it showed up as a bigger-than-expected
+  line item on the freight invoice.
+category: logistics
+tags: [logistics, freight, fuel-surcharge, rates]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  surcharge_pct=$(curl -s -H "Authorization: Bearer {{fuel_index_api_token}}" "{{fuel_index_api_url}}" | grep -o '"surcharge_pct":[0-9.]*' | head -n1 | cut -d':' -f2);
+  if [ -z "$surcharge_pct" ]; then echo "ERROR: could not fetch fuel surcharge data from {{fuel_index_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($surcharge_pct - {{baseline_surcharge_pct}} >= {{jump_threshold_pct}})}"; then
+    echo "WARNING: fuel surcharge is ${surcharge_pct}% (baseline {{baseline_surcharge_pct}}%, jumped >= {{jump_threshold_pct}}pt)";
+    exit 1;
+  else echo "OK: fuel surcharge is ${surcharge_pct}%, within tolerance of baseline {{baseline_surcharge_pct}}%"; fi
+variables:
+  fuel_index_api_url:
+    default: "https://api.example-carrier.com/fuel-surcharge/current"
+    description: Carrier or DOE fuel surcharge index API endpoint returning surcharge_pct.
+  fuel_index_api_token:
+    default: "your-api-token"
+    description: Bearer token for the fuel surcharge index API, if required.
+  baseline_surcharge_pct:
+    default: 25
+    description: Baseline fuel surcharge percentage to compare against.
+  jump_threshold_pct:
+    default: 5
+    description: Percentage-point jump above baseline that counts as worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point fuel_index_api_url at your carrier's
+  published surcharge schedule or the DOE/EIA weekly diesel price feed
+  used to derive it; adjust field names to match its response shape.
+  Distinct from freight-rate-spike-watch, which tracks the all-in
+  quoted lane rate rather than the fuel surcharge component alone.

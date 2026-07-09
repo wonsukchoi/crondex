@@ -1,0 +1,38 @@
+id: freight-invoice-rate-audit
+version: 1
+name: Freight Invoice Rate Audit
+description: >
+  Compares billed freight invoice amounts against the contracted rate for
+  each shipment and flags overcharges. Use this if a carrier has ever
+  quietly billed above the agreed rate and it only got caught months
+  later during an annual freight spend review.
+category: logistics
+tags: [logistics, freight, invoice, audit, billing]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{overcharge_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      invoice_id=$1; contracted=$2; billed=$3;
+      if (contracted <= 0) next;
+      pct_over = ((billed - contracted) / contracted) * 100;
+      if (pct_over > tolerance) {
+        printf "OVERCHARGE: invoice %s — billed $%.2f vs contracted $%.2f (%.1f%% over, tolerance %d%%)\n", invoice_id, billed, contracted, pct_over, tolerance;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./freight-invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,contracted_rate,billed_amount — export from your freight audit/AP system."
+  overcharge_tolerance_pct:
+    default: 3
+    description: Percent above the contracted rate allowed before flagging as an overcharge worth disputing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks billing accuracy against the contracted rate, not market rate
+  movement — pair with freight-rate-spike-watch if you also want to
+  track whether the contracted rate itself is falling behind the
+  market.

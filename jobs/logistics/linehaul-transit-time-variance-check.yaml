@@ -1,0 +1,43 @@
+id: linehaul-transit-time-variance-check
+version: 1
+name: Linehaul Transit Time Variance Check
+description: >
+  Compares actual transit times against the scheduled transit time per
+  lane and flags lanes running consistently slow. Use this if a lane's
+  transit times have ever crept up gradually until service levels
+  quietly missed the mark for a whole quarter.
+category: logistics
+tags: [logistics, transit, lanes, performance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_hours_threshold}}" '
+    NR==1 {next}
+    {
+      lane=$1; scheduled=$2; actual=$3;
+      variance = actual - scheduled;
+      sum[lane] += variance; count[lane]++;
+    }
+    END {
+      for (l in sum) {
+        avg = sum[l] / count[l];
+        if (avg >= tolerance) {
+          printf "SLOW LANE: %s — averaging %.1fh over scheduled transit time across %d shipments\n", l, avg, count[l];
+        }
+      }
+    }
+  ' "{{transit_times_csv_path}}"
+variables:
+  transit_times_csv_path:
+    default: "./lane-transit-times.csv"
+    description: "Path to a CSV with columns: lane,scheduled_transit_hours,actual_transit_hours — one row per completed shipment."
+  variance_hours_threshold:
+    default: 6
+    description: Average hours over scheduled transit time before a lane is flagged as consistently slow.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Aggregates variance across a lane's shipment history, unlike
+  shipment-delay-watch which checks a single shipment's live tracking
+  status — this catches gradual lane-level drift a one-off delay check
+  won't.

@@ -1,0 +1,43 @@
+id: cross-dock-dwell-time-watch
+version: 1
+name: Cross-Dock Dwell Time Watch
+description: >
+  Checks freight moving through a cross-dock facility against a target
+  dwell time and flags anything sitting too long between inbound and
+  outbound legs. Use this if freight has ever quietly stalled at a
+  cross-dock for days, turning a same-day transfer into a missed
+  delivery window.
+category: logistics
+tags: [logistics, cross-dock, dwell-time, freight]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_dwell_hours}}" '
+    NR==1 {next}
+    {
+      shipment=$1; arrived=$2; status=$3;
+      if (status != "departed") {
+        cmd = "date -d \"" arrived "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" arrived "\" +%s 2>/dev/null";
+        cmd | getline arrived_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        dwell_hours = (now_epoch - arrived_epoch) / 3600;
+        if (dwell_hours >= threshold) {
+          printf "DWELL EXCEEDED: shipment %s has been on the dock %.1fh (arrived %s), threshold %dh\n", shipment, dwell_hours, arrived, threshold;
+        }
+      }
+    }
+  ' "{{crossdock_status_csv}}"
+variables:
+  crossdock_status_csv:
+    default: "./crossdock-shipment-status.csv"
+    description: "Path to a CSV with columns: shipment_id,arrived_at (ISO timestamp),status (e.g. staged, departed) — export from your dock/yard management system."
+  max_dwell_hours:
+    default: 12
+    description: Hours a shipment can sit at the cross-dock before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks freight-in-transit dwell between inbound and outbound legs at a
+  cross-dock, distinct from warehousing's dock-schedule-conflict-check
+  (which checks appointment scheduling conflicts, not how long freight
+  actually sits once it's on the dock).

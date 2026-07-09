@@ -1,0 +1,34 @@
+id: carrier-load-tender-acceptance-check
+version: 1
+name: Carrier Load Tender Acceptance Check
+description: >
+  Checks recently tendered loads for carriers that haven't accepted or
+  rejected within the expected window. Use this if a tendered load has
+  ever sat unconfirmed until the ship date was already at risk.
+category: logistics
+tags: [logistics, carrier, tender, booking]
+schedule: "0 */3 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{tms_or_broker_portal}} for load tenders sent to carriers in the
+  last {{lookback_hours}} hours.
+  1. List each tendered load: load/reference number, carrier, and time
+     since tendered.
+  2. Flag any load still showing "pending" or unacknowledged past
+     {{escalate_after_hours}} hours.
+  3. For flagged loads, suggest the next action — re-tender to a backup
+     carrier, call the carrier directly, or escalate to the broker —
+     based on how close the ship date is.
+variables:
+  tms_or_broker_portal:
+    default: "your TMS load board or broker portal"
+    description: Where tendered loads and their acceptance status are visible.
+  lookback_hours:
+    default: 48
+    description: How far back to check for tendered loads.
+  escalate_after_hours:
+    default: 6
+    description: Hours a tender can sit unacknowledged before it's flagged as at risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — tender status and acceptance workflows vary by TMS and broker platform, and re-tender decisions need judgment about ship-date risk.

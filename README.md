@@ -37,17 +37,22 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 - `init <id> [--category x]` — scaffold a brand-new job from the template
 - `update <path>` — re-pull a job you already `add`ed/`init`ed (matched by
   its `id` field) against the current catalog and overwrite it in place
-- `deploy <id> [--target crontab|github-actions|systemd|docker] [--var name=value ...]`
+- `deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler] [--var name=value ...]`
   — turn a job into something that actually runs: prints a ready crontab
   line (or installs it into your own crontab with `--install`), writes a
   scheduled GitHub Actions workflow file, writes a systemd
-  `<id>.service` + `<id>.timer` pair, or writes a Dockerfile + `/etc/cron.d`
-  entry that runs the job on its own schedule in a container. `--var`
-  overrides a variable's default (repeatable). `hybrid` jobs deploy their
-  `command` by default; pass `--mode prompt` to deploy the `prompt` side
-  instead — for crontab/systemd/docker targets that means wiring in your
-  own agent CLI via a `CRONDEX_AGENT_CLI` env var, since crondex can't
-  guess its syntax.
+  `<id>.service` + `<id>.timer` pair, writes a Dockerfile + `/etc/cron.d`
+  entry that runs the job on its own schedule in a container, or writes a
+  self-contained `batch/v1` CronJob manifest (`k8s-cronjob`). `eventbridge`
+  and `cloud-scheduler` print a ready `aws`/`gcloud` CLI command instead —
+  those services invoke a target (Lambda/ECS/HTTP endpoint) rather than
+  running a shell command directly, so the command leaves that target as a
+  TODO for you to wire up. `--var` overrides a variable's default
+  (repeatable). `hybrid` jobs deploy their `command` by default; pass
+  `--mode prompt` to deploy the `prompt` side instead — for
+  crontab/systemd/docker/k8s targets that means wiring in your own agent
+  CLI via a `CRONDEX_AGENT_CLI` env var, since crondex can't guess its
+  syntax.
 - `deploy --list-installed` — show every crondex-managed line in your
   crontab (the ones left by `--install`)
 - `uninstall <id>` — remove one of those installed crontab entries

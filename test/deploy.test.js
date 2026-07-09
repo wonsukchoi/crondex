@@ -9,6 +9,10 @@ import {
   cronToSystemdCalendar,
   buildSystemdUnits,
   buildDockerArtifacts,
+  buildK8sCronJob,
+  cronToAwsCron,
+  buildEventBridgeCommand,
+  buildCloudSchedulerCommand,
 } from "../lib/deploy.js";
 
 test("resolveVariables: uses defaults when no override given", () => {
@@ -150,4 +154,55 @@ test("buildDockerArtifacts: prompt mode warns about CRONDEX_AGENT_CLI in the Doc
   const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
   const { dockerfile } = buildDockerArtifacts(job, "do the thing", true);
   assert.match(dockerfile, /CRONDEX_AGENT_CLI/);
+});
+
+test("buildK8sCronJob: embeds schedule and command without double-wrapping bash -lc", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "jobs/x/my-job.yaml" };
+  const manifest = buildK8sCronJob(job, 'echo "hello"', false);
+  assert.match(manifest, /schedule: "0 6 \* \* \*"/);
+  assert.match(manifest, /command: \["bash", "-lc", "echo \\"hello\\""\]/);
+  assert.doesNotMatch(manifest, /bash -lc 'bash -lc/);
+});
+
+test("buildK8sCronJob: prompt mode adds a CRONDEX_AGENT_CLI env placeholder", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const manifest = buildK8sCronJob(job, "do the thing", true);
+  assert.match(manifest, /name: CRONDEX_AGENT_CLI/);
+  assert.match(manifest, /"sh", "-lc"/);
+});
+
+test("buildK8sCronJob: escapes embedded double quotes so the YAML stays valid", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const manifest = buildK8sCronJob(job, 'echo "a" && echo "b"', false);
+  assert.match(manifest, /\\"a\\"/);
+  assert.match(manifest, /\\"b\\"/);
+});
+
+test("cronToAwsCron: weekday-restricted schedule sets day-of-month to ? and maps weekday names", () => {
+  assert.equal(cronToAwsCron("0 14 * * 1-5"), "cron(0 14 ? * MON-FRI *)");
+});
+
+test("cronToAwsCron: unrestricted weekday sets day-of-week to ? and keeps day-of-month", () => {
+  assert.equal(cronToAwsCron("0 6 * * *"), "cron(0 6 * * ? *)");
+  assert.equal(cronToAwsCron("0 7 1 * *"), "cron(0 7 1 * ? *)");
+});
+
+test("cronToAwsCron: */n step becomes 0/n", () => {
+  assert.equal(cronToAwsCron("*/15 * * * *"), "cron(0/15 * * * ? *)");
+});
+
+test("buildEventBridgeCommand: embeds the AWS cron expression and leaves the target as a TODO", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const out = buildEventBridgeCommand(job, "do the thing", false);
+  assert.match(out, /cron\(0 6 \* \* \? \*\)/);
+  assert.match(out, /TODO_TARGET_ARN/);
+  assert.match(out, /aws scheduler create-schedule/);
+});
+
+test("buildCloudSchedulerCommand: passes cron through unchanged and leaves the endpoint as a TODO", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", timezone: "America/New_York", path: "x.yaml" };
+  const out = buildCloudSchedulerCommand(job, "do the thing", false);
+  assert.match(out, /--schedule="0 6 \* \* \*"/);
+  assert.match(out, /--time-zone="America\/New_York"/);
+  assert.match(out, /TODO_HTTPS_ENDPOINT/);
 });

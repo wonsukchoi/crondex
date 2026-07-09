@@ -166,6 +166,36 @@ test("deploy --target docker: writes a Dockerfile + crontab pair", () => {
   }
 });
 
+test("deploy --target k8s-cronjob: writes a self-contained CronJob manifest", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "job.yaml");
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "k8s-cronjob", "--dest", dest]);
+    assert.match(out, /wrote/);
+    const content = readFileSync(dest, "utf8");
+    assert.match(content, /kind: CronJob/);
+    assert.match(content, /schedule: "0 6 \* \* \*"/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "k8s-cronjob", "--dest", dest]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("deploy --target eventbridge: prints an aws scheduler command with a converted cron expression", () => {
+  const out = run(["deploy", "ssl-cert-expiry-check", "--target", "eventbridge"]);
+  assert.match(out, /aws scheduler create-schedule/);
+  assert.match(out, /cron\(0 6 \* \* \? \*\)/);
+});
+
+test("deploy --target cloud-scheduler: prints a gcloud scheduler command with the raw cron schedule", () => {
+  const out = run(["deploy", "ssl-cert-expiry-check", "--target", "cloud-scheduler"]);
+  assert.match(out, /gcloud scheduler jobs create http/);
+  assert.match(out, /--schedule="0 6 \* \* \*"/);
+});
+
 test("update: refreshes a locally pulled job to the latest catalog version", () => {
   const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
   try {

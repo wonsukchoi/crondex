@@ -14,6 +14,9 @@ import {
   buildGithubActionsWorkflow,
   buildSystemdUnits,
   buildDockerArtifacts,
+  buildK8sCronJob,
+  buildEventBridgeCommand,
+  buildCloudSchedulerCommand,
 } from "../lib/deploy.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -68,7 +71,8 @@ Usage:
   crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
   crondex update <path>
-  crondex deploy <id> [--target crontab|github-actions|systemd|docker] [--mode script|prompt]
+  crondex deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|
+                                 eventbridge|cloud-scheduler] [--mode script|prompt]
                       [--var name=value ...] [--dest <path>] [--install]
   crondex deploy --list-installed [--json]
   crondex uninstall <id>
@@ -85,6 +89,9 @@ Examples:
   crondex deploy repo-health-check --target github-actions
   crondex deploy repo-health-check --target systemd --dest ./systemd
   crondex deploy repo-health-check --target docker --dest ./docker/repo-health-check
+  crondex deploy repo-health-check --target k8s-cronjob --dest ./k8s/repo-health-check.yaml
+  crondex deploy repo-health-check --target eventbridge
+  crondex deploy repo-health-check --target cloud-scheduler
   crondex deploy --list-installed
   crondex uninstall ssl-cert-expiry-check
 
@@ -98,9 +105,15 @@ crontab with --install; --target github-actions writes a scheduled
 workflow file (default .github/workflows/<id>.yml); --target systemd
 writes a <id>.service + <id>.timer pair (default ./systemd/); --target
 docker writes a Dockerfile + crontab pair that runs the job on its own
-schedule in a container (default ./docker/<id>/). --var overrides a job's
-variable defaults (repeatable). hybrid jobs default to --mode script (zero
-tokens); pass --mode prompt to deploy the agent-prompt side instead.
+schedule in a container (default ./docker/<id>/); --target k8s-cronjob
+writes a self-contained batch/v1 CronJob manifest (default
+./k8s/<id>.cronjob.yaml). --target eventbridge and --target
+cloud-scheduler print a ready aws/gcloud CLI command instead — those
+services invoke a target (Lambda/ECS/HTTP endpoint) rather than running a
+shell command directly, so the command leaves that target as a TODO for
+you to wire up. --var overrides a job's variable defaults (repeatable).
+hybrid jobs default to --mode script (zero tokens); pass --mode prompt to
+deploy the agent-prompt side instead.
 
 deploy --list-installed shows every crondex-managed line in your crontab
 (the ones with a "# crondex:<id>" marker, as left by --install). uninstall
@@ -345,6 +358,20 @@ function deploy(id) {
     writeFileSync(serviceDest, service);
     writeFileSync(timerDest, timer);
     console.log(`wrote ${serviceDest} and ${timerDest} — enable with:\n  systemctl --user enable --now ${id}.timer`);
+  } else if (target === "k8s-cronjob") {
+    const manifest = buildK8sCronJob(doc, mode === "prompt" ? prompt : command, mode === "prompt");
+    const dest = flag("dest") ?? join("./k8s", `${id}.cronjob.yaml`);
+    if (existsSync(dest)) {
+      console.error(`${dest} already exists — refusing to overwrite. Pass --dest to choose another path.`);
+      process.exit(1);
+    }
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, manifest);
+    console.log(`wrote ${dest} — apply with:\n  kubectl apply -f ${dest}`);
+  } else if (target === "eventbridge") {
+    console.log(buildEventBridgeCommand(doc, mode === "prompt" ? prompt : command, mode === "prompt"));
+  } else if (target === "cloud-scheduler") {
+    console.log(buildCloudSchedulerCommand(doc, mode === "prompt" ? prompt : command, mode === "prompt"));
   } else if (target === "docker") {
     const { dockerfile, crontab } = buildDockerArtifacts(doc, mode === "prompt" ? prompt : command, mode === "prompt");
     const destDir = flag("dest") ?? join("./docker", id);
@@ -359,7 +386,7 @@ function deploy(id) {
     writeFileSync(crontabDest, crontab);
     console.log(`wrote ${dockerfileDest} and ${crontabDest} — build with:\n  docker build -t ${id} ${destDir}`);
   } else {
-    console.error(`unknown --target "${target}" — use "crontab", "github-actions", "systemd", or "docker".`);
+    console.error(`unknown --target "${target}" — use "crontab", "github-actions", "systemd", "docker", "k8s-cronjob", "eventbridge", or "cloud-scheduler".`);
     process.exit(1);
   }
 }

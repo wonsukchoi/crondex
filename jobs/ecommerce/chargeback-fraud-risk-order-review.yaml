@@ -1,0 +1,43 @@
+id: chargeback-fraud-risk-order-review
+version: 1
+name: Chargeback Fraud Risk Order Review
+description: >
+  Scores new orders against common fraud signals — billing/shipping
+  country mismatch, high order value from a first-time customer, and
+  rush shipping on an unverified address — and flags the risky ones
+  before they ship. Use this if a chargeback has ever landed on an order
+  that, in hindsight, had obvious red flags nobody checked before
+  fulfillment.
+category: ecommerce
+tags: [ecommerce, fraud, chargebacks, risk, orders]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minval="{{high_value_threshold}}" '
+    NR==1 {next}
+    {
+      order_id=$1; billing_country=$2; shipping_country=$3;
+      value=$4; is_new_customer=$5; shipping_method=$6;
+      score=0; reasons="";
+      if (billing_country != shipping_country) { score++; reasons = reasons "billing/shipping country mismatch; "; }
+      if (value+0 >= minval) { score++; reasons = reasons "high order value; "; }
+      if (is_new_customer == "yes") { score++; reasons = reasons "first-time customer; "; }
+      if (shipping_method == "rush" || shipping_method == "expedited") { score++; reasons = reasons "rush shipping; "; }
+      if (score >= {{flag_score_threshold}}) {
+        printf "REVIEW: order %s (score %d) — %s\n", order_id, score, reasons;
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./new-orders.csv"
+    description: "Path to a CSV with columns: order_id,billing_country,shipping_country,order_value,is_new_customer(yes/no),shipping_method."
+  high_value_threshold:
+    default: 300
+    description: Order value in your currency at or above which it counts as a fraud-risk signal.
+  flag_score_threshold:
+    default: 2
+    description: Number of matching risk signals (0-4) required before an order is flagged for manual review.
+compatible_agents: [generic, claude, codex]
+notes: A flag is a prompt for manual review before shipping, not proof of fraud — legitimate customers trigger these signals too (gifts, travel, new-to-you shoppers). Distinct from `return-fraud-pattern-check` in the retail category, which looks at return abuse after the sale, not pre-fulfillment order risk.

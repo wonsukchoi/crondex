@@ -1,0 +1,46 @@
+id: storefront-ssl-domain-expiry-check
+version: 1
+name: Storefront SSL & Domain Expiry Check
+description: >
+  Checks your storefront's SSL certificate and domain registration expiry
+  dates and flags anything expiring soon. Use this if your store has ever
+  gone down — or thrown a scary browser security warning at checkout —
+  because an SSL cert or domain renewal quietly lapsed.
+category: ecommerce
+tags: [ecommerce, ssl, domain, uptime, infrastructure]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  domain="{{storefront_domain}}";
+  warn_days="{{warn_days}}";
+  cert_end=$(echo | openssl s_client -servername "$domain" -connect "$domain":443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2);
+  if [ -n "$cert_end" ]; then
+    cert_epoch=$(date -d "$cert_end" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$cert_end" +%s 2>/dev/null);
+    now_epoch=$(date +%s);
+    cert_days_left=$(( (cert_epoch - now_epoch) / 86400 ));
+    if [ "$cert_days_left" -le "$warn_days" ]; then
+      echo "SSL WARNING: cert for $domain expires in $cert_days_left days ($cert_end)";
+    fi;
+  else
+    echo "ERROR: could not read SSL cert for $domain";
+  fi;
+  domain_end=$(whois "$domain" 2>/dev/null | grep -iE "registry expiry|expiration date" | head -n1 | sed -E 's/.*: *//');
+  if [ -n "$domain_end" ]; then
+    dom_epoch=$(date -d "$domain_end" +%s 2>/dev/null);
+    if [ -n "$dom_epoch" ]; then
+      dom_days_left=$(( (dom_epoch - now_epoch) / 86400 ));
+      if [ "$dom_days_left" -le "$warn_days" ]; then
+        echo "DOMAIN WARNING: $domain registration expires in $dom_days_left days ($domain_end)";
+      fi;
+    fi;
+  fi
+variables:
+  storefront_domain:
+    default: "example.com"
+    description: The domain your storefront is served from (no protocol/path).
+  warn_days:
+    default: 21
+    description: Days before SSL cert or domain expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Requires `openssl` and `whois` on the runner; whois output format varies by registrar/TLD, so treat a missing DOMAIN WARNING line as inconclusive rather than "all clear" and spot-check manually a few times after setup.

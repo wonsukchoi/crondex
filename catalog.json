@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 375,
+  "count": 388,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -103,6 +103,32 @@
         "generic"
       ],
       "path": "jobs/marketing/ad-spend-pacing-check.yaml"
+    },
+    {
+      "id": "affiliate-commission-payout-check",
+      "version": 1,
+      "name": "Affiliate Commission Payout Check",
+      "description": "Checks commissions owed to affiliates who drive sales to your store against your payout schedule and flags anything overdue and still unpaid. Use this if an affiliate has ever had to chase you for a commission payment because nobody was tracking payout due dates on your side.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "affiliates",
+        "commissions",
+        "payouts",
+        "finance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/affiliate-commission-payout-check.yaml"
     },
     {
       "id": "affiliate-link-expiry-check",
@@ -383,6 +409,31 @@
         "codex"
       ],
       "path": "jobs/events/attendee-checkin-rate-watch.yaml"
+    },
+    {
+      "id": "back-in-stock-notification-backlog-check",
+      "version": 1,
+      "name": "Back-in-Stock Notification Backlog Check",
+      "description": "Checks products that customers asked to be notified about against current stock levels, and flags any that are back in stock with a waiting list that never got notified. Use this if an item has ever restocked while a list of interested customers sat unnotified until the item sold out again, missing the sale entirely.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "back-in-stock",
+        "notifications",
+        "inventory"
+      ],
+      "schedule": "0 */3 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/back-in-stock-notification-backlog-check.yaml"
     },
     {
       "id": "background-check-status-check",
@@ -712,6 +763,31 @@
       "path": "jobs/finance/budget-overspend-check.yaml"
     },
     {
+      "id": "bundle-component-stock-mismatch-check",
+      "version": 1,
+      "name": "Bundle Component Stock Mismatch Check",
+      "description": "Checks each product bundle/kit against the stock of its individual components and flags any bundle still marked in-stock while one of its components is actually out. Use this if a bundle has ever sold through checkout only for fulfillment to discover one piece of it was unavailable, because the bundle's own stock flag wasn't tied to its components.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "bundles",
+        "inventory",
+        "kitting"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/bundle-component-stock-mismatch-check.yaml"
+    },
+    {
       "id": "business-license-renewal-check",
       "version": 1,
       "name": "Business License Renewal Check",
@@ -1035,6 +1111,32 @@
       "path": "jobs/content/changelog-digest.yaml"
     },
     {
+      "id": "chargeback-fraud-risk-order-review",
+      "version": 1,
+      "name": "Chargeback Fraud Risk Order Review",
+      "description": "Scores new orders against common fraud signals — billing/shipping country mismatch, high order value from a first-time customer, and rush shipping on an unverified address — and flags the risky ones before they ship. Use this if a chargeback has ever landed on an order that, in hindsight, had obvious red flags nobody checked before fulfillment.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "fraud",
+        "chargebacks",
+        "risk",
+        "orders"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/chargeback-fraud-risk-order-review.yaml"
+    },
+    {
       "id": "checkout-conversion-drop-watch",
       "version": 1,
       "name": "Checkout Conversion Drop Watch",
@@ -1316,6 +1418,34 @@
         "generic"
       ],
       "path": "jobs/marketing/competitor-page-diff-watch.yaml"
+    },
+    {
+      "id": "competitor-price-watch",
+      "version": 1,
+      "name": "Competitor Price Watch",
+      "description": "Fetches a competitor's product page for each SKU you're tracking, pulls out the price, and flags any SKU where their price has moved enough to matter relative to yours. Use this if you've ever found out you were underpricing (or getting undercut on) a product only because a customer mentioned it.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "pricing",
+        "competitor",
+        "monitoring"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/ecommerce/competitor-price-watch.yaml"
     },
     {
       "id": "compliance-filing-deadline-reminder",
@@ -2310,6 +2440,32 @@
       "path": "jobs/investing/earnings-calendar-watch.yaml"
     },
     {
+      "id": "economic-nexus-threshold-check",
+      "version": 1,
+      "name": "Economic Nexus Threshold Check",
+      "description": "Checks your year-to-date sales revenue and transaction count per state against economic nexus thresholds and flags states you're approaching or have crossed. Use this if you've ever registered for sales tax in a state only after crossing the threshold months earlier, because nobody was tracking cumulative sales by state.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "sales-tax",
+        "nexus",
+        "compliance",
+        "finance"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/economic-nexus-threshold-check.yaml"
+    },
+    {
       "id": "email-deliverability-check",
       "version": 1,
       "name": "Email Deliverability Check",
@@ -2883,6 +3039,32 @@
         "codex"
       ],
       "path": "jobs/security/failed-login-watch.yaml"
+    },
+    {
+      "id": "failed-payment-dunning-check",
+      "version": 1,
+      "name": "Failed Payment Dunning Check",
+      "description": "Checks recurring/subscription orders with a failed payment and flags ones that have been retrying too long without success, so you can step in before the customer silently churns. Use this if a subscriber has ever stayed on \"payment failed\" for weeks with nobody following up, quietly costing you recurring revenue.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "subscriptions",
+        "payments",
+        "dunning",
+        "churn"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/failed-payment-dunning-check.yaml"
     },
     {
       "id": "feature-flag-staleness-audit",
@@ -4989,6 +5171,32 @@
       "path": "jobs/retail/markdown-aging-inventory-check.yaml"
     },
     {
+      "id": "marketplace-listing-sync-drift-check",
+      "version": 1,
+      "name": "Marketplace Listing Sync Drift Check",
+      "description": "Compares price and stock on your source-of-truth catalog against what's actually live on a marketplace (Amazon, eBay, Etsy) and flags any SKU that's drifted out of sync. Use this if a marketplace listing has ever shown a stale price or \"in stock\" on an item you'd already sold out of on your own store, because the sync job silently failed.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "marketplace",
+        "sync",
+        "inventory",
+        "pricing"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/marketplace-listing-sync-drift-check.yaml"
+    },
+    {
       "id": "material-delivery-delay-check",
       "version": 1,
       "name": "Material Delivery Delay Check",
@@ -6400,6 +6608,32 @@
       "path": "jobs/spa/product-chemical-expiry-check.yaml"
     },
     {
+      "id": "product-feed-health-check",
+      "version": 1,
+      "name": "Product Feed Health Check",
+      "description": "Scans your product catalog export for listings that are live but broken in some way — missing title, missing description, missing image, a zero/blank price, or marked out-of-stock while still visible to shoppers. Use this if a product has ever sat on your storefront for weeks with a broken image or a $0 price because nobody was checking feed quality after the initial upload.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "product-feed",
+        "seo",
+        "catalog",
+        "data-quality"
+      ],
+      "schedule": "0 5 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/product-feed-health-check.yaml"
+    },
+    {
       "id": "production-line-downtime-watch",
       "version": 1,
       "name": "Production Line Downtime Watch",
@@ -6598,6 +6832,31 @@
         "codex"
       ],
       "path": "jobs/government/public-records-retention-purge-check.yaml"
+    },
+    {
+      "id": "purchase-order-overdue-check",
+      "version": 1,
+      "name": "Purchase Order Overdue Check",
+      "description": "Checks open purchase orders to suppliers against their expected delivery date and flags anything that hasn't arrived on time. Use this if a supplier has ever gone quiet on a PO and you only found out stock wasn't coming when you were already out of the item.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "purchase-orders",
+        "suppliers",
+        "inventory"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/purchase-order-overdue-check.yaml"
     },
     {
       "id": "purchase-order-receiving-delay-check",
@@ -8094,6 +8353,32 @@
       "path": "jobs/retail/store-opening-checklist-reminder.yaml"
     },
     {
+      "id": "storefront-ssl-domain-expiry-check",
+      "version": 1,
+      "name": "Storefront SSL & Domain Expiry Check",
+      "description": "Checks your storefront's SSL certificate and domain registration expiry dates and flags anything expiring soon. Use this if your store has ever gone down — or thrown a scary browser security warning at checkout — because an SSL cert or domain renewal quietly lapsed.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "ssl",
+        "domain",
+        "uptime",
+        "infrastructure"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/ecommerce/storefront-ssl-domain-expiry-check.yaml"
+    },
+    {
       "id": "stream-schedule-reminder",
       "version": 1,
       "name": "Stream Schedule Prep Reminder",
@@ -9067,6 +9352,35 @@
       "path": "jobs/events/vendor-payment-deadline-reminder.yaml"
     },
     {
+      "id": "vip-tier-reclassification-check",
+      "version": 1,
+      "name": "VIP Tier Reclassification Check",
+      "description": "Checks each customer's year-to-date spend against your VIP tier thresholds and flags anyone due to move up or down a tier, drafting a short outreach note for new upgrades. Use this if a top customer has ever crossed your VIP spend threshold months ago and never got the perks (or the acknowledgment) because nobody was tracking tier crossings.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "vip",
+        "customers",
+        "ltv",
+        "segmentation"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/ecommerce/vip-tier-reclassification-check.yaml"
+    },
+    {
       "id": "visa-expiry-check",
       "version": 1,
       "name": "Visa/Residency Document Expiry Check",
@@ -9391,6 +9705,34 @@
         "generic"
       ],
       "path": "jobs/growth/welcome-email-drip-check.yaml"
+    },
+    {
+      "id": "wishlist-abandonment-check",
+      "version": 1,
+      "name": "Wishlist Abandonment Check",
+      "description": "Checks customer wishlists for items that have sat untouched for a while and drafts a nudge email when there's a real reason to reach out — a price drop or the item is back in stock — instead of a generic \"you still want this?\" reminder. Use this if you've ever had a wishlist feature that quietly collects intent and never converts any of it back into a sale.",
+      "category": "ecommerce",
+      "tags": [
+        "ecommerce",
+        "wishlist",
+        "recovery",
+        "conversion",
+        "sales"
+      ],
+      "schedule": "0 11 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/ecommerce/wishlist-abandonment-check.yaml"
     },
     {
       "id": "youtube-clip-repurposing",

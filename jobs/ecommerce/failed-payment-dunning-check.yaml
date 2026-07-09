@@ -1,0 +1,35 @@
+id: failed-payment-dunning-check
+version: 1
+name: Failed Payment Dunning Check
+description: >
+  Checks recurring/subscription orders with a failed payment and flags
+  ones that have been retrying too long without success, so you can step
+  in before the customer silently churns. Use this if a subscriber has
+  ever stayed on "payment failed" for weeks with nobody following up,
+  quietly costing you recurring revenue.
+category: ecommerce
+tags: [ecommerce, subscriptions, payments, dunning, churn]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_retry_days}}" -v max_attempts="{{max_retry_attempts}}" '
+    NR==1 {next}
+    $2 == "failed" {
+      if ($3+0 >= max_days || $4+0 >= max_attempts) {
+        printf "NEEDS ACTION: subscription %s — %d days failing, %d retry attempts\n", $1, $3, $4;
+      }
+    }
+  ' "{{subscriptions_csv_path}}"
+variables:
+  subscriptions_csv_path:
+    default: "./subscriptions.csv"
+    description: "Path to a CSV with columns: subscription_id,status (failed/active),days_since_first_failure,retry_attempt_count."
+  max_retry_days:
+    default: 7
+    description: Days a subscription can sit in failed-payment status before it needs a manual touch (update card, human outreach, or cancel).
+  max_retry_attempts:
+    default: 4
+    description: Number of automatic retry attempts before it needs a manual touch instead of another silent retry.
+compatible_agents: [generic, claude, codex]
+notes: This flags when automatic dunning has run its course — pair with an actual outreach step (email, SMS, or account pause) since the job itself only identifies who needs it.

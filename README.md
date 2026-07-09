@@ -3,8 +3,8 @@
 ```
   ______________  ____  ____/ /__  _  __
  / ___/ ___/ __ \/ __ \/ __  / _ \| |/_/
-/ /__/ /  / /_/ / / / / /_/ /  __/>  <
-\___/_/   \____/_/ /_/\__,_/\___/_/|_|
+ / /__/ /  / /_/ / / / / /_/ /  __/>  <
+ \___/_/   \____/_/ /_/\__,_/\___/_/|_|
 ```
 
 **Pre-made cron jobs any AI agent can pull, tweak, and schedule.**
@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-375 jobs across 48 categories:
+388 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -115,7 +115,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `creator` | 7 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 7 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
-| `ecommerce` | 7 | Storefront ops — carts, stock, returns, reviews. |
+| `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 7 | Classroom ops — grading, attendance, deadlines, permission slips. |
 | `events` | 7 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 7 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |

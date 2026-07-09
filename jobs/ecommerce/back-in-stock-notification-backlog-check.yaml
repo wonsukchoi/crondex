@@ -1,0 +1,30 @@
+id: back-in-stock-notification-backlog-check
+version: 1
+name: Back-in-Stock Notification Backlog Check
+description: >
+  Checks products that customers asked to be notified about against
+  current stock levels, and flags any that are back in stock with a
+  waiting list that never got notified. Use this if an item has ever
+  restocked while a list of interested customers sat unnotified until
+  the item sold out again, missing the sale entirely.
+category: ecommerce
+tags: [ecommerce, back-in-stock, notifications, inventory]
+schedule: "0 */3 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      sku=$1; current_stock=$2; waitlist_count=$3; notified=$4;
+      if (current_stock+0 > 0 && waitlist_count+0 > 0 && notified == "no") {
+        printf "NOTIFY BACKLOG: %s — %d units in stock, %d customers waiting, not yet notified\n", sku, current_stock, waitlist_count;
+      }
+    }
+  ' "{{waitlist_csv_path}}"
+variables:
+  waitlist_csv_path:
+    default: "./back-in-stock-waitlist.csv"
+    description: "Path to a CSV with columns: sku,current_stock,waitlist_count,notified (yes/no) — one row per SKU with an active back-in-stock waitlist."
+compatible_agents: [generic, claude, codex]
+notes: Mark a SKU "notified" once your ESP/app actually sends the alert, so this only ever flags a genuine backlog rather than re-flagging sent notifications every run.

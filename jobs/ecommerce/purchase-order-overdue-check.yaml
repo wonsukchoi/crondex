@@ -1,0 +1,32 @@
+id: purchase-order-overdue-check
+version: 1
+name: Purchase Order Overdue Check
+description: >
+  Checks open purchase orders to suppliers against their expected
+  delivery date and flags anything that hasn't arrived on time. Use this
+  if a supplier has ever gone quiet on a PO and you only found out stock
+  wasn't coming when you were already out of the item.
+category: ecommerce
+tags: [ecommerce, purchase-orders, suppliers, inventory]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      if (today > expected_epoch) {
+        overdue_days = (today - expected_epoch) / 86400;
+        printf "OVERDUE PO: %s from %s — expected %s (%d days late)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{purchase_orders_csv_path}}"
+variables:
+  purchase_orders_csv_path:
+    default: "./purchase-orders.csv"
+    description: "Path to a CSV with columns: po_id,supplier_name,expected_delivery_date (YYYY-MM-DD),status (pending/received)."
+compatible_agents: [generic, claude, codex]
+notes: Mark a PO "received" as soon as stock lands so this only ever flags genuinely overdue orders. Distinct from `low-stock-reorder-alert` (decides when to place an order) and `shipping-delay-check` (tracks outbound orders to customers) — this tracks inbound supplier orders after they've been placed.

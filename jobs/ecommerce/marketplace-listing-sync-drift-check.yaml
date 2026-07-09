@@ -1,0 +1,48 @@
+id: marketplace-listing-sync-drift-check
+version: 1
+name: Marketplace Listing Sync Drift Check
+description: >
+  Compares price and stock on your source-of-truth catalog against what's
+  actually live on a marketplace (Amazon, eBay, Etsy) and flags any SKU
+  that's drifted out of sync. Use this if a marketplace listing has ever
+  shown a stale price or "in stock" on an item you'd already sold out of
+  on your own store, because the sync job silently failed.
+category: ecommerce
+tags: [ecommerce, marketplace, sync, inventory, pricing]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR==1) {next}
+      truth_price[$1]=$2; truth_stock[$1]=$3; next
+    }
+    {
+      if (FNR==1) {next}
+      sku=$1; mkt_price=$2; mkt_stock=$3; marketplace=$4;
+      if (sku in truth_price) {
+        price_diff = truth_price[sku] - mkt_price; if (price_diff < 0) price_diff = -price_diff;
+        if (price_diff > {{price_tolerance_usd}}) {
+          printf "PRICE DRIFT: %s on %s — source: $%.2f, listed: $%.2f\n", sku, marketplace, truth_price[sku], mkt_price;
+        }
+        if ((truth_stock[sku]+0 <= 0) != (mkt_stock+0 <= 0)) {
+          printf "STOCK DRIFT: %s on %s — source stock: %s, listed stock: %s\n", sku, marketplace, truth_stock[sku], mkt_stock;
+        }
+      } else {
+        printf "UNMATCHED SKU: %s on %s not found in source-of-truth catalog\n", sku, marketplace;
+      }
+    }
+  ' "{{source_of_truth_csv_path}}" "{{marketplace_export_csv_path}}"
+variables:
+  source_of_truth_csv_path:
+    default: "./catalog-source-of-truth.csv"
+    description: "Path to a CSV with columns: sku,price,stock — your own store's authoritative price/stock."
+  marketplace_export_csv_path:
+    default: "./marketplace-listings.csv"
+    description: "Path to a CSV export with columns: sku,listed_price,listed_stock,marketplace — one row per live listing per marketplace."
+  price_tolerance_usd:
+    default: 1.00
+    description: Acceptable price difference in dollars between source and marketplace before flagging drift.
+compatible_agents: [generic, claude, codex]
+notes: Requires both exports to use the same SKU values — normalize SKU formatting on export if a marketplace mangles it (e.g. adds a prefix).

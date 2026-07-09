@@ -1,0 +1,37 @@
+id: bundle-component-stock-mismatch-check
+version: 1
+name: Bundle Component Stock Mismatch Check
+description: >
+  Checks each product bundle/kit against the stock of its individual
+  components and flags any bundle still marked in-stock while one of its
+  components is actually out. Use this if a bundle has ever sold through
+  checkout only for fulfillment to discover one piece of it was
+  unavailable, because the bundle's own stock flag wasn't tied to its
+  components.
+category: ecommerce
+tags: [ecommerce, bundles, inventory, kitting]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      bundle=$1; component_stock=$3; listed_status=$4;
+      if (component_stock+0 <= 0) out_of_stock_component[bundle] = out_of_stock_component[bundle] " " $2;
+      bundle_status[bundle] = listed_status;
+    }
+    END {
+      for (b in bundle_status) {
+        if (bundle_status[b] == "in-stock" && (b in out_of_stock_component)) {
+          printf "MISMATCH: bundle %s is listed in-stock but missing component(s):%s\n", b, out_of_stock_component[b];
+        }
+      }
+    }
+  ' "{{bundle_components_csv_path}}"
+variables:
+  bundle_components_csv_path:
+    default: "./bundle-components.csv"
+    description: "Path to a CSV with columns: bundle_sku,component_sku,component_stock,bundle_listed_status (in-stock/out-of-stock) — one row per component of each bundle."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `low-stock-reorder-alert`, which tracks a single SKU's own stock velocity — this checks whether a bundle's listed availability is actually consistent with what it's made of.

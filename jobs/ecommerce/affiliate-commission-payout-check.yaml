@@ -1,0 +1,38 @@
+id: affiliate-commission-payout-check
+version: 1
+name: Affiliate Commission Payout Check
+description: >
+  Checks commissions owed to affiliates who drive sales to your store
+  against your payout schedule and flags anything overdue and still
+  unpaid. Use this if an affiliate has ever had to chase you for a
+  commission payment because nobody was tracking payout due dates on
+  your side.
+category: ecommerce
+tags: [ecommerce, affiliates, commissions, payouts, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      if (today > due_epoch) {
+        overdue_days = (today - due_epoch) / 86400;
+        printf "OVERDUE PAYOUT: %s owed $%s — due %s (%d days late)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{affiliate_commissions_csv_path}}"
+variables:
+  affiliate_commissions_csv_path:
+    default: "./affiliate-commissions.csv"
+    description: "Path to a CSV with columns: affiliate_name,commission_due_usd,due_date (YYYY-MM-DD),status (unpaid/paid)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is the merchant's side of paying affiliates who sell for the
+  store — the reverse direction of `brand-deal-payment-followup-check` in
+  the creator category, which tracks a creator waiting to be paid by a
+  sponsor. Also distinct from `affiliate-link-expiry-check` in creator,
+  which tracks a creator's own link/code expiry, not commission payouts.

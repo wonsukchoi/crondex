@@ -1,0 +1,55 @@
+id: vip-tier-reclassification-check
+version: 1
+name: VIP Tier Reclassification Check
+description: >
+  Checks each customer's year-to-date spend against your VIP tier
+  thresholds and flags anyone due to move up or down a tier, drafting a
+  short outreach note for new upgrades. Use this if a top customer has
+  ever crossed your VIP spend threshold months ago and never got the
+  perks (or the acknowledgment) because nobody was tracking tier
+  crossings.
+category: ecommerce
+tags: [ecommerce, vip, customers, ltv, segmentation]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v gold="{{gold_threshold_usd}}" -v platinum="{{platinum_threshold_usd}}" '
+    NR==1 {next}
+    {
+      customer=$1; spend=$2; current_tier=$3;
+      new_tier = "standard";
+      if (spend+0 >= platinum) new_tier = "platinum";
+      else if (spend+0 >= gold) new_tier = "gold";
+      if (new_tier != current_tier) {
+        printf "TIER CHANGE: %s — %s -> %s (YTD spend $%.2f)\n", customer, current_tier, new_tier, spend;
+      }
+    }
+  ' "{{customers_csv_path}}"
+prompt: |
+  The script above compared each customer's YTD spend to the VIP tier
+  thresholds and listed everyone whose tier should change.
+  1. For each upgrade (moving to a higher tier), draft a short, warm
+     note acknowledging the milestone and naming the specific new perk
+     they've unlocked.
+  2. For each downgrade, just list it plainly — no outreach needed, this
+     is usually just for internal tracking/perk removal timing.
+  3. Group the final output into "Upgrades (draft ready)" and
+     "Downgrades (no action needed)".
+script_note: >
+  `command` gives you the raw list of who crossed a threshold in either
+  direction, at zero token cost. `prompt` adds the human touch: a
+  genuine, specific congratulations note for upgrades instead of a
+  generic template, which is the part worth spending tokens on.
+variables:
+  customers_csv_path:
+    default: "./customer-ytd-spend.csv"
+    description: "Path to a CSV with columns: customer_name,ytd_spend_usd,current_tier (standard/gold/platinum)."
+  gold_threshold_usd:
+    default: 500
+    description: YTD spend at or above which a customer qualifies for gold tier.
+  platinum_threshold_usd:
+    default: 2000
+    description: YTD spend at or above which a customer qualifies for platinum tier.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `loyalty-points-expiry-reminder` in retail, which tracks points balances expiring — this tracks total spend against tier thresholds, independent of any points program.

@@ -1,0 +1,35 @@
+id: product-feed-health-check
+version: 1
+name: Product Feed Health Check
+description: >
+  Scans your product catalog export for listings that are live but broken
+  in some way — missing title, missing description, missing image, a
+  zero/blank price, or marked out-of-stock while still visible to
+  shoppers. Use this if a product has ever sat on your storefront for
+  weeks with a broken image or a $0 price because nobody was checking
+  feed quality after the initial upload.
+category: ecommerce
+tags: [ecommerce, product-feed, seo, catalog, data-quality]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      sku=$1; title=$2; description=$3; image_url=$4; price=$5; in_stock=$6; visible=$7;
+      issues="";
+      if (title == "") issues = issues "missing title; ";
+      if (description == "") issues = issues "missing description; ";
+      if (image_url == "") issues = issues "missing image; ";
+      if (price+0 <= 0) issues = issues "zero/blank price; ";
+      if (in_stock == "false" && visible == "true") issues = issues "out-of-stock but still visible; ";
+      if (issues != "") printf "ISSUE: %s — %s\n", sku, issues;
+    }
+  ' "{{product_feed_csv_path}}"
+variables:
+  product_feed_csv_path:
+    default: "./product-feed.csv"
+    description: "Path to a CSV export with columns: sku,title,description,image_url,price,in_stock(true/false),visible(true/false)."
+compatible_agents: [generic, claude, codex]
+notes: Export this from whatever generates your storefront/Google Shopping feed on a schedule — the checks are only as fresh as the export. Distinct from `low-stock-reorder-alert`, which tracks stock levels, not listing data quality.

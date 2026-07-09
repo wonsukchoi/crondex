@@ -1,0 +1,43 @@
+id: economic-nexus-threshold-check
+version: 1
+name: Economic Nexus Threshold Check
+description: >
+  Checks your year-to-date sales revenue and transaction count per state
+  against economic nexus thresholds and flags states you're approaching
+  or have crossed. Use this if you've ever registered for sales tax in a
+  state only after crossing the threshold months earlier, because nobody
+  was tracking cumulative sales by state.
+category: ecommerce
+tags: [ecommerce, sales-tax, nexus, compliance, finance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v rev_thresh="{{revenue_threshold_usd}}" -v txn_thresh="{{transaction_threshold}}" -v warn_pct="{{warn_pct}}" '
+    NR==1 {next}
+    {
+      state=$1; revenue=$2; transactions=$3;
+      rev_warn = rev_thresh * (1 - warn_pct/100);
+      txn_warn = txn_thresh * (1 - warn_pct/100);
+      if (revenue+0 >= rev_thresh || transactions+0 >= txn_thresh) {
+        printf "NEXUS CROSSED: %s — revenue $%.2f, transactions %d (already registered? verify)\n", state, revenue, transactions;
+      } else if (revenue+0 >= rev_warn || transactions+0 >= txn_warn) {
+        printf "APPROACHING NEXUS: %s — revenue $%.2f, transactions %d\n", state, revenue, transactions;
+      }
+    }
+  ' "{{state_sales_csv_path}}"
+variables:
+  state_sales_csv_path:
+    default: "./state-sales-ytd.csv"
+    description: "Path to a CSV with columns: state,ytd_revenue_usd,ytd_transaction_count — one row per state you ship to."
+  revenue_threshold_usd:
+    default: 100000
+    description: "Default economic nexus revenue threshold (varies by state — check each state's actual rule; $100k/200 transactions is common but not universal)."
+  transaction_threshold:
+    default: 200
+    description: Default economic nexus transaction-count threshold.
+  warn_pct:
+    default: 20
+    description: Percent below the threshold at which a state counts as "approaching" and worth watching.
+compatible_agents: [generic, claude, codex]
+notes: Thresholds genuinely vary by state (some have no transaction-count prong, some use different dollar amounts) — this uses one configurable default across all states as a first-pass filter, not a substitute for checking each state's actual rule before registering or not registering.

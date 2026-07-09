@@ -1,0 +1,60 @@
+id: competitor-price-watch
+version: 1
+name: Competitor Price Watch
+description: >
+  Fetches a competitor's product page for each SKU you're tracking, pulls
+  out the price, and flags any SKU where their price has moved enough to
+  matter relative to yours. Use this if you've ever found out you were
+  underpricing (or getting undercut on) a product only because a customer
+  mentioned it.
+category: ecommerce
+tags: [ecommerce, pricing, competitor, monitoring]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  while IFS=',' read -r sku your_price url; do
+    [ "$sku" = "sku" ] && continue;
+    [ -z "$url" ] && continue;
+    page=$(curl -s -A "Mozilla/5.0" --max-time {{timeout_seconds}} "$url");
+    comp_price=$(echo "$page" | grep -oE "{{price_regex}}" | head -n1 | grep -oE "[0-9]+\.[0-9]{2}");
+    if [ -z "$comp_price" ]; then
+      echo "UNPARSED: $sku — could not extract a price from $url";
+      continue;
+    fi;
+    diff=$(awk -v y="$your_price" -v c="$comp_price" 'BEGIN{d=y-c; if(d<0)d=-d; printf "%.2f", d}');
+    if awk -v d="$diff" -v t="{{diff_threshold_usd}}" 'BEGIN{exit !(d >= t)}'; then
+      echo "PRICE GAP: $sku — you: \$$your_price, competitor: \$$comp_price (diff \$$diff) at $url";
+    fi;
+  done < "{{tracked_skus_csv_path}}"
+prompt: |
+  The script above tried to scrape a competitor price per SKU from
+  {{tracked_skus_csv_path}} using a regex and reported any it couldn't
+  parse, plus any SKU with a price gap of at least ${{diff_threshold_usd}}.
+  1. For any "UNPARSED" line, open the competitor URL yourself and find
+     the current price (the site likely renders price via JavaScript or
+     uses a layout the regex doesn't match).
+  2. For any "PRICE GAP" line, note whether the competitor is now cheaper
+     or more expensive than you, and by what percentage.
+  3. Summarize in one short list: which SKUs need a pricing decision this
+     week, ranked by gap size.
+script_note: >
+  `command` gives you a fast, zero-token first pass using a regex against
+  raw HTML — it will miss JS-rendered prices and misses on unusual page
+  layouts. `prompt` catches what the regex missed and turns the raw diffs
+  into a prioritized, human-readable pricing summary.
+variables:
+  tracked_skus_csv_path:
+    default: "./competitor-price-tracking.csv"
+    description: "Path to a CSV with columns: sku,your_price,competitor_product_url — one row per SKU you want to price-watch."
+  price_regex:
+    default: "\\$[0-9]+\\.[0-9]{2}"
+    description: Regex used to extract a dollar price from the competitor's raw page HTML; adjust per site if it isn't matching.
+  diff_threshold_usd:
+    default: 2.00
+    description: Minimum price difference in dollars worth flagging.
+  timeout_seconds:
+    default: 10
+    description: Seconds to wait for each competitor page before giving up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Respect the target site's robots.txt/terms before scraping. Distinct from `competitor-page-diff-watch` in marketing, which diffs whole-page content/messaging — this is narrowly a per-SKU price comparison against your own price list.

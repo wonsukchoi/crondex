@@ -1,0 +1,37 @@
+id: wishlist-abandonment-check
+version: 1
+name: Wishlist Abandonment Check
+description: >
+  Checks customer wishlists for items that have sat untouched for a while
+  and drafts a nudge email when there's a real reason to reach out — a
+  price drop or the item is back in stock — instead of a generic
+  "you still want this?" reminder. Use this if you've ever had a wishlist
+  feature that quietly collects intent and never converts any of it back
+  into a sale.
+category: ecommerce
+tags: [ecommerce, wishlist, recovery, conversion, sales]
+schedule: "0 11 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{store_platform}} for wishlist items added at least
+  {{min_days_on_wishlist}} days ago that are still in the customer's
+  wishlist (not purchased).
+  1. For each, check whether the item's price has dropped or it went
+     from out-of-stock to in-stock since it was wishlisted.
+  2. Only draft an outreach email for items with one of those real
+     triggers — skip items where nothing has changed, since a nudge with
+     no news performs worse than no email at all.
+  3. Draft a short, specific email per triggered item: name the item, the
+     specific change (price/stock), and a clear link back to it.
+  4. Report how many wishlist items were checked, how many had a real
+     trigger, and how many drafts were produced.
+variables:
+  store_platform:
+    default: "your storefront platform"
+    description: Name of the e-commerce platform with wishlist data (e.g. "Shopify", "WooCommerce").
+  min_days_on_wishlist:
+    default: 14
+    description: Minimum days an item must have sat on a wishlist before it's eligible for a re-engagement check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before sending, and confirm your platform's marketing-consent rules cover wishlist-triggered email. Distinct from `abandoned-cart-recovery-check`, which targets items already added to an active cart; this targets earlier-funnel intent that never reached checkout, and only fires on a real trigger rather than time elapsed alone.

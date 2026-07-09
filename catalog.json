@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 544,
+  "count": 557,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -206,6 +206,31 @@
         "codex"
       ],
       "path": "jobs/insurance/adjuster-caseload-balance-check.yaml"
+    },
+    {
+      "id": "adr-revpar-tracker",
+      "version": 1,
+      "name": "ADR and RevPAR Tracker",
+      "description": "Calculates yesterday's average daily rate (ADR) and revenue per available room (RevPAR) from your rooms-sold export and flags a drop against your target. Use this if a soft revenue night has ever gone unnoticed for a week because nobody was watching the daily numbers, only the monthly total.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "revenue-management",
+        "adr",
+        "revpar"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/adr-revpar-tracker.yaml"
     },
     {
       "id": "affiliate-commission-payout-check",
@@ -1098,6 +1123,31 @@
         "codex"
       ],
       "path": "jobs/marketing/campaign-utm-tracking-check.yaml"
+    },
+    {
+      "id": "cancellation-rate-spike-check",
+      "version": 1,
+      "name": "Cancellation Rate Spike Check",
+      "description": "Checks yesterday's reservation cancellation rate against your trailing baseline and flags a spike. Use this if a booking-engine glitch, a rate error, or bad local news has ever driven a wave of cancellations that wasn't caught until the week's occupancy numbers came in soft.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "reservations",
+        "cancellations",
+        "revenue-management"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/cancellation-rate-spike-check.yaml"
     },
     {
       "id": "candidate-followup-nudge",
@@ -5251,6 +5301,58 @@
       "path": "jobs/nonprofit/grant-reporting-deadline-check.yaml"
     },
     {
+      "id": "group-booking-space-utilization-check",
+      "version": 1,
+      "name": "Group Booking and Event Space Utilization Check",
+      "description": "Reviews upcoming event space bookings against total bookable hours for the week and flags rooms sitting mostly empty, plus any booking missing a signed contract or deposit close to the event date. Use this if event space has ever gone underbooked for weeks with nobody noticing until the sales team reviewed the quarter.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "events",
+        "group-sales",
+        "revenue-management"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hospitality/group-booking-space-utilization-check.yaml"
+    },
+    {
+      "id": "guest-complaint-sla-tracker",
+      "version": 1,
+      "name": "Guest Complaint Resolution SLA Tracker",
+      "description": "Checks logged guest complaints (not maintenance requests) against your resolution SLA and flags any still open past the deadline. Use this if a service complaint has ever sat unresolved long enough that the guest checked out still angry, instead of getting a recovery gesture while they were still on property.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "guest-experience",
+        "complaints",
+        "sla"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/guest-complaint-sla-tracker.yaml"
+    },
+    {
       "id": "guest-followup-reminder",
       "version": 1,
       "name": "Podcast Guest Follow-up Reminder",
@@ -5325,6 +5427,31 @@
         "generic"
       ],
       "path": "jobs/hospitality/guest-review-response-check.yaml"
+    },
+    {
+      "id": "guest-satisfaction-score-monitor",
+      "version": 1,
+      "name": "Guest Satisfaction Score Monitor",
+      "description": "Tracks your rolling average guest satisfaction score (post-stay survey or aggregated review rating) and flags a meaningful drop against your trailing baseline. Use this if satisfaction has ever slid gradually over several weeks without triggering any single alarm, until it shows up as a rate hit in the OTA ranking algorithm.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "guest-experience",
+        "satisfaction",
+        "reputation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/guest-satisfaction-score-monitor.yaml"
     },
     {
       "id": "gutter-cleaning-reminder",
@@ -6693,6 +6820,31 @@
       "path": "jobs/logistics/linehaul-transit-time-variance-check.yaml"
     },
     {
+      "id": "linen-inventory-turnover-check",
+      "version": 1,
+      "name": "Linen and Laundry Inventory Turnover Check",
+      "description": "Checks par levels for linens (sheets, towels, robes) against current counted stock and flags anything below par or showing an unusually high loss/shrink rate versus rooms serviced. Use this if a linen shortage has ever forced housekeeping to hold rooms because nobody reordered before the closet ran low.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "housekeeping",
+        "inventory",
+        "laundry"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/linen-inventory-turnover-check.yaml"
+    },
+    {
       "id": "link-capacity-threshold-alert",
       "version": 1,
       "name": "Link Capacity Threshold Alert",
@@ -7094,6 +7246,31 @@
       "path": "jobs/retail/loyalty-points-expiry-reminder.yaml"
     },
     {
+      "id": "loyalty-points-reconciliation-check",
+      "version": 1,
+      "name": "Loyalty Program Points Reconciliation Check",
+      "description": "Compares points earned per stay against your program's accrual rate and flags stays where the posted points don't match, plus any member who crossed a tier threshold but hasn't been re-tiered yet. Use this if a loyalty member has ever been shorted points from a PMS integration glitch, or hit Gold status and kept getting Silver-level perks for months.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "loyalty-program",
+        "guest-experience",
+        "revenue-assurance"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/loyalty-points-reconciliation-check.yaml"
+    },
+    {
       "id": "macro-usage-staleness-check",
       "version": 1,
       "name": "Macro/Canned Response Staleness Check",
@@ -7472,6 +7649,31 @@
         "codex"
       ],
       "path": "jobs/restaurant/menu-item-profitability-check.yaml"
+    },
+    {
+      "id": "minibar-charge-reconciliation-check",
+      "version": 1,
+      "name": "Minibar Charge Reconciliation Check",
+      "description": "Compares housekeeping's logged minibar restocks against folio charges posted for the same room and flags mismatches. Use this if a restocked minibar has ever gone uncharged, or a guest was charged for an item housekeeping never actually replaced.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "minibar",
+        "revenue-assurance",
+        "front-desk"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/minibar-charge-reconciliation-check.yaml"
     },
     {
       "id": "month-end-close-checklist-tracker",
@@ -7888,6 +8090,31 @@
       "path": "jobs/manufacturing/non-conformance-report-backlog-check.yaml"
     },
     {
+      "id": "occupancy-forecast-variance-check",
+      "version": 1,
+      "name": "Occupancy Forecast Variance Check",
+      "description": "Compares this week's forecasted occupancy against actual rooms sold and flags a meaningful gap in either direction. Use this if a forecast has ever been quietly wrong for weeks, leaving staffing either overbooked on labor during a slow stretch or short-staffed during a rush nobody planned for.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "revenue-management",
+        "forecasting",
+        "staffing"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/occupancy-forecast-variance-check.yaml"
+    },
+    {
       "id": "oee-efficiency-check",
       "version": 1,
       "name": "OEE Efficiency Check",
@@ -8135,6 +8362,33 @@
       "path": "jobs/manufacturing/osha-recordable-incident-audit.yaml"
     },
     {
+      "id": "ota-rate-parity-check",
+      "version": 1,
+      "name": "OTA Rate Parity Check",
+      "description": "Compares your listed room rates across OTAs (Booking.com, Expedia, etc.) against your direct-booking rate and flags any channel undercutting you. Use this if an OTA has ever quietly shown a lower rate than your own website, driving bookings away from your cheapest channel.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "revenue-management",
+        "ota",
+        "rate-parity"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hospitality/ota-rate-parity-check.yaml"
+    },
+    {
       "id": "outside-counsel-invoice-budget-check",
       "version": 1,
       "name": "Outside Counsel Invoice Budget Check",
@@ -8158,6 +8412,31 @@
         "codex"
       ],
       "path": "jobs/legal/outside-counsel-invoice-budget-check.yaml"
+    },
+    {
+      "id": "overbooking-risk-alert",
+      "version": 1,
+      "name": "Overbooking Risk Alert",
+      "description": "Compares confirmed reservations for each upcoming night against total available rooms and flags nights where bookings exceed inventory. Use this if an intentional overbooking cushion has ever tipped into an actual walked guest because nobody was watching the running total as last-minute bookings came in.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "front-desk",
+        "overbooking",
+        "reservations"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/overbooking-risk-alert.yaml"
     },
     {
       "id": "overdue-library-materials-check",
@@ -10683,6 +10962,31 @@
       "path": "jobs/content/robots-txt-check.yaml"
     },
     {
+      "id": "room-maintenance-work-order-tracker",
+      "version": 1,
+      "name": "Preventive Maintenance Work Order Tracker",
+      "description": "Checks scheduled preventive maintenance work orders (HVAC service, fire safety checks, deep cleans) against their due dates and flags any overdue or rooms that have gone too long without a PM cycle. Use this if a room has ever gone a full year without its scheduled HVAC or safety check because it only got attention when something broke.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "maintenance",
+        "preventive",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/hospitality/room-maintenance-work-order-tracker.yaml"
+    },
+    {
       "id": "route-load-optimization-check",
       "version": 1,
       "name": "Route Load Optimization Check",
@@ -12979,6 +13283,33 @@
         "codex"
       ],
       "path": "jobs/fieldservice/unresolved-callback-tracker.yaml"
+    },
+    {
+      "id": "upsell-upgrade-conversion-tracker",
+      "version": 1,
+      "name": "Room Upsell and Upgrade Conversion Tracker",
+      "description": "Analyzes offered room upgrades and add-on upsells (early check-in, view upgrade, breakfast package) against how many guests accepted, broken down by channel and shift. Use this if front desk upsell offers have ever quietly tapered off because nobody was tracking whether the team was actually still asking.",
+      "category": "hospitality",
+      "tags": [
+        "hospitality",
+        "revenue-management",
+        "upsell",
+        "front-desk"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/hospitality/upsell-upgrade-conversion-tracker.yaml"
     },
     {
       "id": "uptime-ping-check",

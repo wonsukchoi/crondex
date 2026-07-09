@@ -1,0 +1,35 @@
+id: linen-inventory-turnover-check
+version: 1
+name: Linen and Laundry Inventory Turnover Check
+description: >
+  Checks par levels for linens (sheets, towels, robes) against current
+  counted stock and flags anything below par or showing an unusually
+  high loss/shrink rate versus rooms serviced. Use this if a linen
+  shortage has ever forced housekeeping to hold rooms because nobody
+  reordered before the closet ran low.
+category: hospitality
+tags: [hospitality, housekeeping, inventory, laundry]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v shrink_pct="{{max_shrink_pct}}" '
+    NR==1 {next}
+    {
+      item=$1; par=$2; on_hand=$3; sent_to_laundry=$4; returned=$5;
+      if (on_hand < par) printf "BELOW PAR: %s — %d on hand, par %d\n", item, on_hand, par;
+      if (sent_to_laundry > 0) {
+        loss_pct = ((sent_to_laundry - returned) / sent_to_laundry) * 100;
+        if (loss_pct > shrink_pct) printf "HIGH SHRINK: %s — sent %d, returned %d (%.1f%% loss, threshold %.0f%%)\n", item, sent_to_laundry, returned, loss_pct, shrink_pct;
+      }
+    }
+  ' "{{linen_inventory_csv}}"
+variables:
+  linen_inventory_csv:
+    default: "./linen-inventory.csv"
+    description: "CSV with header row, columns: item_name,par_level,on_hand_count,sent_to_laundry_count,returned_count — one row per linen category (sheets, towels, robes, etc.)."
+  max_shrink_pct:
+    default: 5
+    description: Acceptable loss percentage between linens sent to laundry and returned before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Count on a consistent cycle (weekly recommended) so par-level and shrink comparisons are apples to apples; persistent high shrink on one item often points to an outside laundry vendor issue.

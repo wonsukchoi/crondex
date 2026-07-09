@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-544 jobs across 48 categories:
+557 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -128,7 +128,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
-| `hospitality` | 7 | Hotel ops — guest reviews, inspections, maintenance requests. |
+| `hospitality` | 20 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 19 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 7 | Stock accuracy — counts, shrinkage, expiry, overstock. |

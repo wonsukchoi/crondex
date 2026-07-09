@@ -1,0 +1,38 @@
+id: overbooking-risk-alert
+version: 1
+name: Overbooking Risk Alert
+description: >
+  Compares confirmed reservations for each upcoming night against total
+  available rooms and flags nights where bookings exceed inventory. Use
+  this if an intentional overbooking cushion has ever tipped into an
+  actual walked guest because nobody was watching the running total as
+  last-minute bookings came in.
+category: hospitality
+tags: [hospitality, front-desk, overbooking, reservations]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v rooms="{{total_rooms}}" -v cushion="{{overbook_cushion}}" '
+    NR==1 {next}
+    { booked[$1] += 1 }
+    END {
+      for (date in booked) {
+        limit = rooms + cushion;
+        if (booked[date] > limit) printf "OVERBOOKED: %s — %d bookings vs %d rooms (+%d cushion)\n", date, booked[date], rooms, cushion;
+        else if (booked[date] > rooms) printf "WITHIN CUSHION: %s — %d bookings vs %d rooms (using overbook cushion)\n", date, booked[date], rooms;
+      }
+    }
+  ' "{{reservations_by_night_csv}}"
+variables:
+  reservations_by_night_csv:
+    default: "./reservations-by-night.csv"
+    description: "CSV with header row, columns: stay_date,reservation_id — one row per room-night reserved (confirmed status only)."
+  total_rooms:
+    default: 100
+    description: Total available rooms in the property.
+  overbook_cushion:
+    default: 3
+    description: Intentional overbooking cushion above total rooms before a night counts as at-risk of a walk.
+compatible_agents: [generic, claude, codex]
+notes: A count over total_rooms but within the cushion is expected/intentional; only counts exceeding rooms + cushion need a walk plan (relocation agreement with a nearby property) lined up.

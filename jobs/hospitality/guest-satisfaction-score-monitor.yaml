@@ -1,0 +1,41 @@
+id: guest-satisfaction-score-monitor
+version: 1
+name: Guest Satisfaction Score Monitor
+description: >
+  Tracks your rolling average guest satisfaction score (post-stay survey
+  or aggregated review rating) and flags a meaningful drop against your
+  trailing baseline. Use this if satisfaction has ever slid gradually
+  over several weeks without triggering any single alarm, until it shows
+  up as a rate hit in the OTA ranking algorithm.
+category: hospitality
+tags: [hospitality, guest-experience, satisfaction, reputation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window="{{trailing_weeks}}" -v drop="{{alert_drop_points}}" '
+    NR==1 {next}
+    { scores[NR-1]=$2; dates[NR-1]=$1; n=NR-1 }
+    END {
+      if (n < window*2) { print "Not enough data yet for a trailing comparison"; exit 0; }
+      recent_sum=0; baseline_sum=0;
+      for (i=n-window+1; i<=n; i++) recent_sum += scores[i];
+      for (i=n-window*2+1; i<=n-window; i++) baseline_sum += scores[i];
+      recent_avg = recent_sum/window; baseline_avg = baseline_sum/window;
+      diff = baseline_avg - recent_avg;
+      printf "Recent %d-week avg: %.2f | Prior %d-week avg: %.2f\n", window, recent_avg, window, baseline_avg;
+      if (diff >= drop) printf "ALERT: satisfaction dropped %.2f points (threshold %.2f)\n", diff, drop;
+    }
+  ' "{{weekly_scores_csv}}"
+variables:
+  weekly_scores_csv:
+    default: "./weekly-satisfaction-scores.csv"
+    description: "CSV with header row, columns: week_start_date,avg_score — one row per week, oldest first, ordered chronologically."
+  trailing_weeks:
+    default: 4
+    description: Number of weeks in each comparison window (recent vs. prior).
+  alert_drop_points:
+    default: 0.3
+    description: Point drop (on your survey's scale) between the two windows that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Score scale depends on your source (5-point survey, 10-point NPS-style, or 100-point aggregate) — keep alert_drop_points proportional to whatever scale weekly-satisfaction-scores.csv uses. Complements guest-review-response-check, which handles individual review replies rather than the trend.

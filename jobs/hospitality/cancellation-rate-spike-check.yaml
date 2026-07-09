@@ -1,0 +1,21 @@
+id: cancellation-rate-spike-check
+version: 1
+name: Cancellation Rate Spike Check
+description: >
+  Checks yesterday's reservation cancellation rate against your trailing
+  baseline and flags a spike. Use this if a booking-engine glitch, a rate
+  error, or bad local news has ever driven a wave of cancellations that
+  wasn't caught until the week's occupancy numbers came in soft.
+category: hospitality
+tags: [hospitality, reservations, cancellations, revenue-management]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select round(100.0 * sum(case when status = 'cancelled' then 1 else 0 end) / nullif(count(*), 0), 1) from reservations where booked_date = current_date - interval '1 day';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the reservations database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `reservations` table with `status` and `booked_date` columns tracking same-day cancellations against bookings made that day — adjust the query for your PMS schema and compare the printed rate against your normal baseline manually. Complements reservation-noshow-check, which tracks no-shows rather than advance cancellations.

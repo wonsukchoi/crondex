@@ -1,0 +1,40 @@
+id: group-booking-space-utilization-check
+version: 1
+name: Group Booking and Event Space Utilization Check
+description: >
+  Reviews upcoming event space bookings against total bookable hours for
+  the week and flags rooms sitting mostly empty, plus any booking missing
+  a signed contract or deposit close to the event date. Use this if event
+  space has ever gone underbooked for weeks with nobody noticing until
+  the sales team reviewed the quarter.
+category: hospitality
+tags: [hospitality, events, group-sales, revenue-management]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the event space booking calendar from {{events_system}} for the
+  next {{lookback_weeks}} weeks.
+  1. Calculate utilization percentage (booked hours / bookable hours) per
+     event space/room, and flag any space below {{min_utilization_pct}}%.
+  2. List any booking within {{deposit_deadline_days}} days of its event
+     date that's still missing a signed contract or deposit.
+  3. Note any space with a pattern of last-minute cancellations, since
+     that's worth a stricter deposit policy.
+  4. Suggest one action for the most underbooked space (promo, package
+     deal, or reallocating it to guest room inventory for that period).
+variables:
+  events_system:
+    default: "your events/catering management system"
+    description: System tracking event space bookings (e.g. "Cvent", "Tripleseat", "Delphi").
+  lookback_weeks:
+    default: 4
+    description: How many weeks ahead to review bookings.
+  min_utilization_pct:
+    default: 40
+    description: Utilization percentage below which a space is flagged as underbooked.
+  deposit_deadline_days:
+    default: 14
+    description: Days before an event that a missing contract/deposit becomes urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Utilization targets vary a lot by property size and market — adjust min_utilization_pct to your historical baseline rather than a generic number.

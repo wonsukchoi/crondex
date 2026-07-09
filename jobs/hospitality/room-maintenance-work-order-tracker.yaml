@@ -1,0 +1,31 @@
+id: room-maintenance-work-order-tracker
+version: 1
+name: Preventive Maintenance Work Order Tracker
+description: >
+  Checks scheduled preventive maintenance work orders (HVAC service,
+  fire safety checks, deep cleans) against their due dates and flags any
+  overdue or rooms that have gone too long without a PM cycle. Use this
+  if a room has ever gone a full year without its scheduled HVAC or
+  safety check because it only got attention when something broke.
+category: hospitality
+tags: [hospitality, maintenance, preventive, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_over = (today - due_epoch) / 86400;
+      if (days_over > 0) printf "OVERDUE: room/area %s — %s work order due %s (%d days overdue)\n", $1, $2, $3, days_over;
+    }
+  ' "{{pm_schedule_csv}}"
+variables:
+  pm_schedule_csv:
+    default: "./pm-work-orders.csv"
+    description: "CSV with header row, columns: room_or_area,work_order_type,due_date (YYYY-MM-DD) — one row per open preventive maintenance work order."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from guest-maintenance-request-backlog-check, which tracks guest-reported issues — this tracks scheduled/preventive work orders (PM cycles) that exist whether or not a guest complains.

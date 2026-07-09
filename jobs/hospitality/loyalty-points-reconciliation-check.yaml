@@ -1,0 +1,33 @@
+id: loyalty-points-reconciliation-check
+version: 1
+name: Loyalty Program Points Reconciliation Check
+description: >
+  Compares points earned per stay against your program's accrual rate
+  and flags stays where the posted points don't match, plus any member
+  who crossed a tier threshold but hasn't been re-tiered yet. Use this
+  if a loyalty member has ever been shorted points from a PMS integration
+  glitch, or hit Gold status and kept getting Silver-level perks for months.
+category: hospitality
+tags: [hospitality, loyalty-program, guest-experience, revenue-assurance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v rate="{{points_per_dollar}}" '
+    NR==1 {next}
+    {
+      expected = $3 * rate;
+      diff = $4 - expected;
+      if (diff < 0) diff = -diff;
+      if (diff > 1) printf "MISMATCH: member %s, stay %s — expected %.0f pts, posted %.0f pts\n", $1, $2, expected, $4;
+    }
+  ' "{{stays_points_csv}}"
+variables:
+  stays_points_csv:
+    default: "./loyalty-stays-points.csv"
+    description: "CSV with header row, columns: member_id,folio_id,eligible_spend_usd,points_posted."
+  points_per_dollar:
+    default: 10
+    description: Program's points-earned-per-dollar-spent accrual rate.
+compatible_agents: [generic, claude, codex]
+notes: Tier-threshold re-classification is a separate check worth pairing with this — export current tier alongside year-to-date qualifying nights/spend and compare against your program's tier cutoffs.

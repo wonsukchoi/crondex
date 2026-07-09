@@ -1,0 +1,37 @@
+id: upsell-upgrade-conversion-tracker
+version: 1
+name: Room Upsell and Upgrade Conversion Tracker
+description: >
+  Analyzes offered room upgrades and add-on upsells (early check-in, view
+  upgrade, breakfast package) against how many guests accepted, broken
+  down by channel and shift. Use this if front desk upsell offers have
+  ever quietly tapered off because nobody was tracking whether the team
+  was actually still asking.
+category: hospitality
+tags: [hospitality, revenue-management, upsell, front-desk]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull upsell/upgrade offer logs from {{pms_or_upsell_platform}} for the
+  past {{lookback_days}} days.
+  1. Calculate overall conversion rate (accepted / offered) for each
+     upsell type (room upgrade, early check-in, late checkout, breakfast
+     package, etc.).
+  2. Break the conversion rate down by shift or agent group if that data
+     exists, and flag any shift with a rate meaningfully below the
+     property average.
+  3. Flag any upsell type with an offer count that's dropped sharply
+     versus the prior period — that usually means staff stopped asking,
+     not that demand dried up.
+  4. Estimate incremental revenue if the lowest-converting shift matched
+     the property average.
+variables:
+  pms_or_upsell_platform:
+    default: "your PMS or upsell platform"
+    description: System logging upsell offers and outcomes (e.g. "Oracle OPERA", "Zingle", "Duetto").
+  lookback_days:
+    default: 30
+    description: Window of upsell data to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Useful as a coaching input for front desk shift leads, not a scorecard for individual write-ups.

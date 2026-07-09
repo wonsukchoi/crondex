@@ -1,0 +1,36 @@
+id: ota-rate-parity-check
+version: 1
+name: OTA Rate Parity Check
+description: >
+  Compares your listed room rates across OTAs (Booking.com, Expedia, etc.)
+  against your direct-booking rate and flags any channel undercutting you.
+  Use this if an OTA has ever quietly shown a lower rate than your own
+  website, driving bookings away from your cheapest channel.
+category: hospitality
+tags: [hospitality, revenue-management, ota, rate-parity]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check today's rate for {{room_type}} on {{ota_platforms}} and compare
+  each against the direct rate of {{direct_rate_usd}} on your own booking
+  site.
+  1. List each platform's displayed rate side by side with the direct rate.
+  2. Flag any OTA showing a rate at or below the direct rate — that's a
+     parity violation worth chasing with the channel manager or OTA.
+  3. Note any OTA showing an unusually high rate too, since that can also
+     hurt bookings if it's a stale/unsynced price.
+  4. Suggest whether the direct rate, the channel manager mapping, or a
+     stale OTA cache is the likely cause for any mismatch found.
+variables:
+  room_type:
+    default: "Standard Queen"
+    description: Room type/rate plan to compare across channels.
+  ota_platforms:
+    default: "Booking.com, Expedia, Hotels.com"
+    description: Comma-separated list of OTA platforms to check.
+  direct_rate_usd:
+    default: 189
+    description: Your current direct-booking rate in USD for the room type/date checked.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only comparison — fixing a parity violation usually means updating your channel manager or contacting the OTA's rate-parity team.

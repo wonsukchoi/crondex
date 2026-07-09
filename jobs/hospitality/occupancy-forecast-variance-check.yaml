@@ -1,0 +1,33 @@
+id: occupancy-forecast-variance-check
+version: 1
+name: Occupancy Forecast Variance Check
+description: >
+  Compares this week's forecasted occupancy against actual rooms sold and
+  flags a meaningful gap in either direction. Use this if a forecast has
+  ever been quietly wrong for weeks, leaving staffing either overbooked
+  on labor during a slow stretch or short-staffed during a rush nobody
+  planned for.
+category: hospitality
+tags: [hospitality, revenue-management, forecasting, staffing]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      diff = $3 - $2;
+      pct = ($2 > 0) ? (diff / $2) * 100 : 0;
+      if (pct < 0) pct = -pct;
+      if (pct > tol) printf "VARIANCE: %s forecast %d%%, actual %d%% (%.1f pts off, tolerance %.0f)\n", $1, $2, $3, diff, tol;
+    }
+  ' "{{forecast_vs_actual_csv}}"
+variables:
+  forecast_vs_actual_csv:
+    default: "./occupancy-forecast-vs-actual.csv"
+    description: "CSV with header row, columns: date,forecast_occupancy_pct,actual_occupancy_pct."
+  tolerance_pct:
+    default: 8
+    description: Percentage-point gap between forecast and actual occupancy before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Feed this from your revenue management system's forecast export alongside actual rooms-sold data — use recurring misses to recalibrate the forecasting model, not just a one-off flag.

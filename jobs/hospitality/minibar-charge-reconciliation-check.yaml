@@ -1,0 +1,38 @@
+id: minibar-charge-reconciliation-check
+version: 1
+name: Minibar Charge Reconciliation Check
+description: >
+  Compares housekeeping's logged minibar restocks against folio charges
+  posted for the same room and flags mismatches. Use this if a restocked
+  minibar has ever gone uncharged, or a guest was charged for an item
+  housekeeping never actually replaced.
+category: hospitality
+tags: [hospitality, minibar, revenue-assurance, front-desk]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR > 1) restocked[$1] += $3;
+      next;
+    }
+    FNR==1 {next}
+    { charged[$1] += $3 }
+    END {
+      for (room in restocked) {
+        r = restocked[room] + 0; c = charged[room] + 0;
+        if (r != c) printf "MISMATCH: room %s — restocked $%.2f, charged $%.2f\n", room, r, c;
+      }
+      for (room in charged) if (!(room in restocked)) printf "UNMATCHED CHARGE: room %s — charged $%.2f with no restock logged\n", room, charged[room];
+    }
+  ' "{{restock_log_csv}}" "{{folio_charges_csv}}"
+variables:
+  restock_log_csv:
+    default: "./minibar-restock-log.csv"
+    description: "CSV with header row, columns: room_number,date,amount_usd — housekeeping's logged minibar restocks."
+  folio_charges_csv:
+    default: "./minibar-folio-charges.csv"
+    description: "CSV with header row, columns: room_number,date,amount_usd — minibar charges posted to guest folios."
+compatible_agents: [generic, claude, codex]
+notes: Assumes both CSVs cover the same date range; a mismatch doesn't always mean fraud — could be a delayed post or a comped item, so verify before adjusting a folio.

@@ -1,0 +1,43 @@
+id: adr-revpar-tracker
+version: 1
+name: ADR and RevPAR Tracker
+description: >
+  Calculates yesterday's average daily rate (ADR) and revenue per
+  available room (RevPAR) from your rooms-sold export and flags a drop
+  against your target. Use this if a soft revenue night has ever gone
+  unnoticed for a week because nobody was watching the daily numbers,
+  only the monthly total.
+category: hospitality
+tags: [hospitality, revenue-management, adr, revpar]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target_adr="{{target_adr_usd}}" -v target_revpar="{{target_revpar_usd}}" -v rooms="{{total_rooms}}" '
+    NR==1 {next}
+    { rooms_sold += 1; revenue += $2 }
+    END {
+      if (rooms_sold > 0) {
+        adr = revenue / rooms_sold;
+        revpar = revenue / rooms;
+        printf "ADR: $%.2f (target $%.2f) | RevPAR: $%.2f (target $%.2f) | rooms sold: %d/%d\n", adr, target_adr, revpar, target_revpar, rooms_sold, rooms;
+        if (adr < target_adr) printf "LOW ADR: $%.2f below target $%.2f\n", adr, target_adr;
+        if (revpar < target_revpar) printf "LOW REVPAR: $%.2f below target $%.2f\n", revpar, target_revpar;
+      } else print "WARNING: no rooms sold recorded for the date";
+    }
+  ' "{{rooms_sold_csv}}"
+variables:
+  rooms_sold_csv:
+    default: "./rooms-sold-yesterday.csv"
+    description: "CSV with header row, columns: room_number,rate_paid_usd — one row per room sold yesterday."
+  total_rooms:
+    default: 100
+    description: Total available rooms in the property (denominator for RevPAR).
+  target_adr_usd:
+    default: 175
+    description: Target average daily rate in USD.
+  target_revpar_usd:
+    default: 120
+    description: Target revenue per available room in USD.
+compatible_agents: [generic, claude, codex]
+notes: Export the rooms-sold CSV from your PMS nightly before this runs; ADR = revenue / rooms sold, RevPAR = revenue / total available rooms.

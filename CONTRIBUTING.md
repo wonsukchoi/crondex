@@ -47,9 +47,17 @@ well-formed YAML file plus a regenerated catalog. That's it.
    npm run build-catalog   # regenerates catalog.json — commit this too
    ```
 
-6. Open a PR. CI re-runs all three checks and fails if `catalog.json` is
+6. Open a PR. CI re-runs all checks and fails if `catalog.json` is
    stale, a job doesn't match the schema, or a shell command doesn't pass
    shellcheck.
+
+## Editing the CLI
+
+If you're changing `bin/crondex.js` or `lib/recommend.js` rather than adding
+a job, run `npm test` (Node's built-in test runner, `test/*.test.js`) — it
+covers the `recommend` scoring/ranking logic specifically, since a silent
+regression there would just look like slightly-worse search results, not a
+crash.
 
 ## What makes a good job
 

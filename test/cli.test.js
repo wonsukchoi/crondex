@@ -132,6 +132,100 @@ test("deploy --target bogus: exits nonzero with an error", () => {
   assert.throws(() => run(["deploy", "ssl-cert-expiry-check", "--target", "bogus"]), /unknown --target/);
 });
 
+test("deploy --target systemd: writes a .service + .timer pair", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "systemd", "--dest", tmp]);
+    assert.match(out, /wrote/);
+    assert.ok(existsSync(join(tmp, "ssl-cert-expiry-check.service")));
+    assert.ok(existsSync(join(tmp, "ssl-cert-expiry-check.timer")));
+    assert.match(readFileSync(join(tmp, "ssl-cert-expiry-check.timer"), "utf8"), /OnCalendar=/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "systemd", "--dest", tmp]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("deploy --target docker: writes a Dockerfile + crontab pair", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "img");
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "docker", "--dest", dest]);
+    assert.match(out, /wrote/);
+    assert.match(readFileSync(join(dest, "Dockerfile"), "utf8"), /FROM debian/);
+    assert.match(readFileSync(join(dest, "crontab"), "utf8"), /crondex:ssl-cert-expiry-check/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "docker", "--dest", dest]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("update: refreshes a locally pulled job to the latest catalog version", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "ssl.yaml");
+    run(["add", "ssl-cert-expiry-check", "--dest", dest]);
+    const upToDateOut = run(["update", dest]);
+    assert.match(upToDateOut, /already up to date/);
+
+    writeFileSync(dest, readFileSync(dest, "utf8").replace(/description:.*/, "description: stale"));
+    const updatedOut = run(["update", dest]);
+    assert.match(updatedOut, /updated/);
+    assert.doesNotMatch(readFileSync(dest, "utf8"), /description: stale/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("update: refuses a file with no id field", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "noid.yaml");
+    writeFileSync(dest, "foo: bar\n");
+    assert.throws(() => run(["update", dest]), /no "id" field/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("uninstall: removes a stubbed crontab entry by id, errors if not installed", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  const fakeBin = join(tmp, "bin");
+  const state = join(tmp, "state.txt");
+  try {
+    mkdirSync(fakeBin);
+    const stub = `#!/bin/sh
+if [ "$1" = "-l" ]; then
+  [ -f "${state}" ] && cat "${state}" || exit 1
+elif [ "$1" = "-" ]; then
+  cat > "${state}"
+fi
+`;
+    const crontabPath = join(fakeBin, "crontab");
+    writeFileSync(crontabPath, stub);
+    chmodSync(crontabPath, 0o755);
+    const env = { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` };
+
+    run(["deploy", "ssl-cert-expiry-check", "--install"], { env });
+    const listedOut = run(["deploy", "--list-installed"], { env });
+    assert.match(listedOut, /crondex:ssl-cert-expiry-check/);
+
+    const uninstallOut = run(["uninstall", "ssl-cert-expiry-check"], { env });
+    assert.match(uninstallOut, /removed/);
+    assert.doesNotMatch(readFileSync(state, "utf8"), /crondex:ssl-cert-expiry-check/);
+
+    assert.throws(() => run(["uninstall", "ssl-cert-expiry-check"], { env }), /no installed crontab entry/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("deploy --install: installs into crontab via a stubbed crontab binary, idempotently", () => {
   // Never touch the real system crontab — stub `crontab` on PATH and point at it.
   const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));

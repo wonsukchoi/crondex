@@ -6,7 +6,15 @@ import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { tokenize, rankJobs } from "../lib/recommend.js";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
-import { resolveVariables, substitutePlaceholders, pickMode, buildCrontabLine, buildGithubActionsWorkflow } from "../lib/deploy.js";
+import {
+  resolveVariables,
+  substitutePlaceholders,
+  pickMode,
+  buildCrontabLine,
+  buildGithubActionsWorkflow,
+  buildSystemdUnits,
+  buildDockerArtifacts,
+} from "../lib/deploy.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
@@ -59,8 +67,11 @@ Usage:
   crondex add <id> [--dest <path>]
   crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
-  crondex deploy <id> [--target crontab|github-actions] [--mode script|prompt]
+  crondex update <path>
+  crondex deploy <id> [--target crontab|github-actions|systemd|docker] [--mode script|prompt]
                       [--var name=value ...] [--dest <path>] [--install]
+  crondex deploy --list-installed [--json]
+  crondex uninstall <id>
 
 Examples:
   crondex list --category devops
@@ -69,8 +80,13 @@ Examples:
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
   crondex recommend "warn me before my SSL cert expires"
   crondex init ssl-cert-expiry-check --category security
+  crondex update ./cron/backup-reminder.yaml
   crondex deploy ssl-cert-expiry-check --var host=example.com --var port=443
   crondex deploy repo-health-check --target github-actions
+  crondex deploy repo-health-check --target systemd --dest ./systemd
+  crondex deploy repo-health-check --target docker --dest ./docker/repo-health-check
+  crondex deploy --list-installed
+  crondex uninstall ssl-cert-expiry-check
 
 Add --json to list/categories/show/recommend for machine-readable output —
 useful when an agent is parsing crondex's output programmatically instead
@@ -79,9 +95,19 @@ of a human reading it.
 deploy turns a job into something you can actually run: --target crontab
 (default) prints a ready crontab line, or installs it into your own
 crontab with --install; --target github-actions writes a scheduled
-workflow file (default .github/workflows/<id>.yml). --var overrides a
-job's variable defaults (repeatable). hybrid jobs default to --mode script
-(zero tokens); pass --mode prompt to deploy the agent-prompt side instead.
+workflow file (default .github/workflows/<id>.yml); --target systemd
+writes a <id>.service + <id>.timer pair (default ./systemd/); --target
+docker writes a Dockerfile + crontab pair that runs the job on its own
+schedule in a container (default ./docker/<id>/). --var overrides a job's
+variable defaults (repeatable). hybrid jobs default to --mode script (zero
+tokens); pass --mode prompt to deploy the agent-prompt side instead.
+
+deploy --list-installed shows every crondex-managed line in your crontab
+(the ones with a "# crondex:<id>" marker, as left by --install). uninstall
+removes one of those by id.
+
+update re-pulls a job you already added/inited (matched by its "id" field)
+against the current catalog and overwrites the local file in place.
 `);
 }
 
@@ -194,22 +220,80 @@ function init(id) {
   console.log(`wrote ${dest} — fill in the fields, then \`npm run validate\` (see CONTRIBUTING.md to submit it upstream).`);
 }
 
-function installCrontabLine(id, line) {
-  let existing = "";
+function readCrontab() {
   try {
-    existing = execFileSync("crontab", ["-l"], { encoding: "utf8" });
+    return execFileSync("crontab", ["-l"], { encoding: "utf8" });
   } catch {
-    existing = "";
+    return "";
   }
+}
+
+function installCrontabLine(id, line) {
   const marker = `# crondex:${id}`;
-  const kept = existing
+  const kept = readCrontab()
     .split("\n")
     .filter((l) => l.trim().length > 0 && !l.includes(marker));
   const updated = [...kept, line].join("\n") + "\n";
   execFileSync("crontab", ["-"], { input: updated });
 }
 
+function uninstall(id) {
+  const marker = `# crondex:${id}`;
+  const existing = readCrontab();
+  if (!existing.includes(marker)) {
+    console.error(`no installed crontab entry for "${id}" — run "crondex deploy --list-installed" to see what's there.`);
+    process.exit(1);
+  }
+  const kept = existing.split("\n").filter((l) => l.trim().length > 0 && !l.includes(marker));
+  execFileSync("crontab", ["-"], { input: kept.join("\n") + "\n" });
+  console.log(`removed "${id}" from your crontab.`);
+}
+
+function listInstalled() {
+  const managed = readCrontab()
+    .split("\n")
+    .filter((l) => l.includes("# crondex:"));
+  if (hasFlag("json")) {
+    return printJson(
+      managed.map((l) => ({ id: l.match(/# crondex:(\S+)/)?.[1], line: l }))
+    );
+  }
+  if (!managed.length) {
+    console.log("no crondex-managed crontab entries installed.");
+    return;
+  }
+  for (const l of managed) console.log(l);
+}
+
+function update(path) {
+  if (!existsSync(path)) {
+    console.error(`${path} does not exist.`);
+    process.exit(1);
+  }
+  const localRaw = readFileSync(path, "utf8");
+  let localDoc;
+  try {
+    localDoc = yaml.load(localRaw);
+  } catch (e) {
+    console.error(`${path} isn't valid YAML: ${e.message}`);
+    process.exit(1);
+  }
+  if (!localDoc?.id) {
+    console.error(`${path} has no "id" field — can't match it to a catalog job.`);
+    process.exit(1);
+  }
+  const meta = findJob(localDoc.id);
+  const latestRaw = readFileSync(join(ROOT, meta.path), "utf8");
+  if (latestRaw === localRaw) {
+    console.log(`${path} is already up to date with "${localDoc.id}".`);
+    return;
+  }
+  writeFileSync(path, latestRaw);
+  console.log(`updated ${path} to the latest "${localDoc.id}" from the catalog.`);
+}
+
 function deploy(id) {
+  if (id === undefined && hasFlag("list-installed")) return listInstalled();
   const meta = findJob(id);
   const doc = yaml.load(readFileSync(join(ROOT, meta.path), "utf8"));
   doc.path = meta.path;
@@ -248,8 +332,34 @@ function deploy(id) {
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, workflow);
     console.log(`wrote ${dest}`);
+  } else if (target === "systemd") {
+    const { service, timer } = buildSystemdUnits(doc, mode === "prompt" ? prompt : command, mode === "prompt");
+    const destDir = flag("dest") ?? "./systemd";
+    const serviceDest = join(destDir, `${id}.service`);
+    const timerDest = join(destDir, `${id}.timer`);
+    if (existsSync(serviceDest) || existsSync(timerDest)) {
+      console.error(`${serviceDest} or ${timerDest} already exists — refusing to overwrite. Pass --dest to choose another directory.`);
+      process.exit(1);
+    }
+    mkdirSync(destDir, { recursive: true });
+    writeFileSync(serviceDest, service);
+    writeFileSync(timerDest, timer);
+    console.log(`wrote ${serviceDest} and ${timerDest} — enable with:\n  systemctl --user enable --now ${id}.timer`);
+  } else if (target === "docker") {
+    const { dockerfile, crontab } = buildDockerArtifacts(doc, mode === "prompt" ? prompt : command, mode === "prompt");
+    const destDir = flag("dest") ?? join("./docker", id);
+    const dockerfileDest = join(destDir, "Dockerfile");
+    const crontabDest = join(destDir, "crontab");
+    if (existsSync(dockerfileDest) || existsSync(crontabDest)) {
+      console.error(`${dockerfileDest} or ${crontabDest} already exists — refusing to overwrite. Pass --dest to choose another directory.`);
+      process.exit(1);
+    }
+    mkdirSync(destDir, { recursive: true });
+    writeFileSync(dockerfileDest, dockerfile);
+    writeFileSync(crontabDest, crontab);
+    console.log(`wrote ${dockerfileDest} and ${crontabDest} — build with:\n  docker build -t ${id} ${destDir}`);
   } else {
-    console.error(`unknown --target "${target}" — use "crontab" or "github-actions".`);
+    console.error(`unknown --target "${target}" — use "crontab", "github-actions", "systemd", or "docker".`);
     process.exit(1);
   }
 }
@@ -301,11 +411,25 @@ switch (cmd) {
     recommend(args[0]);
     break;
   case "deploy":
-    if (!args[0]) {
-      console.error("usage: crondex deploy <id> [--target crontab|github-actions] [--mode script|prompt] [--var name=value ...] [--dest <path>] [--install]");
+    if (!args[0] && !hasFlag("list-installed")) {
+      console.error("usage: crondex deploy <id> [--target crontab|github-actions|systemd|docker] [--mode script|prompt] [--var name=value ...] [--dest <path>] [--install]\n   or: crondex deploy --list-installed [--json]");
       process.exit(1);
     }
-    deploy(args[0]);
+    deploy(hasFlag("list-installed") ? undefined : args[0]);
+    break;
+  case "uninstall":
+    if (!args[0]) {
+      console.error("usage: crondex uninstall <id>");
+      process.exit(1);
+    }
+    uninstall(args[0]);
+    break;
+  case "update":
+    if (!args[0]) {
+      console.error("usage: crondex update <path>");
+      process.exit(1);
+    }
+    update(args[0]);
     break;
   default:
     printHelp();

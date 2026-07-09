@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveVariables, substitutePlaceholders, pickMode, buildCrontabLine, buildGithubActionsWorkflow } from "../lib/deploy.js";
+import {
+  resolveVariables,
+  substitutePlaceholders,
+  pickMode,
+  buildCrontabLine,
+  buildGithubActionsWorkflow,
+  cronToSystemdCalendar,
+  buildSystemdUnits,
+  buildDockerArtifacts,
+} from "../lib/deploy.js";
 
 test("resolveVariables: uses defaults when no override given", () => {
   const job = { variables: { host: { default: "example.com" }, port: { default: 443 } } };
@@ -94,4 +103,51 @@ test("buildGithubActionsWorkflow: prompt mode leaves a TODO and prints the resol
   const yamlText = buildGithubActionsWorkflow(job, { prompt: "Do the thing with {{x}}", mode: "prompt" });
   assert.match(yamlText, /TODO/);
   assert.match(yamlText, /Do the thing with \{\{x\}\}/);
+});
+
+test("cronToSystemdCalendar: daily schedule with no weekday restriction", () => {
+  assert.equal(cronToSystemdCalendar("0 6 * * *"), "*-*-* 6:0:00");
+});
+
+test("cronToSystemdCalendar: weekday range maps to day names", () => {
+  assert.equal(cronToSystemdCalendar("0 14 * * 1-5"), "Mon-Fri *-*-* 14:0:00");
+});
+
+test("cronToSystemdCalendar: */n step becomes 0/n", () => {
+  assert.equal(cronToSystemdCalendar("*/15 * * * *"), "*-*-* *:0/15:00");
+});
+
+test("cronToSystemdCalendar: comma weekday list maps to comma day names", () => {
+  assert.equal(cronToSystemdCalendar("0 7 * * 1,3"), "Mon,Wed *-*-* 7:0:00");
+});
+
+test("buildSystemdUnits: timer OnCalendar matches the job schedule, service embeds the command", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *" };
+  const { service, timer } = buildSystemdUnits(job, 'echo "hello"', false);
+  assert.match(timer, /OnCalendar=\*-\*-\* 6:0:00/);
+  assert.match(timer, /WantedBy=timers\.target/);
+  assert.match(service, /ExecStart=\/bin\/bash -c/);
+  assert.match(service, /echo/);
+  assert.match(service, /crondex:my-job/);
+});
+
+test("buildSystemdUnits: prompt mode notes CRONDEX_AGENT_CLI is needed", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *" };
+  const { service } = buildSystemdUnits(job, "do the thing", true);
+  assert.match(service, /CRONDEX_AGENT_CLI/);
+});
+
+test("buildDockerArtifacts: crontab entry is /etc/cron.d style with a root user field", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "jobs/x/my-job.yaml" };
+  const { dockerfile, crontab } = buildDockerArtifacts(job, 'echo "hello"', false);
+  assert.match(crontab, /^0 6 \* \* \* root bash -lc/);
+  assert.match(crontab, /# crondex:my-job/);
+  assert.match(dockerfile, /FROM debian/);
+  assert.match(dockerfile, /COPY crontab \/etc\/cron\.d\/crondex-job/);
+});
+
+test("buildDockerArtifacts: prompt mode warns about CRONDEX_AGENT_CLI in the Dockerfile", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const { dockerfile } = buildDockerArtifacts(job, "do the thing", true);
+  assert.match(dockerfile, /CRONDEX_AGENT_CLI/);
 });

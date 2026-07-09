@@ -35,14 +35,22 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 - `show <id>` — print a job's full YAML
 - `add <id> [--dest path]` — copy it into your project to edit
 - `init <id> [--category x]` — scaffold a brand-new job from the template
-- `deploy <id> [--target crontab|github-actions] [--var name=value ...]`
+- `update <path>` — re-pull a job you already `add`ed/`init`ed (matched by
+  its `id` field) against the current catalog and overwrite it in place
+- `deploy <id> [--target crontab|github-actions|systemd|docker] [--var name=value ...]`
   — turn a job into something that actually runs: prints a ready crontab
-  line (or installs it into your own crontab with `--install`), or writes
-  a scheduled GitHub Actions workflow file. `--var` overrides a variable's
-  default (repeatable). `hybrid` jobs deploy their `command` by default;
-  pass `--mode prompt` to deploy the `prompt` side instead — for a
-  crontab target that means wiring in your own agent CLI via a
-  `CRONDEX_AGENT_CLI` env var, since crondex can't guess its syntax.
+  line (or installs it into your own crontab with `--install`), writes a
+  scheduled GitHub Actions workflow file, writes a systemd
+  `<id>.service` + `<id>.timer` pair, or writes a Dockerfile + `/etc/cron.d`
+  entry that runs the job on its own schedule in a container. `--var`
+  overrides a variable's default (repeatable). `hybrid` jobs deploy their
+  `command` by default; pass `--mode prompt` to deploy the `prompt` side
+  instead — for crontab/systemd/docker targets that means wiring in your
+  own agent CLI via a `CRONDEX_AGENT_CLI` env var, since crondex can't
+  guess its syntax.
+- `deploy --list-installed` — show every crondex-managed line in your
+  crontab (the ones left by `--install`)
+- `uninstall <id>` — remove one of those installed crontab entries
 
 Add `--json` to `list`/`categories`/`show`/`recommend` for machine-readable
 output — useful when an agent is parsing the result programmatically
@@ -156,7 +164,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 ```
 crondex/
 ├── llms.txt               agent-discovery manifest (llms.txt convention)
-├── bin/crondex.js         CLI: list / categories / show / add / recommend / init / deploy
+├── bin/crondex.js         CLI: list / categories / show / add / recommend / init / update / deploy / uninstall
 ├── lib/                   recommend, deploy, and catalog-building logic (unit tested in test/)
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows

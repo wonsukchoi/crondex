@@ -1,0 +1,33 @@
+id: returns-processing-backlog-check
+version: 1
+name: Returns Processing Backlog Check
+description: >
+  Scans the returns log for items that have sat unprocessed longer than
+  your target turnaround time. Use this if returned inventory has ever
+  piled up because nobody was tracking how long items had been waiting
+  to be inspected and restocked or disposed of.
+category: warehousing
+tags: [warehousing, returns, backlog, logistics]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s); max_days={{max_days_in_queue}};
+  { read -r header; while IFS=',' read -r rma_id received_date status; do
+      [ -z "$rma_id" ] && continue;
+      [ "$status" = "processed" ] && continue;
+      recv_epoch=$(date -j -f %Y-%m-%d "$received_date" +%s 2>/dev/null || date -d "$received_date" +%s);
+      days_waiting=$(( (today_epoch-recv_epoch)/86400 ));
+      if [ "$days_waiting" -ge "$max_days" ]; then
+        echo "BACKLOGGED: RMA $rma_id received $received_date, $days_waiting day(s) unprocessed (status: $status).";
+      fi
+    done; } < "{{returns_log_csv_path}}"
+variables:
+  returns_log_csv_path:
+    default: "./returns-log.csv"
+    description: "Path to a CSV with columns: rma_id,received_date (YYYY-MM-DD),status (processed/pending/etc)."
+  max_days_in_queue:
+    default: 3
+    description: Flag returns that have sat unprocessed this many days or longer.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Assumes one row per return in the CSV; any status other than "processed" is treated as still in queue.

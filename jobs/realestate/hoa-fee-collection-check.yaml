@@ -1,0 +1,35 @@
+id: hoa-fee-collection-check
+version: 1
+name: HOA Fee Collection Check
+description: >
+  Scans an HOA/association dues ledger for owners who are past due and
+  totals what's outstanding. Use this if unpaid association dues have ever
+  piled up silently until the reserve fund came up short.
+category: realestate
+tags: [realestate, hoa, dues, collections]
+schedule: "0 8 5 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{grace_days}}" -v today="$(date +%s)" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_late = int((today - due_ts) / 86400);
+      if ($4 == "unpaid" && days_late >= grace) {
+        printf "PAST DUE: unit %s owes %s, %d days late (due %s)\n", $1, $2, days_late, $3;
+        total += $2; count++;
+      }
+    }
+    END { if (count > 0) printf "TOTAL OUTSTANDING: $%.2f across %d unit(s)\n", total, count; else print "OK: no past-due dues"; }
+  ' "{{dues_ledger_csv}}"
+variables:
+  dues_ledger_csv:
+    default: "./hoa-dues-ledger.csv"
+    description: "Path to a CSV with columns: unit,amount_due,due_date(YYYY-MM-DD),status(paid/unpaid)."
+  grace_days:
+    default: 10
+    description: Days past the due date before a balance counts as past due.
+compatible_agents: [generic, claude, codex]
+notes: Update hoa-dues-ledger.csv status to "paid" as payments land so this only ever flags true outstanding balances.

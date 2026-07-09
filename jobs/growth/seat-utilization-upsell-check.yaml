@@ -1,0 +1,34 @@
+id: seat-utilization-upsell-check
+version: 1
+name: Seat Utilization Upsell Check
+description: >
+  Flags accounts that are using most or all of their purchased seats, a
+  strong signal they're about to hit a limit. Use this if you've ever
+  found out an account outgrew its plan only after they complained about
+  being locked out of adding a new user.
+category: growth
+tags: [growth, upsell, seats, expansion]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{utilization_threshold_pct}}" '
+    NR==1 {next}
+    {
+      if ($2 > 0) {
+        pct = ($3 / $2) * 100;
+        if (pct >= threshold) {
+          printf "UPSELL OPPORTUNITY: %s — %d/%d seats used (%.0f%%)\n", $1, $3, $2, pct;
+        }
+      }
+    }
+  ' "{{accounts_csv_path}}"
+variables:
+  accounts_csv_path:
+    default: "./account-seats.csv"
+    description: "Path to a CSV with columns: account_name,seats_purchased,seats_used."
+  utilization_threshold_pct:
+    default: 90
+    description: Seat utilization percent that flags an account as an upsell opportunity.
+compatible_agents: [generic, claude, codex]
+notes: High seat utilization is a strong signal to reach out about expanding the plan before the account hits a hard limit.

@@ -1,0 +1,32 @@
+id: brand-deal-payment-followup-check
+version: 1
+name: Brand Deal Payment Followup Check
+description: >
+  Checks sponsor invoices against their agreed payment due date and flags
+  anything overdue and unpaid. Use this if a sponsor has ever gone quiet
+  on an invoice and you only noticed the payment never showed up weeks
+  later.
+category: creator
+tags: [creator, sponsorship, invoicing, payment]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      if (today > due_epoch) {
+        overdue_days = (today - due_epoch) / 86400;
+        printf "OVERDUE: invoice %s to %s — due %s (%d days late)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{sponsor_invoices_csv_path}}"
+variables:
+  sponsor_invoices_csv_path:
+    default: "./sponsor-invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,sponsor_name,due_date (YYYY-MM-DD),status (unpaid/paid)."
+compatible_agents: [generic, claude, codex]
+notes: Send the actual follow-up email yourself once flagged — this job only surfaces which invoices are overdue.

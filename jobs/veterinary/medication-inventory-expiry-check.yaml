@@ -1,0 +1,31 @@
+id: medication-inventory-expiry-check
+version: 1
+name: Medication Inventory Expiry Check
+description: >
+  Scans the clinic's drug and vaccine inventory log for items expiring
+  soon so they can be used, returned, or discarded before they go bad.
+  Use this if expired medication has ever turned up still on the shelf
+  during an audit.
+category: veterinary
+tags: [veterinary, inventory, medication, expiry]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s); warn_days={{warn_days_before_expiry}};
+  { read -r header; while IFS=',' read -r drug lot expiry; do
+      [ -z "$drug" ] && continue;
+      exp_epoch=$(date -j -f %Y-%m-%d "$expiry" +%s 2>/dev/null || date -d "$expiry" +%s);
+      days_left=$(( (exp_epoch-today_epoch)/86400 ));
+      if [ "$days_left" -lt 0 ]; then echo "EXPIRED: $drug (lot $lot) expired on $expiry — remove from shelf.";
+      elif [ "$days_left" -le "$warn_days" ]; then echo "EXPIRING SOON: $drug (lot $lot), $days_left day(s) left ($expiry)."; fi
+    done; } < "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./medication-inventory.csv"
+    description: "Path to a CSV with columns: drug_name,lot_number,expiry_date (YYYY-MM-DD)."
+  warn_days_before_expiry:
+    default: 30
+    description: Flag items expiring within this many days.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Read-only check — always visually confirm an item before discarding or returning it.

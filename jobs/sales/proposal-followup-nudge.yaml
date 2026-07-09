@@ -1,0 +1,31 @@
+id: proposal-followup-nudge
+version: 1
+name: Proposal Follow-Up Nudge
+description: >
+  Checks which sent proposals/quotes have had no reply after a set number
+  of days and drafts a short follow-up nudge for each. Use this if a
+  proposal has ever gone quiet after you sent it, and only much later did
+  you realize nobody had followed up.
+category: sales
+tags: [sales, proposals, follow-up, outreach]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read {{proposals_source}} and find proposals/quotes sent more than
+  {{followup_days}} days ago with no recorded reply or status change.
+  1. List each: prospect name, proposal sent date, deal value if known.
+  2. Draft a short, low-pressure follow-up message per prospect that
+     references what was proposed and asks one specific question to
+     re-open the conversation, rather than a generic "just checking in."
+  3. Skip anything already marked closed-won, closed-lost, or explicitly
+     "do not contact" in {{proposals_source}}.
+variables:
+  proposals_source:
+    default: "your CRM's proposal/quote list, or a proposals.csv with columns: prospect,sent_date,status,value"
+    description: Where sent proposals and their status live.
+  followup_days:
+    default: 5
+    description: Days of silence after sending before a proposal counts as due for a follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review each nudge before sending, and skip anything the prospect asked not to be contacted about.

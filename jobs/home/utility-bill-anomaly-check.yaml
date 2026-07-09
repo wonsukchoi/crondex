@@ -1,0 +1,36 @@
+id: utility-bill-anomaly-check
+version: 1
+name: Utility Bill Anomaly Check
+description: >
+  Compares each newly logged utility bill against your recent average for
+  that utility and flags a reading that spikes well beyond normal. Use this
+  if a bill has ever jumped because of a hidden leak or a device left
+  running, and you only found out once the bill arrived.
+category: home
+tags: [home, utilities, budgeting, anomaly]
+schedule: "0 9 5 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{spike_threshold_pct}}" '
+    NR==1 {next}
+    { util=$2; amt=$3+0; count[util]++; sum[util]+=amt; last[util]=amt; lastdate[util]=$1; }
+    END {
+      for (u in count) {
+        if (count[u] < 2) continue;
+        avg = (sum[u] - last[u]) / (count[u] - 1);
+        if (avg > 0 && last[u] >= avg * (1 + threshold / 100)) {
+          printf "SPIKE: %s bill on %s was %.2f, vs recent average %.2f\n", u, lastdate[u], last[u], avg;
+        }
+      }
+    }
+  ' "{{utility_bills_csv}}"
+variables:
+  utility_bills_csv:
+    default: "utility-bills.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),utility,amount. Rows must be in chronological order per utility."
+  spike_threshold_pct:
+    default: 25
+    description: Percent above the recent average that counts as a spike.
+compatible_agents: [generic, claude, codex]
+notes: Add a row to utility-bills.csv each time a bill arrives; needs at least a few months of history per utility before the average is meaningful.

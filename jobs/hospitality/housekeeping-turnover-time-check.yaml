@@ -1,0 +1,41 @@
+id: housekeeping-turnover-time-check
+version: 1
+name: Housekeeping Turnover Time Check
+description: >
+  Checks logged checkout and room-ready timestamps and flags any room whose
+  turnover took longer than your target window, or is still missing a
+  ready time. Use this if a room has ever still been mid-clean when the
+  next guest arrived because nobody was tracking turnover times.
+category: hospitality
+tags: [hospitality, housekeeping, operations]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v max="{{max_turnover_minutes}}" '
+    NR==1 {next}
+    {
+      room=$1; checkout=$2; ready=$3;
+      cmd = "date -d \"" checkout "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" checkout "\" +%s 2>/dev/null";
+      cmd | getline checkout_epoch; close(cmd);
+      if (ready == "") {
+        elapsed = (now - checkout_epoch) / 60;
+        if (elapsed >= max) printf "OVERDUE: room %s checked out %s, still not marked ready (%d min)\n", room, checkout, elapsed;
+        next;
+      }
+      cmd2 = "date -d \"" ready "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" ready "\" +%s 2>/dev/null";
+      cmd2 | getline ready_epoch; close(cmd2);
+      turnover = (ready_epoch - checkout_epoch) / 60;
+      if (turnover > max) printf "SLOW TURNOVER: room %s took %d min (checkout %s, ready %s)\n", room, turnover, checkout, ready;
+    }
+  ' "{{turnover_log_csv}}"
+variables:
+  turnover_log_csv:
+    default: "turnover-log.csv"
+    description: "CSV with header row, columns: room_number,checkout_time,ready_time (YYYY-MM-DD HH:MM, ready_time blank if not yet marked ready)."
+  max_turnover_minutes:
+    default: 45
+    description: Target minutes from checkout to room-ready before a room is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes housekeeping logs checkout_time and ready_time per room to a shared CSV or PMS export throughout the day.

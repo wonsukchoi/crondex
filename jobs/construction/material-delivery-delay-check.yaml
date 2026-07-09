@@ -1,0 +1,32 @@
+id: material-delivery-delay-check
+version: 1
+name: Material Delivery Delay Check
+description: >
+  Checks ordered construction materials against their expected delivery
+  date and flags anything overdue from the supplier. Use this if a crew
+  has ever stood idle on site because a material delivery was quietly
+  late and nobody chased it up.
+category: construction
+tags: [construction, materials, delivery, supplier]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      if (today > expected_epoch) {
+        overdue_days = (today - expected_epoch) / 86400;
+        printf "OVERDUE: %s for job %s — expected %s (%d days late)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{material_orders_csv_path}}"
+variables:
+  material_orders_csv_path:
+    default: "./material-orders.csv"
+    description: "Path to a CSV with columns: material_name,job_site,expected_delivery_date (YYYY-MM-DD),status (pending/delivered)."
+compatible_agents: [generic, claude, codex]
+notes: Follow up directly with the supplier once flagged overdue — this job only surfaces the gap, it doesn't contact anyone.

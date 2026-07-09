@@ -1,0 +1,33 @@
+id: practice-streak-check
+version: 1
+name: Skill Practice Streak Check
+description: >
+  Checks a practice log file for a skill you're building (language,
+  instrument, coding kata) and warns if too many days have passed since
+  the last logged session. Use this if a daily practice habit has ever
+  quietly lapsed without you noticing until weeks had gone by.
+category: learning
+tags: [learning, practice, streak, habit]
+schedule: "0 20 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last_line=$(tail -n1 "{{log_file_path}}" 2>/dev/null);
+  if [ -z "$last_line" ]; then echo "WARNING: no practice sessions logged yet in {{log_file_path}}"; exit 1; fi;
+  last_ts=$(date -d "$last_line" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_line" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: no {{skill_name}} practice logged in $days_since days"; exit 1;
+  else echo "OK: last {{skill_name}} practice $days_since days ago"; fi
+variables:
+  log_file_path:
+    default: "./practice-log.txt"
+    description: "Path to a text file with one YYYY-MM-DD line per practice session, newest last."
+  skill_name:
+    default: "your skill"
+    description: Name of the skill being tracked, for labeling output.
+  max_gap_days:
+    default: 3
+    description: Days without a logged session before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Append today's date to practice-log.txt each time you practice (e.g. `date +%F >> practice-log.txt`) — this job only reads the file, it doesn't log sessions for you.

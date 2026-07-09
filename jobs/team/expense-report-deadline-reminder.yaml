@@ -1,0 +1,28 @@
+id: expense-report-deadline-reminder
+version: 1
+name: Expense Report Deadline Reminder
+description: >
+  Warns you before the monthly expense report submission deadline
+  passes. Use this if you've ever missed reimbursement because the
+  expense window closed before you got around to submitting receipts.
+category: team
+tags: [team, expenses, finance, deadline]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%d); deadline={{deadline_day_of_month}};
+  days_left=$(( deadline - 10#$today ));
+  if [ "$days_left" -lt 0 ]; then echo "note: this month's deadline (day $deadline) has passed — nothing due until next month.";
+  elif [ "$days_left" -le {{warn_days_before}} ]; then
+    echo "REMINDER: expense report due in $days_left day(s), by day $deadline of this month.";
+  else echo "OK: $days_left day(s) until expense report deadline (day $deadline)."; fi
+variables:
+  deadline_day_of_month:
+    default: 25
+    description: Day of the month expense reports are due (use 1-28 for portability across months).
+  warn_days_before:
+    default: 5
+    description: Start warning this many days before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Assumes a fixed day-of-month deadline; adjust deadline_day_of_month if your company's cycle differs.

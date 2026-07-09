@@ -1,0 +1,35 @@
+id: locker-rental-expiry-check
+version: 1
+name: Locker Rental Expiry Check
+description: >
+  Checks rented lockers against their expiry date and flags the ones
+  coming due soon. Use this if a member's belongings have ever been
+  cleared out of a locker without warning because the rental quietly
+  lapsed.
+category: fitness
+tags: [fitness, lockers, membership]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "LOCKER EXPIRING: %s (locker %s) — expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{lockers_csv_path}}"
+variables:
+  lockers_csv_path:
+    default: "./locker-rentals.csv"
+    description: "Path to a CSV with columns: member_name,locker_number,expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 7
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Give members a heads-up before clearing out an expired locker — a courtesy notice avoids losing personal items to a lapsed rental.

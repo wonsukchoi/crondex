@@ -1,0 +1,34 @@
+id: supplier-lead-time-drift-check
+version: 1
+name: Supplier Lead Time Drift Check
+description: >
+  Compares each supplier's recent delivery lead time against their
+  historical baseline and flags suppliers who have started shipping
+  noticeably slower. Use this if a reorder point has ever gone stale
+  because a supplier quietly started taking longer to deliver than they
+  used to.
+category: inventory
+tags: [inventory, suppliers, lead-time, procurement]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{drift_threshold_days}}" '
+    NR==1 {next}
+    {
+      supplier = $1; baseline = $2 + 0; recent = $3 + 0;
+      drift = recent - baseline;
+      if (drift >= threshold) {
+        printf "LEAD TIME DRIFT: %s — baseline %d days, recent %d days (+%d days)\n", supplier, baseline, recent, drift;
+      }
+    }
+  ' "{{supplier_lead_times_csv}}"
+variables:
+  supplier_lead_times_csv:
+    default: "./supplier-lead-times.csv"
+    description: "Path to a CSV with columns: supplier_name,baseline_lead_time_days,recent_lead_time_days."
+  drift_threshold_days:
+    default: 3
+    description: Days of increase over baseline before a supplier is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Feed recent_lead_time_days from actual PO-to-delivery data (e.g. an average of the last 3-5 orders) rather than a single order, to avoid false positives from one slow shipment.

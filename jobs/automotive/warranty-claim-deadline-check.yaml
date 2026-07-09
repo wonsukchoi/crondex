@@ -1,0 +1,35 @@
+id: warranty-claim-deadline-check
+version: 1
+name: Warranty Claim Deadline Check
+description: >
+  Checks open warranty claims against the manufacturer's submission
+  deadline and flags any about to expire unfiled. Use this if a claim has
+  ever gone unpaid because it was submitted a day past the manufacturer's
+  filing window.
+category: automotive
+tags: [automotive, warranty, claims, deadline]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left <= warn) {
+        printf "DEADLINE: claim %s for RO %s — due %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{warranty_claims_csv_path}}"
+variables:
+  warranty_claims_csv_path:
+    default: "./warranty-claims.csv"
+    description: "Path to a CSV with columns: claim_id,ro_number,filing_deadline (YYYY-MM-DD),status (open/submitted)."
+  warn_days_before:
+    default: 5
+    description: Days before the filing deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Filing deadlines vary by manufacturer — keep warranty-claims.csv current from your DMS/warranty system export.

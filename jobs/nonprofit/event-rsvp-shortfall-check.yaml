@@ -1,0 +1,40 @@
+id: event-rsvp-shortfall-check
+version: 1
+name: Fundraising Event RSVP Shortfall Check
+description: >
+  Checks confirmed RSVPs for an upcoming fundraising event against your
+  goal and flags it if you're falling short as the date approaches. Use
+  this if an event has ever snuck up with half-empty RSVPs and no time
+  left to push more invitations.
+category: nonprofit
+tags: [nonprofit, events, fundraising, rsvp]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  rsvp_count=$(psql "{{database_url}}" -t -A -c "select count(*) from rsvps where event_id = '{{event_id}}' and status = 'confirmed';");
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  days_left=$(( (event_ts - today) / 86400 ));
+  if [ "$rsvp_count" -lt "{{rsvp_goal}}" ] && [ "$days_left" -le "{{warn_days_before}}" ]; then
+    echo "WARNING: event {{event_id}} has $rsvp_count/{{rsvp_goal}} RSVPs with $days_left days left";
+    exit 1;
+  else echo "OK: event {{event_id}} has $rsvp_count/{{rsvp_goal}} RSVPs, $days_left days left"; fi
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the events/RSVP database.
+  event_id:
+    default: "your-event-id"
+    description: Identifier of the event to track, matching the rsvps table.
+  event_date:
+    default: "2027-01-01"
+    description: Event date (YYYY-MM-DD).
+  rsvp_goal:
+    default: 100
+    description: Target number of confirmed RSVPs.
+  warn_days_before:
+    default: 14
+    description: Days before the event to start warning if under goal.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `rsvps` table with `event_id` and a `status` column set to 'confirmed' for accepted invites — adjust the query to your CRM/registration schema.

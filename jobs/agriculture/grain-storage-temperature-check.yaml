@@ -1,0 +1,34 @@
+id: grain-storage-temperature-check
+version: 1
+name: Grain Storage Temperature Check
+description: >
+  Checks logged grain bin temperature and moisture readings against safe
+  storage thresholds and flags any bin trending toward spoilage. Use this
+  if you've ever caught hot spots or mold in stored grain only after the
+  smell gave it away.
+category: agriculture
+tags: [agriculture, grain, storage, spoilage]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v maxtemp="{{max_temp_f}}" -v maxmoist="{{max_moisture_pct}}" '
+    NR==1 {next}
+    {
+      if ($2+0 > maxtemp+0 || $3+0 > maxmoist+0) {
+        printf "ALERT: bin %s — %.1f°F, %.1f%% moisture (limits %s°F / %s%%)\n", $1, $2, $3, maxtemp, maxmoist;
+      }
+    }
+  ' "{{bin_readings_csv_path}}"
+variables:
+  bin_readings_csv_path:
+    default: "./grain-bin-readings.csv"
+    description: "Path to a CSV with columns: bin_id,temperature_f,moisture_pct."
+  max_temp_f:
+    default: 70
+    description: Temperature (F) above which a bin is flagged as a spoilage risk.
+  max_moisture_pct:
+    default: 15
+    description: Moisture percentage above which a bin is flagged as a spoilage risk.
+compatible_agents: [generic, claude, codex]
+notes: Reads whatever your bin sensor system exports to CSV — point bin_readings_csv_path at that export. Safe thresholds vary by grain type; adjust the defaults accordingly.

@@ -1,0 +1,34 @@
+id: overdue-library-materials-check
+version: 1
+name: Overdue Library Materials Check
+description: >
+  Scans checked-out library items and flags anything past its due date by
+  more than a grace period. Use this if overdue textbooks or library books
+  have ever piled up unnoticed until inventory time.
+category: education
+tags: [education, library, overdue]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v graceDays="{{grace_days}}" '
+    NR==1 {next}
+    $3 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - due_epoch) / 86400;
+      if (diff_days >= graceDays) {
+        printf "OVERDUE: %s — due %s (%d days overdue)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{checkouts_csv_path}}"
+variables:
+  checkouts_csv_path:
+    default: "./library-checkouts.csv"
+    description: "Path to a CSV with columns: item_title,due_date (YYYY-MM-DD),returned (yes/no)."
+  grace_days:
+    default: 3
+    description: Days past the due date before an item is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Update the returned column as soon as items come back, or every returned item will keep showing up as overdue.

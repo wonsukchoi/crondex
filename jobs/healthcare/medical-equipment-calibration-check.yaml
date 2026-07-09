@@ -1,0 +1,35 @@
+id: medical-equipment-calibration-check
+version: 1
+name: Medical Equipment Calibration Check
+description: >
+  Checks a tracked list of medical equipment (blood pressure cuffs,
+  glucometers, defibrillators, scales) against calibration due dates and
+  warns before any lapse. Use this if a piece of equipment has ever been
+  found overdue for calibration only when an inspector or auditor flagged it.
+category: healthcare
+tags: [compliance, equipment, calibration, healthcare]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "CALIBRATION DUE: %s (%s) — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{equipment_csv_path}}"
+variables:
+  equipment_csv_path:
+    default: "./equipment-calibration.csv"
+    description: "Path to a CSV of tracked equipment with columns: equipment_name,equipment_id,calibration_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before the calibration due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained CSV export from your biomedical equipment tracking system, updated whenever a unit is calibrated or newly deployed.

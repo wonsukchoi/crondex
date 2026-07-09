@@ -1,0 +1,33 @@
+id: stablecoin-peg-deviation-watch
+version: 1
+name: Stablecoin Peg Deviation Watch
+description: >
+  Checks a stablecoin's market price against its $1 peg and alerts when it
+  drifts beyond your threshold. Use this if you've ever held a "stable"
+  balance through a depeg event because nothing was watching the price.
+category: crypto
+tags: [crypto, stablecoin, peg, price]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  price=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids={{coingecko_id}}&vs_currencies=usd" |
+    grep -o '"usd":[0-9.]*' | grep -o '[0-9.]*$');
+  if [ -n "$price" ]; then
+    awk -v p="$price" -v dev="{{deviation_pct}}" 'BEGIN{
+      diff = (p-1)*100; if (diff < 0) diff = -diff;
+      printf "Current price: $%.4f\n", p;
+      if (diff >= dev+0) printf "DEPEG ALERT: %.2f%% off $1 peg\n", diff;
+    }';
+  else
+    echo "Could not fetch price — check coingecko_id.";
+  fi
+variables:
+  coingecko_id:
+    default: "usd-coin"
+    description: CoinGecko API id for the stablecoin to track (e.g. "usd-coin", "tether").
+  deviation_pct:
+    default: 1
+    description: Percentage deviation from the $1 peg that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Uses CoinGecko's free public API — no key required, but rate limits apply if you increase the schedule frequency.

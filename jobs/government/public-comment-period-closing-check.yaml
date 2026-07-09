@@ -1,0 +1,35 @@
+id: public-comment-period-closing-check
+version: 1
+name: Public Comment Period Closing Check
+description: >
+  Checks open public comment periods for pending rules or proposals
+  against their close date and flags the ones closing soon. Use this if
+  a comment period has ever expired with barely any public input logged
+  because nobody was tracking the closing date.
+category: government
+tags: [government, public-comment, compliance, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "COMMENT PERIOD CLOSING: %s — closes %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{comment_periods_csv_path}}"
+variables:
+  comment_periods_csv_path:
+    default: "./public-comment-periods.csv"
+    description: "Path to a CSV with columns: proposal_name,close_date (YYYY-MM-DD),status (open/closed)."
+  warn_days_before:
+    default: 7
+    description: How many days before the close date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: This tracks comment windows on proposals/rules specifically — for meeting notice timing use public-meeting-notice-compliance-check instead.

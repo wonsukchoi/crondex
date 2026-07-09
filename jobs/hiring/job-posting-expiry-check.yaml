@@ -1,0 +1,41 @@
+id: job-posting-expiry-check
+version: 1
+name: Job Posting Expiry Check
+description: >
+  Checks open job postings against their planned expiry or repost date and
+  flags any that have gone stale on a job board. Use this if a posting has
+  ever sat expired for weeks before anyone noticed applications had quietly
+  stopped coming in.
+category: hiring
+tags: [hiring, recruiting, job-postings]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      if (expiry_epoch != "" && expiry_epoch <= today) {
+        printf "EXPIRED: %s on %s — expired %s\n", $1, $2, $4;
+        next;
+      }
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline posted_epoch; close(cmd2);
+      posted_days = (today - posted_epoch) / 86400;
+      if (posted_days >= stale) {
+        printf "STALE: %s on %s — posted %d days ago (%s)\n", $1, $2, posted_days, $3;
+      }
+    }
+  ' "{{postings_csv_path}}"
+variables:
+  postings_csv_path:
+    default: "./job-postings.csv"
+    description: "Path to a CSV of active postings with columns: posting_title,job_board,posted_date,expiry_date (YYYY-MM-DD, expiry_date may be blank)."
+  stale_days:
+    default: 30
+    description: Days since posting before a posting with no expiry date is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a CSV export of active postings from your ATS or job board account; re-posting requirements vary by board (LinkedIn, Indeed) so confirm before reposting.

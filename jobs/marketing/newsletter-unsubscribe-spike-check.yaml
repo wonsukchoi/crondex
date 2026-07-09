@@ -1,0 +1,37 @@
+id: newsletter-unsubscribe-spike-check
+version: 1
+name: Newsletter Unsubscribe Spike Check
+description: >
+  Checks your most recent newsletter send's unsubscribe rate against a
+  threshold and flags it if it's abnormally high. Use this if a bad
+  subject line or list segment has ever quietly torched your audience
+  before anyone compared it to prior sends.
+category: marketing
+tags: [marketing, newsletter, unsubscribe, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  unsub_rate=$(curl -s -H "Authorization: Bearer {{esp_api_token}}" "{{campaign_stats_api_url}}" | grep -o '"unsubscribe_rate":[0-9.]*' | head -n1 | cut -d':' -f2);
+  if [ -z "$unsub_rate" ]; then echo "ERROR: could not fetch unsubscribe rate from {{campaign_stats_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($unsub_rate >= {{unsub_rate_threshold}})}"; then
+    echo "WARNING: unsubscribe rate ${unsub_rate}% is at/above threshold {{unsub_rate_threshold}}%";
+    exit 1;
+  else echo "OK: unsubscribe rate ${unsub_rate}%"; fi
+variables:
+  campaign_stats_api_url:
+    default: "https://api.example-esp.com/campaigns/latest/stats"
+    description: Email service provider endpoint returning the most recent send's unsubscribe_rate as a percent.
+  esp_api_token:
+    default: "your-api-token"
+    description: API token for the email service provider.
+  unsub_rate_threshold:
+    default: 0.5
+    description: Percent unsubscribe rate that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point campaign_stats_api_url at your ESP's
+  (Mailchimp, Klaviyo, SendGrid) campaign stats endpoint for the most
+  recent send; adjust field names to match its response shape. Distinct
+  from `email-deliverability-check` (bounce/spam-complaint risk) — this
+  tracks list attrition per send instead.

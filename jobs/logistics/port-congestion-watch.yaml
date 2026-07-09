@@ -1,0 +1,34 @@
+id: port-congestion-watch
+version: 1
+name: Port Congestion Watch
+description: >
+  Checks a port's average vessel wait time and flags it once congestion
+  crosses your threshold. Use this if a congested port has ever blown up
+  a shipping timeline before anyone checked the wait times.
+category: logistics
+tags: [logistics, port, congestion, shipping]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  wait_hours=$(curl -s -H "Authorization: Bearer {{port_api_token}}" "{{port_status_api_url}}" | grep -o '"avg_wait_hours":[0-9.]*' | head -n1 | cut -d':' -f2);
+  if [ -z "$wait_hours" ]; then echo "ERROR: could not fetch port congestion data from {{port_status_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($wait_hours >= {{wait_hours_threshold}})}"; then
+    echo "WARNING: {{port_name}} average vessel wait is ${wait_hours}h (>= {{wait_hours_threshold}}h)";
+    exit 1;
+  else echo "OK: {{port_name}} average vessel wait is ${wait_hours}h"; fi
+variables:
+  port_name:
+    default: "your-port"
+    description: Port name, for labeling output.
+  port_status_api_url:
+    default: "https://api.example-port-tracker.com/ports/your-port/status"
+    description: Port status API endpoint returning avg_wait_hours.
+  port_api_token:
+    default: "your-api-token"
+    description: Bearer token for the port/maritime data API.
+  wait_hours_threshold:
+    default: 48
+    description: Hours of average vessel wait before flagging as congested.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point port_status_api_url at your port authority's or a maritime data provider's (MarineTraffic, Portcast, project44) congestion endpoint; adjust field names to match its response shape.

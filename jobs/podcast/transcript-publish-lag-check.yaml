@@ -1,0 +1,31 @@
+id: transcript-publish-lag-check
+version: 1
+name: Transcript Publish Lag Check
+description: >
+  Flags episodes that published without a transcript still missing after a
+  grace period. Use this if you've ever promised accessible, searchable
+  transcripts but had episodes quietly sit for weeks without one.
+category: podcast
+tags: [podcast, transcript, accessibility, publishing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_since = int((today - pub_ts) / 86400);
+      if ($3 == "missing" && days_since >= warn) print "WARNING: " $1 " published " days_since " days ago with no transcript (" $2 ")";
+    }
+  ' {{episodes_csv}}
+variables:
+  episodes_csv:
+    default: "episodes.csv"
+    description: "CSV with header row, columns: episode_title,publish_date(YYYY-MM-DD),transcript_status(ready/missing)."
+  warn_days:
+    default: 3
+    description: Days after publish to allow before flagging a missing transcript.
+compatible_agents: [generic, claude, codex]
+notes: Update transcript_status to "ready" in episodes.csv once a transcript is posted, so the row stops flagging.

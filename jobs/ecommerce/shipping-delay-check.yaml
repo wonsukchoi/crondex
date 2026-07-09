@@ -1,0 +1,31 @@
+id: shipping-delay-check
+version: 1
+name: Shipping Delay Check
+description: >
+  Checks shipped orders against their expected delivery date and flags
+  anything running late. Use this if a customer has ever emailed asking
+  "where's my order" before you had any idea it was already late.
+category: ecommerce
+tags: [ecommerce, shipping, fulfillment, delivery]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "in_transit" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      if (today > expected_epoch) {
+        overdue_days = (today - expected_epoch) / 86400;
+        printf "LATE: order %s — expected %s (%d days late), tracking %s\n", $1, $3, overdue_days, $2;
+      }
+    }
+  ' "{{shipments_csv_path}}"
+variables:
+  shipments_csv_path:
+    default: "./shipments.csv"
+    description: "Path to a CSV with columns: order_id,tracking_number,expected_delivery_date (YYYY-MM-DD),status (in_transit/delivered)."
+compatible_agents: [generic, claude, codex]
+notes: Reads whatever your fulfillment platform exports to CSV — point shipments_csv_path at that export.

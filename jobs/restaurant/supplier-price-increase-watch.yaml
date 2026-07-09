@@ -1,0 +1,36 @@
+id: supplier-price-increase-watch
+version: 1
+name: Supplier Price Increase Watch
+description: >
+  Compares this week's supplier invoice prices against your reference cost
+  sheet and flags ingredients that jumped more than a set percentage. Use
+  this if a supplier has ever quietly raised prices for months before
+  anyone noticed the food cost creeping up.
+category: restaurant
+tags: [restaurant, suppliers, cost, invoices]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{pct_increase_threshold}}" '
+    FNR==NR { if (FNR>1) ref[$1]=$2; next }
+    FNR==1 { next }
+    {
+      if ($1 in ref && ref[$1] > 0) {
+        pct = (($2 - ref[$1]) / ref[$1]) * 100;
+        if (pct >= threshold) printf "PRICE UP: %s reference $%.2f -> invoice $%.2f (+%.1f%%)\n", $1, ref[$1], $2, pct;
+      }
+    }
+  ' "{{reference_cost_csv}}" "{{latest_invoice_csv}}"
+variables:
+  reference_cost_csv:
+    default: "./reference-costs.csv"
+    description: "CSV with header row, columns: ingredient,unit_cost — your baseline/expected price per ingredient."
+  latest_invoice_csv:
+    default: "./latest-invoice.csv"
+    description: "CSV with header row, columns: ingredient,unit_cost — the same ingredients priced on this week's invoice."
+  pct_increase_threshold:
+    default: 8
+    description: Percentage increase over the reference cost that counts as worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: Ingredient names must match exactly between the two CSVs (same spelling/casing) or a row won't be compared.

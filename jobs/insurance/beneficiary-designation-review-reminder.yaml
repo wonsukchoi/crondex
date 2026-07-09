@@ -1,0 +1,35 @@
+id: beneficiary-designation-review-reminder
+version: 1
+name: Beneficiary Designation Review Reminder
+description: >
+  Reminds you to review beneficiary designations on your insurance
+  policies and retirement accounts once they haven't been checked in a
+  while. Use this if a beneficiary has ever gone unchanged for years
+  through a marriage, divorce, or new child without anyone catching it.
+category: insurance
+tags: [insurance, beneficiary, review, reminder]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{review_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_review_epoch; close(cmd);
+      days_since = (today - last_review_epoch) / 86400;
+      if (days_since >= interval) {
+        printf "REVIEW DUE: %s — last reviewed %s (%d days ago)\n", $1, $2, days_since;
+      }
+    }
+  ' "{{beneficiary_review_csv}}"
+variables:
+  beneficiary_review_csv:
+    default: "beneficiary-reviews.csv"
+    description: "CSV with header row, columns: policy_or_account_name,last_review_date (YYYY-MM-DD)."
+  review_interval_days:
+    default: 365
+    description: How many days to allow between beneficiary reviews before flagging it as due.
+compatible_agents: [generic, claude, codex]
+notes: Update last_review_date in the CSV each time you actually confirm designations are current, and after any major life event (marriage, divorce, new child, death in the family).

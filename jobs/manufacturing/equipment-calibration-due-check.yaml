@@ -1,0 +1,32 @@
+id: equipment-calibration-due-check
+version: 1
+name: Equipment Calibration Due Check
+description: >
+  Warns you before a piece of measurement or test equipment is due for
+  calibration. Use this if an out-of-calibration gauge has ever kept
+  producing "passing" measurements nobody could actually trust.
+category: manufacturing
+tags: [manufacturing, calibration, quality, compliance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      due_ts = last_ts + ($3 * 86400);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: equipment \"" $1 "\" calibration due in " days_left " days";
+    }
+  ' {{equipment_csv}}
+variables:
+  equipment_csv:
+    default: "calibration-schedule.csv"
+    description: "CSV with header row, columns: equipment_id,last_calibrated(YYYY-MM-DD),interval_days."
+  warn_days:
+    default: 14
+    description: Days before calibration is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep calibration-schedule.csv updated after every calibration event — one row per instrument/gauge.

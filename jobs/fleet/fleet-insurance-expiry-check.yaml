@@ -1,0 +1,34 @@
+id: fleet-insurance-expiry-check
+version: 1
+name: Fleet Insurance Policy Expiry Check
+description: >
+  Checks each vehicle's insurance policy against its expiry date and flags
+  coverage that's about to lapse. Use this if a vehicle has ever been
+  driven on an expired policy because renewal paperwork got missed.
+category: fleet
+tags: [fleet, insurance, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "POLICY EXPIRING: vehicle %s, policy %s — expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{policies_csv_path}}"
+variables:
+  policies_csv_path:
+    default: "./fleet-insurance-policies.csv"
+    description: "Path to a CSV with columns: vehicle_id,policy_number,expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Driving an uninsured vehicle is a legal and financial liability — treat a flag here as urgent, not routine.

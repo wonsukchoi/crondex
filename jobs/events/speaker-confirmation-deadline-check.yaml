@@ -1,0 +1,35 @@
+id: speaker-confirmation-deadline-check
+version: 1
+name: Speaker Confirmation Deadline Check
+description: >
+  Checks the speaker/presenter list against each person's confirm-by date
+  and flags anyone who hasn't confirmed yet. Use this if an event has ever
+  gotten close with a session slot still unconfirmed and nobody noticed
+  until the program had to go to print.
+category: events
+tags: [events, speakers, confirmation]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "UNCONFIRMED: %s — confirm by %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{speakers_csv_path}}"
+variables:
+  speakers_csv_path:
+    default: "./event-speakers.csv"
+    description: "Path to a CSV with columns: speaker_name,confirm_by_date (YYYY-MM-DD),confirmed (yes/no)."
+  warn_days_before:
+    default: 7
+    description: How many days before the confirm-by date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Chase unconfirmed speakers early — an empty session slot is much harder to fill a few days out than a few weeks out.

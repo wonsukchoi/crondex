@@ -1,0 +1,32 @@
+id: hotel-cancellation-deadline-reminder
+version: 1
+name: Hotel Cancellation Deadline Reminder
+description: >
+  Warns you before a hotel booking's free-cancellation window closes.
+  Use this if you've ever gotten charged for a hotel you meant to
+  cancel because the deadline passed while you were still deciding.
+category: travel
+tags: [travel, hotel, cancellation, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  name="{{booking_name}}"; deadline={{cancellation_deadline}}; warn={{warn_hours_before}};
+  deadline_epoch=$(date -j -f "%Y-%m-%dT%H:%M" "$deadline" +%s 2>/dev/null || date -d "$deadline" +%s);
+  now_epoch=$(date +%s);
+  hours_left=$(( (deadline_epoch-now_epoch)/3600 ));
+  if [ "$hours_left" -le 0 ]; then echo "note: cancellation window for $name has passed — booking is now non-refundable (or already handled).";
+  elif [ "$hours_left" -le "$warn" ]; then echo "WARNING: free cancellation for $name closes in $hours_left hour(s) ($deadline)."; exit 1;
+  else echo "OK: $name, $hours_left hour(s) until cancellation deadline."; fi
+variables:
+  booking_name:
+    default: "hotel booking"
+    description: Name/label for this booking (hotel name or confirmation number).
+  cancellation_deadline:
+    default: "2026-12-31T23:59"
+    description: "Date and time (YYYY-MM-DDTHH:MM, local timezone) the free-cancellation window closes."
+  warn_hours_before:
+    default: 48
+    description: Start warning this many hours before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. One job per booking — copy it and adjust for each reservation you're tracking.

@@ -1,0 +1,34 @@
+id: game-server-disk-space-check
+version: 1
+name: Game Server Disk Space Check
+description: >
+  Checks free disk space on your self-hosted game server's world/save
+  data volume and warns before it fills up. Use this if a server has
+  ever stopped saving the world (or crashed outright) because the disk
+  quietly filled up overnight.
+category: gaming
+tags: [gaming, server, disk-space, hosting]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  usage=$(df -P "{{server_data_path}}" 2>/dev/null | awk 'NR==2 {gsub("%","",$5); print $5}');
+  if [ -z "$usage" ]; then
+    echo "ERROR: could not read disk usage for {{server_data_path}}";
+    exit 1;
+  fi;
+  if [ "$usage" -ge "{{warn_pct}}" ]; then
+    echo "WARNING: disk usage at ${usage}% for {{server_data_path}} — world saves may fail soon";
+    exit 1;
+  else
+    echo "OK: disk usage at ${usage}% for {{server_data_path}}";
+  fi
+variables:
+  server_data_path:
+    default: "/srv/gameserver"
+    description: Path to the game server's world/save data directory (or its mount point).
+  warn_pct:
+    default: 85
+    description: Disk usage percent that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: Run this on the same host as the game server (or via an ssh wrapper) — it reads local disk usage with `df`, not a remote API.

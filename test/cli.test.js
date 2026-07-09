@@ -196,7 +196,7 @@ test("deploy --target cloud-scheduler: prints a gcloud scheduler command with th
   assert.match(out, /--schedule="0 6 \* \* \*"/);
 });
 
-test("update: refreshes a locally pulled job to the latest catalog version", () => {
+test("update: refreshes a locally pulled job to the latest catalog version, printing a diff", () => {
   const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
   try {
     const dest = join(tmp, "ssl.yaml");
@@ -204,10 +204,29 @@ test("update: refreshes a locally pulled job to the latest catalog version", () 
     const upToDateOut = run(["update", dest]);
     assert.match(upToDateOut, /already up to date/);
 
-    writeFileSync(dest, readFileSync(dest, "utf8").replace(/description:.*/, "description: stale"));
+    writeFileSync(dest, readFileSync(dest, "utf8").replace("name: SSL Certificate Expiry Check", "name: stale"));
     const updatedOut = run(["update", dest]);
+    assert.match(updatedOut, /added.*removed/);
+    assert.match(updatedOut, /- name: stale/);
+    assert.match(updatedOut, /\+ name: SSL Certificate Expiry Check/);
     assert.match(updatedOut, /updated/);
-    assert.doesNotMatch(readFileSync(dest, "utf8"), /description: stale/);
+    assert.doesNotMatch(readFileSync(dest, "utf8"), /name: stale/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("update --dry-run: shows the diff but leaves the file untouched", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "ssl.yaml");
+    run(["add", "ssl-cert-expiry-check", "--dest", dest]);
+    writeFileSync(dest, readFileSync(dest, "utf8").replace("name: SSL Certificate Expiry Check", "name: stale"));
+
+    const out = run(["update", dest, "--dry-run"]);
+    assert.match(out, /- name: stale/);
+    assert.match(out, /rerun without --dry-run/);
+    assert.match(readFileSync(dest, "utf8"), /name: stale/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

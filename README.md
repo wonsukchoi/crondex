@@ -35,8 +35,10 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 - `show <id>` — print a job's full YAML
 - `add <id> [--dest path]` — copy it into your project to edit
 - `init <id> [--category x]` — scaffold a brand-new job from the template
-- `update <path>` — re-pull a job you already `add`ed/`init`ed (matched by
-  its `id` field) against the current catalog and overwrite it in place
+- `update <path> [--dry-run]` — re-pull a job you already `add`ed/`init`ed
+  (matched by its `id` field) against the current catalog, print a diff of
+  what changed, and overwrite it in place. `--dry-run` shows the diff
+  without applying it.
 - `deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler] [--var name=value ...]`
   — turn a job into something that actually runs: prints a ready crontab
   line (or installs it into your own crontab with `--install`), writes a
@@ -170,7 +172,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 crondex/
 ├── llms.txt               agent-discovery manifest (llms.txt convention)
 ├── bin/crondex.js         CLI: list / categories / show / add / recommend / init / update / deploy / uninstall
-├── lib/                   recommend, deploy, and catalog-building logic (unit tested in test/)
+├── lib/                   recommend, deploy, diff, and catalog-building logic (unit tested in test/)
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/                  one YAML per job, grouped by category subdirectory

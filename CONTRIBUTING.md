@@ -82,9 +82,9 @@ well-formed YAML file plus a regenerated catalog. That's it.
 
 ## Trying a job end-to-end
 
-`crondex deploy <id>` (see the README) turns a job into a real crontab line or
-GitHub Actions workflow — useful for sanity-checking your own new job actually
-runs the way you expect, beyond `smoke-test`'s sandboxed check:
+`crondex deploy <id>` (see the README for the full list of `--target`s) turns
+a job into something that actually runs — useful for sanity-checking your own
+new job runs the way you expect, beyond `smoke-test`'s sandboxed check:
 ```bash
 node bin/crondex.js deploy <your-job-id> --var some_var=a-real-value
 ```

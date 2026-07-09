@@ -18,6 +18,7 @@ import {
   buildEventBridgeCommand,
   buildCloudSchedulerCommand,
 } from "../lib/deploy.js";
+import { formatDiff } from "../lib/diff.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
@@ -70,7 +71,7 @@ Usage:
   crondex add <id> [--dest <path>]
   crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
-  crondex update <path>
+  crondex update <path> [--dry-run]
   crondex deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|
                                  eventbridge|cloud-scheduler] [--mode script|prompt]
                       [--var name=value ...] [--dest <path>] [--install]
@@ -85,6 +86,7 @@ Examples:
   crondex recommend "warn me before my SSL cert expires"
   crondex init ssl-cert-expiry-check --category security
   crondex update ./cron/backup-reminder.yaml
+  crondex update ./cron/backup-reminder.yaml --dry-run
   crondex deploy ssl-cert-expiry-check --var host=example.com --var port=443
   crondex deploy repo-health-check --target github-actions
   crondex deploy repo-health-check --target systemd --dest ./systemd
@@ -120,7 +122,8 @@ deploy --list-installed shows every crondex-managed line in your crontab
 removes one of those by id.
 
 update re-pulls a job you already added/inited (matched by its "id" field)
-against the current catalog and overwrites the local file in place.
+against the current catalog, prints a diff of what changed, and overwrites
+the local file in place. Pass --dry-run to see the diff without applying it.
 `);
 }
 
@@ -297,8 +300,15 @@ function update(path) {
   }
   const meta = findJob(localDoc.id);
   const latestRaw = readFileSync(join(ROOT, meta.path), "utf8");
-  if (latestRaw === localRaw) {
+  const diff = formatDiff(localRaw, latestRaw);
+  if (!diff) {
     console.log(`${path} is already up to date with "${localDoc.id}".`);
+    return;
+  }
+  console.log(diff);
+  console.log();
+  if (hasFlag("dry-run")) {
+    console.log(`${path} differs from the catalog (shown above) — rerun without --dry-run to apply.`);
     return;
   }
   writeFileSync(path, latestRaw);

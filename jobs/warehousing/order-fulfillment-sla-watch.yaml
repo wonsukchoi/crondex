@@ -1,0 +1,42 @@
+id: order-fulfillment-sla-watch
+version: 1
+name: Order Fulfillment On-Time-Ship SLA Watch
+description: >
+  Checks yesterday's order log for orders that missed their promised
+  ship-by date/time and flags the on-time-ship rate against target. Use
+  this if an on-time-ship rate has ever slipped for a week before anyone
+  outside the warehouse noticed, because nobody was tallying misses
+  against the SLA daily.
+category: warehousing
+tags: [warehousing, fulfillment, sla, on-time-ship]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{on_time_target_pct}}" '
+    NR==1 {next}
+    {
+      total++;
+      if ($3 == "late") { late++; print "LATE: order " $1 " — shipped " $2 ", missed ship-by date" }
+    }
+    END {
+      pct = (total > 0) ? ((total - late) / total) * 100 : 0;
+      if (pct < target) {
+        printf "BELOW TARGET: %.2f%% on-time-ship (%d of %d orders), target %.2f%%\n", pct, total-late, total, target;
+      } else {
+        printf "OK: %.2f%% on-time-ship (%d of %d orders)\n", pct, total-late, total;
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./fulfillment-sla-log.csv"
+    description: "Path to a CSV with columns: order_id,shipped_at,sla_status (on_time/late) — one row per order shipped in the period."
+  on_time_target_pct:
+    default: 97.0
+    description: Target minimum on-time-ship rate as a percentage.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks whether orders shipped by their promised date, distinct from
+  pick-pack-error-rate-watch (which tracks fulfillment accuracy — right
+  item/quantity — not shipping timeliness).

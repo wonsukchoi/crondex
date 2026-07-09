@@ -1,0 +1,39 @@
+id: warehouse-space-utilization-check
+version: 1
+name: Warehouse Space Utilization Check
+description: >
+  Reviews storage location occupancy against total capacity by zone and
+  flags zones running near overflow or sitting oddly empty. Use this if
+  a zone has ever hit effective capacity without warning, forcing
+  overflow pallets into aisles because nobody was watching utilization
+  trend toward full.
+category: warehousing
+tags: [warehousing, space-utilization, capacity, planning]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull current occupied-location counts and total location capacity per
+  zone from {{data_source}}.
+  1. Calculate utilization percentage per zone.
+  2. Flag any zone at or above {{high_utilization_pct}}% as at risk of
+     overflow — likely to force out-of-location or aisle storage soon.
+  3. Flag any zone at or below {{low_utilization_pct}}% as a candidate
+     for consolidation or reallocation to a busier zone.
+  4. Summarize the overall facility utilization rate and call out the
+     trend versus last week's report if history is available.
+variables:
+  data_source:
+    default: "your WMS location/capacity report"
+    description: System of record for storage location occupancy and capacity per zone.
+  high_utilization_pct:
+    default: 90
+    description: Utilization percentage at or above which a zone is flagged as overflow risk.
+  low_utilization_pct:
+    default: 30
+    description: Utilization percentage at or below which a zone is flagged as underused.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Facility-level capacity planning signal, distinct from
+  slotting-velocity-review-check (which is about whether the right SKU
+  is in the right slot, not how full the zone is overall).

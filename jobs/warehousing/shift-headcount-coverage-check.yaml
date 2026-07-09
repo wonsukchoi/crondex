@@ -1,0 +1,33 @@
+id: shift-headcount-coverage-check
+version: 1
+name: Warehouse Shift Headcount Coverage Check
+description: >
+  Compares scheduled headcount against required headcount per shift and
+  flags gaps before the shift starts. Use this if a shift has ever
+  started three people short with no time left to call in coverage,
+  because the staffing gap wasn't checked until people were already
+  clocking in.
+category: warehousing
+tags: [warehousing, labor, staffing, scheduling]
+schedule: "0 5,13 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      shift=$1; required=$2; scheduled=$3;
+      gap = required - scheduled;
+      if (gap > 0) {
+        printf "SHORT: %s shift — scheduled %d of %d required (%d short)\n", shift, scheduled, required, gap;
+      } else {
+        printf "OK: %s shift — scheduled %d of %d required\n", shift, scheduled, required;
+      }
+    }
+  ' "{{shift_staffing_csv_path}}"
+variables:
+  shift_staffing_csv_path:
+    default: "./shift-staffing-plan.csv"
+    description: "Path to a CSV with columns: shift_name,required_headcount,scheduled_headcount — one row per upcoming shift."
+compatible_agents: [generic, claude, codex]
+notes: Checks planned coverage before a shift starts — pair with labor-productivity-rate-check for whether the headcount that did show up actually kept pace.

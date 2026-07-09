@@ -1,0 +1,38 @@
+id: mhe-preventive-maintenance-check
+version: 1
+name: Material Handling Equipment Preventive Maintenance Check
+description: >
+  Checks scheduled preventive maintenance due dates for material
+  handling equipment other than forklifts — pallet jacks, order pickers,
+  conveyor drive units — and flags anything overdue. Use this if a
+  piece of MHE has ever broken down mid-shift for a service item that
+  was actually due weeks earlier and nobody was tracking anything but
+  the forklifts.
+category: warehousing
+tags: [warehousing, mhe, maintenance, equipment]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      if (due_epoch < today) {
+        days_over = int((today - due_epoch) / 86400);
+        printf "OVERDUE: %s (%s) — PM was due %s, %d day(s) overdue\n", $1, $2, $3, days_over;
+      }
+    }
+  ' "{{mhe_pm_schedule_csv_path}}"
+variables:
+  mhe_pm_schedule_csv_path:
+    default: "./mhe-pm-schedule.csv"
+    description: "Path to a CSV with columns: equipment_id,equipment_type,next_pm_due_date (YYYY-MM-DD) — one row per unit of MHE, excluding forklifts."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers non-forklift MHE preventive maintenance schedules. Forklifts
+  have their own daily pre-use inspection check
+  (forklift-inspection-check); this job tracks scheduled service
+  intervals for the rest of the equipment fleet, not daily inspections.

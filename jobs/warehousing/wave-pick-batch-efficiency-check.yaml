@@ -1,0 +1,33 @@
+id: wave-pick-batch-efficiency-check
+version: 1
+name: Wave/Batch Picking Efficiency Check
+description: >
+  Checks completed picking waves against a target completion time and
+  flags waves that ran long. Use this if a wave has ever spilled past
+  its window and pushed the whole outbound schedule back before anyone
+  noticed the wave itself, not the individual pickers, was the problem.
+category: warehousing
+tags: [warehousing, wave-picking, batch-picking, throughput]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_wave_minutes}}" '
+    NR==1 {next}
+    {
+      wave=$1; lines=$2; minutes=$3;
+      rate = (minutes > 0) ? lines / minutes : 0;
+      if (minutes > target) {
+        printf "OVER TARGET: wave %s — %d line(s) in %d min (%.2f lines/min), target %d min\n", wave, lines, minutes, rate, target;
+      }
+    }
+  ' "{{wave_log_csv_path}}"
+variables:
+  wave_log_csv_path:
+    default: "./wave-pick-log.csv"
+    description: "Path to a CSV with columns: wave_id,order_lines,completion_minutes — one row per completed picking wave."
+  target_wave_minutes:
+    default: 90
+    description: Target maximum minutes to complete a picking wave/batch.
+compatible_agents: [generic, claude, codex]
+notes: Measures wave-level completion time, not individual picker accuracy — pair with pick-pack-error-rate-watch for the quality side.

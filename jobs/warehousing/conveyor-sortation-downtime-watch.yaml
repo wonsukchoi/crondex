@@ -1,0 +1,48 @@
+id: conveyor-sortation-downtime-watch
+version: 1
+name: Conveyor & Sortation System Downtime Watch
+description: >
+  Checks the material handling system's downtime log for conveyor and
+  sortation equipment and flags outages exceeding a target duration, or
+  a segment with repeat outages in the period. Use this if a conveyor
+  jam has ever backed up the whole outbound line for an hour while
+  everyone treated it as a one-off instead of the third time that
+  segment failed this week.
+category: warehousing
+tags: [warehousing, conveyor, sortation, downtime, equipment]
+schedule: "0 21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_min="{{max_outage_minutes}}" -v repeat="{{repeat_outage_threshold}}" '
+    NR==1 {next}
+    {
+      segment=$1; minutes=$3; count[segment]++; total[segment]+=minutes;
+      if (minutes >= max_min) {
+        printf "LONG OUTAGE: segment %s — %d min outage (%s), reason: %s\n", segment, minutes, $2, $4;
+      }
+    }
+    END {
+      for (s in count) {
+        if (count[s] >= repeat) {
+          printf "REPEAT OUTAGES: segment %s — %d outage(s) totaling %d min today\n", s, count[s], total[s];
+        }
+      }
+    }
+  ' "{{conveyor_downtime_csv_path}}"
+variables:
+  conveyor_downtime_csv_path:
+    default: "./conveyor-downtime-log.csv"
+    description: "Path to a CSV with columns: segment_id,started_at,duration_minutes,reason — one row per conveyor/sortation outage."
+  max_outage_minutes:
+    default: 20
+    description: Minutes a single outage can run before it's flagged individually.
+  repeat_outage_threshold:
+    default: 3
+    description: Number of outages on the same segment in one day that triggers a repeat-outage flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers material handling automation (conveyors, sorters) inside the
+  warehouse, distinct from manufacturing's production-line-downtime-watch,
+  which tracks stoppages on production/assembly lines rather than
+  outbound material handling systems.

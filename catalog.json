@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 582,
+  "count": 594,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2536,6 +2536,32 @@
         "generic"
       ],
       "path": "jobs/veterinary/controlled-substance-log-audit.yaml"
+    },
+    {
+      "id": "conveyor-sortation-downtime-watch",
+      "version": 1,
+      "name": "Conveyor & Sortation System Downtime Watch",
+      "description": "Checks the material handling system's downtime log for conveyor and sortation equipment and flags outages exceeding a target duration, or a segment with repeat outages in the period. Use this if a conveyor jam has ever backed up the whole outbound line for an hour while everyone treated it as a one-off instead of the third time that segment failed this week.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "conveyor",
+        "sortation",
+        "downtime",
+        "equipment"
+      ],
+      "schedule": "0 21 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/conveyor-sortation-downtime-watch.yaml"
     },
     {
       "id": "corporate-minute-book-completeness-check",
@@ -6705,6 +6731,31 @@
       "path": "jobs/restaurant/labor-cost-percentage-watch.yaml"
     },
     {
+      "id": "labor-productivity-rate-check",
+      "version": 1,
+      "name": "Warehouse Labor Productivity Rate Check",
+      "description": "Compares units processed per labor hour against a target rate, by shift or work area. Use this if a shift's productivity has ever quietly drifted below what staffing was planned around, without anyone noticing until the labor budget was already blown for the month.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "labor",
+        "productivity",
+        "staffing"
+      ],
+      "schedule": "0 22 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/labor-productivity-rate-check.yaml"
+    },
+    {
       "id": "landlord-insurance-claim-status-check",
       "version": 1,
       "name": "Landlord Insurance Claim Status Check",
@@ -7962,6 +8013,31 @@
       "path": "jobs/restaurant/menu-item-profitability-check.yaml"
     },
     {
+      "id": "mhe-preventive-maintenance-check",
+      "version": 1,
+      "name": "Material Handling Equipment Preventive Maintenance Check",
+      "description": "Checks scheduled preventive maintenance due dates for material handling equipment other than forklifts — pallet jacks, order pickers, conveyor drive units — and flags anything overdue. Use this if a piece of MHE has ever broken down mid-shift for a service item that was actually due weeks earlier and nobody was tracking anything but the forklifts.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "mhe",
+        "maintenance",
+        "equipment"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/mhe-preventive-maintenance-check.yaml"
+    },
+    {
       "id": "minibar-charge-reconciliation-check",
       "version": 1,
       "name": "Minibar Charge Reconciliation Check",
@@ -8597,6 +8673,31 @@
         "generic"
       ],
       "path": "jobs/hiring/open-req-aging-check.yaml"
+    },
+    {
+      "id": "order-fulfillment-sla-watch",
+      "version": 1,
+      "name": "Order Fulfillment On-Time-Ship SLA Watch",
+      "description": "Checks yesterday's order log for orders that missed their promised ship-by date/time and flags the on-time-ship rate against target. Use this if an on-time-ship rate has ever slipped for a week before anyone outside the warehouse noticed, because nobody was tallying misses against the SLA daily.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "fulfillment",
+        "sla",
+        "on-time-ship"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/order-fulfillment-sla-watch.yaml"
     },
     {
       "id": "org-chart-manager-drift-check",
@@ -12005,6 +12106,31 @@
       "path": "jobs/manufacturing/shift-handoff-report.yaml"
     },
     {
+      "id": "shift-headcount-coverage-check",
+      "version": 1,
+      "name": "Warehouse Shift Headcount Coverage Check",
+      "description": "Compares scheduled headcount against required headcount per shift and flags gaps before the shift starts. Use this if a shift has ever started three people short with no time left to call in coverage, because the staffing gap wasn't checked until people were already clocking in.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "labor",
+        "staffing",
+        "scheduling"
+      ],
+      "schedule": "0 5,13 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/shift-headcount-coverage-check.yaml"
+    },
+    {
       "id": "shipment-delay-watch",
       "version": 1,
       "name": "Shipment Delay Watch",
@@ -12178,6 +12304,33 @@
         "codex"
       ],
       "path": "jobs/telecom/sla-uptime-breach-tracker.yaml"
+    },
+    {
+      "id": "slotting-velocity-review-check",
+      "version": 1,
+      "name": "Slotting Velocity Review Check",
+      "description": "Reviews SKU pick-frequency data against current storage locations and flags fast-movers stuck in slow-to-reach slots (or slow-movers hogging prime golden-zone real estate). Use this if pickers have ever walked past empty golden-zone slots to reach a high-velocity SKU stashed in the back corner because the slotting plan was never revisited after demand shifted.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "slotting",
+        "velocity",
+        "layout-optimization"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/warehousing/slotting-velocity-review-check.yaml"
     },
     {
       "id": "smart-contract-upgrade-watch",
@@ -14428,6 +14581,87 @@
       "path": "jobs/crypto/wallet-balance-watch.yaml"
     },
     {
+      "id": "warehouse-damage-writeoff-review",
+      "version": 1,
+      "name": "Warehouse Damage Write-Off Review",
+      "description": "Reviews inventory damaged inside the facility during handling (dropped in putaway, forklift contact, racking collapse) and flags cases pending a write-off decision, along with any recurring cause worth fixing. Use this if damaged inventory has ever sat on a \"to be reviewed\" pallet for weeks because nobody owned the write-off decision.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "damage",
+        "write-off",
+        "loss-prevention"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/warehousing/warehouse-damage-writeoff-review.yaml"
+    },
+    {
+      "id": "warehouse-near-miss-incident-rate-watch",
+      "version": 1,
+      "name": "Warehouse Near-Miss & Incident Rate Watch",
+      "description": "Reviews the safety incident log for a trend in near-misses and minor injuries on the warehouse floor against a rolling benchmark, and looks for a common thread (location, shift, equipment) before it becomes a serious injury. Use this if near-misses have ever piled up in the log unread until a lost-time injury made someone finally go looking for a pattern that was there the whole time.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "safety",
+        "incidents",
+        "near-miss"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/warehousing/warehouse-near-miss-incident-rate-watch.yaml"
+    },
+    {
+      "id": "warehouse-space-utilization-check",
+      "version": 1,
+      "name": "Warehouse Space Utilization Check",
+      "description": "Reviews storage location occupancy against total capacity by zone and flags zones running near overflow or sitting oddly empty. Use this if a zone has ever hit effective capacity without warning, forcing overflow pallets into aisles because nobody was watching utilization trend toward full.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "space-utilization",
+        "capacity",
+        "planning"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/warehousing/warehouse-space-utilization-check.yaml"
+    },
+    {
       "id": "warranty-claim-deadline-check",
       "version": 1,
       "name": "Warranty Claim Deadline Check",
@@ -14524,6 +14758,31 @@
         "codex"
       ],
       "path": "jobs/personal/water-intake-reminder.yaml"
+    },
+    {
+      "id": "wave-pick-batch-efficiency-check",
+      "version": 1,
+      "name": "Wave/Batch Picking Efficiency Check",
+      "description": "Checks completed picking waves against a target completion time and flags waves that ran long. Use this if a wave has ever spilled past its window and pushed the whole outbound schedule back before anyone noticed the wave itself, not the individual pickers, was the problem.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "wave-picking",
+        "batch-picking",
+        "throughput"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/wave-pick-batch-efficiency-check.yaml"
     },
     {
       "id": "weather-delay-impact-log",
@@ -14688,6 +14947,31 @@
       "path": "jobs/ecommerce/wishlist-abandonment-check.yaml"
     },
     {
+      "id": "wms-integration-error-check",
+      "version": 1,
+      "name": "WMS Integration Error Queue Check",
+      "description": "Scans the warehouse management system's integration error queue (failed order imports, ASN mismatches, inventory sync failures) and flags anything sitting unresolved past a target age. Use this if a failed inbound order sync has ever sat quietly in an error queue for days while the warehouse floor had no idea the order even existed.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "wms",
+        "integration",
+        "systems"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/wms-integration-error-check.yaml"
+    },
+    {
       "id": "work-order-backlog-check",
       "version": 1,
       "name": "Work Order Backlog Check",
@@ -14738,6 +15022,31 @@
         "generic"
       ],
       "path": "jobs/hr/workers-comp-claim-status-check.yaml"
+    },
+    {
+      "id": "yard-trailer-detention-watch",
+      "version": 1,
+      "name": "Yard Trailer Detention Watch",
+      "description": "Checks trailers currently parked in the facility's own yard against their free-time window and flags any at risk of detention charges. Use this if a trailer has ever sat in the yard so long that a detention invoice showed up before anyone realized it was still parked out there.",
+      "category": "warehousing",
+      "tags": [
+        "warehousing",
+        "yard-management",
+        "detention",
+        "trailers"
+      ],
+      "schedule": "0 */3 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/warehousing/yard-trailer-detention-watch.yaml"
     },
     {
       "id": "youtube-clip-repurposing",

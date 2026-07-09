@@ -1,0 +1,44 @@
+id: slotting-velocity-review-check
+version: 1
+name: Slotting Velocity Review Check
+description: >
+  Reviews SKU pick-frequency data against current storage locations and
+  flags fast-movers stuck in slow-to-reach slots (or slow-movers hogging
+  prime golden-zone real estate). Use this if pickers have ever walked
+  past empty golden-zone slots to reach a high-velocity SKU stashed in
+  the back corner because the slotting plan was never revisited after
+  demand shifted.
+category: warehousing
+tags: [warehousing, slotting, velocity, layout-optimization]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the last {{lookback_days}} days of pick-frequency data per SKU
+  along with each SKU's current storage location from {{data_source}}.
+  1. Rank SKUs by pick frequency and identify the top
+     {{top_mover_pct}}% by volume.
+  2. Flag any top mover currently stored outside a golden-zone/easy-reach
+     location (e.g. upper reserve racking, far aisle) — these are prime
+     re-slotting candidates.
+  3. Flag any slow-mover (bottom {{top_mover_pct}}%) currently occupying
+     a golden-zone slot that a fast-mover could use instead.
+  4. Summarize the highest-impact re-slotting swaps (biggest expected
+     travel-time savings), not every mismatch found.
+variables:
+  data_source:
+    default: "your WMS pick history and slotting/location report"
+    description: System of record for pick frequency per SKU and current slot assignment.
+  lookback_days:
+    default: 90
+    description: Days of pick history to analyze for velocity ranking.
+  top_mover_pct:
+    default: 20
+    description: Percentage cutoff (by pick volume) used to define "top movers" and "slow movers."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This is a periodic optimization review, not a daily operational check —
+  re-slotting recommendations still need a supervisor to schedule the
+  physical moves. Distinct from pallet-putaway-delay-check, which tracks
+  how fast pallets get put away, not whether the slot they're put away
+  into is the right one.

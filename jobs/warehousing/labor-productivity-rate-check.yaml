@@ -1,0 +1,33 @@
+id: labor-productivity-rate-check
+version: 1
+name: Warehouse Labor Productivity Rate Check
+description: >
+  Compares units processed per labor hour against a target rate, by
+  shift or work area. Use this if a shift's productivity has ever
+  quietly drifted below what staffing was planned around, without
+  anyone noticing until the labor budget was already blown for the
+  month.
+category: warehousing
+tags: [warehousing, labor, productivity, staffing]
+schedule: "0 22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_units_per_hour}}" '
+    NR==1 {next}
+    {
+      area=$1; units=$2; hours=$3;
+      rate = (hours > 0) ? units / hours : 0;
+      status = (rate < target) ? "BELOW TARGET" : "OK";
+      printf "%s: %s — %.1f units/hour (%d units / %.1f hours), target %.1f\n", status, area, rate, units, hours, target;
+    }
+  ' "{{shift_productivity_csv_path}}"
+variables:
+  shift_productivity_csv_path:
+    default: "./shift-productivity-log.csv"
+    description: "Path to a CSV with columns: work_area,units_processed,labor_hours — one row per work area per shift."
+  target_units_per_hour:
+    default: 40
+    description: Target minimum units processed per labor hour.
+compatible_agents: [generic, claude, codex]
+notes: Aggregate throughput rate only — pair with pick-pack-error-rate-watch so a "fast" shift isn't just a sloppy one.

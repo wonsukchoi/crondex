@@ -1,0 +1,47 @@
+id: warehouse-near-miss-incident-rate-watch
+version: 1
+name: Warehouse Near-Miss & Incident Rate Watch
+description: >
+  Reviews the safety incident log for a trend in near-misses and minor
+  injuries on the warehouse floor against a rolling benchmark, and
+  looks for a common thread (location, shift, equipment) before it
+  becomes a serious injury. Use this if near-misses have ever piled up
+  in the log unread until a lost-time injury made someone finally go
+  looking for a pattern that was there the whole time.
+category: warehousing
+tags: [warehousing, safety, incidents, near-miss]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the last {{lookback_weeks}} weeks of safety incident and
+  near-miss reports from {{data_source}}.
+  1. Calculate the incident rate for the period and compare it to the
+     trailing {{baseline_weeks}}-week average.
+  2. If the rate is trending up by more than {{trend_threshold_pct}}%,
+     flag it and look for a common thread across the reports — same
+     zone, same shift, same equipment type, same task.
+  3. List any near-miss that involved equipment already flagged in a
+     recent MHE maintenance or forklift inspection check, since that's
+     a compounding risk worth escalating immediately.
+  4. Summarize the trend and any pattern found in plain language for a
+     safety walk the next morning.
+variables:
+  data_source:
+    default: "your incident/near-miss reporting log"
+    description: System of record for warehouse floor incident and near-miss reports.
+  lookback_weeks:
+    default: 4
+    description: Weeks of incident data to analyze for the current period.
+  baseline_weeks:
+    default: 12
+    description: Weeks of trailing history used to compute the baseline incident rate.
+  trend_threshold_pct:
+    default: 20
+    description: Percentage increase over baseline that triggers a trend flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Tracks incident rate trend and pattern-finding across the floor,
+  distinct from manufacturing's osha-recordable-incident-audit (which
+  checks whether a single recordable incident got logged on the OSHA
+  300 form within a deadline, not the rate or pattern across incidents).

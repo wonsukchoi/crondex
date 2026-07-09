@@ -1,0 +1,41 @@
+id: yard-trailer-detention-watch
+version: 1
+name: Yard Trailer Detention Watch
+description: >
+  Checks trailers currently parked in the facility's own yard against
+  their free-time window and flags any at risk of detention charges.
+  Use this if a trailer has ever sat in the yard so long that a
+  detention invoice showed up before anyone realized it was still
+  parked out there.
+category: warehousing
+tags: [warehousing, yard-management, detention, trailers]
+schedule: "0 */3 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v free_hours="{{free_time_hours}}" '
+    NR==1 {next}
+    $4 != "departed" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline arrived_epoch; close(cmd);
+      yard_hours = (now - arrived_epoch) / 3600;
+      if (yard_hours >= free_hours) {
+        printf "DETENTION RISK: trailer %s (carrier %s) — %.1fh in yard (arrived %s), free time %dh\n", $1, $3, yard_hours, $2, free_hours;
+      }
+    }
+  ' "{{yard_log_csv_path}}"
+variables:
+  yard_log_csv_path:
+    default: "./yard-trailer-log.csv"
+    description: "Path to a CSV with columns: trailer_id,arrived_at (YYYY-MM-DD HH:MM),carrier,status (in_yard/spotted/departed)."
+  free_time_hours:
+    default: 48
+    description: Hours a trailer can sit in the yard before detention charges typically apply.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks trailer-in-yard detention risk at this facility's own yard, at
+  the destination/origin end of a move. Distinct from logistics'
+  cross-dock-dwell-time-watch, which tracks freight dwell mid-transit
+  through a third-party cross-dock, and from container-demurrage-fee-watch,
+  which covers ocean containers at a port rather than trailers at a yard.

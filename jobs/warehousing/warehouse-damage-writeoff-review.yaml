@@ -1,0 +1,41 @@
+id: warehouse-damage-writeoff-review
+version: 1
+name: Warehouse Damage Write-Off Review
+description: >
+  Reviews inventory damaged inside the facility during handling
+  (dropped in putaway, forklift contact, racking collapse) and flags
+  cases pending a write-off decision, along with any recurring cause
+  worth fixing. Use this if damaged inventory has ever sat on a "to be
+  reviewed" pallet for weeks because nobody owned the write-off
+  decision.
+category: warehousing
+tags: [warehousing, damage, write-off, loss-prevention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the in-facility damage log for the last {{lookback_days}} days
+  from {{data_source}}.
+  1. List damage incidents still pending a write-off/disposition
+     decision, with the SKU, estimated value, and days pending.
+  2. Group incidents by likely cause (handling, equipment contact,
+     racking, storage stacking) and flag any cause responsible for more
+     than {{recurring_cause_threshold}} incidents in the period as a
+     recurring problem worth a process or equipment fix, not just a
+     write-off.
+  3. Total the estimated dollar value of pending write-offs.
+variables:
+  data_source:
+    default: "your damage/loss-prevention log"
+    description: System of record for in-facility inventory damage incidents.
+  lookback_days:
+    default: 30
+    description: Days of damage log history to review.
+  recurring_cause_threshold:
+    default: 3
+    description: Number of incidents sharing a cause in the period before it's flagged as recurring.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Covers damage caused inside the facility during handling/storage, not
+  customer returns — distinct from returns-processing-backlog-check,
+  which tracks turnaround time on inbound customer RMAs.

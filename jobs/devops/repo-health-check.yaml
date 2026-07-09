@@ -1,5 +1,5 @@
 id: repo-health-check
-version: 1
+version: 2
 name: Git Repo Health Check
 description: >
   Checks a git repo for branches nobody's touched in a while, uncommitted
@@ -15,7 +15,7 @@ command: >
   cd {{repo_path}} && now=$(date +%s) &&
   echo "--- branches stale >{{stale_branch_days}}d ---" &&
   git for-each-ref --format='%(committerdate:unix) %(refname:short)' refs/heads/ |
-    while read ts name; do age=$(( (now-ts)/86400 )); [ "$age" -gt {{stale_branch_days}} ] && echo "$name: ${age}d"; done;
+    while read -r ts name; do age=$(( (now-ts)/86400 )); [ "$age" -gt {{stale_branch_days}} ] && echo "$name: ${age}d"; done;
   echo "--- uncommitted changes ---"; git status --short;
   command -v gh >/dev/null && { echo "--- open PRs ---"; gh pr list --state open; } || echo "(gh not installed, skipping PR check)"
 prompt: |

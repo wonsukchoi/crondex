@@ -1,5 +1,5 @@
 id: open-port-check
-version: 1
+version: 2
 name: Expected Open Ports Check
 description: >
   Checks that the ports you expect to be open on a host actually are, and
@@ -16,7 +16,7 @@ command: >
     if command -v nc >/dev/null 2>&1; then
       nc -z -w2 "$host" "$p" 2>/dev/null && echo "OK: $host:$p open" || { echo "MISSING: $host:$p expected open but isn't"; fail=1; };
     else
-      (echo > /dev/tcp/$host/$p) 2>/dev/null && echo "OK: $host:$p open" || { echo "MISSING: $host:$p expected open but isn't"; fail=1; };
+      (echo > "/dev/tcp/$host/$p") 2>/dev/null && echo "OK: $host:$p open" || { echo "MISSING: $host:$p expected open but isn't"; fail=1; };
     fi
   done;
   exit $fail

@@ -1,5 +1,5 @@
 id: competitor-page-diff-watch
-version: 1
+version: 2
 name: Competitor Page Diff Watch
 description: >
   Snapshots a competitor's pricing or landing page and diffs it against the
@@ -17,7 +17,11 @@ command: >
   mkdir -p "$snapshot_dir";
   today_file="$snapshot_dir/$(date +%Y-%m-%d).html";
   curl -s -A "Mozilla/5.0" "{{competitor_url}}" -o "$today_file";
-  prev_file=$(ls -1 "$snapshot_dir" | grep -v "$(basename "$today_file")" | sort | tail -1);
+  prev_file="";
+  for f in "$snapshot_dir"/*.html; do
+    [ "$(basename "$f")" = "$(basename "$today_file")" ] && continue;
+    prev_file=$(basename "$f");
+  done;
   if [ -n "$prev_file" ]; then
     diff "$snapshot_dir/$prev_file" "$today_file" | head -100;
   else

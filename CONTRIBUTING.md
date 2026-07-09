@@ -43,11 +43,13 @@ well-formed YAML file plus a regenerated catalog. That's it.
    ```bash
    npm install
    npm run validate        # checks your job against the schema
+   npm run lint-shell       # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
    npm run build-catalog   # regenerates catalog.json — commit this too
    ```
 
-6. Open a PR. CI re-runs both checks and fails if `catalog.json` is stale
-   or the job doesn't match the schema.
+6. Open a PR. CI re-runs all three checks and fails if `catalog.json` is
+   stale, a job doesn't match the schema, or a shell command doesn't pass
+   shellcheck.
 
 ## What makes a good job
 

@@ -1,5 +1,5 @@
 id: cost-alert
-version: 1
+version: 2
 name: Cloud/API Cost Alert
 description: >
   Checks your recent cloud or API spend against a budget and warns you if
@@ -14,7 +14,7 @@ command: >
   if command -v aws >/dev/null 2>&1; then
     start=$(date -d "-{{lookback_days}} days" +%Y-%m-%d 2>/dev/null || date -v-{{lookback_days}}d +%Y-%m-%d);
     end=$(date +%Y-%m-%d);
-    aws ce get-cost-and-usage --time-period Start=$start,End=$end --granularity DAILY --metrics UnblendedCost 2>/dev/null || echo "aws cost explorer call failed (check credentials/permissions)";
+    aws ce get-cost-and-usage --time-period Start="$start",End="$end" --granularity DAILY --metrics UnblendedCost 2>/dev/null || echo "aws cost explorer call failed (check credentials/permissions)";
   elif command -v vercel >/dev/null 2>&1; then
     vercel billing 2>/dev/null || echo "vercel CLI present but no billing subcommand available";
   else

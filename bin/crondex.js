@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // CLI over catalog.json — browse jobs, read one, or pull one into your project.
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { tokenize, rankJobs } from "../lib/recommend.js";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
+import { resolveVariables, substitutePlaceholders, pickMode, buildCrontabLine, buildGithubActionsWorkflow } from "../lib/deploy.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
@@ -19,6 +21,19 @@ function flag(name) {
 
 function hasFlag(name) {
   return args.includes(`--${name}`);
+}
+
+// Collects every `--var name=value` occurrence (the flag can repeat).
+function varOverrides() {
+  const overrides = {};
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] !== "--var") continue;
+    const pair = args[i + 1] ?? "";
+    const eq = pair.indexOf("=");
+    if (eq === -1) continue;
+    overrides[pair.slice(0, eq)] = pair.slice(eq + 1);
+  }
+  return overrides;
 }
 
 function printJson(value) {
@@ -44,6 +59,8 @@ Usage:
   crondex add <id> [--dest <path>]
   crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
+  crondex deploy <id> [--target crontab|github-actions] [--mode script|prompt]
+                      [--var name=value ...] [--dest <path>] [--install]
 
 Examples:
   crondex list --category devops
@@ -52,10 +69,19 @@ Examples:
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
   crondex recommend "warn me before my SSL cert expires"
   crondex init ssl-cert-expiry-check --category security
+  crondex deploy ssl-cert-expiry-check --var host=example.com --var port=443
+  crondex deploy repo-health-check --target github-actions
 
 Add --json to list/categories/show/recommend for machine-readable output —
 useful when an agent is parsing crondex's output programmatically instead
 of a human reading it.
+
+deploy turns a job into something you can actually run: --target crontab
+(default) prints a ready crontab line, or installs it into your own
+crontab with --install; --target github-actions writes a scheduled
+workflow file (default .github/workflows/<id>.yml). --var overrides a
+job's variable defaults (repeatable). hybrid jobs default to --mode script
+(zero tokens); pass --mode prompt to deploy the agent-prompt side instead.
 `);
 }
 
@@ -168,6 +194,66 @@ function init(id) {
   console.log(`wrote ${dest} — fill in the fields, then \`npm run validate\` (see CONTRIBUTING.md to submit it upstream).`);
 }
 
+function installCrontabLine(id, line) {
+  let existing = "";
+  try {
+    existing = execFileSync("crontab", ["-l"], { encoding: "utf8" });
+  } catch {
+    existing = "";
+  }
+  const marker = `# crondex:${id}`;
+  const kept = existing
+    .split("\n")
+    .filter((l) => l.trim().length > 0 && !l.includes(marker));
+  const updated = [...kept, line].join("\n") + "\n";
+  execFileSync("crontab", ["-"], { input: updated });
+}
+
+function deploy(id) {
+  const meta = findJob(id);
+  const doc = yaml.load(readFileSync(join(ROOT, meta.path), "utf8"));
+  doc.path = meta.path;
+  const target = flag("target") ?? "crontab";
+  const mode = pickMode(doc, flag("mode"));
+
+  if (mode === "prompt" && !doc.prompt) {
+    console.error(`"${id}" has no prompt to deploy (runner: ${doc.runner}). Try without --mode prompt.`);
+    process.exit(1);
+  }
+  if (mode === "script" && !doc.command) {
+    console.error(`"${id}" has no command to deploy (runner: ${doc.runner}). Try --mode prompt.`);
+    process.exit(1);
+  }
+
+  const values = resolveVariables(doc, varOverrides());
+  const command = doc.command ? substitutePlaceholders(doc.command, values) : undefined;
+  const prompt = doc.prompt ? substitutePlaceholders(doc.prompt, values) : undefined;
+
+  if (target === "crontab") {
+    const line = buildCrontabLine(doc, mode === "prompt" ? prompt : command, mode === "prompt");
+    if (hasFlag("install")) {
+      installCrontabLine(id, line);
+      console.log(`installed into your crontab (replacing any previous "${id}" entry):`);
+      console.log(line);
+    } else {
+      console.log(line);
+    }
+  } else if (target === "github-actions") {
+    const workflow = buildGithubActionsWorkflow(doc, { command, prompt, mode });
+    const dest = flag("dest") ?? join(".github/workflows", `${id}.yml`);
+    if (existsSync(dest)) {
+      console.error(`${dest} already exists — refusing to overwrite. Pass --dest to choose another path.`);
+      process.exit(1);
+    }
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, workflow);
+    console.log(`wrote ${dest}`);
+  } else {
+    console.error(`unknown --target "${target}" — use "crontab" or "github-actions".`);
+    process.exit(1);
+  }
+}
+
 function add(id) {
   const meta = findJob(id);
   const dest = flag("dest") ?? `./${id}.yaml`;
@@ -213,6 +299,13 @@ switch (cmd) {
       process.exit(1);
     }
     recommend(args[0]);
+    break;
+  case "deploy":
+    if (!args[0]) {
+      console.error("usage: crondex deploy <id> [--target crontab|github-actions] [--mode script|prompt] [--var name=value ...] [--dest <path>] [--install]");
+      process.exit(1);
+    }
+    deploy(args[0]);
     break;
   default:
     printHelp();

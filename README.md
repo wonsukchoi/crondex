@@ -25,7 +25,7 @@ access.
 ```bash
 npx @wonsukchoi/crondex recommend "warn me before my SSL cert expires"
 npx @wonsukchoi/crondex show ssl-cert-expiry-check
-npx @wonsukchoi/crondex add ssl-cert-expiry-check --dest ./cron/ssl-cert-expiry-check.yaml
+npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 ```
 
 - `recommend "<what you want>"` — find the closest matching job (zero
@@ -35,6 +35,14 @@ npx @wonsukchoi/crondex add ssl-cert-expiry-check --dest ./cron/ssl-cert-expiry-
 - `show <id>` — print a job's full YAML
 - `add <id> [--dest path]` — copy it into your project to edit
 - `init <id> [--category x]` — scaffold a brand-new job from the template
+- `deploy <id> [--target crontab|github-actions] [--var name=value ...]`
+  — turn a job into something that actually runs: prints a ready crontab
+  line (or installs it into your own crontab with `--install`), or writes
+  a scheduled GitHub Actions workflow file. `--var` overrides a variable's
+  default (repeatable). `hybrid` jobs deploy their `command` by default;
+  pass `--mode prompt` to deploy the `prompt` side instead — for a
+  crontab target that means wiring in your own agent CLI via a
+  `CRONDEX_AGENT_CLI` env var, since crondex can't guess its syntax.
 
 Add `--json` to `list`/`categories`/`show`/`recommend` for machine-readable
 output — useful when an agent is parsing the result programmatically
@@ -148,12 +156,12 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 ```
 crondex/
 ├── llms.txt               agent-discovery manifest (llms.txt convention)
-├── bin/crondex.js         CLI: list / categories / show / add / recommend / init
-├── lib/recommend.js       recommend's scoring logic (unit tested in test/)
+├── bin/crondex.js         CLI: list / categories / show / add / recommend / init / deploy
+├── lib/                   recommend, deploy, and catalog-building logic (unit tested in test/)
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/                  one YAML per job, grouped by category subdirectory
-└── scripts/               build-catalog.js, validate-jobs.js, lint-shell.js
+└── scripts/               build-catalog.js, validate-jobs.js, lint-shell.js, check-duplicates.js, smoke-test.js
 ```
 
 ---

@@ -49,8 +49,26 @@ well-formed YAML file plus a regenerated catalog. That's it.
    npm run validate          # checks your job against the schema
    npm run lint-shell        # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
    npm run check-duplicates  # flags near-duplicate tag/description overlap with an existing job
+   npm run smoke-test        # actually runs shell/hybrid jobs sandboxed, with real default values (see below)
    npm run build-catalog     # regenerates catalog.json — commit this too
    ```
+
+   `smoke-test` isn't part of CI (some job defaults make real network calls, which
+   would make the gate slow and flaky) — run it locally for a `shell`/`hybrid` job
+   you're adding or editing:
+   ```bash
+   node scripts/smoke-test.js <job-id>
+   ```
+   It substitutes each variable's real `default`, then actually executes the
+   command in a sandboxed temp directory (`HOME` repointed there too, so a job
+   whose default touches `$HOME/...` can't reach your real home directory) with
+   `set -u` on and any not-installed external tool reduced to a harmless no-op.
+   It catches bugs static analysis can't — e.g. an env var referenced directly
+   without a `${VAR:-}` fallback, which crashes under `set -u` if that var is
+   never set at all, not just empty. A nonzero exit from the job's own
+   warning/missing-file/tool-not-installed branch logic is expected and not
+   flagged; only real crashes (unbound variable, command not found, timeout,
+   syntax error) are.
 
 6. Open a PR. CI re-runs all checks and fails if `catalog.json` is stale, a
    job doesn't match the schema, a shell command doesn't pass shellcheck, or
@@ -62,6 +80,15 @@ well-formed YAML file plus a regenerated catalog. That's it.
    decoration, so it still fails the build until either the job changes or
    the pair is recorded there.
 
+## Trying a job end-to-end
+
+`crondex deploy <id>` (see the README) turns a job into a real crontab line or
+GitHub Actions workflow — useful for sanity-checking your own new job actually
+runs the way you expect, beyond `smoke-test`'s sandboxed check:
+```bash
+node bin/crondex.js deploy <your-job-id> --var some_var=a-real-value
+```
+
 ## Editing the CLI or scripts
 
 If you're changing `bin/crondex.js`, anything under `lib/`, or a script in
@@ -69,11 +96,13 @@ If you're changing `bin/crondex.js`, anything under `lib/`, or a script in
 Coverage: `recommend`/`rankJobs` scoring, near-duplicate detection
 (`lib/duplicates.js`), the shellcheck placeholder-substitution logic
 (`lib/shellcheck-prep.js`), catalog/README summary building
-(`lib/catalog-summary.js`), category-description completeness, and CLI
-integration tests that actually spawn `bin/crondex.js` for `list`/`show`/
-`add`/`init`/`recommend`/`categories`. Most of these bugs would look like
-"slightly worse output," not a crash — that's exactly what the tests exist
-to catch.
+(`lib/catalog-summary.js`), category-description completeness, deployment
+artifact generation (`lib/deploy.js`), and CLI integration tests that
+actually spawn `bin/crondex.js` for `list`/`show`/`add`/`init`/`recommend`/
+`categories`/`deploy` (the `--install` path is tested against a stubbed
+`crontab` binary — it never touches a real crontab). Most of these bugs
+would look like "slightly worse output," not a crash — that's exactly what
+the tests exist to catch.
 
 ## What makes a good job
 

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, chmodSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -85,6 +85,84 @@ test("init: scaffolds a template with the given id and category, refuses invalid
     assert.match(content, /id: my-new-job/);
     assert.match(content, /category: testing/);
     assert.throws(() => run(["init", "Not A Valid Id", "--dest", join(tmp, "x.yaml")]), /isn't a valid job id/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("deploy --target crontab: prints a ready crontab line with variable overrides applied", () => {
+  const out = run(["deploy", "ssl-cert-expiry-check", "--var", "host=example.org", "--var", "port=8443"]);
+  assert.match(out, /^0 6 \* \* \*/);
+  assert.match(out, /host=example\.org/);
+  assert.match(out, /port=8443/);
+  assert.match(out, /# crondex:ssl-cert-expiry-check/);
+});
+
+test("deploy --target github-actions: writes a workflow file with the job's schedule", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "workflow.yml");
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "github-actions", "--dest", dest]);
+    assert.match(out, /wrote/);
+    const content = readFileSync(dest, "utf8");
+    assert.match(content, /cron: "0 6 \* \* \*"/);
+    assert.match(content, /run job/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "github-actions", "--dest", dest]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("deploy --target github-actions --mode prompt: works for a hybrid job's prompt side", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "workflow.yml");
+    run(["deploy", "cost-alert", "--target", "github-actions", "--mode", "prompt", "--dest", dest]);
+    const content = readFileSync(dest, "utf8");
+    assert.match(content, /TODO/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("deploy --target bogus: exits nonzero with an error", () => {
+  assert.throws(() => run(["deploy", "ssl-cert-expiry-check", "--target", "bogus"]), /unknown --target/);
+});
+
+test("deploy --install: installs into crontab via a stubbed crontab binary, idempotently", () => {
+  // Never touch the real system crontab — stub `crontab` on PATH and point at it.
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  const fakeBin = join(tmp, "bin");
+  const state = join(tmp, "state.txt");
+  try {
+    mkdirSync(fakeBin);
+    const stub = `#!/bin/sh
+if [ "$1" = "-l" ]; then
+  [ -f "${state}" ] && cat "${state}" || exit 1
+elif [ "$1" = "-" ]; then
+  cat > "${state}"
+fi
+`;
+    const crontabPath = join(fakeBin, "crontab");
+    writeFileSync(crontabPath, stub);
+    chmodSync(crontabPath, 0o755);
+
+    run(["deploy", "ssl-cert-expiry-check", "--install"], {
+      env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+    });
+    const firstState = readFileSync(state, "utf8");
+    assert.match(firstState, /crondex:ssl-cert-expiry-check/);
+
+    run(["deploy", "ssl-cert-expiry-check", "--var", "host=changed.example.com", "--install"], {
+      env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+    });
+    const secondState = readFileSync(state, "utf8");
+    const matches = secondState.match(/crondex:ssl-cert-expiry-check/g) ?? [];
+    assert.equal(matches.length, 1, "reinstalling should replace, not duplicate, the existing entry");
+    assert.match(secondState, /changed\.example\.com/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

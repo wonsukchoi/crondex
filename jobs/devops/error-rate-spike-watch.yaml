@@ -1,5 +1,5 @@
 id: error-rate-spike-watch
-version: 1
+version: 2
 name: Error Rate Spike Watch
 description: >
   Checks your error tracker's recent error count against a threshold and
@@ -11,7 +11,7 @@ schedule: "*/15 * * * *"
 timezone: "UTC"
 runner: hybrid
 command: >
-  if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "{{sentry_project}}" ]; then
+  if [ -n "${SENTRY_AUTH_TOKEN:-}" ] && [ -n "{{sentry_project}}" ]; then
     count=$(curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/{{sentry_org}}/{{sentry_project}}/events/?statsPeriod=15m" | grep -o '"id"' | wc -l | tr -d ' ');
     if [ "$count" -ge "{{threshold}}" ]; then echo "WARNING: $count errors in last 15m (threshold {{threshold}})"; exit 1;
     else echo "OK: $count errors in last 15m"; fi

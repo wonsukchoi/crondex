@@ -1,0 +1,43 @@
+id: contractor-1099-threshold-tracker
+version: 1
+name: Contractor 1099 Threshold Tracker
+description: >
+  Tracks year-to-date payments per contractor and flags anyone
+  approaching or past the tax reporting threshold that triggers a 1099.
+  Use this if you pay freelancers or contractors and don't want to
+  discover in January that you're missing W-9s for someone you owe a
+  filing for.
+category: finance
+tags: ["1099", contractors, tax, finance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{payments_file}}; threshold={{reporting_threshold}}; warn_pct={{warn_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  year=$(date +%Y);
+  awk -F, -v year="$year" -v threshold="$threshold" -v warnpct="$warn_pct" '
+    NR>1 && $3 ~ "^"year"-" { total[$1] += $2 }
+    END {
+      for (contractor in total) {
+        pct = (total[contractor] / threshold) * 100;
+        if (total[contractor] >= threshold) print "OVER THRESHOLD: " contractor " paid $" total[contractor] " this year (1099 required)";
+        else if (pct >= warnpct) printf "APPROACHING: %s paid $%.2f this year (%.0f%% of $%.0f threshold)\n", contractor, total[contractor], pct, threshold;
+      }
+    }
+  ' "$file"
+variables:
+  payments_file:
+    default: "./contractor-payments.csv"
+    description: "CSV with header \"contractor,amount,date\" (date is YYYY-MM-DD), one row per payment."
+  reporting_threshold:
+    default: 600
+    description: Cumulative annual payment amount that triggers a 1099 filing requirement (US default is $600; adjust for your jurisdiction/year).
+  warn_pct:
+    default: 75
+    description: Percentage of the threshold at which to start warning ahead of a required filing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. US-centric default threshold — verify current IRS rules
+  and any state-specific thresholds for your situation; this doesn't
+  file anything, it only flags who needs a W-9/1099.

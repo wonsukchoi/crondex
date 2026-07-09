@@ -1,0 +1,40 @@
+id: bank-statement-reconciliation-check
+version: 1
+name: Bank Statement Reconciliation Check
+description: >
+  Compares your internal ledger against a bank/card statement export and
+  flags transactions present in one but not the other, plus any balance
+  mismatch. Use this if your books have ever quietly drifted from what
+  the bank actually shows and you only found out at tax time.
+category: finance
+tags: [reconciliation, bookkeeping, bank, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  ledger={{ledger_csv}}; statement={{statement_csv}};
+  [ -f "$ledger" ] || { echo "ERROR: $ledger not found"; exit 1; };
+  [ -f "$statement" ] || { echo "ERROR: $statement not found"; exit 1; };
+  echo "-- in statement but missing from ledger --";
+  tail -n +2 "$statement" | cut -d, -f1,3 | sort > /tmp/_stmt_ids.$$;
+  tail -n +2 "$ledger" | cut -d, -f1,3 | sort > /tmp/_ledger_ids.$$;
+  comm -23 /tmp/_stmt_ids.$$ /tmp/_ledger_ids.$$;
+  echo "-- in ledger but missing from statement --";
+  comm -13 /tmp/_stmt_ids.$$ /tmp/_ledger_ids.$$;
+  rm -f /tmp/_stmt_ids.$$ /tmp/_ledger_ids.$$
+variables:
+  ledger_csv:
+    default: "./ledger.csv"
+    description: >
+      CSV with header "date,description,amount" — your internal
+      bookkeeping record of transactions.
+  statement_csv:
+    default: "./bank-statement.csv"
+    description: >
+      CSV with header "date,description,amount" exported from your bank
+      or card provider for the same period.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, matches on date+amount only (description text often differs
+  between ledger and bank export) — near-matches on rounding or
+  same-day-different-amount won't be caught, review flagged rows by hand.

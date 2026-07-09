@@ -1,0 +1,45 @@
+id: multi-account-cash-position-rollup
+version: 1
+name: Multi-Account Cash Position Rollup
+description: >
+  Sums balances across multiple bank/cash accounts into one total
+  position and flags if the total or any single account drops below a
+  minimum threshold. Use this if cash is spread across several accounts
+  or entities and you want a single low-balance tripwire instead of
+  checking each account separately.
+category: finance
+tags: [cash, balances, multi-account, finance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{balances_file}}; min_total={{min_total_balance}}; min_account={{min_per_account_balance}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=0;
+  tail -n +2 "$file" | while IFS=, read -r account balance; do
+    if awk -v b="$balance" -v m="$min_account" 'BEGIN{exit !(b+0 < m+0)}'; then
+      echo "LOW: $account balance \$$balance is below per-account minimum \$$min_account";
+    fi;
+  done;
+  total=$(tail -n +2 "$file" | awk -F, '{sum+=$2} END{printf "%.2f", sum}');
+  echo "TOTAL CASH POSITION: \$$total across $(tail -n +2 "$file" | wc -l | tr -d ' ') accounts";
+  if awk -v t="$total" -v m="$min_total" 'BEGIN{exit !(t+0 < m+0)}'; then
+    echo "WARNING: total cash position \$$total is below minimum \$$min_total";
+  fi
+variables:
+  balances_file:
+    default: "./account-balances.csv"
+    description: >
+      CSV with header "account,balance" — one row per account/entity,
+      updated manually or via bank export before each run.
+  min_total_balance:
+    default: 5000
+    description: Minimum acceptable combined cash position across all accounts.
+  min_per_account_balance:
+    default: 500
+    description: Minimum acceptable balance in any single account.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. balances are a manual/exported snapshot, not a live bank
+  feed — refresh account-balances.csv before each run for accurate
+  results.

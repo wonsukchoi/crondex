@@ -1,0 +1,39 @@
+id: month-end-close-checklist-tracker
+version: 1
+name: Month-End Close Checklist Tracker
+description: >
+  Tracks a list of month-end financial close tasks (reconcile bank,
+  post accruals, review AR/AP, close subledgers, etc.) and flags
+  incomplete items as the close deadline approaches. Use this if your
+  monthly close has ever slipped a step because nobody had a single
+  place tracking whether every task actually got done.
+category: finance
+tags: [month-end-close, checklist, bookkeeping, finance]
+schedule: "0 9 25 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{checklist_file}}; close_day={{close_day_of_month}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%d);
+  incomplete=$(tail -n +2 "$file" | awk -F, '$2 != "done" {print}');
+  if [ -z "$incomplete" ]; then
+    echo "All month-end close tasks marked done.";
+  else
+    echo "INCOMPLETE close tasks (target close day: $close_day, today is day $today):";
+    echo "$incomplete" | awk -F, '{print "  - " $1 " (" $2 ")"}';
+  fi
+variables:
+  checklist_file:
+    default: "./month-end-close-checklist.csv"
+    description: >
+      CSV with header "task,status" (status is done/pending) — reset
+      status to pending for each task at the start of a new month.
+  close_day_of_month:
+    default: 5
+    description: Target day of the following month by which close should be finished (informational, shown in output).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain the checklist file and mark tasks done as you
+  complete them — this doesn't verify the underlying accounting work
+  itself, just whether each task is checked off.

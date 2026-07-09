@@ -1,0 +1,43 @@
+id: petty-cash-float-reconciliation
+version: 1
+name: Petty Cash Float Reconciliation
+description: >
+  Checks that a petty cash log's starting float minus logged expenses
+  plus replenishments matches the expected remaining balance, and flags
+  any variance. Use this if a physical cash box or float has ever come
+  up short (or over) and nobody could explain why.
+category: finance
+tags: [petty-cash, reconciliation, cash, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{petty_cash_log}}; expected_on_hand={{expected_on_hand}}; tolerance={{tolerance}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  starting=$(head -2 "$file" | tail -1 | cut -d, -f2);
+  net=$(awk -F, 'NR>1 { if ($3=="expense") sum -= $2; else if ($3=="replenishment") sum += $2 } END {print sum+0}' "$file");
+  computed=$(awk -v s="$starting" -v n="$net" 'BEGIN{printf "%.2f", s+n}');
+  variance=$(awk -v c="$computed" -v e="$expected_on_hand" 'BEGIN{printf "%.2f", c-e}');
+  if awk -v v="$variance" -v t="$tolerance" 'BEGIN{v=(v<0?-v:v); exit !(v > t)}'; then
+    echo "VARIANCE: computed balance \$$computed vs. counted on-hand \$$expected_on_hand (diff \$$variance) — investigate";
+  else
+    echo "OK: computed balance \$$computed matches counted on-hand \$$expected_on_hand within \$$tolerance";
+  fi
+variables:
+  petty_cash_log:
+    default: "./petty-cash-log.csv"
+    description: >
+      CSV with header "date,amount,type,note" where type is
+      starting/expense/replenishment, first data row is the starting
+      float.
+  expected_on_hand:
+    default: 0
+    description: Actual counted cash currently in the box/float, entered manually after a physical count.
+  tolerance:
+    default: 5
+    description: Dollar variance allowed before flagging a discrepancy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Requires a manual physical cash count entered as
+  expected_on_hand before each run — this doesn't track cash movement
+  automatically.

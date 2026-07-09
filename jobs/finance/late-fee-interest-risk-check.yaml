@@ -1,0 +1,43 @@
+id: late-fee-interest-risk-check
+version: 1
+name: Late Fee & Interest Accrual Risk Check
+description: >
+  Estimates the dollar cost of leaving an overdue bill unpaid by
+  projecting late fees and accrued interest against its grace period.
+  Use this if you want to know what an overdue balance is actually
+  costing you, not just that it's overdue (see accounts-payable-aging-check
+  for the plain aging list).
+category: finance
+tags: [late-fees, interest, accounts-payable, finance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{payables_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r vendor amount due grace_days annual_rate_pct flat_fee paid; do
+    [ "$paid" = "yes" ] && continue;
+    due_epoch=$(date -j -f %Y-%m-%d "$due" +%s 2>/dev/null || date -d "$due" +%s);
+    days_over=$(( (today-due_epoch)/86400 ));
+    days_over_grace=$(( days_over - grace_days ));
+    if [ "$days_over_grace" -gt 0 ]; then
+      accrued=$(awk -v p="$amount" -v r="$annual_rate_pct" -v d="$days_over_grace" 'BEGIN{printf "%.2f", p*(r/100/365)*d}');
+      total_risk=$(awk -v a="$accrued" -v f="$flat_fee" 'BEGIN{printf "%.2f", a+f}');
+      echo "RISK: $vendor — \$$amount overdue, $days_over_grace day(s) past grace period, est. accrued cost so far: \$$total_risk (fee \$$flat_fee + interest \$$accrued)";
+    fi;
+  done
+variables:
+  payables_file:
+    default: "./late-fee-risk.csv"
+    description: >
+      CSV with header
+      "vendor,amount,due_date,grace_days,annual_rate_pct,flat_fee,paid"
+      — grace_days is the interest-free window after due_date,
+      annual_rate_pct is the penalty APR once grace expires, flat_fee is
+      a one-time late fee.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, simple daily-accrual estimate (principal x rate/365 x
+  days) — not a substitute for the vendor/creditor's actual fee schedule,
+  which may compound or cap differently.

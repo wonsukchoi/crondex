@@ -1,0 +1,40 @@
+id: accounts-payable-aging-check
+version: 1
+name: Accounts Payable Aging Check
+description: >
+  Buckets bills you owe (not invoices you've sent) into aging ranges —
+  current, 30, 60, 90+ days past due — so nothing quietly slips into a
+  late-fee zone. Use this if you or your business pay vendors on terms
+  and want a standing view of what's coming due versus already overdue.
+category: finance
+tags: [accounts-payable, bills, aging, finance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{payables_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r vendor invoice_id amount due paid; do
+    [ "$paid" = "yes" ] && continue;
+    due_epoch=$(date -j -f %Y-%m-%d "$due" +%s 2>/dev/null || date -d "$due" +%s);
+    days=$(( (today-due_epoch)/86400 ));
+    if [ "$days" -le 0 ]; then bucket="current";
+    elif [ "$days" -le 30 ]; then bucket="1-30 days";
+    elif [ "$days" -le 60 ]; then bucket="31-60 days";
+    elif [ "$days" -le 90 ]; then bucket="61-90 days";
+    else bucket="90+ days"; fi;
+    echo "$bucket | $vendor invoice $invoice_id — \$$amount (due $due)";
+  done | sort
+variables:
+  payables_file:
+    default: "./accounts-payable.csv"
+    description: >
+      CSV with header "vendor,invoice_id,amount,due_date,paid" (due_date
+      is YYYY-MM-DD, paid is yes/no) — bills you owe, not invoices you've
+      sent (see invoice-overdue-check for receivables).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain accounts-payable.csv yourself (mark paid=yes
+  once settled) — this is the payables mirror of invoice-overdue-check,
+  which tracks receivables instead.

@@ -1,0 +1,38 @@
+id: budget-vs-actual-variance-report
+version: 1
+name: Budget vs. Actual Variance Report
+description: >
+  Compares budgeted vs. actual spend across every category or department
+  in one pass and reports the percentage variance for each, not just a
+  single category's pass/fail. Use this if you need a monthly variance
+  report across a whole budget (department, project, or household), which
+  is different from budget-overspend-check watching one category's limit.
+category: finance
+tags: [budget, variance, finance, reporting]
+schedule: "0 9 2 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{budget_file}}; threshold={{variance_threshold_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  tail -n +2 "$file" | while IFS=, read -r category budgeted actual; do
+    variance=$(awk -v b="$budgeted" -v a="$actual" 'BEGIN{if(b==0){print "NA"} else {printf "%.1f", ((a-b)/b)*100}}');
+    if [ "$variance" = "NA" ]; then echo "$category: budget \$0, actual \$$actual (no budget set)"; continue; fi;
+    flag="";
+    if awk -v v="$variance" -v t="$threshold" 'BEGIN{exit !(v+0 > t || v+0 < -t)}'; then flag=" <-- OVER THRESHOLD"; fi;
+    echo "$category: budget \$$budgeted, actual \$$actual, variance ${variance}%$flag";
+  done
+variables:
+  budget_file:
+    default: "./budget-vs-actual.csv"
+    description: >
+      CSV with header "category,budgeted,actual" — one row per
+      category/department for the current period.
+  variance_threshold_pct:
+    default: 10
+    description: Percentage-point variance (over or under) that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from budget-overspend-check, which watches a single
+  category against one hard dollar limit day-to-day — this one is a
+  periodic multi-category variance report across an entire budget.

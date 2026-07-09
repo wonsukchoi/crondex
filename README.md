@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-413 jobs across 48 categories:
+427 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -119,7 +119,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `education` | 7 | Classroom ops — grading, attendance, deadlines, permission slips. |
 | `events` | 7 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 7 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
-| `finance` | 10 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
+| `finance` | 24 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 7 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 7 | Vehicle fleet compliance — maintenance, registration, licenses, fuel. |
 | `gaming` | 7 | Streaming and community server ops — schedules, patches, tournaments. |

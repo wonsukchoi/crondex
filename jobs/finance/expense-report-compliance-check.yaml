@@ -1,0 +1,46 @@
+id: expense-report-compliance-check
+version: 1
+name: Expense Report Compliance Check
+description: >
+  Scans submitted expense report line items for missing receipts or
+  amounts over your policy limit for that category. Use this if
+  reimbursements have ever gone out the door with a missing receipt or a
+  suspiciously large "meals" line nobody double-checked.
+category: finance
+tags: [expenses, compliance, policy, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{expenses_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  tail -n +2 "$file" | while IFS=, read -r employee category amount has_receipt date; do
+    flagged="";
+    if [ "$has_receipt" != "yes" ] && awk "BEGIN{exit !($amount > {{receipt_required_over}})}"; then
+      flagged="$flagged missing-receipt";
+    fi;
+    limit=$(awk -F, -v cat="$category" '$1==cat{print $2}' {{category_limits_file}} 2>/dev/null);
+    if [ -n "$limit" ] && awk "BEGIN{exit !($amount > $limit)}"; then
+      flagged="$flagged over-limit(\$$limit)";
+    fi;
+    if [ -n "$flagged" ]; then echo "FLAGGED: $employee — $category \$$amount on $date —$flagged"; fi;
+  done
+variables:
+  expenses_file:
+    default: "./expense-reports.csv"
+    description: >
+      CSV with header "employee,category,amount,has_receipt,date"
+      (has_receipt is yes/no, date is YYYY-MM-DD).
+  category_limits_file:
+    default: "./expense-category-limits.csv"
+    description: >
+      CSV with header "category,limit" giving the max allowed amount per
+      category; categories not listed are treated as unlimited.
+  receipt_required_over:
+    default: 25
+    description: Require a receipt for any expense above this amount.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You export expense-reports.csv from whatever expense tool
+  you use (or fill it in by hand) — this doesn't connect to a live expense
+  platform.

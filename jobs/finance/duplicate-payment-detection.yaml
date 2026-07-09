@@ -1,0 +1,43 @@
+id: duplicate-payment-detection
+version: 1
+name: Duplicate Payment Detection
+description: >
+  Scans a payments/disbursements log for the same vendor and invoice
+  number (or same vendor/amount/date) paid more than once. Use this if
+  a bill has ever gotten paid twice because it was submitted through two
+  channels or reprocessed after a system hiccup.
+category: finance
+tags: [duplicate-payment, accounts-payable, fraud-prevention, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{payments_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  echo "-- duplicate vendor+invoice_id --";
+  tail -n +2 "$file" | awk -F, '{key=$1"|"$2; count[key]++; rows[key]=rows[key]"\n    " $0} END{for (k in count) if (count[k]>1) print "DUPLICATE: " k " paid " count[k] " times:" rows[k]}';
+  echo "-- same vendor+amount within {{same_amount_window_days}} day(s) --";
+  tail -n +2 "$file" | sort -t, -k1,1 -k4,4 | awk -F, -v win="{{same_amount_window_days}}" '
+    {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline ts; close(cmd);
+      key=$1"|"$3;
+      if (key == prevkey && (ts - prevts) <= win*86400) print "POSSIBLE DUPLICATE: " $1 " $" $3 " paid on " prevdate " and again on " $4;
+      prevkey=key; prevts=ts; prevdate=$4;
+    }
+  '
+variables:
+  payments_file:
+    default: "./payments-log.csv"
+    description: >
+      CSV with header "vendor,invoice_id,amount,date" (date is
+      YYYY-MM-DD) — one row per outgoing payment made.
+  same_amount_window_days:
+    default: 14
+    description: Flag same vendor+amount payments made within this many days of each other, even without a matching invoice_id.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Exact-match check on vendor+invoice_id catches clear
+  duplicates; the amount+window check is a heuristic for reprocessed
+  payments without a shared invoice_id — review flagged pairs before
+  assuming either is a real duplicate.

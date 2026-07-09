@@ -1,0 +1,45 @@
+id: vendor-early-pay-discount-tracker
+version: 1
+name: Vendor Early-Pay Discount Tracker
+description: >
+  Flags vendor invoices with an early-payment discount (like "2/10 net
+  30") whose discount window is about to close. Use this if you've ever
+  paid a bill on the regular due date and only afterward realized you
+  could've saved a couple percent by paying ten days earlier.
+category: finance
+tags: [accounts-payable, discounts, vendor-terms, finance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{payables_terms_file}}; warn_days={{warn_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=, read -r vendor amount invoice_date discount_pct discount_days paid; do
+    [ "$paid" = "yes" ] && continue;
+    [ -z "$discount_days" ] && continue;
+    inv_epoch=$(date -j -f %Y-%m-%d "$invoice_date" +%s 2>/dev/null || date -d "$invoice_date" +%s);
+    window_epoch=$(( inv_epoch + discount_days*86400 ));
+    days_left=$(( (window_epoch-today)/86400 ));
+    if [ "$days_left" -ge 0 ] && [ "$days_left" -le "$warn_days" ]; then
+      savings=$(awk -v a="$amount" -v p="$discount_pct" 'BEGIN{printf "%.2f", a*(p/100)}');
+      echo "DISCOUNT WINDOW CLOSING: $vendor invoice \$$amount — pay within $days_left day(s) to save \$$savings ($discount_pct% discount)";
+    fi;
+  done
+variables:
+  payables_terms_file:
+    default: "./vendor-payment-terms.csv"
+    description: >
+      CSV with header
+      "vendor,amount,invoice_date,discount_pct,discount_days,paid"
+      (invoice_date is YYYY-MM-DD; discount_days is how many days from
+      invoice_date the early-pay discount applies, e.g. 10 for "2/10 net
+      30"; leave discount_pct/discount_days blank if no early-pay term
+      exists).
+  warn_days:
+    default: 3
+    description: Start warning this many days before the discount window closes.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain vendor-payment-terms.csv from vendor
+  invoices/contracts — this doesn't parse invoice terms automatically.

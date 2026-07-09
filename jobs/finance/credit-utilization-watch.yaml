@@ -1,0 +1,40 @@
+id: credit-utilization-watch
+version: 1
+name: Credit Utilization Watch
+description: >
+  Checks the balance-to-limit ratio on a credit card or line of credit
+  and warns when utilization crosses a threshold. Use this if you want
+  to protect your credit score or stay within a business line of
+  credit's comfortable operating range, rather than finding out only
+  when a statement arrives.
+category: finance
+tags: [credit, utilization, finance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  balance={{current_balance}}; limit={{credit_limit}}; threshold={{warn_pct}};
+  util=$(awk -v b="$balance" -v l="$limit" 'BEGIN{if(l==0){print 0} else {printf "%.1f", (b/l)*100}}');
+  if awk -v u="$util" -v t="$threshold" 'BEGIN{exit !(u+0 >= t)}'; then
+    echo "WARNING: {{account_name}} utilization at ${util}% (\$$balance of \$$limit) — over ${threshold}% threshold";
+  else
+    echo "OK: {{account_name}} utilization at ${util}% (\$$balance of \$$limit)";
+  fi
+variables:
+  account_name:
+    default: "business line of credit"
+    description: Label for the account being checked.
+  current_balance:
+    default: 0
+    description: Current outstanding balance — update this manually or via your bank export before each run.
+  credit_limit:
+    default: 10000
+    description: Total credit limit on the account.
+  warn_pct:
+    default: 30
+    description: Utilization percentage at or above which to warn (30% is a common credit-score-friendly ceiling).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. current_balance is a manual input (or piped in from a
+  balance-export script) — this job doesn't fetch live balances from any
+  bank API itself.

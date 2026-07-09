@@ -1,0 +1,66 @@
+id: quarterly-estimated-tax-calculator
+version: 1
+name: Quarterly Estimated Tax Calculator
+description: >
+  Calculates a suggested quarterly estimated tax payment from your
+  logged year-to-date income and a target tax rate, and warns as the
+  next IRS-style quarterly due date approaches. Use this if you're
+  self-employed or have untaxed income and want the actual dollar
+  amount worked out, not just a bare date reminder (see
+  tax-deadline-reminder for a generic multi-jurisdiction deadline list).
+category: finance
+tags: [tax, estimated-tax, quarterly, finance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  income_file={{income_ytd_csv}}; rate={{effective_tax_rate_pct}}; warn_days={{warn_days}};
+  [ -f "$income_file" ] || { echo "ERROR: $income_file not found"; exit 1; };
+  year=$(date +%Y);
+  ytd_income=$(awk -F, -v y="$year" 'NR>1 && $1 ~ "^"y"-" {sum+=$2} END{printf "%.2f", sum+0}' "$income_file");
+  owed=$(awk -v i="$ytd_income" -v r="$rate" 'BEGIN{printf "%.2f", i*(r/100)}');
+  echo "YTD income: \$$ytd_income | estimated tax owed so far ($rate%): \$$owed";
+  today=$(date +%s);
+  next_due="";
+  for d in {{q1_date}} {{q2_date}} {{q3_date}} {{q4_date}}; do
+    d_epoch=$(date -j -f %Y-%m-%d "$d" +%s 2>/dev/null || date -d "$d" +%s);
+    if [ "$d_epoch" -ge "$today" ]; then next_due="$d"; next_epoch="$d_epoch"; break; fi;
+  done;
+  if [ -n "$next_due" ]; then
+    days_left=$(( (next_epoch-today)/86400 ));
+    if [ "$days_left" -le "$warn_days" ]; then
+      echo "REMINDER: next estimated payment due $next_due (in $days_left day(s)) — suggested payment ~\$$owed based on YTD income";
+    else
+      echo "Next estimated payment due $next_due (in $days_left day(s))";
+    fi;
+  else
+    echo "No remaining estimated tax due dates configured for this year.";
+  fi
+variables:
+  income_ytd_csv:
+    default: "./income-log.csv"
+    description: "CSV with header \"date,amount\" (date YYYY-MM-DD) — one row per income event, self-employment or 1099 income."
+  effective_tax_rate_pct:
+    default: 25
+    description: Combined effective rate (federal + self-employment + state, as applicable) to apply to YTD income for an estimate.
+  q1_date:
+    default: "2026-04-15"
+    description: Q1 estimated payment due date for the current tax year.
+  q2_date:
+    default: "2026-06-15"
+    description: Q2 estimated payment due date.
+  q3_date:
+    default: "2026-09-15"
+    description: Q3 estimated payment due date.
+  q4_date:
+    default: "2027-01-15"
+    description: Q4 estimated payment due date.
+  warn_days:
+    default: 14
+    description: Days before the next due date to start showing the reminder line.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, rough estimate only — not tax advice; confirm your actual
+  liability and safe-harbor rules with a tax professional. Default due
+  dates follow the typical US federal quarterly schedule; adjust for
+  your jurisdiction and update dates yearly.

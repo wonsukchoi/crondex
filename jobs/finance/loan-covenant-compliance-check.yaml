@@ -1,0 +1,37 @@
+id: loan-covenant-compliance-check
+version: 1
+name: Loan Covenant Compliance Check
+description: >
+  Computes financial ratios required by a loan agreement (e.g. debt
+  service coverage, current ratio) from your latest financials and flags
+  any that breach the covenant threshold. Use this if a lender requires
+  you to maintain certain ratios and a breach could trigger default or a
+  call on the loan.
+category: finance
+tags: [loan, covenants, ratios, finance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{financials_file}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  tail -n +2 "$file" | while IFS=, read -r ratio_name value min_required max_allowed; do
+    breach="";
+    if [ -n "$min_required" ] && awk -v v="$value" -v m="$min_required" 'BEGIN{exit !(v+0 < m+0)}'; then breach="below minimum ($min_required)"; fi;
+    if [ -n "$max_allowed" ] && awk -v v="$value" -v m="$max_allowed" 'BEGIN{exit !(v+0 > m+0)}'; then breach="above maximum ($max_allowed)"; fi;
+    if [ -n "$breach" ]; then echo "COVENANT BREACH: $ratio_name = $value — $breach"; else echo "OK: $ratio_name = $value"; fi;
+  done
+variables:
+  financials_file:
+    default: "./loan-covenant-ratios.csv"
+    description: >
+      CSV with header "ratio_name,value,min_required,max_allowed" — one
+      row per covenant (leave min_required or max_allowed blank if that
+      side isn't part of the covenant). You compute/update the current
+      value each period from your financial statements.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, pure comparison. You calculate each ratio's current value
+  yourself (e.g. DSCR, current ratio, debt-to-equity) from your
+  financial statements — this doesn't derive ratios from raw
+  balance-sheet/income-statement data.

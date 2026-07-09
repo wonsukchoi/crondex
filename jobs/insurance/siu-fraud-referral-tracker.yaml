@@ -1,0 +1,36 @@
+id: siu-fraud-referral-tracker
+version: 1
+name: SIU Fraud Referral Tracker
+description: >
+  Checks claims referred to the Special Investigations Unit for suspected
+  fraud and flags any referral that hasn't been triaged or closed within
+  the target window. Use this if a fraud-flagged claim has ever sat in an
+  SIU queue for months with no documented outcome.
+category: insurance
+tags: [insurance, siu, fraud, claims, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the SIU referral log: {{siu_referrals_summary}}.
+  1. List each open referral: claim number, referral date, referral
+     reason, and current SIU status.
+  2. Flag any referral open longer than {{triage_sla_days}} days without
+     a documented triage decision (accept for investigation, decline,
+     refer to law enforcement, or close as unsubstantiated).
+  3. For referrals nearing a statutory reporting deadline, note that
+     explicitly so it doesn't get missed.
+  4. Do not draw conclusions about guilt — flag for human SIU review only.
+variables:
+  siu_referrals_summary:
+    default: "paste or summarize the current SIU referral log here"
+    description: Summary or export of claims currently referred to the Special Investigations Unit.
+  triage_sla_days:
+    default: 15
+    description: Days a referral can sit without a documented triage decision before it's flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Fraud-investigation triage tracking, distinct from
+  claims-aging-backlog-tracker which tracks ordinary claim age rather
+  than SIU investigation status. Sensitive — restrict access to the SIU
+  team and legal/compliance.

@@ -1,0 +1,42 @@
+id: premium-payment-delinquency-tracker
+version: 1
+name: Premium Payment Delinquency Tracker
+description: >
+  Scans the book of business for policyholders past due on premium
+  payments and flags accounts approaching cancellation-for-nonpayment, so
+  collections or retention outreach can happen before a policy lapses.
+  Use this if delinquent accounts have ever piled up unnoticed until a
+  batch of policies cancelled all at once.
+category: insurance
+tags: [insurance, premium, delinquency, collections, retention]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v cancel_days="{{cancellation_grace_days}}" '
+    NR==1 {next}
+    $3 != "unpaid" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      past_due_days = (today - due_epoch) / 86400;
+      if (past_due_days > 0) {
+        remaining = cancel_days - past_due_days;
+        status = (remaining <= 0) ? "CANCELLATION ELIGIBLE" : sprintf("%d days until cancellation-eligible", remaining);
+        printf "DELINQUENT: %s — due %s, %d days past due — %s\n", $1, $2, past_due_days, status;
+      }
+    }
+  ' "{{book_of_business_csv_path}}"
+variables:
+  book_of_business_csv_path:
+    default: "./premium-payment-status.csv"
+    description: "Path to a CSV with columns: policy_number,payment_due_date (YYYY-MM-DD),status (paid/unpaid)."
+  cancellation_grace_days:
+    default: 30
+    description: Days past due before a policy becomes eligible for cancellation-for-nonpayment.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Book-wide delinquency and collections view across many policyholders,
+  distinct from premium-payment-due-reminder, which reminds a single
+  policyholder about their own upcoming payment before it's even late.

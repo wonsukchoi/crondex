@@ -1,0 +1,41 @@
+id: policy-lapse-rate-monitor
+version: 1
+name: Policy Cancellation & Lapse Rate Monitor
+description: >
+  Calculates the weekly policy cancellation/lapse rate and flags it when
+  it climbs past a healthy baseline, so retention teams can react before
+  a leaky book turns into a shrinking one. Use this if a rising lapse
+  rate has ever gone unnoticed until a quarterly report showed the book
+  had quietly shrunk.
+category: insurance
+tags: [insurance, retention, lapse, cancellation, operations]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v baseline="{{baseline_lapse_pct}}" '
+    NR==1 {next}
+    {
+      total++;
+      if ($2 == "cancelled" || $2 == "lapsed") lapsed++;
+    }
+    END {
+      pct = (total > 0) ? (lapsed / total) * 100 : 0;
+      printf "LAPSE RATE: %.1f%% (%d of %d policies) — baseline %d%%\n", pct, lapsed, total, baseline;
+      if (pct > baseline) {
+        printf "ABOVE BASELINE: lapse rate exceeds the %d%% target\n", baseline;
+      }
+    }
+  ' "{{policy_status_csv_path}}"
+variables:
+  policy_status_csv_path:
+    default: "./policy-status-weekly.csv"
+    description: "Path to a CSV with columns: policy_number,status (active/cancelled/lapsed) for the current reporting period's book."
+  baseline_lapse_pct:
+    default: 8
+    description: Baseline acceptable cancellation/lapse rate percentage before it's flagged as elevated.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Book-wide retention health metric, distinct from
+  premium-payment-delinquency-tracker, which flags individual accounts
+  rather than the aggregate lapse trend.

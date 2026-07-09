@@ -103,7 +103,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-490 jobs across 48 categories:
+503 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -130,7 +130,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 7 | Hotel ops — guest reviews, inspections, maintenance requests. |
 | `hr` | 19 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
-| `insurance` | 7 | Policy tracking — renewals, claims, coverage, certificates. |
+| `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 7 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 7 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `learning` | 7 | Personal learning — certs, courses, flashcards, reading. |

@@ -1,0 +1,38 @@
+id: reinsurance-treaty-renewal-tracker
+version: 1
+name: Reinsurance Treaty Renewal Tracker
+description: >
+  Warns before a reinsurance treaty's renewal or non-renewal notice date
+  so terms can be renegotiated or the market re-shopped in time. Use this
+  if a treaty has ever auto-renewed on unfavorable terms because the
+  notice window quietly passed.
+category: insurance
+tags: [insurance, reinsurance, treaty, renewal]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline notice_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (notice_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "NOTICE DEADLINE APPROACHING: %s (%s) — non-renewal notice due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{treaties_csv_path}}"
+variables:
+  treaties_csv_path:
+    default: "./reinsurance-treaties.csv"
+    description: "Path to a CSV with columns: treaty_name,reinsurer,non_renewal_notice_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 60
+    description: How many days before the non-renewal notice deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the reinsurer-facing treaty notice deadline, not a primary
+  policy renewal — distinct in scope from policy-renewal-reminder, which
+  tracks retail/commercial policies sold to policyholders.

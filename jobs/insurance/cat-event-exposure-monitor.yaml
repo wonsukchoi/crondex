@@ -1,0 +1,37 @@
+id: cat-event-exposure-monitor
+version: 1
+name: Catastrophe Event Exposure Monitor
+description: >
+  Cross-references active policies against a catastrophe (hurricane,
+  wildfire, earthquake, flood) event footprint and estimates
+  policy-count and total insured value exposure inside the impact zone.
+  Use this if a CAT event has ever hit before anyone had a fast answer to
+  "how many policies do we have in that area, and what's our exposure."
+category: insurance
+tags: [insurance, catastrophe, cat, exposure, risk]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Given the active/forecast catastrophe event: {{cat_event_description}},
+  and the policy exposure summary: {{policy_exposure_summary}}.
+  1. Estimate how many policies and how much total insured value fall
+     within or near the event's impact footprint.
+  2. Break this down by line of business (property, auto, etc.) if the
+     exposure data allows it.
+  3. Flag any single large-limit policy that falls inside the footprint
+     for individual review.
+  4. Note this is a rough triage estimate for readiness/response
+     planning, not a final claims or reserve figure.
+variables:
+  cat_event_description:
+    default: "describe the catastrophe event and its current/forecast footprint here"
+    description: Name, type, and geographic footprint of the catastrophe event being tracked.
+  policy_exposure_summary:
+    default: "paste or summarize policy counts and insured values by geography here"
+    description: Summary of active policy counts and total insured value by geography/line of business.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Pre/during-event exposure estimation for claims and reinsurance
+  readiness planning — distinct from claims-aging-backlog-tracker, which
+  tracks already-filed claims rather than pre-loss exposure.

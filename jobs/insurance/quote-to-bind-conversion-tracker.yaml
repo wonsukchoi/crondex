@@ -1,0 +1,41 @@
+id: quote-to-bind-conversion-tracker
+version: 1
+name: Quote-to-Bind Conversion Rate Tracker
+description: >
+  Calculates the quote-to-bind conversion rate over the trailing period
+  and flags it when it drops below target, so sales/underwriting leaders
+  catch a pricing or process problem while it's still small. Use this if
+  a falling close rate has ever gone unnoticed for a full quarter because
+  nobody was watching quotes lost, only policies written.
+category: insurance
+tags: [insurance, sales, quoting, conversion, underwriting]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_conversion_pct}}" '
+    NR==1 {next}
+    {
+      quotes++;
+      if ($2 == "bound") bound++;
+    }
+    END {
+      pct = (quotes > 0) ? (bound / quotes) * 100 : 0;
+      printf "CONVERSION RATE: %.1f%% (%d of %d quotes bound) — target %d%%\n", pct, bound, quotes, target;
+      if (pct < target) {
+        printf "BELOW TARGET: conversion rate is under the %d%% target\n", target;
+      }
+    }
+  ' "{{quotes_csv_path}}"
+variables:
+  quotes_csv_path:
+    default: "./quotes-weekly.csv"
+    description: "Path to a CSV with columns: quote_id,status (bound/lost/pending) for the trailing reporting period."
+  target_conversion_pct:
+    default: 25
+    description: Target minimum quote-to-bind conversion rate percentage before this is flagged as below target.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Sales-funnel metric for new business production, distinct from
+  underwriting-queue-sla-monitor, which measures decision speed rather
+  than the rate at which quotes actually convert to bound policies.

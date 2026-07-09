@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 490,
+  "count": 503,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -182,6 +182,32 @@
       "path": "jobs/marketing/ad-spend-pacing-check.yaml"
     },
     {
+      "id": "adjuster-caseload-balance-check",
+      "version": 1,
+      "name": "Adjuster Caseload Balance Check",
+      "description": "Counts open claims assigned per adjuster and flags anyone carrying a caseload well above the team average, so work can be redistributed before it hurts claim cycle time. Use this if one adjuster has ever quietly ended up with double the caseload of everyone else on the team.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "claims",
+        "adjuster",
+        "caseload",
+        "operations"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/adjuster-caseload-balance-check.yaml"
+    },
+    {
       "id": "affiliate-commission-payout-check",
       "version": 1,
       "name": "Affiliate Commission Payout Check",
@@ -231,6 +257,32 @@
         "codex"
       ],
       "path": "jobs/creator/affiliate-link-expiry-check.yaml"
+    },
+    {
+      "id": "agent-broker-license-expiry-tracker",
+      "version": 1,
+      "name": "Agent/Broker License Expiry Tracker",
+      "description": "Checks producer (agent/broker) license and appointment expiration dates across every state they're licensed in and flags anything expiring soon. Use this if an agent has ever kept writing business in a state after their license quietly lapsed.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "agent",
+        "broker",
+        "license",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/agent-broker-license-expiry-tracker.yaml"
     },
     {
       "id": "agent-workload-balance-check",
@@ -1276,6 +1328,34 @@
       "path": "jobs/growth/cart-abandonment-followup.yaml"
     },
     {
+      "id": "cat-event-exposure-monitor",
+      "version": 1,
+      "name": "Catastrophe Event Exposure Monitor",
+      "description": "Cross-references active policies against a catastrophe (hurricane, wildfire, earthquake, flood) event footprint and estimates policy-count and total insured value exposure inside the impact zone. Use this if a CAT event has ever hit before anyone had a fast answer to \"how many policies do we have in that area, and what's our exposure.\"",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "catastrophe",
+        "cat",
+        "exposure",
+        "risk"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/insurance/cat-event-exposure-monitor.yaml"
+    },
+    {
       "id": "cdn-cache-purge-reminder",
       "version": 1,
       "name": "CDN Cache Purge Reminder",
@@ -1655,6 +1735,32 @@
         "generic"
       ],
       "path": "jobs/insurance/claim-status-check.yaml"
+    },
+    {
+      "id": "claims-aging-backlog-tracker",
+      "version": 1,
+      "name": "Claims Aging & Backlog Tracker",
+      "description": "Buckets open claims by how long they've been open (0-30, 31-60, 61-90, 90+ days) and flags any bucket that's grown past target so a claims manager can rebalance the queue. Use this if a backlog of aging claims has ever crept up gradually until a regulator or auditor asked why so many were still open past 90 days.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "claims",
+        "aging",
+        "backlog",
+        "operations"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/claims-aging-backlog-tracker.yaml"
     },
     {
       "id": "claims-denial-resubmission-check",
@@ -3087,6 +3193,32 @@
         "codex"
       ],
       "path": "jobs/devops/docker-image-prune.yaml"
+    },
+    {
+      "id": "doi-filing-deadline-tracker",
+      "version": 1,
+      "name": "State DOI Regulatory Filing Deadline Tracker",
+      "description": "Warns before a state Department of Insurance filing deadline (rate filings, annual statements, market conduct reports) so nothing gets submitted late. Use this if a regulatory filing has ever gone out late because the deadline lived only in one compliance person's memory.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "compliance",
+        "regulatory",
+        "doi",
+        "filing"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/doi-filing-deadline-tracker.yaml"
     },
     {
       "id": "donation-acknowledgment-lag-check",
@@ -6286,6 +6418,31 @@
       "path": "jobs/devops/log-forwarding-health-check.yaml"
     },
     {
+      "id": "loss-ratio-by-line-monitor",
+      "version": 1,
+      "name": "Loss Ratio by Line of Business Monitor",
+      "description": "Calculates the incurred loss ratio for each line of business and flags any line running hotter than target, so underwriting or pricing can react before a bad quarter turns into a bad year. Use this if a line's loss ratio has ever drifted well past target for months before anyone noticed in the numbers.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "loss-ratio",
+        "underwriting",
+        "finance"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/loss-ratio-by-line-monitor.yaml"
+    },
+    {
       "id": "lost-and-found-item-aging-check",
       "version": 1,
       "name": "Lost and Found Item Aging Check",
@@ -8163,6 +8320,32 @@
       "path": "jobs/podcast/podcast-rating-review-watch.yaml"
     },
     {
+      "id": "policy-lapse-rate-monitor",
+      "version": 1,
+      "name": "Policy Cancellation & Lapse Rate Monitor",
+      "description": "Calculates the weekly policy cancellation/lapse rate and flags it when it climbs past a healthy baseline, so retention teams can react before a leaky book turns into a shrinking one. Use this if a rising lapse rate has ever gone unnoticed until a quarterly report showed the book had quietly shrunk.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "retention",
+        "lapse",
+        "cancellation",
+        "operations"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/policy-lapse-rate-monitor.yaml"
+    },
+    {
       "id": "policy-renewal-reminder",
       "version": 1,
       "name": "Policy Renewal Reminder",
@@ -8312,6 +8495,32 @@
         "codex"
       ],
       "path": "jobs/learning/practice-streak-check.yaml"
+    },
+    {
+      "id": "premium-payment-delinquency-tracker",
+      "version": 1,
+      "name": "Premium Payment Delinquency Tracker",
+      "description": "Scans the book of business for policyholders past due on premium payments and flags accounts approaching cancellation-for-nonpayment, so collections or retention outreach can happen before a policy lapses. Use this if delinquent accounts have ever piled up unnoticed until a batch of policies cancelled all at once.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "premium",
+        "delinquency",
+        "collections",
+        "retention"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/premium-payment-delinquency-tracker.yaml"
     },
     {
       "id": "premium-payment-due-reminder",
@@ -8967,6 +9176,32 @@
       "path": "jobs/sales/quote-expiry-reminder.yaml"
     },
     {
+      "id": "quote-to-bind-conversion-tracker",
+      "version": 1,
+      "name": "Quote-to-Bind Conversion Rate Tracker",
+      "description": "Calculates the quote-to-bind conversion rate over the trailing period and flags it when it drops below target, so sales/underwriting leaders catch a pricing or process problem while it's still small. Use this if a falling close rate has ever gone unnoticed for a full quarter because nobody was watching quotes lost, only policies written.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "sales",
+        "quoting",
+        "conversion",
+        "underwriting"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/quote-to-bind-conversion-tracker.yaml"
+    },
+    {
       "id": "raw-material-shortage-risk-check",
       "version": 1,
       "name": "Raw Material Shortage Risk Check",
@@ -9138,6 +9373,31 @@
         "codex"
       ],
       "path": "jobs/healthcare/referral-pending-followup-check.yaml"
+    },
+    {
+      "id": "reinsurance-treaty-renewal-tracker",
+      "version": 1,
+      "name": "Reinsurance Treaty Renewal Tracker",
+      "description": "Warns before a reinsurance treaty's renewal or non-renewal notice date so terms can be renegotiated or the market re-shopped in time. Use this if a treaty has ever auto-renewed on unfavorable terms because the notice window quietly passed.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "reinsurance",
+        "treaty",
+        "renewal"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/reinsurance-treaty-renewal-tracker.yaml"
     },
     {
       "id": "rent-increase-notice-deadline-check",
@@ -10170,6 +10430,34 @@
       "path": "jobs/content/sitemap-freshness-check.yaml"
     },
     {
+      "id": "siu-fraud-referral-tracker",
+      "version": 1,
+      "name": "SIU Fraud Referral Tracker",
+      "description": "Checks claims referred to the Special Investigations Unit for suspected fraud and flags any referral that hasn't been triaged or closed within the target window. Use this if a fraud-flagged claim has ever sat in an SIU queue for months with no documented outcome.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "siu",
+        "fraud",
+        "claims",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/insurance/siu-fraud-referral-tracker.yaml"
+    },
+    {
       "id": "sla-breach-warning",
       "version": 1,
       "name": "SLA Breach Warning",
@@ -10720,6 +11008,33 @@
         "codex"
       ],
       "path": "jobs/construction/subcontractor-insurance-expiry-check.yaml"
+    },
+    {
+      "id": "subrogation-recovery-tracker",
+      "version": 1,
+      "name": "Subrogation Recovery Tracker",
+      "description": "Checks open subrogation files against at-fault third parties and flags ones with no recovery activity in a while, so pursuit doesn't quietly stall until the statute of limitations closes the door. Use this if a recoverable claim has ever gone unpursued long enough to lose the chance at reimbursement entirely.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "subrogation",
+        "recovery",
+        "claims"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/insurance/subrogation-recovery-tracker.yaml"
     },
     {
       "id": "subscriber-churn-watch",
@@ -11602,6 +11917,31 @@
         "codex"
       ],
       "path": "jobs/education/tuition-payment-plan-delinquency-check.yaml"
+    },
+    {
+      "id": "underwriting-queue-sla-monitor",
+      "version": 1,
+      "name": "Underwriting Queue SLA Monitor",
+      "description": "Checks pending underwriting submissions against the target turnaround-time SLA and flags any that are approaching or past it. Use this if a broker submission has ever sat in an underwriter's queue for weeks with no decision because nobody was watching the clock.",
+      "category": "insurance",
+      "tags": [
+        "insurance",
+        "underwriting",
+        "sla",
+        "queue"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/insurance/underwriting-queue-sla-monitor.yaml"
     },
     {
       "id": "unpaid-invoice-aging-check",

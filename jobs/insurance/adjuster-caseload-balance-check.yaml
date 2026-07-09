@@ -1,0 +1,45 @@
+id: adjuster-caseload-balance-check
+version: 1
+name: Adjuster Caseload Balance Check
+description: >
+  Counts open claims assigned per adjuster and flags anyone carrying a
+  caseload well above the team average, so work can be redistributed
+  before it hurts claim cycle time. Use this if one adjuster has ever
+  quietly ended up with double the caseload of everyone else on the team.
+category: insurance
+tags: [insurance, claims, adjuster, caseload, operations]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v overload="{{overload_multiplier}}" '
+    NR==1 {next}
+    {
+      count[$2]++;
+      total++;
+      n_adjusters[$2]=1;
+    }
+    END {
+      n=0;
+      for (a in n_adjusters) n++;
+      avg = (n > 0) ? total / n : 0;
+      printf "CASELOAD SUMMARY: %d open claims across %d adjusters (avg %.1f)\n", total, n, avg;
+      for (a in count) {
+        if (avg > 0 && count[a] > avg * overload) {
+          printf "OVERLOADED: %s — %d open claims (avg %.1f)\n", a, count[a], avg;
+        }
+      }
+    }
+  ' "{{open_claims_by_adjuster_csv}}"
+variables:
+  open_claims_by_adjuster_csv:
+    default: "./open-claims-by-adjuster.csv"
+    description: "Path to a CSV with columns: claim_number,adjuster_name — one row per open claim."
+  overload_multiplier:
+    default: 1.5
+    description: How many times the team average caseload counts as overloaded (e.g. 1.5 = 50% above average).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Staffing-balance check across a claims team, distinct from
+  claims-aging-backlog-tracker which looks at claim age rather than
+  who's handling how many claims.

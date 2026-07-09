@@ -1,0 +1,41 @@
+id: subrogation-recovery-tracker
+version: 1
+name: Subrogation Recovery Tracker
+description: >
+  Checks open subrogation files against at-fault third parties and flags
+  ones with no recovery activity in a while, so pursuit doesn't quietly
+  stall until the statute of limitations closes the door. Use this if a
+  recoverable claim has ever gone unpursued long enough to lose the
+  chance at reimbursement entirely.
+category: insurance
+tags: [insurance, subrogation, recovery, claims]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the open subrogation file list: {{subrogation_files_summary}}.
+  1. List each open file: claim number, at-fault party, recovery amount
+     sought, and date of last recovery activity.
+  2. Flag any file with no activity in more than {{stale_after_days}}
+     days as needing follow-up (demand letter, arbitration filing, or
+     status call to the at-fault carrier).
+  3. Separately flag any file approaching its statute-of-limitations
+     deadline within {{sol_warn_days}} days as urgent.
+  4. Draft a short follow-up note for each stale file, referencing the
+     claim number and recovery amount.
+variables:
+  subrogation_files_summary:
+    default: "paste or summarize the current open subrogation file list here"
+    description: Summary or export of open subrogation recovery files.
+  stale_after_days:
+    default: 21
+    description: Days without recovery activity before a file is flagged as stale.
+  sol_warn_days:
+    default: 45
+    description: Days before a statute-of-limitations deadline to flag a file as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Tracks pursuing reimbursement from an at-fault third party after a
+  claim is paid — a different direction and timeline from
+  claim-status-check, which tracks the insurer's own claim to the
+  policyholder before payment.

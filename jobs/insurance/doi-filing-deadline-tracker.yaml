@@ -1,0 +1,42 @@
+id: doi-filing-deadline-tracker
+version: 1
+name: State DOI Regulatory Filing Deadline Tracker
+description: >
+  Warns before a state Department of Insurance filing deadline (rate
+  filings, annual statements, market conduct reports) so nothing gets
+  submitted late. Use this if a regulatory filing has ever gone out late
+  because the deadline lived only in one compliance person's memory.
+category: insurance
+tags: [insurance, compliance, regulatory, doi, filing]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "OVERDUE" : "DUE SOON";
+        printf "%s: %s — %s filing due %s (%d days)\n", status, $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{doi_filings_csv_path}}"
+variables:
+  doi_filings_csv_path:
+    default: "./doi-filings.csv"
+    description: "Path to a CSV with columns: state,filing_type,due_date (YYYY-MM-DD),filed_date (blank if not yet filed)."
+  warn_days_before:
+    default: 21
+    description: How many days before a filing deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Regulatory filing deadlines owed to state insurance regulators —
+  distinct from legal's compliance-filing-deadline-reminder, which is a
+  generic cross-industry filing tracker; this one is scoped specifically
+  to insurance-department filings (rate filings, annual statements,
+  market conduct reports).

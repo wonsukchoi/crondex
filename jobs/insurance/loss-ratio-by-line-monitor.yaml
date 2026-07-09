@@ -1,0 +1,43 @@
+id: loss-ratio-by-line-monitor
+version: 1
+name: Loss Ratio by Line of Business Monitor
+description: >
+  Calculates the incurred loss ratio for each line of business and flags
+  any line running hotter than target, so underwriting or pricing can
+  react before a bad quarter turns into a bad year. Use this if a line's
+  loss ratio has ever drifted well past target for months before anyone
+  noticed in the numbers.
+category: insurance
+tags: [insurance, loss-ratio, underwriting, finance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_loss_ratio_pct}}" '
+    NR==1 {next}
+    {
+      earned[$1] += $2;
+      incurred[$1] += $3;
+    }
+    END {
+      for (line in earned) {
+        if (earned[line] > 0) {
+          ratio = (incurred[line] / earned[line]) * 100;
+          flag = (ratio > target) ? " OVER TARGET" : "";
+          printf "%s: loss ratio %.1f%%%s (earned %.2f, incurred %.2f)\n", line, ratio, flag, earned[line], incurred[line];
+        }
+      }
+    }
+  ' "{{loss_ratio_csv_path}}"
+variables:
+  loss_ratio_csv_path:
+    default: "./loss-ratio-by-line.csv"
+    description: "Path to a CSV with columns: line_of_business,earned_premium,incurred_losses — one row per period/line entry, aggregated across the current reporting period."
+  target_loss_ratio_pct:
+    default: 65
+    description: Target maximum loss ratio percentage per line of business before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Financial performance monitoring by line of business for underwriting
+  and actuarial review — distinct from claims-aging-backlog-tracker,
+  which tracks claim handling speed rather than loss cost.

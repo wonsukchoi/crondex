@@ -1,0 +1,40 @@
+id: agent-broker-license-expiry-tracker
+version: 1
+name: Agent/Broker License Expiry Tracker
+description: >
+  Checks producer (agent/broker) license and appointment expiration dates
+  across every state they're licensed in and flags anything expiring
+  soon. Use this if an agent has ever kept writing business in a state
+  after their license quietly lapsed.
+category: insurance
+tags: [insurance, agent, broker, license, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "EXPIRED" : "EXPIRING";
+        printf "%s: %s — %s license/appointment in %s expires %s (%d days)\n", status, $1, $2, $2, $3, diff_days;
+      }
+    }
+  ' "{{producer_licenses_csv_path}}"
+variables:
+  producer_licenses_csv_path:
+    default: "./producer-licenses.csv"
+    description: "Path to a CSV with columns: producer_name,state,expiry_date (YYYY-MM-DD) — one row per state license/appointment."
+  warn_days_before:
+    default: 45
+    description: How many days before a license or appointment expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks producer (selling agent/broker) licensing compliance across an
+  agency or MGA's distribution force — distinct from
+  certificate-of-insurance-request-check, which tracks COI requests, not
+  producer licensure.

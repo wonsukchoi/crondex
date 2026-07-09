@@ -1,0 +1,34 @@
+id: mql-volume-pace-check
+version: 1
+name: MQL Volume Pace Check
+description: >
+  Compares marketing-qualified-lead (MQL) volume so far this period
+  against the target pace and flags under-delivery early. Use this if a
+  quarter has ever ended short on MQLs and sales only found out during
+  the pipeline review, instead of marketing catching it mid-quarter with
+  enough runway to fix it.
+category: marketing
+tags: [marketing, mql, funnel, pipeline]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  count=$(psql "{{database_url}}" -t -c "select count(*) from leads where status = 'mql' and created_at >= date_trunc('quarter', current_date);");
+  target={{quarterly_mql_target}};
+  day_of_quarter=$(( ( $(date +%j) - 1 ) % 91 + 1 ));
+  expected=$(awk "BEGIN{printf \"%.0f\", ($target/91)*$day_of_quarter}");
+  echo "MQL pace check: $count MQLs so far this quarter vs. expected ~$expected (target $target)";
+  if [ "$count" -lt "$expected" ]; then echo "WARNING: MQL volume behind pace"; exit 1; fi
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the marketing/CRM leads database.
+  quarterly_mql_target:
+    default: 900
+    description: Target MQL count for the quarter.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `leads` table with a `status` column that includes an `mql`
+  value and a `created_at` timestamp — adjust the query to your marketing
+  automation/CRM schema. Uses a flat 91-day quarter approximation for
+  pacing; swap in exact fiscal quarter boundaries if yours differ.

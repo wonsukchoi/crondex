@@ -1,0 +1,40 @@
+id: competitor-ad-creative-watch
+version: 1
+name: Competitor Ad Creative Watch
+description: >
+  Scans a competitor's public ad library (Meta Ad Library, Google Ads
+  Transparency Center, or similar) for new or changed ad creative and
+  summarizes what's new. Use this if a competitor has ever launched a new
+  campaign, offer, or positioning angle and you found out from a
+  customer instead of watching their ad library yourself.
+category: marketing
+tags: [marketing, competitor, ads, monitoring]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{competitor_name}}'s ads at {{ad_library_url_hint}} for anything
+  new in the last {{lookback_days}} days.
+  1. List any new creative, offer, or messaging angle that wasn't running
+     before.
+  2. Note the format (video, static, carousel) and apparent target
+     audience if visible.
+  3. If nothing new, say so in one line.
+  4. If something new stands out, note why it might matter (new offer,
+     new positioning, entering a new channel).
+variables:
+  competitor_name:
+    default: "competitor name"
+    description: Competitor whose ads to check.
+  ad_library_url_hint:
+    default: "Meta Ad Library or Google Ads Transparency Center, searched by advertiser name"
+    description: Where to look up the competitor's running ads.
+  lookback_days:
+    default: 7
+    description: Window of new/changed ads to consider.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — ad library sites vary and usually require a
+  live search rather than a stable API. Distinct from
+  competitor-page-diff-watch (tracks a competitor's own website) — this
+  tracks what they're actively advertising instead.

@@ -1,0 +1,41 @@
+id: campaign-roas-cpa-anomaly-check
+version: 1
+name: Campaign ROAS/CPA Anomaly Check
+description: >
+  Checks a campaign's return-on-ad-spend against a minimum threshold and
+  flags a real collapse. Use this if a campaign has ever kept spending its
+  normal daily budget while ROAS quietly cratered because a bid strategy
+  or targeting change nobody caught broke conversion efficiency.
+category: marketing
+tags: [marketing, ads, roas, performance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{ad_platform_api_token}}" "{{ad_platform_stats_api_url}}");
+  roas=$(echo "$stats" | grep -o '"roas":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$roas" ]; then echo "ERROR: could not fetch ROAS from {{ad_platform_stats_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($roas < {{min_roas}})}"; then
+    echo "WARNING: ROAS ${roas}x for campaign {{campaign_name}} is below minimum threshold {{min_roas}}x";
+    exit 1;
+  else echo "OK: ROAS ${roas}x for campaign {{campaign_name}}"; fi
+variables:
+  ad_platform_stats_api_url:
+    default: "https://api.example-ads.com/campaigns/{{campaign_name}}/stats"
+    description: Ad platform reporting API endpoint returning a roas field for the campaign.
+  ad_platform_api_token:
+    default: "your-api-token"
+    description: API token for the ad platform.
+  campaign_name:
+    default: "your campaign"
+    description: Name/ID of the ad campaign to check.
+  min_roas:
+    default: 2
+    description: Minimum acceptable return-on-ad-spend multiple before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point at your ad platform's (Google Ads, Meta Ads,
+  TikTok Ads) reporting API; if it doesn't report ROAS directly, compute it
+  as conversion value / spend before comparing. Distinct from
+  ad-spend-pacing-check (tracks spend velocity vs. budget) — this tracks
+  spend efficiency instead.

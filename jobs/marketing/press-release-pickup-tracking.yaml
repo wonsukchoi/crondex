@@ -1,0 +1,32 @@
+id: press-release-pickup-tracking
+version: 1
+name: Press Release Pickup Tracking
+description: >
+  Searches for media pickups of a recent press release and reports which
+  outlets ran it. Use this if a press release has ever gone out and
+  nobody actually confirmed whether any outlets picked it up.
+category: marketing
+tags: [marketing, pr, press, media]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Search for coverage of the press release "{{press_release_title}}"
+  (issued {{press_release_date}}) from the last {{lookback_days}} days.
+  1. List each outlet that picked it up, with a link and whether it ran
+     verbatim or as an original story.
+  2. Note the apparent reach/tier of each outlet if you can tell
+     (major trade press, niche blog, syndication network).
+  3. If no pickups found yet, say so — don't fabricate results.
+variables:
+  press_release_title:
+    default: "your press release headline"
+    description: Title of the press release to track.
+  press_release_date:
+    default: "2026-01-01"
+    description: Date the press release was issued (YYYY-MM-DD).
+  lookback_days:
+    default: 14
+    description: Window since issue date to search for pickups.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — finding pickups needs live web/news search, and judging outlet tier/reach needs judgment a script can't reliably automate.

@@ -1,0 +1,43 @@
+id: email-list-growth-rate-check
+version: 1
+name: Email List Growth Rate Check
+description: >
+  Compares net email list growth (new subscribers minus unsubscribes and
+  bounces) over a recent period against a minimum growth rate, flagging a
+  stalled or shrinking list. Use this if a list has ever been quietly
+  shrinking for months because unsubscribes were outpacing signups and
+  nobody was tracking the net number.
+category: marketing
+tags: [marketing, email, list-growth, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{esp_api_token}}" "{{esp_list_stats_api_url}}");
+  current=$(echo "$stats" | grep -o '"current_count":[0-9]*' | head -n1 | cut -d: -f2);
+  previous=$(echo "$stats" | grep -o '"previous_count":[0-9]*' | head -n1 | cut -d: -f2);
+  if [ -z "$current" ] || [ -z "$previous" ] || [ "$previous" -eq 0 ]; then echo "ERROR: could not compute growth rate from {{esp_list_stats_api_url}}"; exit 1; fi;
+  growth_pct=$(awk "BEGIN{printf \"%.2f\", (($current-$previous)/$previous)*100}");
+  if awk "BEGIN{exit !($growth_pct < {{min_growth_rate_pct}})}"; then
+    echo "WARNING: list grew ${growth_pct}% over {{lookback_days}} days (min {{min_growth_rate_pct}}%) — $previous to $current subscribers";
+    exit 1;
+  else echo "OK: list grew ${growth_pct}% — $previous to $current subscribers"; fi
+variables:
+  esp_list_stats_api_url:
+    default: "https://api.example-esp.com/lists/main/stats?days={{lookback_days}}"
+    description: Email service provider endpoint returning current_count and previous_count subscriber totals for the window.
+  esp_api_token:
+    default: "your-api-token"
+    description: API token for the email service provider.
+  lookback_days:
+    default: 30
+    description: Window over which to measure net list growth.
+  min_growth_rate_pct:
+    default: 0
+    description: Minimum acceptable net growth rate percent over the window (0 means "must not shrink").
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point at your ESP's (Mailchimp, Klaviyo,
+  SendGrid) list stats endpoint; adjust field names to match its response
+  shape. Distinct from newsletter-unsubscribe-spike-check (per-send
+  unsubscribe rate) — this tracks net list size trend over time instead.

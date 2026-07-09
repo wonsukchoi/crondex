@@ -1,0 +1,43 @@
+id: brand-share-of-voice-check
+version: 1
+name: Brand Share of Voice Check
+description: >
+  Compares how often your brand is mentioned online versus a list of
+  named competitors over a recent window, flagging a real shift in share
+  of voice. Use this if a competitor has ever quietly out-marketed you
+  and the first sign was a sales rep mentioning it in a deal review
+  instead of a share-of-voice report catching the trend.
+category: marketing
+tags: [marketing, competitor, share-of-voice, brand]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Search for mentions of "{{brand_name}}" and each of these competitors —
+  {{competitor_names}} — from the last {{lookback_days}} days across
+  whatever sources you have access to (web search, X/Twitter, Reddit,
+  news).
+  1. Estimate a rough mention count for the brand and each competitor.
+  2. Compute the brand's approximate share of voice (brand mentions /
+     total mentions across all names).
+  3. Compare to the prior period if you can find historical data, and
+     flag a meaningful drop in share.
+  4. If one competitor stands out as gaining ground, name it and note
+     what seems to be driving it (launch, campaign, controversy) if
+     visible.
+variables:
+  brand_name:
+    default: "your brand"
+    description: Your brand/product name to track.
+  competitor_names:
+    default: "Competitor A, Competitor B"
+    description: Comma-separated list of named competitors to compare against.
+  lookback_days:
+    default: 30
+    description: Window of mentions to consider.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — needs live search across sources and judgment
+  to estimate relative volume. Distinct from content/social-mentions-watch
+  (reads sentiment/triage of your own brand's mentions one by one) — this
+  compares mention volume across named competitors instead.

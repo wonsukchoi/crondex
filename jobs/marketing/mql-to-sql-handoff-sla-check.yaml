@@ -1,0 +1,29 @@
+id: mql-to-sql-handoff-sla-check
+version: 1
+name: MQL-to-SQL Handoff SLA Check
+description: >
+  Checks how long marketing-qualified leads have been sitting since
+  becoming an MQL without sales accepting them as sales-qualified, and
+  flags leads stuck past the handoff SLA. Use this if a hot lead has ever
+  gone cold sitting in the queue between marketing handing it off and
+  sales actually picking it up.
+category: marketing
+tags: [marketing, mql, handoff, funnel, sla]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, email, mql_at from leads where status = 'mql' and sql_accepted_at is null and mql_at < now() - interval '{{handoff_sla_hours}} hours';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the marketing/CRM leads database.
+  handoff_sla_hours:
+    default: 4
+    description: Hours an MQL can wait for sales acceptance before it's flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `leads` table with `status`, `mql_at`, and `sql_accepted_at`
+  columns — adjust to your CRM's schema. Distinct from
+  sales/lead-response-time-check (first-touch response time on any new
+  lead) — this checks the specific marketing-to-sales handoff stage.

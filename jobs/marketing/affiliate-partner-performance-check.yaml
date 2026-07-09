@@ -1,0 +1,38 @@
+id: affiliate-partner-performance-check
+version: 1
+name: Affiliate/Partner Performance Check
+description: >
+  Compares each affiliate or partner's referred conversions and revenue
+  against their target for the period and flags underperformers. Use
+  this if a partner program has ever kept paying placement fees to
+  partners who quietly stopped actually driving conversions.
+category: marketing
+tags: [marketing, affiliate, partners, performance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  fail=0;
+  while IFS=',' read -r partner conversions revenue target_revenue; do
+    [ "$partner" = "partner_name" ] && continue;
+    [ -z "$partner" ] && continue;
+    pct=$(awk "BEGIN{printf \"%.0f\", ($revenue/$target_revenue)*100}");
+    if awk "BEGIN{exit !($pct < {{underperformance_threshold_pct}})}"; then
+      echo "UNDERPERFORMING: $partner — \$$revenue of \$$target_revenue target (${pct}%), $conversions conversions";
+      fail=1;
+    fi;
+  done < "{{partner_performance_csv_path}}";
+  exit $fail
+variables:
+  partner_performance_csv_path:
+    default: "./partner-performance.csv"
+    description: "CSV with header row, columns: partner_name,conversions,revenue,target_revenue — one row per affiliate/partner for the period."
+  underperformance_threshold_pct:
+    default: 50
+    description: Percent of target revenue below which a partner is flagged as underperforming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from creator/affiliate-link-expiry-check (tracks individual
+  link/code expiry dates) — this tracks whether each partner relationship
+  is still actually performing, on a recurring per-period cadence rather
+  than a link-by-link deadline.

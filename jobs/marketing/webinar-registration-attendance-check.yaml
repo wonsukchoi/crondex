@@ -1,0 +1,38 @@
+id: webinar-registration-attendance-check
+version: 1
+name: Webinar Registration/Attendance Check
+description: >
+  Checks a webinar's registration count and show-up (attendance) rate
+  against targets, with enough lead time to boost promotion or send
+  reminders. Use this if a webinar has ever gone live to a nearly empty
+  room because registration numbers looked fine on paper but nobody
+  checked the actual show-up rate trend.
+category: marketing
+tags: [marketing, webinar, events, registration]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{webinar_platform_api_token}}" "{{webinar_platform_stats_api_url}}");
+  registrations=$(echo "$stats" | grep -o '"registrations":[0-9]*' | head -n1 | cut -d: -f2);
+  attendance_rate=$(echo "$stats" | grep -o '"attendance_rate":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$registrations" ]; then echo "ERROR: could not fetch stats from {{webinar_platform_stats_api_url}}"; exit 1; fi;
+  flagged=0;
+  if [ "$registrations" -lt "{{min_registrations}}" ]; then echo "WARNING: only $registrations registrations, below minimum {{min_registrations}}"; flagged=1; fi;
+  if [ -n "$attendance_rate" ] && awk "BEGIN{exit !($attendance_rate < {{min_attendance_rate_pct}})}"; then echo "WARNING: projected attendance rate ${attendance_rate}% below minimum {{min_attendance_rate_pct}}%"; flagged=1; fi;
+  if [ "$flagged" -eq 0 ]; then echo "OK: $registrations registrations, attendance rate ${attendance_rate}%"; else exit 1; fi
+variables:
+  webinar_platform_stats_api_url:
+    default: "https://api.example-webinar.com/events/upcoming/stats"
+    description: Webinar platform API endpoint returning registrations and attendance_rate for the upcoming event.
+  webinar_platform_api_token:
+    default: "your-api-token"
+    description: API token for the webinar platform.
+  min_registrations:
+    default: 50
+    description: Minimum registration count before flagging.
+  min_attendance_rate_pct:
+    default: 35
+    description: Minimum projected/historical show-up rate percent before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Generic REST pattern — point at your webinar platform's (Zoom, ON24, Livestorm) API; attendance_rate may only be available after the event, so schedule a same-day-before-event run for registrations and a next-day run for actual attendance.

@@ -1,0 +1,37 @@
+id: paid-search-negative-keyword-waste-check
+version: 1
+name: Paid Search Negative Keyword Waste Check
+description: >
+  Reviews the recent search terms report for a paid search account and
+  flags spend on queries that are clearly irrelevant to what's being
+  sold and should be added as negative keywords. Use this if a paid
+  search account has ever burned budget for weeks on obviously mismatched
+  search terms because nobody reviewed the search terms report.
+category: marketing
+tags: [marketing, paid-search, ads, waste, negative-keywords]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the search terms report for {{ad_account_hint}} over the last
+  {{lookback_days}} days.
+  1. Identify search terms that triggered ads but are clearly irrelevant
+     to the product/service being sold (mismatched intent, wrong
+     category, competitor brand names if that's not the strategy, junk
+     queries).
+  2. Sum the spend attributed to those irrelevant terms.
+  3. Flag if total wasted spend exceeds ${{min_wasted_spend_usd}}.
+  4. List the worst offending terms with spend and clicks, as candidates
+     to add to the negative keyword list.
+variables:
+  ad_account_hint:
+    default: "your paid search account (Google Ads, Microsoft Ads)"
+    description: Which paid search account/platform to review.
+  lookback_days:
+    default: 30
+    description: Window of search terms data to review.
+  min_wasted_spend_usd:
+    default: 200
+    description: Total wasted spend in USD that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — judging whether a search term is "clearly irrelevant" to your specific product needs judgment a keyword-matching script can't reliably provide.

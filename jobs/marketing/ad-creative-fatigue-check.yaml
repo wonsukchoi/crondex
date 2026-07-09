@@ -1,0 +1,44 @@
+id: ad-creative-fatigue-check
+version: 1
+name: Ad Creative Fatigue Check
+description: >
+  Checks an ad creative's frequency (average times seen per user) and
+  click-through rate against thresholds, flagging fatigue before
+  performance craters. Use this if a top-performing ad has ever kept
+  running past its shelf life, burning budget on an audience that had
+  already tuned it out.
+category: marketing
+tags: [marketing, ads, creative, fatigue]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{ad_platform_api_token}}" "{{ad_platform_stats_api_url}}");
+  frequency=$(echo "$stats" | grep -o '"frequency":[0-9.]*' | head -n1 | cut -d: -f2);
+  ctr=$(echo "$stats" | grep -o '"ctr":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$frequency" ] || [ -z "$ctr" ]; then echo "ERROR: could not fetch frequency/ctr from {{ad_platform_stats_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($frequency > {{max_frequency}} && $ctr < {{min_ctr_pct}})}"; then
+    echo "WARNING: creative {{creative_name}} fatigued — frequency ${frequency} (max {{max_frequency}}), CTR ${ctr}% (min {{min_ctr_pct}}%)";
+    exit 1;
+  else echo "OK: creative {{creative_name}} — frequency ${frequency}, CTR ${ctr}%"; fi
+variables:
+  ad_platform_stats_api_url:
+    default: "https://api.example-ads.com/creatives/{{creative_name}}/stats"
+    description: Ad platform reporting API endpoint returning frequency and ctr fields for the creative.
+  ad_platform_api_token:
+    default: "your-api-token"
+    description: API token for the ad platform.
+  creative_name:
+    default: "your creative"
+    description: Name/ID of the ad creative to check.
+  max_frequency:
+    default: 4
+    description: Average impressions per user above which fatigue is likely.
+  min_ctr_pct:
+    default: 0.5
+    description: Click-through rate percent below which, combined with high frequency, counts as fatigue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point at your ad platform's reporting API for a
+  single creative; both frequency and CTR must miss their thresholds
+  together so a naturally low-CTR-but-fresh creative doesn't false-flag.

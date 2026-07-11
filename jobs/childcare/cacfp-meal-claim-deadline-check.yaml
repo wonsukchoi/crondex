@@ -1,0 +1,50 @@
+id: cacfp-meal-claim-deadline-check
+version: 1
+name: CACFP Meal Claim Deadline Check
+description: >
+  Checks whether this month's USDA Child and Adult Care Food Program
+  (CACFP) meal counts are complete and flags the claim submission
+  deadline as it approaches. Use this if a meal-count gap or a missed
+  claim window has ever cost the center reimbursement money it was
+  otherwise entitled to.
+category: childcare
+tags: [childcare, cacfp, nutrition, compliance, billing]
+schedule: "0 8 25 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($2 == "" || $3 == "" || $4 == "") {
+        printf "INCOMPLETE MEAL COUNT: %s — missing count for %s\n", $1, $5;
+      }
+    }
+  ' "{{meal_count_csv_path}}"
+  echo "Claim for {{claim_month}} is due by day {{claim_due_day}} of next month.";
+prompt: |
+  Review this month's CACFP meal count log at {{meal_count_csv_path}} and
+  the claim submission deadline (day {{claim_due_day}} of next month for
+  {{claim_month}}).
+  1. List any day/classroom with an incomplete meal count (missing
+     breakfast, lunch, or snack tally).
+  2. Flag whether the claim is on track to be submitted before the
+     deadline given how much of the month's data is still missing.
+  3. Summarize what needs to happen before submission.
+script_note: >
+  The command flags rows with missing meal counts and echoes the deadline
+  for free. It doesn't judge whether the gaps are large enough to put the
+  claim itself at risk, or draft the "what needs to happen" summary for
+  whoever is filing — that synthesis is what the prompt adds.
+variables:
+  meal_count_csv_path:
+    default: "./cacfp-meal-counts.csv"
+    description: "Path to a CSV with columns: date,breakfast_count,lunch_count,snack_count,classroom."
+  claim_month:
+    default: "this month"
+    description: Which month's claim this run is checking.
+  claim_due_day:
+    default: 15
+    description: Day of the following month your state agency requires the CACFP claim by.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Confirm your state agency's exact claim deadline and required meal pattern documentation — CACFP administration varies by state sponsor.

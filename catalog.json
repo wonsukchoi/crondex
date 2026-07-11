@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 659,
+  "count": 672,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1278,6 +1278,35 @@
         "codex"
       ],
       "path": "jobs/legal/business-license-renewal-check.yaml"
+    },
+    {
+      "id": "cacfp-meal-claim-deadline-check",
+      "version": 1,
+      "name": "CACFP Meal Claim Deadline Check",
+      "description": "Checks whether this month's USDA Child and Adult Care Food Program (CACFP) meal counts are complete and flags the claim submission deadline as it approaches. Use this if a meal-count gap or a missed claim window has ever cost the center reimbursement money it was otherwise entitled to.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "cacfp",
+        "nutrition",
+        "compliance",
+        "billing"
+      ],
+      "schedule": "0 8 25 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/childcare/cacfp-meal-claim-deadline-check.yaml"
     },
     {
       "id": "calendar-double-booking-check",
@@ -3461,6 +3490,31 @@
       "path": "jobs/warehousing/cycle-count-schedule-check.yaml"
     },
     {
+      "id": "daily-attendance-headcount-reconciliation-check",
+      "version": 1,
+      "name": "Daily Attendance Headcount Reconciliation Check",
+      "description": "Compares each classroom's sign-in count against its sign-out count at end of day and flags any child who was checked in but never checked out. Use this if a child has ever still shown as \"present\" after closing because a pickup didn't get logged — a gap that matters most during a fire drill or real evacuation, when the headcount has to be trustworthy.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "attendance",
+        "safety",
+        "headcount"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/daily-attendance-headcount-reconciliation-check.yaml"
+    },
+    {
       "id": "daily-flashcard-review",
       "version": 1,
       "name": "Daily Flashcard Review",
@@ -4591,6 +4645,34 @@
       "path": "jobs/creator/engagement-drop-watch.yaml"
     },
     {
+      "id": "enrollment-capacity-ratio-forecast-check",
+      "version": 1,
+      "name": "Enrollment Capacity Ratio Forecast Check",
+      "description": "Looks at upcoming enrollments, planned withdrawals, and current staffing plans to flag classrooms projected to breach licensed ratio limits in the coming weeks. Use this if a classroom has ever hit its ratio limit on the first day a new child started, because nobody checked the incoming enrollment pipeline against staffing plans ahead of time — distinct from staff-child-ratio-compliance-check, which looks at today's actual headcount rather than what's coming.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "enrollment",
+        "ratio",
+        "forecasting",
+        "capacity"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/childcare/enrollment-capacity-ratio-forecast-check.yaml"
+    },
+    {
       "id": "enrollment-waitlist-followup-check",
       "version": 1,
       "name": "Enrollment Waitlist Follow-Up Check",
@@ -5170,6 +5252,31 @@
       "path": "jobs/fitness/facility-cleaning-log-check.yaml"
     },
     {
+      "id": "facility-license-renewal-deadline-check",
+      "version": 1,
+      "name": "Facility License Renewal Deadline Check",
+      "description": "Checks your center's state childcare license, food service permit, and any other facility-level licenses against their renewal deadlines and warns before one lapses. Use this if a facility license has ever come up for renewal without enough lead time to get the paperwork and inspection done before the old one expired.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "licensing",
+        "facility",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/facility-license-renewal-deadline-check.yaml"
+    },
+    {
       "id": "facility-work-order-backlog-check",
       "version": 1,
       "name": "Facility Work Order Backlog Check",
@@ -5425,6 +5532,31 @@
         "codex"
       ],
       "path": "jobs/education/field-trip-permission-slip-check.yaml"
+    },
+    {
+      "id": "fire-drill-schedule-compliance-check",
+      "version": 1,
+      "name": "Fire Drill Schedule Compliance Check",
+      "description": "Checks your fire/emergency evacuation drill log against the required monthly cadence and flags any month with no drill on record. Use this if a month has ever slipped by without a drill because everyone assumed someone else had scheduled it.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "fire-drill",
+        "safety",
+        "compliance"
+      ],
+      "schedule": "0 8 25 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/fire-drill-schedule-compliance-check.yaml"
     },
     {
       "id": "firewall-rule-diff",
@@ -7018,6 +7150,33 @@
         "generic"
       ],
       "path": "jobs/productivity/inbox-triage.yaml"
+    },
+    {
+      "id": "incident-report-followup-tracking",
+      "version": 1,
+      "name": "Incident Report Follow-Up Tracking",
+      "description": "Reviews recent incident/injury reports and flags any that are missing a parent notification, a corrective action note, or a required licensing notification. Use this if an incident report has ever sat \"filed\" with nobody confirming the parent was actually told or that a hazard got fixed, not just written up.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "incident",
+        "safety",
+        "followup"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/childcare/incident-report-followup-tracking.yaml"
     },
     {
       "id": "inspection-deadline-reminder",
@@ -8768,6 +8927,31 @@
       "path": "jobs/healthcare/medical-equipment-calibration-check.yaml"
     },
     {
+      "id": "medication-administration-log-check",
+      "version": 1,
+      "name": "Medication Administration Log Check",
+      "description": "Checks today's list of children with a scheduled medication (daily prescriptions, inhalers, etc.) against the administration log and flags any dose that's due but not yet logged as given. Use this if a scheduled dose has ever been missed simply because it slipped everyone's mind during a busy stretch of the day.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "medication",
+        "health",
+        "safety"
+      ],
+      "schedule": "0 11,15 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/medication-administration-log-check.yaml"
+    },
+    {
       "id": "medication-inventory-expiry-check",
       "version": 1,
       "name": "Medication Inventory Expiry Check",
@@ -9988,6 +10172,57 @@
       "path": "jobs/warehousing/pallet-putaway-delay-check.yaml"
     },
     {
+      "id": "parent-consent-form-renewal-check",
+      "version": 1,
+      "name": "Parent Consent Form Renewal Check",
+      "description": "Checks each child's on-file consent forms (photo/media release, sunscreen application, emergency medical treatment, standing local-trip permission) against their annual renewal date and flags any that have lapsed. Use this if a form has ever quietly expired and only got noticed when someone needed to actually rely on it.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "consent",
+        "forms",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/parent-consent-form-renewal-check.yaml"
+    },
+    {
+      "id": "parent-pickup-authorization-verification-check",
+      "version": 1,
+      "name": "Parent Pickup Authorization Verification Check",
+      "description": "Checks each enrolled child's authorized pickup list and flags anyone with no authorized persons on file, or whose authorization form has expired. Use this if a front-desk staff member has ever had to make a judgment call at pickup time because the authorized-persons list on file was blank, outdated, or unclear.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "pickup",
+        "safety",
+        "authorization",
+        "compliance"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/parent-pickup-authorization-verification-check.yaml"
+    },
+    {
       "id": "parent-teacher-conference-noshow-tracker",
       "version": 1,
       "name": "Parent-Teacher Conference No-Show Tracker",
@@ -10782,6 +11017,31 @@
         "codex"
       ],
       "path": "jobs/gaming/player-contract-renewal-check.yaml"
+    },
+    {
+      "id": "playground-equipment-safety-inspection-check",
+      "version": 1,
+      "name": "Playground Equipment Safety Inspection Check",
+      "description": "Checks each piece of playground equipment against its required inspection interval and flags anything overdue. Use this if a swing, climber, or piece of fall-surfacing has ever gone past its inspection window without anyone noticing until a parent or inspector pointed out visible wear.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "playground",
+        "safety",
+        "inspection"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/playground-equipment-safety-inspection-check.yaml"
     },
     {
       "id": "poc-trial-conversion-tracker",
@@ -12931,6 +13191,32 @@
       "path": "jobs/finance/saas-seat-audit.yaml"
     },
     {
+      "id": "safe-sleep-checklist-compliance-check",
+      "version": 1,
+      "name": "Safe Sleep Checklist Compliance Check",
+      "description": "Checks the infant room's daily safe-sleep checklist (crib checks logged at required intervals) for any missing entries. Use this if a required sleep-check log has ever gone unfilled for a shift because a busy room meant someone forgot to mark it down, not because the check itself was skipped.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "safe-sleep",
+        "infant",
+        "compliance",
+        "safety"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/safe-sleep-checklist-compliance-check.yaml"
+    },
+    {
       "id": "safety-certification-expiry-check",
       "version": 1,
       "name": "Safety Equipment Operator Certification Expiry Check",
@@ -13922,6 +14208,58 @@
         "codex"
       ],
       "path": "jobs/crypto/stablecoin-peg-deviation-watch.yaml"
+    },
+    {
+      "id": "staff-annual-training-hours-tracking-check",
+      "version": 1,
+      "name": "Staff Annual Training Hours Tracking Check",
+      "description": "Checks each staff member's completed continuing-education hours for the year against your licensing body's required annual minimum and warns before their renewal deadline if they're short. Use this if a staff member has ever discovered close to license renewal that they hadn't logged enough required training hours for the year — distinct from staff-certification-expiry-check, which tracks specific certifications like CPR expiring, not an ongoing annual hours requirement.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "training",
+        "staff",
+        "licensing",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/staff-annual-training-hours-tracking-check.yaml"
+    },
+    {
+      "id": "staff-background-check-recertification-check",
+      "version": 1,
+      "name": "Staff Background Check Recertification Check",
+      "description": "Checks each staff member's background check / fingerprint clearance against your licensing body's required recertification interval and warns before it lapses. Use this if a staff member's clearance has ever quietly expired while they kept working, because the CPR/first-aid certification tracker doesn't cover it — this is a separate, longer-cycle clearance, not a skills certification.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "background-check",
+        "licensing",
+        "compliance",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/childcare/staff-background-check-recertification-check.yaml"
     },
     {
       "id": "staff-certification-expiry-check",

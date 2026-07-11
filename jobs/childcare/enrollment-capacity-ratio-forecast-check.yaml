@@ -1,0 +1,38 @@
+id: enrollment-capacity-ratio-forecast-check
+version: 1
+name: Enrollment Capacity Ratio Forecast Check
+description: >
+  Looks at upcoming enrollments, planned withdrawals, and current staffing
+  plans to flag classrooms projected to breach licensed ratio limits in
+  the coming weeks. Use this if a classroom has ever hit its ratio limit
+  on the first day a new child started, because nobody checked the
+  incoming enrollment pipeline against staffing plans ahead of time —
+  distinct from staff-child-ratio-compliance-check, which looks at today's
+  actual headcount rather than what's coming.
+category: childcare
+tags: [childcare, enrollment, ratio, forecasting, capacity]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the enrollment pipeline in {{enrollment_system}} for the next
+  {{forecast_weeks}} weeks: confirmed new enrollments, scheduled
+  withdrawals, and any planned staff hires or departures per classroom.
+  1. For each classroom, project the staff-to-child ratio on each date a
+     change takes effect, using your licensing requirement of
+     {{max_children_per_staff}} children per staff for that age group.
+  2. Flag any classroom/date projected to exceed the ratio limit.
+  3. For each flagged case, note whether it's solvable by a hire already
+     in progress, or needs a new posting or a hold on further enrollment.
+variables:
+  enrollment_system:
+    default: "your childcare management/enrollment system"
+    description: Where enrollment pipeline and staffing plans are tracked.
+  forecast_weeks:
+    default: 4
+    description: How many weeks ahead to project.
+  max_children_per_staff:
+    default: 4
+    description: Your licensing requirement's children-per-staff maximum for the age group being forecast — varies significantly by age group and jurisdiction.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Confirm your jurisdiction's actual ratio requirements per age group — this job doesn't know them and needs the right number supplied per classroom.

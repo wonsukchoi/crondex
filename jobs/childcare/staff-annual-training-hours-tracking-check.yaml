@@ -1,0 +1,39 @@
+id: staff-annual-training-hours-tracking-check
+version: 1
+name: Staff Annual Training Hours Tracking Check
+description: >
+  Checks each staff member's completed continuing-education hours for the
+  year against your licensing body's required annual minimum and warns
+  before their renewal deadline if they're short. Use this if a staff
+  member has ever discovered close to license renewal that they hadn't
+  logged enough required training hours for the year — distinct from
+  staff-certification-expiry-check, which tracks specific certifications
+  like CPR expiring, not an ongoing annual hours requirement.
+category: childcare
+tags: [childcare, training, staff, licensing, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      diff_days = (deadline_epoch - today) / 86400;
+      shortfall = ($4 + 0) - ($3 + 0);
+      if (diff_days <= warn_days && shortfall > 0) {
+        printf "SHORTFALL: %s — %d/%d hours completed, %d short, due %s (%d days)\n", $1, $3, $4, shortfall, $5, diff_days;
+      }
+    }
+  ' "{{training_hours_csv_path}}"
+variables:
+  training_hours_csv_path:
+    default: "./staff-annual-training-hours.csv"
+    description: "Path to a CSV with columns: staff_name,role,hours_completed,hours_required,deadline_date (YYYY-MM-DD)."
+  warn_days_before_deadline:
+    default: 45
+    description: How many days before the annual deadline to start warning about a shortfall.
+compatible_agents: [generic, claude, codex]
+notes: Required annual hours and eligible training topics vary by state licensing body — confirm your jurisdiction's actual requirement rather than assuming a default.

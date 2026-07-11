@@ -1,0 +1,30 @@
+id: daily-attendance-headcount-reconciliation-check
+version: 1
+name: Daily Attendance Headcount Reconciliation Check
+description: >
+  Compares each classroom's sign-in count against its sign-out count at
+  end of day and flags any child who was checked in but never checked
+  out. Use this if a child has ever still shown as "present" after
+  closing because a pickup didn't get logged — a gap that matters most
+  during a fire drill or real evacuation, when the headcount has to be
+  trustworthy.
+category: childcare
+tags: [childcare, attendance, safety, headcount]
+schedule: "0 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($4 == "" || $4 == "signed-in") {
+        printf "NOT SIGNED OUT: %s — classroom %s, signed in %s, no sign-out logged\n", $1, $2, $3;
+      }
+    }
+  ' "{{attendance_csv_path}}"
+variables:
+  attendance_csv_path:
+    default: "./daily-attendance.csv"
+    description: "Path to a CSV with columns: child_name,classroom,sign_in_time,sign_out_time_or_status (blank or 'signed-in' if not yet signed out)."
+compatible_agents: [generic, claude, codex]
+notes: Run this at or after closing time — earlier in the day it will flag every child still legitimately present.

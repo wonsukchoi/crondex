@@ -1,0 +1,34 @@
+id: incident-report-followup-tracking
+version: 1
+name: Incident Report Follow-Up Tracking
+description: >
+  Reviews recent incident/injury reports and flags any that are missing a
+  parent notification, a corrective action note, or a required licensing
+  notification. Use this if an incident report has ever sat "filed" with
+  nobody confirming the parent was actually told or that a hazard got
+  fixed, not just written up.
+category: childcare
+tags: [childcare, incident, safety, followup]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review incident/injury reports logged in the last {{lookback_days}} days
+  in {{incident_log_system}}.
+  1. For each report, check whether: (a) the parent/guardian was notified
+     and how, (b) a corrective action or follow-up step is noted, and
+     (c) if the incident meets your state's threshold for a licensing
+     notification, whether that notification was filed.
+  2. List any report missing one of those three items as needing
+     follow-up, oldest first.
+  3. Draft a short note to the responsible staff member for each gap,
+     asking them to close it out.
+variables:
+  incident_log_system:
+    default: "your incident report log or childcare management system"
+    description: Where incident/injury reports are recorded.
+  lookback_days:
+    default: 14
+    description: How many days back to review for open follow-up items.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — confirm your state's actual licensing notification threshold, which varies (e.g. head injuries, anything requiring medical care beyond first aid).

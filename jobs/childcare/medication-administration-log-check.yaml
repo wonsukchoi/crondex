@@ -1,0 +1,29 @@
+id: medication-administration-log-check
+version: 1
+name: Medication Administration Log Check
+description: >
+  Checks today's list of children with a scheduled medication (daily
+  prescriptions, inhalers, etc.) against the administration log and
+  flags any dose that's due but not yet logged as given. Use this if a
+  scheduled dose has ever been missed simply because it slipped
+  everyone's mind during a busy stretch of the day.
+category: childcare
+tags: [childcare, medication, health, safety]
+schedule: "0 11,15 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  now_hm=$(date +%H:%M);
+  awk -F',' -v today="$today" -v now="$now_hm" '
+    NR==1 {next}
+    $2 == today && $3 <= now && $5 == "" {
+      printf "NOT LOGGED: %s — dose scheduled %s at %s, no administration logged\n", $1, $2, $3;
+    }
+  ' "{{medication_schedule_csv_path}}"
+variables:
+  medication_schedule_csv_path:
+    default: "./medication-schedule.csv"
+    description: "Path to a CSV with columns: child_name,scheduled_date (YYYY-MM-DD),scheduled_time (HH:MM),medication_name,administered_time_or_blank."
+compatible_agents: [generic, claude, codex]
+notes: A flagged dose needs an immediate in-person check, not just a note for later — confirm with the assigned staff member right away whether it was given and just not logged, or actually missed.

@@ -1,0 +1,36 @@
+id: parent-consent-form-renewal-check
+version: 1
+name: Parent Consent Form Renewal Check
+description: >
+  Checks each child's on-file consent forms (photo/media release,
+  sunscreen application, emergency medical treatment, standing local-trip
+  permission) against their annual renewal date and flags any that have
+  lapsed. Use this if a form has ever quietly expired and only got
+  noticed when someone needed to actually rely on it.
+category: childcare
+tags: [childcare, consent, forms, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "EXPIRING: %s — %s expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{consent_forms_csv_path}}"
+variables:
+  consent_forms_csv_path:
+    default: "./parent-consent-forms.csv"
+    description: "Path to a CSV with columns: child_name,form_type (e.g. photo release, sunscreen, emergency medical, local-trip permission),renewal_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 21
+    description: How many days before a consent form's renewal date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from allergy-action-plan-expiry-check, which covers medically-signed allergy protocols rather than general parental consent paperwork.

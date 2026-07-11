@@ -1,0 +1,38 @@
+id: safe-sleep-checklist-compliance-check
+version: 1
+name: Safe Sleep Checklist Compliance Check
+description: >
+  Checks the infant room's daily safe-sleep checklist (crib checks logged
+  at required intervals) for any missing entries. Use this if a required
+  sleep-check log has ever gone unfilled for a shift because a busy room
+  meant someone forgot to mark it down, not because the check itself was
+  skipped.
+category: childcare
+tags: [childcare, safe-sleep, infant, compliance, safety]
+schedule: "0 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" -v required="{{required_checks_per_shift}}" '
+    NR==1 {next}
+    $1 == today {
+      count[$2]++;
+    }
+    END {
+      for (room in count) {
+        if (count[room] < required) {
+          printf "INCOMPLETE: %s — %d of %d required safe-sleep checks logged today\n", room, count[room], required;
+        }
+      }
+    }
+  ' "{{safe_sleep_log_csv_path}}"
+variables:
+  safe_sleep_log_csv_path:
+    default: "./safe-sleep-checklist-log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),room_name,check_time,staff_initials. One row per logged crib check."
+  required_checks_per_shift:
+    default: 6
+    description: How many logged checks are expected per room per day (e.g. one every 15-30 minutes during nap).
+compatible_agents: [generic, claude, codex]
+notes: This checks that the log was filled in, not that the physical check itself happened — pair it with in-person spot audits, not as a replacement for them.

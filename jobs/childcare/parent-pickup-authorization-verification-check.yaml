@@ -1,0 +1,40 @@
+id: parent-pickup-authorization-verification-check
+version: 1
+name: Parent Pickup Authorization Verification Check
+description: >
+  Checks each enrolled child's authorized pickup list and flags anyone
+  with no authorized persons on file, or whose authorization form has
+  expired. Use this if a front-desk staff member has ever had to make a
+  judgment call at pickup time because the authorized-persons list on
+  file was blank, outdated, or unclear.
+category: childcare
+tags: [childcare, pickup, safety, authorization, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      if ($2+0 == 0) {
+        printf "NO AUTHORIZED PICKUP: %s has zero authorized pickup persons on file\n", $1;
+        next;
+      }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "FORM EXPIRING: %s — authorization form expires %s (%d days)\n", $1, $3, diff_days;
+      }
+    }
+  ' "{{pickup_authorization_csv_path}}"
+variables:
+  pickup_authorization_csv_path:
+    default: "./pickup-authorization.csv"
+    description: "Path to a CSV with columns: child_name,authorized_persons_count,authorization_form_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before an authorization form expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: A child with zero authorized pickup persons on file is a same-day fix, not a queue item — flag it to the family directly.

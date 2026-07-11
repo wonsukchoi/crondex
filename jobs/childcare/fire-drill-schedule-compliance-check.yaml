@@ -1,0 +1,30 @@
+id: fire-drill-schedule-compliance-check
+version: 1
+name: Fire Drill Schedule Compliance Check
+description: >
+  Checks your fire/emergency evacuation drill log against the required
+  monthly cadence and flags any month with no drill on record. Use this
+  if a month has ever slipped by without a drill because everyone assumed
+  someone else had scheduled it.
+category: childcare
+tags: [childcare, fire-drill, safety, compliance]
+schedule: "0 8 25 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  this_month=$(date +%Y-%m);
+  awk -F',' -v month="$this_month" '
+    NR==1 {next}
+    substr($1,1,7) == month {found=1}
+    END {
+      if (!found) {
+        printf "NO DRILL LOGGED: %s has no fire/emergency drill on record yet\n", month;
+      }
+    }
+  ' "{{drill_log_csv_path}}"
+variables:
+  drill_log_csv_path:
+    default: "./fire-drill-log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),drill_type,notes. One row per drill conducted."
+compatible_agents: [generic, claude, codex]
+notes: Runs near month-end so there's still time to hold a drill before the month closes with none logged — most licensing bodies require at least monthly.

@@ -1,0 +1,36 @@
+id: playground-equipment-safety-inspection-check
+version: 1
+name: Playground Equipment Safety Inspection Check
+description: >
+  Checks each piece of playground equipment against its required
+  inspection interval and flags anything overdue. Use this if a swing,
+  climber, or piece of fall-surfacing has ever gone past its inspection
+  window without anyone noticing until a parent or inspector pointed out
+  visible wear.
+category: childcare
+tags: [childcare, playground, safety, inspection]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{overdue_after_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - last_epoch) / 86400;
+      if (age_days >= days) {
+        printf "OVERDUE: %s — last inspected %s (%d days ago)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{playground_inspections_csv_path}}"
+variables:
+  playground_inspections_csv_path:
+    default: "./playground-inspections.csv"
+    description: "Path to a CSV with columns: equipment_name,last_inspected_date (YYYY-MM-DD)."
+  overdue_after_days:
+    default: 90
+    description: How many days since the last inspection before equipment counts as overdue — align this with your insurer's or licensing body's required cadence.
+compatible_agents: [generic, claude, codex]
+notes: A flagged item should be taken out of use or cordoned off until reinspected, not just queued for a look later.

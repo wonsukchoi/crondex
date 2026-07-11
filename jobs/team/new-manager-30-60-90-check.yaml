@@ -1,0 +1,38 @@
+id: new-manager-30-60-90-check
+version: 1
+name: New Manager 30-60-90 Check
+description: >
+  Tracks a new manager's 30/60/90-day plan milestones and reminds them
+  (and their manager) when a checkpoint is coming up or was missed.
+  Use this if a first-time manager has ever been left to figure out
+  what "day 60" is supposed to look like with zero structure or
+  check-ins from above.
+category: team
+tags: [team, management, onboarding, new-manager]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  start_epoch=$(date -d "{{start_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{start_date}}" +%s);
+  days_in=$(( (today-start_epoch)/86400 ));
+  for milestone in 30 60 90; do
+    diff=$(( milestone - days_in ));
+    if [ "$diff" -ge 0 ] && [ "$diff" -le {{warn_days_before}} ]; then
+      echo "UPCOMING: day-$milestone checkpoint for {{manager_name}} in $diff day(s).";
+    elif [ "$diff" -lt 0 ] && [ "$diff" -ge -{{warn_days_before}} ]; then
+      echo "RECENT: day-$milestone checkpoint for {{manager_name}} was $(( -diff )) day(s) ago — confirm it happened.";
+    fi
+  done
+variables:
+  manager_name:
+    default: "the new manager"
+    description: Name of the new manager being onboarded.
+  start_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the new manager started in the role.
+  warn_days_before:
+    default: 5
+    description: How many days around each checkpoint (before and after) to surface a reminder.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token, calendar-driven — doesn't check whether the checkpoint conversation actually happened, only that it's due.

@@ -1,0 +1,35 @@
+id: major-donor-proposal-followup-check
+version: 1
+name: Major Donor Proposal Follow-Up Check
+description: >
+  Tracks major-gift proposals that have been sent and flags any with no
+  recorded response after a set number of days, drafting a follow-up. Use
+  this if a major donor proposal has ever gone quiet for months because
+  nobody had a system for chasing a response.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, major-gifts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the major-gift proposal tracker from {{proposals_source}} (donor,
+  proposal sent date, current status).
+  1. List every proposal still marked "sent" that's older than
+     {{followup_days}} days with no recorded response.
+  2. For each, draft a brief, warm follow-up message — not a generic
+     nudge — referencing {{org_mission_hint}} and the specific ask if it's
+     available in the tracker.
+  3. Note any proposal with no next-step owner assigned, since that's
+     usually why it went quiet in the first place.
+variables:
+  proposals_source:
+    default: "your major-gift proposal tracker"
+    description: Where major-gift proposals, send dates, and statuses are recorded.
+  followup_days:
+    default: 21
+    description: Days since sending with no response before a proposal gets flagged for follow-up.
+  org_mission_hint:
+    default: "your organization's mission and programs"
+    description: Brief context on the org, to keep follow-up messages specific rather than generic.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — a major-gift follow-up should go out from the relationship owner, not be sent automatically.

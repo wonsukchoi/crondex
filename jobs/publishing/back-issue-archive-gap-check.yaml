@@ -1,0 +1,36 @@
+id: back-issue-archive-gap-check
+version: 1
+name: Back Issue Archive Gap Check
+description: >
+  Checks a magazine or journal's back-issue archive listing for missing
+  issue numbers in the sequence, so gaps get filled or explained before a
+  reader (or a librarian doing an intake) notices first. Use this if your
+  archive has ever had a silently missing issue because a file didn't get
+  uploaded or an issue number got skipped in the listing.
+category: publishing
+tags: [publishing, archive, back-issues, magazine]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR>1 { issues[$1+0]=1; if ($1+0 > max) max = $1+0; if (min == "" || $1+0 < min) min = $1+0 }
+    END {
+      gap_found = 0;
+      for (i = min; i <= max; i++) {
+        if (!(i in issues)) { print "MISSING ISSUE: #" i " not found in archive between #" min " and #" max; gap_found = 1; }
+      }
+      if (!gap_found) print "OK: issues #" min "-#" max " are all present, no gaps";
+    }
+  ' "{{issue_archive_csv}}"
+variables:
+  issue_archive_csv:
+    default: "./back-issue-archive.csv"
+    description: "CSV with header row, columns: issue_number,title_or_date — one row per archived issue."
+  # No other tunables — the gap logic is derived entirely from the data.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes issue numbers are sequential integers with no intentional skips
+  (e.g. no "issue 13" superstition gap) — if your numbering has known
+  intentional gaps, exclude those numbers from the check by adding a
+  placeholder row for them in back-issue-archive.csv.

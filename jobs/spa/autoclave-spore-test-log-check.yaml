@@ -1,0 +1,41 @@
+id: autoclave-spore-test-log-check
+version: 1
+name: Autoclave Spore Test Log Check
+description: >
+  Checks your sterilizer spore test log for a failed result or a gap
+  longer than your required testing interval. Use this if a health
+  inspector has ever asked for spore test records and you weren't sure
+  the last one was actually run on schedule.
+category: spa
+tags: [spa, compliance, sterilization, safety]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{required_interval_days}}" '
+    NR==1 {next}
+    {
+      if ($2 == "fail") {
+        printf "SPORE TEST FAILED: %s — pull sterilizer from service until retested\n", $1;
+      }
+      if ($1 > latest) latest = $1;
+    }
+    END {
+      cmd = "date -d \"" latest "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" latest "\" +%s 2>/dev/null";
+      cmd | getline latest_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - latest_epoch) / 86400;
+      if (days_since > interval) {
+        printf "SPORE TEST OVERDUE: last test %s, %d days ago (interval: %d)\n", latest, days_since, interval;
+      }
+    }
+  ' "{{spore_test_log_csv_path}}"
+variables:
+  spore_test_log_csv_path:
+    default: "./spore-test-log.csv"
+    description: "Path to a CSV with columns: test_date (YYYY-MM-DD),result (pass/fail), one row per test."
+  required_interval_days:
+    default: 7
+    description: "How often a spore test is required (commonly weekly for medical-adjacent tools — check your state board's rule)."
+compatible_agents: [generic, claude, codex]
+notes: A failed spore test means the sterilizer must be pulled from service immediately and all tools reprocessed once it's fixed and retested — don't wait for the next scheduled test.

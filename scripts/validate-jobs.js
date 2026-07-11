@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import yaml from "js-yaml";
 import Ajv from "ajv";
+import { isValidSchedule } from "../lib/cron.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const JOBS_DIR = join(ROOT, "jobs");
@@ -30,6 +31,12 @@ for (const file of walk(JOBS_DIR)) {
     for (const err of validate.errors) {
       console.error(`${rel}: ${err.instancePath} ${err.message}`);
     }
+    failed++;
+    continue;
+  }
+  const scheduleCheck = isValidSchedule(doc.schedule);
+  if (!scheduleCheck.valid) {
+    console.error(`${rel}: schedule "${doc.schedule}" is not a valid cron expression — ${scheduleCheck.error}`);
     failed++;
   }
 }

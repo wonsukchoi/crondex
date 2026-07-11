@@ -1,0 +1,39 @@
+id: watchlist-price-target-alert
+version: 1
+name: Watchlist Price Target Alert
+description: >
+  Checks a stock on your watchlist against a price target and alerts when
+  it crosses the level you set. Use this if you're waiting for a stock to
+  hit a buy or sell price and don't want to keep checking it manually.
+category: investing
+tags: [investing, stocks, watchlist, price-alert]
+schedule: "0 9,16 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  if [ -z "{{api_key}}" ] || [ "{{api_key}}" = "your-api-key-here" ]; then
+    echo "WARNING: no market data API key configured — set the api_key variable to use this job.";
+    exit 1;
+  fi;
+  price=$(curl -s "https://finnhub.io/api/v1/quote?symbol={{ticker}}&token={{api_key}}" | grep -o '"c":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$price" ]; then echo "ERROR: could not fetch price for {{ticker}}"; exit 1; fi;
+  if awk -v p="$price" 'BEGIN{exit !(p {{comparison}} {{target_price}})}'; then
+    echo "ALERT: {{ticker}} is $price ({{comparison}} {{target_price}})";
+  else
+    echo "OK: {{ticker}} is $price, target not yet hit";
+  fi
+variables:
+  ticker:
+    default: "AAPL"
+    description: Stock ticker to watch.
+  target_price:
+    default: 150
+    description: Price target to compare against.
+  comparison:
+    default: ">="
+    description: "Comparison operator for triggering the alert: <=, >=, <, or >."
+  api_key:
+    default: "your-api-key-here"
+    description: API key for a market data provider (e.g. Finnhub or Alpha Vantage — both have a free tier); required for this job to work.
+compatible_agents: [generic, claude, codex]
+notes: Requires a market data API key from a provider like Finnhub or Alpha Vantage — this is informational only, not a trade order.

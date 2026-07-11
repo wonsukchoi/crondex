@@ -1,0 +1,37 @@
+id: multi-channel-response-time-parity-check
+version: 1
+name: Multi-Channel Response Time Parity Check
+description: >
+  Compares response times across your support channels (email, chat, phone
+  callback, social) and flags one that's lagging well behind the others.
+  Use this if a channel like social or SMS has ever been treated as an
+  afterthought and quietly built up much slower response times than email
+  or chat, without a single combined metric ever catching it.
+category: support
+tags: [support, channels, response-time, omnichannel]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for average first response time by channel
+  ({{channels_list}}) over the last {{lookback_days}} days.
+  1. Report the average response time per channel.
+  2. Flag any channel whose average is {{lag_multiplier}}x or more slower
+     than the fastest channel — that gap usually points at a resourcing
+     or routing problem on that specific channel.
+  3. If all channels are reasonably close, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where per-channel ticket response time data is tracked.
+  channels_list:
+    default: "email, chat, phone, social"
+    description: Comma-separated list of support channels to compare.
+  lookback_days:
+    default: 7
+    description: Rolling window to evaluate.
+  lag_multiplier:
+    default: 2
+    description: How many times slower than the fastest channel counts as a lagging channel.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A blended/overall response-time metric can hide a badly lagging channel behind a couple of fast ones — this looks at the split specifically.

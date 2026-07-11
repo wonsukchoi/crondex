@@ -1,0 +1,38 @@
+id: board-meeting-quorum-check
+version: 1
+name: Board Meeting Quorum Check
+description: >
+  Checks confirmed attendance for an upcoming board meeting against your
+  bylaws' quorum requirement and flags it if you're short. Use this if a
+  board meeting has ever had its votes questioned — or been called off
+  outright — because not enough members had confirmed until it was too
+  late to reschedule.
+category: nonprofit
+tags: [nonprofit, board, governance, meetings]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  confirmed=$(awk -F',' -v meeting="{{meeting_date}}" '$2 == meeting && $3 == "confirmed" {count++} END {print count+0}' "{{board_rsvp_csv}}");
+  today=$(date +%s);
+  meeting_ts=$(date -d "{{meeting_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{meeting_date}}" +%s);
+  days_left=$(( (meeting_ts - today) / 86400 ));
+  if [ "$confirmed" -lt "{{quorum_count}}" ] && [ "$days_left" -le "{{warn_days_before}}" ]; then
+    echo "WARNING: {{meeting_date}} meeting has $confirmed/{{quorum_count}} confirmed, $days_left days left — quorum at risk";
+    exit 1;
+  else echo "OK: {{meeting_date}} meeting has $confirmed/{{quorum_count}} confirmed (quorum {{quorum_count}}), $days_left days left"; fi
+variables:
+  board_rsvp_csv:
+    default: "board-rsvps.csv"
+    description: "CSV with header row, columns: member_name,meeting_date(YYYY-MM-DD),status."
+  meeting_date:
+    default: "2027-01-01"
+    description: Date of the board meeting to check (YYYY-MM-DD).
+  quorum_count:
+    default: 5
+    description: Number of confirmed members required for quorum, per your bylaws.
+  warn_days_before:
+    default: 3
+    description: Days before the meeting to start warning if under quorum.
+compatible_agents: [generic, claude, codex]
+notes: Update board-rsvps.csv as members respond to the meeting invite — this only checks status, it doesn't send invites itself.

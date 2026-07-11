@@ -1,0 +1,35 @@
+id: client-rebooking-gap-check
+version: 1
+name: Client Rebooking Gap Check
+description: >
+  Flags clients whose last visit was more than a set number of days ago
+  with no future appointment on the books. Use this if a regular client
+  has ever quietly stopped coming back and nobody noticed until a
+  competitor mentioned seeing them there.
+category: spa
+tags: [spa, retention, rebooking, clients]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v gap="{{gap_days_threshold}}" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      if (days_since >= gap) {
+        printf "REBOOKING GAP: %s — last visit %s (%d days ago), no future appointment\n", $1, $2, days_since;
+      }
+    }
+  ' "{{clients_csv_path}}"
+variables:
+  clients_csv_path:
+    default: "./client-visits.csv"
+    description: "Path to a CSV with columns: client_name,last_visit_date (YYYY-MM-DD),next_appointment_date (YYYY-MM-DD, blank if none booked)."
+  gap_days_threshold:
+    default: 45
+    description: Days since last visit, with no future booking, before a client is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Pair this with an outreach template — a rebooking nudge sent the same day this report runs converts better than one sent a week later.

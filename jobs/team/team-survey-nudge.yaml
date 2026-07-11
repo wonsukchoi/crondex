@@ -1,0 +1,44 @@
+id: team-survey-nudge
+version: 1
+name: Recurring Team Survey Nudge
+description: >
+  Checks who on the team hasn't responded to the current engagement
+  or pulse survey and sends a nudge before it closes. Use this if a
+  team survey has ever closed with a 40% response rate because
+  nobody chased the stragglers until it was too late to fix it.
+category: team
+tags: [team, survey, engagement, feedback]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  The team pulse/engagement survey "{{survey_name}}" closes on
+  {{survey_close_date}}. Compare the team roster in
+  {{team_roster_csv_path}} against the list of respondents in
+  {{respondents_csv_path}} and identify who hasn't responded yet.
+  If the survey closes within {{warn_days_before}} day(s), draft a
+  short, low-pressure reminder message to send to the non-respondents
+  (as a group message, not calling anyone out individually). If the
+  survey isn't closing soon, just report who's outstanding without
+  drafting anything.
+variables:
+  survey_name:
+    default: "Quarterly Pulse Survey"
+    description: Name of the recurring survey.
+  survey_close_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) the current survey window closes.
+  team_roster_csv_path:
+    default: "./team-roster.csv"
+    description: "Path to a CSV with a column: person_name, listing everyone expected to respond."
+  respondents_csv_path:
+    default: "./survey-respondents.csv"
+    description: "Path to a CSV with a column: person_name, listing who has already responded."
+  warn_days_before:
+    default: 3
+    description: Only draft a reminder message once the survey is this close to closing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Draft-only by design — this never sends anything on its own. Requires
+  respondent data exported from your survey tool (most tools export a
+  respondent list without exposing individual answers).

@@ -1,0 +1,36 @@
+id: support-headcount-volume-ratio-check
+version: 1
+name: Support Headcount vs. Volume Ratio Check
+description: >
+  Checks whether the ratio of active support agents to incoming ticket
+  volume has drifted away from your target, as a structural staffing
+  signal rather than a day-to-day workload one. Use this if ticket volume
+  has ever grown for months before anyone connected it back to "we should
+  have hired an agent two quarters ago."
+category: support
+tags: [support, headcount, staffing, capacity]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Using {{helpdesk_platform}} and current team roster, calculate:
+  1. Average daily ticket volume over the last {{lookback_days}} days.
+  2. Current number of active support agents.
+  3. The resulting tickets-per-agent-per-day ratio, compared against the
+     target of {{target_tickets_per_agent}}.
+  4. If the ratio is above target, note the trend direction over the last
+     couple of months (getting worse, stable, or already recovering from
+     a recent hire) rather than treating it as a one-off snapshot.
+  5. If within target, report the ratio in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket volume history is tracked.
+  lookback_days:
+    default: 30
+    description: Rolling window used to compute average daily ticket volume.
+  target_tickets_per_agent:
+    default: 25
+    description: Target sustainable tickets-per-agent-per-day ratio for your team.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A capacity-planning signal, not a real-time one — distinct from `agent-workload-balance-check`, which looks at how load is split among agents who already exist, not whether the team is sized right overall.

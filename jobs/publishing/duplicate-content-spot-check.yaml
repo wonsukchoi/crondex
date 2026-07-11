@@ -1,0 +1,49 @@
+id: duplicate-content-spot-check
+version: 1
+name: Duplicate Content Spot Check
+description: >
+  Scans a newly submitted article against your archive of previously
+  published pieces for suspiciously long shared word sequences, and flags
+  matches for a human to review. Use this if a submission has ever turned
+  out to be substantially recycled from an older piece (your own archive
+  or someone else's) and only got caught after it published.
+category: publishing
+tags: [publishing, editorial, plagiarism, quality-control]
+schedule: "0 0 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  shingle_len={{shingle_word_count}};
+  match_threshold={{min_matching_shingles}};
+  new_shingles=$(tr -s '[:space:]' '\n' < "{{new_article_file}}" | awk -v n="$shingle_len" '{buf[NR]=$0} END{for(i=1;i<=NR-n+1;i++){s="";for(j=0;j<n;j++)s=s" "buf[i+j];print s}}' | sort -u);
+  hit_count=0;
+  for archived in "{{archive_dir}}"/*.txt; do
+    [ -e "$archived" ] || continue;
+    archived_shingles=$(tr -s '[:space:]' '\n' < "$archived" | awk -v n="$shingle_len" '{buf[NR]=$0} END{for(i=1;i<=NR-n+1;i++){s="";for(j=0;j<n;j++)s=s" "buf[i+j];print s}}' | sort -u);
+    overlap=$(comm -12 <(echo "$new_shingles") <(echo "$archived_shingles") | grep -c . || true);
+    if [ "$overlap" -ge "$match_threshold" ]; then
+      echo "POSSIBLE DUPLICATE: $(basename "$archived") shares $overlap matching ${shingle_len}-word sequences with {{new_article_file}}";
+      hit_count=$((hit_count+1));
+    fi;
+  done;
+  [ "$hit_count" -eq 0 ] && echo "OK: no significant overlap found against archive"
+variables:
+  new_article_file:
+    default: "./submissions/new-article.txt"
+    description: Plain-text file of the newly submitted article to check.
+  archive_dir:
+    default: "./archive/published-articles"
+    description: Directory of plain-text files, one per previously published article, to compare against.
+  shingle_word_count:
+    default: 8
+    description: Number of consecutive words treated as one matching unit — longer values reduce false positives from common phrasing.
+  min_matching_shingles:
+    default: 5
+    description: Minimum number of matching word-sequences against a single archived article to flag it for review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A heuristic word-overlap check, not a real plagiarism detector — it
+  catches copy-pasted or lightly-edited recycling, not paraphrased
+  duplication or external plagiarism. Flags are for human review, not
+  auto-rejection. Requires plain-text (.txt) extracts of both the
+  submission and the archive; convert from your CMS format first.

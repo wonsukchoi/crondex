@@ -1,0 +1,40 @@
+id: auction-item-procurement-deadline-check
+version: 1
+name: Auction Item Procurement Deadline Check
+description: >
+  Tracks procured items for a fundraising auction against your item-count
+  goal as the event date approaches. Use this if a gala auction has ever
+  gone to print with a thin catalog because item solicitation stalled and
+  nobody checked the count until it was too late to ask for more.
+category: nonprofit
+tags: [nonprofit, events, fundraising, auctions]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  procured=$(awk -F',' '$2 == "procured" {count++} END {print count+0}' "{{auction_items_csv}}");
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  days_left=$(( (event_ts - today) / 86400 ));
+  if [ "$procured" -lt "{{item_goal}}" ] && [ "$days_left" -le "{{warn_days_before}}" ]; then
+    echo "WARNING: $procured/{{item_goal}} auction items procured with $days_left days left before {{event_date}}";
+    exit 1;
+  else echo "OK: $procured/{{item_goal}} auction items procured, $days_left days left"; fi
+variables:
+  auction_items_csv:
+    default: "auction-items.csv"
+    description: "CSV with header row, columns: item_name,status(procured/pledged/requested)."
+  item_goal:
+    default: 50
+    description: Target number of procured items for the auction catalog.
+  event_date:
+    default: "2027-01-01"
+    description: Date of the auction event (YYYY-MM-DD).
+  warn_days_before:
+    default: 21
+    description: Days before the event to start warning if under the item goal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `event-rsvp-shortfall-check`, which tracks attendee
+  RSVPs, not auction inventory — a gala can be fully booked and still
+  short on things to sell.

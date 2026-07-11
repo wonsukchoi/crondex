@@ -1,0 +1,35 @@
+id: new-hire-equipment-order-check
+version: 1
+name: New Hire Equipment Order Check
+description: >
+  Checks accepted candidates against equipment order status and flags
+  anyone whose start date is coming up fast with no laptop/gear ordered
+  yet. Use this if a new hire has ever shown up on day one to a desk with
+  no computer because the equipment order never got placed.
+category: hiring
+tags: [hiring, onboarding, equipment, it]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lead_time_days}}" '
+    NR==1 {next}
+    $3 != "ordered" && $3 != "delivered" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      days_until_start = (start_epoch - today) / 86400;
+      if (days_until_start <= lead) {
+        printf "NEEDS EQUIPMENT: %s starts %s (in %d days), order status: %s\n", $1, $2, days_until_start, $3;
+      }
+    }
+  ' "{{new_hires_csv_path}}"
+variables:
+  new_hires_csv_path:
+    default: "./new-hire-equipment.csv"
+    description: "Path to a CSV with columns: candidate_name,start_date (YYYY-MM-DD),equipment_status (not-ordered/ordered/delivered)."
+  lead_time_days:
+    default: 10
+    description: Days before start date at which unordered equipment becomes urgent, based on typical vendor lead time.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from hr's new-hire-paperwork-check, which covers onboarding paperwork rather than physical equipment provisioning; assumes a CSV synced from your ATS offer-accepted list and IT ticketing system.

@@ -1,0 +1,44 @@
+id: contributor-onboarding-checklist-check
+version: 1
+name: Contributor Onboarding Checklist Check
+description: >
+  Flags new contributors (writers, illustrators, photographers) who are
+  missing a required onboarding item — signed contract, tax form, bio, or
+  payment details — before their first piece is scheduled to run. Use this
+  if a contributor has ever been paid late, or a byline has ever gone out
+  without a bio on file, because onboarding paperwork was tracked in
+  scattered emails instead of one place.
+category: publishing
+tags: [publishing, contributors, onboarding, compliance]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v required="{{required_fields}}" '
+    BEGIN { n = split(required, req, "|") }
+    NR==1 {
+      for (c=1; c<=NF; c++) col[$c] = c;
+      next;
+    }
+    {
+      missing = "";
+      for (r=1; r<=n; r++) {
+        field = req[r];
+        c = col[field];
+        if (c == "" || $c == "" || $c == "no") missing = missing " " field;
+      }
+      if (missing != "") print "INCOMPLETE ONBOARDING: " $1 " missing:" missing;
+    }
+  ' "{{contributors_csv}}"
+variables:
+  contributors_csv:
+    default: "./contributor-onboarding.csv"
+    description: "CSV with header row, first column contributor_name, remaining columns are yes/no or filled/blank status fields matching required_fields."
+  required_fields:
+    default: "contract_signed|tax_form|bio_on_file|payment_details"
+    description: "Pipe-separated list of column names (matching headers in contributors_csv) that must be 'yes' or non-blank before a contributor is considered fully onboarded."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Column names in required_fields must exactly match the header row of
+  contributors_csv. Update the CSV as each onboarding step is completed so
+  contributors drop off the list once they're fully cleared.

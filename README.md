@@ -37,6 +37,9 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
   matches exactly.
 - `list [--category x] [--tag y]` / `categories` — browse everything
 - `show <id>` — print a job's full YAML
+- `next <id> [--count n]` — print the next N run times for a job's schedule,
+  in its declared timezone (zero tokens, no network call) — sanity-check a
+  schedule before deploying it
 - `add <id> [--dest path]` — copy it into your project to edit
 - `init <id> [--category x]` — scaffold a brand-new job from the template
 - `update <path> [--dry-run]` — re-pull a job you already `add`ed/`init`ed
@@ -104,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-752 jobs across 48 categories:
+844 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -127,31 +130,31 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `government` | 7 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
-| `hiring` | 7 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `hiring` | 20 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 7 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 20 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 19 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 7 | Stock accuracy — counts, shrinkage, expiry, overstock. |
-| `investing` | 7 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `learning` | 7 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 19 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 20 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
-| `nonprofit` | 7 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
 | `podcast` | 7 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
-| `publishing` | 7 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
+| `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 21 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 18 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
-| `spa` | 7 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
-| `support` | 7 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
-| `team` | 7 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
+| `support` | 20 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `team` | 20 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 7 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 7 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `veterinary` | 20 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |

@@ -1,0 +1,38 @@
+id: retirement-contribution-pace-check
+version: 1
+name: Retirement Contribution Pace Check
+description: >
+  Checks whether your 401(k)/IRA contributions so far this year are on
+  pace to hit the annual limit before it resets, based on a log you keep
+  updated. Use this if you've ever realized in November that you're
+  nowhere near maxing out and there's no way to catch up in time.
+category: investing
+tags: [investing, retirement, 401k, ira, contributions]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  year=$(date +%Y);
+  day_of_year=$(date +%j);
+  ytd_total=$(awk -F, -v yr="$year" 'NR>1 && index($1, yr"-")==1 {sum+=$2} END{print sum+0}' {{contribution_log_csv}});
+  expected=$(awk -v limit={{annual_limit}} -v doy="$day_of_year" 'BEGIN{printf "%.2f", limit*(doy/365)}');
+  behind=$(awk -v e="$expected" -v y="$ytd_total" 'BEGIN{printf "%.2f", e-y}');
+  if awk -v y="$ytd_total" -v e="$expected" -v tol={{tolerance_usd}} 'BEGIN{exit !(y < e - tol)}'; then
+    echo "WARNING: YTD retirement contributions are \$$ytd_total, expected ~\$$expected by day $day_of_year of $year (behind by \$$behind)";
+  else
+    echo "OK: YTD retirement contributions are \$$ytd_total, on pace for the \${{annual_limit}} limit";
+  fi
+variables:
+  contribution_log_csv:
+    default: "retirement-contributions.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),amount — append a row each payroll contribution."
+  annual_limit:
+    default: 23000
+    description: This year's IRS annual contribution limit for the account(s) you're tracking (401k, IRA, etc.).
+  tolerance_usd:
+    default: 200
+    description: Dollar buffer before flagging as behind pace.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update annual_limit each year — the IRS limit changes and isn't fetched
+  automatically. Informational only, not tax or investment advice.

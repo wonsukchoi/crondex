@@ -1,0 +1,35 @@
+id: cancellation-waitlist-fill-check
+version: 1
+name: Cancellation Waitlist Fill Check
+description: >
+  Flags newly opened appointment slots from cancellations that haven't
+  been offered to anyone on the waitlist yet. Use this if a slot has
+  ever opened up from a cancellation and just sat empty because nobody
+  thought to check the waitlist before the day ended.
+category: spa
+tags: [spa, waitlist, scheduling, cancellations]
+schedule: "0 8,12,16,20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hrs="{{max_hours_unfilled}}" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline cancel_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_open = (now_epoch - cancel_epoch) / 3600;
+      if (hours_open >= hrs) {
+        printf "UNFILLED SLOT: %s %s — open %d hrs, %d on waitlist\n", $1, $2, hours_open, $5;
+      }
+    }
+  ' "{{cancellations_csv_path}}"
+variables:
+  cancellations_csv_path:
+    default: "./cancelled-slots.csv"
+    description: "Path to a CSV with columns: slot_date,slot_time,cancelled_at (YYYY-MM-DD HH:MM),filled (yes/no),waitlist_count."
+  max_hours_unfilled:
+    default: 4
+    description: Hours a cancelled slot can stay unfilled before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: An unfilled slot with a nonzero waitlist count is pure lost revenue — the front desk should be working the waitlist same-day, not weekly.

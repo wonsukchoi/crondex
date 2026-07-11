@@ -1,0 +1,36 @@
+id: freelancer-contract-renewal-reminder
+version: 1
+name: Freelancer Contract Renewal Reminder
+description: >
+  Warns you before a freelance writer, illustrator, or contributor's
+  standing contract or rate agreement expires, so it can be renewed or
+  renegotiated before they're working (or being paid) off an expired
+  agreement. Use this if a freelancer has ever kept filing work after
+  their contract lapsed because nobody was tracking the expiry date.
+category: publishing
+tags: [publishing, freelancers, contracts, contributors]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "CONTRACT EXPIRING: " $1 " (" $2 ") expires in " days_left " days (" $3 ")";
+    }
+  ' "{{freelancer_contracts_csv}}"
+variables:
+  freelancer_contracts_csv:
+    default: "./freelancer-contracts.csv"
+    description: "CSV with header row, columns: freelancer_name,role(writer|illustrator|editor|photographer|other),contract_end_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a contract's end date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers standing/retainer agreements, not one-off per-piece assignments.
+  Keep freelancer-contracts.csv updated from your contributor agreements
+  tracker as contracts are signed or renewed.

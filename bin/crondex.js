@@ -19,6 +19,7 @@ import {
   buildCloudSchedulerCommand,
 } from "../lib/deploy.js";
 import { formatDiff } from "../lib/diff.js";
+import { nextRuns } from "../lib/cron.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
@@ -68,6 +69,7 @@ Usage:
   crondex list [--category <name>] [--tag <name>] [--json]
   crondex categories [--json]
   crondex show <id> [--json]
+  crondex next <id> [--count <n>] [--json]
   crondex add <id> [--dest <path>]
   crondex recommend "<what you want done>" [--limit <n>] [--json]
   crondex init <id> [--category <name>] [--dest <path>]
@@ -82,6 +84,8 @@ Examples:
   crondex list --category devops
   crondex categories
   crondex show dependency-audit
+  crondex next dependency-audit
+  crondex next dependency-audit --count 3 --json
   crondex add backup-reminder --dest ./cron/backup-reminder.yaml
   crondex recommend "warn me before my SSL cert expires"
   crondex init ssl-cert-expiry-check --category security
@@ -97,7 +101,12 @@ Examples:
   crondex deploy --list-installed
   crondex uninstall ssl-cert-expiry-check
 
-Add --json to list/categories/show/recommend for machine-readable output —
+next prints the next N run times (default 5) for a job's schedule, in its
+declared timezone (or your system timezone if the job doesn't set one) —
+useful to sanity-check a schedule before deploying it. Zero tokens, no
+network call.
+
+Add --json to list/categories/show/recommend/next for machine-readable output —
 useful when an agent is parsing crondex's output programmatically instead
 of a human reading it.
 
@@ -401,6 +410,27 @@ function deploy(id) {
   }
 }
 
+function next(id) {
+  const meta = findJob(id);
+  const doc = yaml.load(readFileSync(join(ROOT, meta.path), "utf8"));
+  const timezone = doc.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const count = Number(flag("count")) || 5;
+  let runs;
+  try {
+    runs = nextRuns(doc.schedule, { timezone, count });
+  } catch (e) {
+    console.error(`can't compute next runs for "${id}": ${e.message}`);
+    process.exit(1);
+  }
+  if (hasFlag("json")) {
+    return printJson({ id, schedule: doc.schedule, timezone, runs: runs.map((d) => d.toISOString()) });
+  }
+  console.log(`next ${runs.length} run(s) of "${id}" (${doc.schedule}, ${timezone}):`);
+  for (const d of runs) {
+    console.log(`  ${d.toLocaleString("en-US", { timeZone: timezone, dateStyle: "medium", timeStyle: "short" })}`);
+  }
+}
+
 function add(id) {
   const meta = findJob(id);
   const dest = flag("dest") ?? `./${id}.yaml`;
@@ -432,6 +462,13 @@ switch (cmd) {
       process.exit(1);
     }
     show(args[0]);
+    break;
+  case "next":
+    if (!args[0]) {
+      console.error("usage: crondex next <id> [--count <n>] [--json]");
+      process.exit(1);
+    }
+    next(args[0]);
     break;
   case "add":
     if (!args[0]) {

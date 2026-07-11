@@ -1,0 +1,37 @@
+id: in-kind-donation-acknowledgment-check
+version: 1
+name: In-Kind Donation Acknowledgment Check
+description: >
+  Flags in-kind (non-cash) gifts — equipment, supplies, professional
+  services — that haven't received their fair-market-value
+  acknowledgment letter. Use this if an in-kind donor has ever been
+  missed because your cash-donation thank-you workflow doesn't cover
+  gifts that aren't a dollar amount.
+category: nonprofit
+tags: [nonprofit, donors, acknowledgments, in-kind]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline gift_ts; close(cmd);
+      days_since = int((today - gift_ts) / 86400);
+      if (days_since >= warn) print "UNACKNOWLEDGED IN-KIND GIFT: " $1 " gave \"" $3 "\" on " $2 " (" days_since " days ago, no FMV letter sent)";
+    }
+  ' "{{in_kind_donations_csv}}"
+variables:
+  in_kind_donations_csv:
+    default: "in-kind-donations.csv"
+    description: "CSV with header row, columns: donor_name,gift_date(YYYY-MM-DD),item_description,acknowledged(yes/no)."
+  warn_days:
+    default: 10
+    description: Days since the gift date before an unacknowledged in-kind donation gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `donation-acknowledgment-lag-check` — in-kind gifts need a
+  description of the item and a fair-market-value / "no goods or services
+  provided" statement worded differently from a cash receipt, so they're
+  tracked separately here.

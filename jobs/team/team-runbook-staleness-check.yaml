@@ -1,0 +1,37 @@
+id: team-runbook-staleness-check
+version: 1
+name: Team Doc & Runbook Staleness Check
+description: >
+  Checks your team's process docs and runbooks (onboarding guide,
+  on-call runbook, escalation policy) against their last-reviewed
+  date and flags anything overdue for a refresh. Use this if a
+  runbook has ever sent someone down a dead process during an
+  incident because it hadn't been touched since a reorg two years
+  ago.
+category: team
+tags: [team, documentation, runbooks, maintenance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_review}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "STALE: %s last reviewed %s (%d day(s) ago) — owner: %s\n", $1, $2, days_since, $3;
+      }
+    }
+  ' "{{docs_registry_csv_path}}"
+variables:
+  docs_registry_csv_path:
+    default: "./team-docs-registry.csv"
+    description: "Path to a CSV with columns: doc_name,last_reviewed_date (YYYY-MM-DD),owner_name."
+  max_days_since_review:
+    default: 180
+    description: Flag a doc if it hasn't been reviewed in this many days.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Requires you to maintain a small registry of doc names/links and their last-reviewed date — doesn't crawl a wiki automatically.

@@ -1,0 +1,57 @@
+id: fundraising-goal-pace-check
+version: 1
+name: Fundraising Goal Pace Check
+description: >
+  Compares total raised in an active campaign against a pro-rated pace
+  toward the goal and flags it if you're falling behind. Use this if a
+  fundraising campaign has ever hit its deadline only to reveal it was
+  already off pace weeks earlier, with no time left to course-correct.
+category: nonprofit
+tags: [nonprofit, fundraising, campaigns]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  raised=$(cat "{{raised_amount_file}}" 2>/dev/null || echo 0);
+  today=$(date +%s);
+  start_ts=$(date -d "{{campaign_start}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{campaign_start}}" +%s);
+  end_ts=$(date -d "{{campaign_end}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{campaign_end}}" +%s);
+  elapsed_pct=$(awk -v s="$start_ts" -v e="$end_ts" -v t="$today" 'BEGIN{if (e<=s){print 100} else {v=(t-s)/(e-s)*100; if (v<0) v=0; if (v>100) v=100; printf "%.0f", v}}');
+  goal={{goal_amount}};
+  pace_pct=$(awk -v r="$raised" -v g="$goal" 'BEGIN{printf "%.0f", (g>0)?(r/g*100):0}');
+  if [ "$pace_pct" -lt "$elapsed_pct" ]; then
+    echo "BEHIND PACE: $pace_pct% of goal raised ($raised of $goal) at $elapsed_pct% of the campaign timeline";
+  else echo "ON PACE: $pace_pct% of goal raised ($raised of $goal) at $elapsed_pct% of the campaign timeline"; fi
+prompt: |
+  Read the current campaign totals: {{raised_amount_file}} holds the amount
+  raised so far, the goal is {{goal_amount}}, and the campaign runs from
+  {{campaign_start}} to {{campaign_end}}.
+  1. Compute percent of goal raised and percent of the timeline elapsed.
+  2. If raised-percent is behind elapsed-percent, say so plainly and by how
+     much.
+  3. If behind, suggest which outreach to prioritize this week (e.g.
+     re-engaging lapsed donors, a major-donor push, a social/email push) —
+     base this on how far behind pace the campaign is and any context in
+     {{org_mission_hint}}.
+script_note: >
+  `command` only computes the raised-vs-elapsed percentages and prints
+  on/off pace. `prompt` also recommends which outreach channel to
+  prioritize given how far behind the campaign is, which needs judgment.
+variables:
+  raised_amount_file:
+    default: "campaign-total.txt"
+    description: Path to a file whose entire contents is the current amount raised (a plain number), updated from your donation platform's export.
+  goal_amount:
+    default: 50000
+    description: Total fundraising goal for the campaign.
+  campaign_start:
+    default: "2027-01-01"
+    description: Campaign start date (YYYY-MM-DD).
+  campaign_end:
+    default: "2027-03-01"
+    description: Campaign end date (YYYY-MM-DD).
+  org_mission_hint:
+    default: "your organization's mission and programs"
+    description: Brief context on the org, to help the outreach suggestion stay on-theme.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Update campaign-total.txt from your donation platform's export (or CRM) before each run — this job doesn't fetch it for you.

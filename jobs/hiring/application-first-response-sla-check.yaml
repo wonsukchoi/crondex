@@ -1,0 +1,35 @@
+id: application-first-response-sla-check
+version: 1
+name: Application First-Response SLA Check
+description: >
+  Flags new applicants who haven't gotten any recruiter action — a screen
+  scheduled, a rejection, anything — within your target response window.
+  Use this if candidates have ever applied and heard nothing for weeks
+  simply because their application sat unopened in a queue.
+category: hiring
+tags: [hiring, recruiting, candidates, sla]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{response_sla_days}}" '
+    NR==1 {next}
+    $3 == "no-action" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline applied_epoch; close(cmd);
+      days_waiting = (today - applied_epoch) / 86400;
+      if (days_waiting >= sla) {
+        printf "SLA BREACH: %s — applied %s (%d days), no recruiter action yet\n", $1, $2, days_waiting;
+      }
+    }
+  ' "{{applicants_csv_path}}"
+variables:
+  applicants_csv_path:
+    default: "./applicants.csv"
+    description: "Path to a CSV with columns: candidate_name,applied_date (YYYY-MM-DD),status (no-action/screened/rejected/etc)."
+  response_sla_days:
+    default: 5
+    description: Days after applying before a candidate with no recruiter action is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from candidate-followup-nudge, which covers candidates already past an interview — this catches applicants stuck at the very top of the funnel before anyone looked at them.

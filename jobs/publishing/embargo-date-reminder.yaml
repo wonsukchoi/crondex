@@ -1,0 +1,38 @@
+id: embargo-date-reminder
+version: 1
+name: Embargo Date Reminder
+description: >
+  Warns you before a press or review embargo on a title is set to lift, so
+  announcements, ads, and retail listings can go live right on time — not
+  early, not late. Use this if an embargo has ever been broken by accident
+  (a listing flipped live too soon) or missed (nobody remembered to lift
+  it) because the date only lived in an email from the publicist.
+category: publishing
+tags: [publishing, embargo, press, launch]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline embargo_ts; close(cmd);
+      days_left = int((embargo_ts - today) / 86400);
+      if (days_left >= 0 && days_left <= warn) print "EMBARGO LIFTS SOON: \"" $1 "\" lifts in " days_left " days (" $2 ")";
+      else if (days_left < 0) print "EMBARGO PASSED: \"" $1 "\" was set to lift " (-days_left) " days ago (" $2 ") — confirm it actually went live";
+    }
+  ' "{{embargoes_csv}}"
+variables:
+  embargoes_csv:
+    default: "./press-embargoes.csv"
+    description: "CSV with header row, columns: title,embargo_lift_date(YYYY-MM-DD)."
+  warn_days:
+    default: 5
+    description: Days before an embargo lift date to start warning so launch assets can be staged in time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Also flags embargoes whose lift date has already passed, as a prompt to
+  confirm the announcement, listing, or review actually went live on
+  schedule rather than being forgotten. Keep press-embargoes.csv in sync
+  with each title's publicity plan.

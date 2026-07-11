@@ -1,0 +1,48 @@
+id: pto-coverage-gap-check
+version: 1
+name: Holiday / PTO Coverage Gap Check
+description: >
+  Scans upcoming PTO in a shared calendar export and flags any day
+  where too few team members are covering, or where a designated
+  role (on-call, approver) has nobody available. Use this if you've
+  ever discovered on a Monday morning that half the team was out the
+  same week and nobody planned coverage.
+category: team
+tags: [team, pto, coverage, scheduling]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  end_epoch=$(( today + {{lookahead_days}} * 86400 ));
+  awk -F',' -v today="$today" -v end="$end_epoch" -v min_avail="{{min_available}}" -v team_size="{{team_size}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline day_epoch; close(cmd);
+      if (day_epoch >= today && day_epoch <= end) { out[$2]++ }
+    }
+    END {
+      for (day in out) {
+        available = team_size - out[day];
+        if (available < min_avail) {
+          printf "COVERAGE GAP: %s — only %d of %d people available (%d out on PTO)\n", day, available, team_size, out[day];
+        }
+      }
+    }
+  ' "{{pto_calendar_csv_path}}"
+variables:
+  pto_calendar_csv_path:
+    default: "./pto-calendar.csv"
+    description: "Path to a CSV with columns: person_name,pto_date (YYYY-MM-DD), one row per person per day off."
+  team_size:
+    default: 8
+    description: Total number of people on the team.
+  min_available:
+    default: 4
+    description: Minimum number of people that must be available on any given day.
+  lookahead_days:
+    default: 21
+    description: How many days ahead to scan for coverage gaps.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Assumes a maintained PTO export (from an HRIS or shared calendar) — treats every person as equally interchangeable for coverage, which won't fit teams needing specific role coverage.

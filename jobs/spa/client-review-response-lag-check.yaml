@@ -1,0 +1,48 @@
+id: client-review-response-lag-check
+version: 1
+name: Client Review Response Lag Check
+description: >
+  Finds recent online reviews that haven't received an owner response
+  yet and drafts a reply for the ones sitting longest. Use this if a bad
+  review has ever sat unanswered for weeks, making the business look
+  like nobody's paying attention.
+category: spa
+tags: [spa, reviews, reputation, front-desk]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v maxdays="{{max_response_days}}" '
+    NR==1 {next}
+    $6 == "no" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline rev_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - rev_epoch) / 86400;
+      if (age_days >= maxdays) {
+        printf "UNANSWERED REVIEW: %s (%s, %s stars) — posted %s, %d days unanswered\n", $1, $2, $3, $4, age_days;
+      }
+    }
+  ' "{{reviews_csv_path}}"
+prompt: >
+  Read {{reviews_csv_path}}, a log of client reviews with columns
+  review_id, platform, rating, review_date, review_text, responded. For
+  every row where responded is "no" and the review is older than
+  {{max_response_days}} days, draft a short, warm, non-defensive reply
+  (2-4 sentences). For ratings of 3 stars or below, acknowledge the
+  specific complaint and offer to make it right offline rather than
+  arguing in public. Output one draft per flagged review, ready to paste
+  into the platform's reply box.
+script_note: >
+  The command only lists which reviews are unanswered and how old — it
+  doesn't read the review text or draft anything. Use `prompt` mode when
+  you want an actual reply written for each flagged review.
+variables:
+  reviews_csv_path:
+    default: "./reviews.csv"
+    description: "Path to a CSV with columns: review_id,platform,rating,review_date (YYYY-MM-DD),review_text,responded (yes/no)."
+  max_response_days:
+    default: 3
+    description: Days a review can sit unanswered before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Draft-only — always read a drafted reply before posting, especially for low ratings.

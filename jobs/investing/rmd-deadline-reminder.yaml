@@ -1,0 +1,36 @@
+id: rmd-deadline-reminder
+version: 1
+name: RMD Deadline Reminder
+description: >
+  Warns as your Required Minimum Distribution (RMD) deadline for the year
+  approaches, based on a date you keep updated. Use this if you or
+  someone in your household is subject to RMDs and an early reminder
+  beats a last-minute scramble (and the IRS penalty for missing it).
+category: investing
+tags: [investing, retirement, rmd, tax]
+schedule: "0 9 1 10,11,12 *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{deadline_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{deadline_date}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "WARNING: RMD deadline {{deadline_date}} has passed — confirm the distribution was taken.";
+  elif [ "$days_left" -le {{warn_days}} ]; then
+    echo "WARNING: RMD deadline {{deadline_date}} is in $days_left days — confirm this year's distribution has been taken.";
+  else
+    echo "OK: RMD deadline {{deadline_date}} is $days_left days away.";
+  fi
+variables:
+  deadline_date:
+    default: "2026-12-31"
+    description: "This year's RMD deadline (usually Dec 31; a first RMD year may allow until Apr 1 of the following year) — update it each year."
+  warn_days:
+    default: 45
+    description: Days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update deadline_date each year and confirm applicability/start age with
+  a tax professional — SECURE 2.0 age thresholds change, and this job
+  only tracks a date, it doesn't calculate the required amount.

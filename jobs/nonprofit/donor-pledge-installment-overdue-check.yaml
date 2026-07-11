@@ -1,0 +1,32 @@
+id: donor-pledge-installment-overdue-check
+version: 1
+name: Donor Pledge Installment Overdue Check
+description: >
+  Checks a multi-year pledge schedule for installments that are past due
+  and haven't been received. Use this if a multi-year pledge has ever
+  fallen behind on its payment schedule without anyone noticing until the
+  pledge period was almost over.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, pledges]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace={{grace_days}} '
+    NR>1 && $3 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_overdue = int((today - due_ts) / 86400);
+      if (days_overdue >= grace) print "PLEDGE INSTALLMENT OVERDUE: " $1 " — installment due " $2 " (" days_overdue " days overdue, not received)";
+    }
+  ' "{{pledges_csv}}"
+variables:
+  pledges_csv:
+    default: "pledge-installments.csv"
+    description: "CSV with header row, columns: donor_name,installment_due_date(YYYY-MM-DD),received(yes/no)."
+  grace_days:
+    default: 14
+    description: Days past the due date to allow before an unreceived installment gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Export the installment schedule from your CRM's pledge tracking before each run; mark received "yes" once a payment posts.

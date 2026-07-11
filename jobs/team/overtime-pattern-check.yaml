@@ -1,0 +1,45 @@
+id: overtime-pattern-check
+version: 1
+name: Overtime / Burnout Pattern Check
+description: >
+  Scans a weekly hours log and flags anyone who's logged
+  above-threshold hours for several weeks running. Use this if
+  someone on your team has ever burned out quietly because nobody
+  was looking at logged hours across multiple weeks at once, only
+  one week at a time.
+category: team
+tags: [team, burnout, overtime, wellbeing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{weekly_hours_threshold}}" -v streak="{{consecutive_weeks_flag}}" '
+    NR==1 {next}
+    { hours[$1, $2] = $3; if (!($1 in seen)) { people[++n] = $1; seen[$1] = 1 } weeks[$1]++ }
+    END {
+      for (i = 1; i <= n; i++) {
+        p = people[i]; run = 0; maxrun = 0;
+        for (w = 1; w <= weeks[p]; w++) {
+          if ((hours[p, w] + 0) > threshold) { run++; if (run > maxrun) maxrun = run; } else run = 0;
+        }
+        if (maxrun >= streak) {
+          printf "PATTERN: %s logged over %sh for %d consecutive week(s)\n", p, threshold, maxrun;
+        }
+      }
+    }
+  ' "{{hours_log_csv_path}}"
+variables:
+  hours_log_csv_path:
+    default: "./weekly-hours.csv"
+    description: "Path to a CSV with columns: person_name,week_number,hours_logged, ordered by week per person."
+  weekly_hours_threshold:
+    default: 45
+    description: Weekly hours above which a week counts toward the pattern.
+  consecutive_weeks_flag:
+    default: 3
+    description: How many consecutive over-threshold weeks trigger a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, pattern-detection only — it flags a signal worth a human
+  conversation, not a diagnosis. Assumes a maintained hours export
+  (timesheet system or manual log) ordered by week per person.

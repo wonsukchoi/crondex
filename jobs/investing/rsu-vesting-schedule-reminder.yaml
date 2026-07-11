@@ -1,0 +1,32 @@
+id: rsu-vesting-schedule-reminder
+version: 1
+name: RSU Vesting Schedule Reminder
+description: >
+  Checks your equity compensation vesting schedule and flags any vest
+  date coming up within your lookahead window. Use this if RSU or option
+  vesting events have ever caught you off guard for tax withholding or
+  sell-to-cover planning.
+category: investing
+tags: [investing, equity-compensation, rsu, vesting]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v lookahead={{lookahead_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline vest_ts; close(cmd);
+      days_left = int((vest_ts - today) / 86400);
+      if (days_left >= 0 && days_left <= lookahead) print "UPCOMING: " $3 " shares of " $1 " vest on " $2 " (" days_left " days away)";
+    }
+  ' {{vesting_schedule_csv}}
+variables:
+  vesting_schedule_csv:
+    default: "vesting-schedule.csv"
+    description: "CSV with header row, columns: grant,vest_date(YYYY-MM-DD),shares."
+  lookahead_days:
+    default: 14
+    description: How many days ahead to flag an upcoming vest.
+compatible_agents: [generic, claude, codex]
+notes: Update vesting-schedule.csv from your equity plan portal (e.g. Fidelity, Shareworks, Carta) — this job doesn't fetch it automatically.

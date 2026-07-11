@@ -1,0 +1,40 @@
+id: headcount-budget-drift-check
+version: 1
+name: Headcount vs. Budget Drift Check
+description: >
+  Compares your team's approved headcount budget against actual filled
+  and open reqs, and flags when they drift apart. Use this if you've
+  ever found out in a planning meeting that you were over (or under)
+  headcount because nobody had reconciled reqs against budget in months.
+category: team
+tags: [team, headcount, budget, hiring]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v budget="{{approved_headcount}}" -v tolerance="{{tolerance}}" '
+    NR==1 {next}
+    $2 == "filled" || $2 == "open" { count++ }
+    END {
+      diff = count - budget;
+      abs_diff = (diff < 0) ? -diff : diff;
+      if (abs_diff > tolerance) {
+        if (diff > 0) printf "OVER BUDGET: %d filled/open reqs vs %d approved (+%d)\n", count, budget, diff;
+        else printf "UNDER BUDGET: %d filled/open reqs vs %d approved (%d)\n", count, budget, diff;
+      } else {
+        printf "OK: %d filled/open reqs vs %d approved headcount\n", count, budget;
+      }
+    }
+  ' "{{reqs_csv_path}}"
+variables:
+  reqs_csv_path:
+    default: "./team-reqs.csv"
+    description: "Path to a CSV with columns: req_name,status (filled/open/closed)."
+  approved_headcount:
+    default: 10
+    description: Approved headcount budget for the team.
+  tolerance:
+    default: 0
+    description: Allowed drift (in headcount) before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Pulls from a manually maintained req export — doesn't integrate with an HRIS or finance system directly.

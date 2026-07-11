@@ -1,0 +1,28 @@
+id: employer-match-capture-check
+version: 1
+name: Employer Match Capture Check
+description: >
+  Checks that your current 401(k) contribution percentage is at least
+  what's needed to capture your full employer match. Use this if you've
+  ever dropped your contribution rate temporarily and forgot to bump it
+  back up, quietly leaving free match money on the table.
+category: investing
+tags: [investing, retirement, 401k, employer-match]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if awk -v c={{current_contribution_pct}} -v m={{match_threshold_pct}} 'BEGIN{exit !(c < m)}'; then
+    echo "WARNING: current contribution is {{current_contribution_pct}}%, below the {{match_threshold_pct}}% needed to capture the full employer match";
+  else
+    echo "OK: current contribution is {{current_contribution_pct}}%, at or above the {{match_threshold_pct}}% match threshold";
+  fi
+variables:
+  current_contribution_pct:
+    default: 6
+    description: Your current 401(k) contribution rate as a percent of salary — update this whenever you change your payroll election.
+  match_threshold_pct:
+    default: 6
+    description: Minimum contribution percent required to get the full employer match, per your plan document.
+compatible_agents: [generic, claude, codex]
+notes: This job can't read your payroll system directly — update current_contribution_pct yourself after any election change.

@@ -1,0 +1,31 @@
+id: chair-rental-payment-tracker
+version: 1
+name: Booth/Chair Rental Payment Tracker
+description: >
+  Flags independent contractors renting a booth or chair whose weekly or
+  monthly rent payment hasn't been logged as received by the due date.
+  Use this if a chair renter has ever fallen a month behind on booth
+  rent before anyone at the front desk noticed.
+category: spa
+tags: [spa, booth-rental, payments, contractors]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (due_epoch <= now_epoch && $4 < $3) {
+        printf "RENT OVERDUE: %s — due %s, owes $%.2f\n", $1, $2, ($3 - $4);
+      }
+    }
+  ' "{{rent_csv_path}}"
+variables:
+  rent_csv_path:
+    default: "./booth-rent.csv"
+    description: "Path to a CSV with columns: renter_name,due_date (YYYY-MM-DD),amount_due,amount_paid."
+compatible_agents: [generic, claude, codex]
+notes: Booth renters are independent contractors, not employees — check your state's rules before taking any action beyond a payment reminder.

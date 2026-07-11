@@ -1,0 +1,38 @@
+id: team-offsite-planning-checklist
+version: 1
+name: Team Offsite Planning Checklist
+description: >
+  Checks a running offsite-planning checklist and flags any task
+  (venue, catering, budget approval, agenda) that's still open as the
+  event date closes in. Use this if an offsite has ever come together
+  in a scramble because nobody was tracking which logistics were still
+  unresolved until a week out.
+category: team
+tags: [team, offsite, planning, checklist, events]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  event_epoch=$(date -d "{{offsite_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{offsite_date}}" +%s);
+  days_left=$(( (event_epoch-today)/86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "note: offsite date has passed — update offsite_date for the next one."; exit 0; fi;
+  if [ "$days_left" -gt {{warn_days_before}} ]; then echo "OK: $days_left day(s) until offsite — checklist not due for review yet."; exit 0; fi;
+  awk -F',' -v days_left="$days_left" '
+    NR==1 {next}
+    $2 == "open" {
+      printf "OPEN (%s day(s) left): %s\n", days_left, $1;
+    }
+  ' "{{checklist_csv_path}}"
+variables:
+  offsite_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) of the offsite.
+  checklist_csv_path:
+    default: "./offsite-checklist.csv"
+    description: "Path to a CSV with columns: task_name,status (open/done)."
+  warn_days_before:
+    default: 21
+    description: Start checking the list this many days before the offsite.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You maintain the checklist CSV yourself — this just surfaces what's still open as the date approaches.

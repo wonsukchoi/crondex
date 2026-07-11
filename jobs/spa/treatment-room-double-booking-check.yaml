@@ -1,0 +1,35 @@
+id: treatment-room-double-booking-check
+version: 1
+name: Treatment Room / Table Double-Booking Check
+description: >
+  Scans your room schedule for two bookings assigned to the same room or
+  table with overlapping times. Use this if a client has ever arrived for
+  a facial only to find someone already on the table because two
+  bookings landed on the same room by mistake.
+category: spa
+tags: [spa, scheduling, rooms, conflicts]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      room=$1; start=$2; end=$3; client=$4;
+      scmd = "date -d \"" start "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" start "\" +%s 2>/dev/null";
+      scmd | getline start_epoch; close(scmd);
+      ecmd = "date -d \"" end "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" end "\" +%s 2>/dev/null";
+      ecmd | getline end_epoch; close(ecmd);
+      if ((room in last_end) && start_epoch < last_end[room]) {
+        printf "DOUBLE-BOOKED: room %s — %s overlaps with previous booking ending %s\n", room, client, last_client[room];
+      }
+      last_end[room] = end_epoch;
+      last_client[room] = client " (" end ")";
+    }
+  ' "{{schedule_csv_path}}"
+variables:
+  schedule_csv_path:
+    default: "./room-schedule.csv"
+    description: "Path to a CSV with columns: room_name,start_time (YYYY-MM-DD HH:MM),end_time (YYYY-MM-DD HH:MM),client_name. Must be sorted by room then start_time."
+compatible_agents: [generic, claude, codex]
+notes: Sort the CSV by room then start_time before running (e.g. `sort -t, -k1,1 -k2,2 schedule.csv`) — the check assumes chronological order per room and won't catch out-of-order rows.

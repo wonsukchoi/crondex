@@ -1,0 +1,32 @@
+id: interviewer-load-balance-check
+version: 1
+name: Interviewer Load Balance Check
+description: >
+  Counts how many interviews each interviewer is booked for this week and
+  flags anyone stacked well above the team average. Use this if the same
+  few people always seem to be doing most of the interviewing while
+  others rarely get asked.
+category: hiring
+tags: [hiring, interviews, scheduling, workload]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cap="{{max_interviews_per_week}}" '
+    NR==1 {next}
+    { count[$2]++ }
+    END {
+      for (name in count) {
+        if (count[name] > cap) printf "OVERLOADED: %s has %d interviews this week (cap %d)\n", name, count[name], cap;
+      }
+    }
+  ' "{{interview_schedule_csv_path}}"
+variables:
+  interview_schedule_csv_path:
+    default: "./interview-schedule.csv"
+    description: "Path to a CSV of this week's scheduled interviews with columns: candidate_name,interviewer_name,datetime."
+  max_interviews_per_week:
+    default: 6
+    description: Number of interviews per interviewer per week before they're flagged as overloaded.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a CSV export of the current week's interview calendar from your ATS or scheduling tool; doesn't rebalance anything automatically.

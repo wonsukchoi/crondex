@@ -1,0 +1,30 @@
+id: expense-ratio-audit
+version: 1
+name: Fund Expense Ratio Audit
+description: >
+  Looks up the current expense ratio for a list of funds you hold and
+  flags any above a threshold you set. Use this if you've ever
+  accumulated old funds from a former 401(k) or advisor and never audited
+  what they actually cost you every year.
+category: investing
+tags: [investing, funds, fees, expense-ratio]
+schedule: "0 9 1 1,7 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look up the current expense ratio for each of these funds: {{funds}}.
+  1. Flag any fund with an expense ratio above {{max_expense_ratio_pct}}%.
+  2. For each flagged fund, note a comparable lower-cost alternative if
+     one is easy to identify (e.g. a similar low-cost index fund covering
+     the same asset class).
+  3. If none are flagged, say so in one line rather than listing every
+     fund's ratio in detail.
+variables:
+  funds:
+    default: "VTSAX, SPY"
+    description: Comma-separated list of fund tickers/names to check.
+  max_expense_ratio_pct:
+    default: 0.5
+    description: Expense ratio percentage above which a fund is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only, not investment advice — expense ratio accuracy depends on the agent's data source, so double-check any flagged fund against its current prospectus before acting.

@@ -1,0 +1,32 @@
+id: crypto-cold-wallet-backup-reminder
+version: 1
+name: Crypto Cold Wallet Backup Reminder
+description: >
+  Reminds you to re-verify that your cold wallet seed phrase backup is
+  intact and accessible once it's been longer than your check interval
+  since the last verification. Use this if you've ever set up a hardware
+  wallet, written the seed phrase down once, and never actually
+  re-checked that it's still legible and in a safe place.
+category: investing
+tags: [investing, crypto, cold-wallet, backup, security]
+schedule: "0 9 1 */3 *"
+timezone: "UTC"
+runner: shell
+command: >
+  last_ts=$(date -d "{{last_verified_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{last_verified_date}}" +%s);
+  today_ts=$(date +%s);
+  days_since=$(( (today_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge {{check_interval_days}} ]; then
+    echo "REMINDER: it has been $days_since days since your cold wallet backup was last verified (on {{last_verified_date}}) — check the seed phrase is legible and stored securely.";
+  else
+    echo "OK: cold wallet backup verified $days_since days ago, within the {{check_interval_days}}-day interval.";
+  fi
+variables:
+  last_verified_date:
+    default: "2026-01-01"
+    description: "Date (YYYY-MM-DD) you last physically verified the seed phrase backup — update it after each check."
+  check_interval_days:
+    default: 180
+    description: How often to be reminded to re-verify the backup.
+compatible_agents: [generic, claude, codex]
+notes: This is a reminder only — never type or transmit a seed phrase anywhere, including into this job's variables, logs, or an agent prompt.

@@ -1,0 +1,34 @@
+id: first-response-time-drift-check
+version: 1
+name: First Response Time Drift Check
+description: >
+  Checks your average first response time over a recent window and flags it
+  when it's drifting slower than target. Use this if first response time has
+  ever quietly crept up over weeks because only the SLA-breach cases got
+  attention, not the overall trend.
+category: support
+tags: [support, first-response-time, sla, tickets]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  avg=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"first_response_minutes":[0-9]*' | grep -o '[0-9]*' | awk '{sum+=$1; n++} END {if (n>0) printf "%.0f", sum/n; else print 0}');
+  if [ -z "$avg" ] || [ "$avg" -eq 0 ]; then echo "OK: no first-response data returned (or endpoint empty)"; exit 0;
+  elif [ "$avg" -ge "{{target_minutes}}" ]; then echo "WARNING: average first response time is $avg minutes, at or above target {{target_minutes}}"; exit 1;
+  else echo "OK: average first response time is $avg minutes (under target {{target_minutes}})"; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?created_gte=7d_ago&fields=first_response_minutes"
+    description: Helpdesk API endpoint returning recent tickets with a first_response_minutes field.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  target_minutes:
+    default: 60
+    description: Average first response time, in minutes, that counts as acceptable.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `sla-breach-warning`, which flags individual tickets close to
+  breaching — this tracks the overall average trend so a slow slide doesn't
+  go unnoticed while no single ticket technically breaches yet.

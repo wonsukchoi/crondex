@@ -1,0 +1,38 @@
+id: candidate-experience-survey-followup
+version: 1
+name: Candidate Experience Survey Follow-up
+description: >
+  Reviews post-interview candidate experience survey responses and flags
+  low scores or negative comments for a recruiter to look at. Use this if
+  a candidate has ever left a rough interview experience unaddressed
+  because nobody was reading the survey results.
+category: hiring
+tags: [hiring, recruiting, candidate-experience, surveys]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review candidate experience survey responses from {{survey_tool}}
+  submitted in the last {{lookback_days}} days.
+  1. List any response scoring at or below {{low_score_threshold}} out of
+     {{score_scale}}, along with the candidate's stage and any written
+     comment.
+  2. Group by recurring theme if more than one low score mentions the
+     same issue (e.g. scheduling, interviewer conduct, communication).
+  3. Suggest, for each flagged response, whether it needs a personal
+     follow-up from a recruiter or just a note for process improvement.
+variables:
+  survey_tool:
+    default: "your candidate experience survey tool (e.g. Survale, Typeform, a post-interview form)"
+    description: Where candidate experience survey responses are collected.
+  lookback_days:
+    default: 7
+    description: How far back to check for new survey responses.
+  low_score_threshold:
+    default: 2
+    description: Score at or below which a response is flagged as low.
+  score_scale:
+    default: 5
+    description: The maximum value on the survey's rating scale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only review — reaching out to a candidate about a bad experience is a judgment call for the recruiting team, not automated here.

@@ -1,0 +1,36 @@
+id: broken-link-check-published-articles
+version: 1
+name: Broken Link Check Across Published Articles
+description: >
+  Curls every outbound link listed in a file of published-article links and
+  flags any that no longer return a working response. Use this if a
+  published piece has ever quietly rotted with dead citation or source
+  links because nobody rechecked them after the article went live.
+category: publishing
+tags: [publishing, links, editorial, quality]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=',' read -r article_url link_url; do
+    [ "$article_url" = "article_url" ] && continue;
+    [ -z "$link_url" ] && continue;
+    http_code=$(curl -s -o /dev/null -L --max-time {{timeout_seconds}} -w "%{http_code}" "$link_url");
+    case "$http_code" in
+      2*|3*) ;;
+      *) echo "BROKEN LINK: $link_url (in $article_url) returned HTTP $http_code" ;;
+    esac
+  done < "{{article_links_csv}}"
+variables:
+  article_links_csv:
+    default: "./published-article-links.csv"
+    description: "CSV with header row, columns: article_url,link_url — one row per outbound link to check."
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait for each link before treating it as unreachable.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — makes GET requests to third-party URLs, so keep the list
+  scoped to links you actually publish and be mindful of request volume
+  against sites you don't control. Regenerate published-article-links.csv
+  from your CMS's link/citation export before each run.

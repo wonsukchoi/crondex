@@ -1,0 +1,26 @@
+id: linen-supply-low-stock-check
+version: 1
+name: Linen & Disposable Supply Low-Stock Check
+description: >
+  Checks towel, robe, and disposable supply (wax strips, table paper,
+  gloves) counts against par levels and flags what's running low. Use
+  this if a treatment room has ever run out of clean towels or wax
+  strips mid-shift because nobody was watching the linen closet.
+category: spa
+tags: [spa, inventory, supplies, restock]
+schedule: "0 6 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2 <= $3 {
+      printf "LOW SUPPLY: %s — %d on hand, par level %d\n", $1, $2, $3;
+    }
+  ' "{{supplies_csv_path}}"
+variables:
+  supplies_csv_path:
+    default: "./linen-supplies.csv"
+    description: "Path to a CSV with columns: item_name,quantity_on_hand,par_level."
+compatible_agents: [generic, claude, codex]
+notes: Set par levels high enough to cover your laundry turnaround time, not just daily usage.

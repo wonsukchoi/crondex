@@ -1,0 +1,40 @@
+id: press-release-media-pitch-drafter
+version: 1
+name: Press Release Media Pitch Drafter
+description: >
+  Looks at pending press releases and your media contact list, then drafts
+  a short, tailored pitch note for each contact whose beat matches the
+  release. Use this if press releases have ever gone out as one generic
+  blast to the whole media list instead of a pitch that actually speaks to
+  what each outlet or journalist covers.
+category: publishing
+tags: [publishing, press, media-relations, outreach]
+schedule: "0 8 * * 2"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the pending press releases in {{press_releases_dir}} and the media
+  contact list at {{media_contacts_csv}} (columns: name, outlet, beat,
+  email). For each press release, identify which contacts' beats are a
+  genuine match — not a loose keyword match — and draft a 3-4 sentence
+  pitch note per matched contact that references their outlet's typical
+  coverage and why this release fits it. Save drafts to
+  {{drafts_output_dir}}, one file per contact per release; do not send
+  anything. Skip a release entirely and note it if no contact is a
+  plausible match, rather than forcing a weak pitch.
+variables:
+  press_releases_dir:
+    default: "./press-releases/pending"
+    description: Directory of pending press release text/markdown files to pitch.
+  media_contacts_csv:
+    default: "./media-contacts.csv"
+    description: "CSV with header row, columns: name,outlet,beat,email."
+  drafts_output_dir:
+    default: "./press-releases/pitch-drafts"
+    description: Directory where drafted pitch notes are saved for review before sending.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Draft-only — this job never sends email or contacts anyone directly, it
+  only writes pitch drafts to drafts_output_dir for a human to review and
+  send. Keep media-contacts.csv current; a stale beat column produces
+  irrelevant pitches.

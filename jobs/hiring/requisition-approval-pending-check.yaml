@@ -1,0 +1,35 @@
+id: requisition-approval-pending-check
+version: 1
+name: Requisition Approval Pending Check
+description: >
+  Flags job requisitions that are still waiting on hiring-manager or
+  finance sign-off and haven't been posted yet. Use this if a req has
+  ever sat in someone's approval queue for weeks before anyone realized
+  it was never actually posted.
+category: hiring
+tags: [hiring, recruiting, requisitions, approvals]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_days}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      days_pending = (today - submitted_epoch) / 86400;
+      if (days_pending >= stale) {
+        printf "PENDING: %s — submitted %s (%d days), awaiting %s\n", $1, $2, days_pending, $4;
+      }
+    }
+  ' "{{reqs_csv_path}}"
+variables:
+  reqs_csv_path:
+    default: "./requisition-approvals.csv"
+    description: "Path to a CSV with columns: req_title,submitted_date (YYYY-MM-DD),status (pending/approved/rejected),pending_approver."
+  stale_days:
+    default: 5
+    description: Days a requisition can sit awaiting approval before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from open-req-aging-check, which tracks reqs already posted and low on candidates — this catches reqs stuck before they're even live. Assumes a CSV export of your req-approval workflow.

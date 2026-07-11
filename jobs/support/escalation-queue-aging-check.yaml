@@ -1,0 +1,34 @@
+id: escalation-queue-aging-check
+version: 1
+name: Escalation Queue Aging Check
+description: >
+  Checks how many tickets are sitting in your escalation/Tier 2 queue past a
+  time threshold. Use this if an escalated ticket has ever waited longer for
+  a second look than it did in the general queue, because escalation felt
+  like the end of the process instead of the start of a new SLA clock.
+category: support
+tags: [support, escalation, tickets, tier2]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"status":"escalated"' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no aging escalations found"; exit 0;
+  elif [ "$count" -ge "{{threshold}}" ]; then echo "WARNING: $count escalated ticket(s) aging past {{age_hours}}h at {{api_url}}"; exit 1;
+  else echo "OK: $count escalated ticket(s) aging past {{age_hours}}h (under threshold {{threshold}})"; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?status=escalated&age_gt_hours=4"
+    description: Helpdesk API endpoint pre-filtered to escalated tickets older than the age window.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  age_hours:
+    default: 4
+    description: Hours a ticket can sit in the escalation queue before it's aging, for labeling output.
+  threshold:
+    default: 3
+    description: Number of aging escalated tickets that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: Escalation queues often lack their own SLA clock — this treats "escalated" as its own stage worth watching, separate from the original ticket SLA.

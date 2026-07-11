@@ -1,0 +1,35 @@
+id: after-hours-ticket-response-gap-check
+version: 1
+name: After-Hours Ticket Response Gap Check
+description: >
+  Checks tickets submitted outside business hours and flags any that sat
+  completely untouched well past your next-business-day start time. Use
+  this if a weekend or overnight ticket has ever waited far longer than
+  your normal SLA implies, because "next business day" quietly became
+  "whenever someone gets to it."
+category: support
+tags: [support, after-hours, tickets, coverage]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"first_response_at":null' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no after-hours tickets waiting past {{buffer_hours}}h into business hours"; exit 0;
+  else echo "WARNING: $count after-hours ticket(s) still with no first response, past the {{buffer_hours}}h business-hours buffer"; exit 1; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?created_outside_business_hours=true&status=open"
+    description: Helpdesk API endpoint pre-filtered to tickets created outside business hours that are still open.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  buffer_hours:
+    default: 2
+    description: Hours into the next business day a ticket gets before an unanswered after-hours ticket counts as a gap, for labeling output.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires your helpdesk to expose a business-hours flag or you build the
+  filter yourself against your support hours — this is a coverage-gap
+  signal distinct from `sla-breach-warning`, which applies to all tickets
+  regardless of when they were created.

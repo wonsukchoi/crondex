@@ -1,0 +1,51 @@
+id: cost-per-hire-budget-check
+version: 1
+name: Cost-per-Hire Budget Check
+description: >
+  Totals recruiting spend (job board posts, agency fees, sourcing tools)
+  per hire and flags roles running well over your cost-per-hire target.
+  Use this if you've ever discovered an agency fee or a rush job-board
+  boost blew the recruiting budget only after the invoice showed up.
+category: hiring
+tags: [hiring, recruiting, budget, cost]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v target="{{cost_per_hire_target}}" '
+    NR==1 {next}
+    $2 == "hired" {
+      spend[$1] += $3;
+      hired[$1] = 1;
+    }
+    END {
+      for (role in hired) {
+        if (spend[role] > target) printf "OVER BUDGET: %s cost $%.2f (target $%.2f)\n", role, spend[role], target;
+      }
+    }
+  ' "{{recruiting_spend_csv_path}}"
+prompt: |
+  Review recruiting spend by role from {{recruiting_spend_csv_path}}
+  (job board posts, agency fees, sourcing tool costs) for roles marked
+  hired.
+  1. Sum total spend per role and divide by hires made for that role to
+     get cost-per-hire.
+  2. Flag any role over the {{cost_per_hire_target}} target.
+  3. For flagged roles, break down which spend category (job boards,
+     agency, tools) drove the overage, and note if it looks like a
+     one-time cost (e.g. a rush agency placement) versus a recurring
+     pattern worth addressing.
+script_note: >
+  `command` sums spend against the target and lists which roles are over
+  budget, zero tokens. `prompt` additionally breaks down which spend
+  category caused the overage and distinguishes one-off costs from a
+  recurring pattern.
+variables:
+  recruiting_spend_csv_path:
+    default: "./recruiting-spend.csv"
+    description: "Path to a CSV with columns: role_title,status (hired/open),spend_amount,spend_category."
+  cost_per_hire_target:
+    default: 4000
+    description: Target cost-per-hire in your local currency, above which a role is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only financial check — assumes a CSV export from your finance/procurement tracking of recruiting-related spend.

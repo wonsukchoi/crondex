@@ -1,0 +1,32 @@
+id: seasonal-package-promo-reminder
+version: 1
+name: Seasonal Package Promo Reminder
+description: >
+  Looks ahead at your historically slow months and reminds you when it's
+  time to launch a seasonal package or promo before the slow stretch
+  hits. Use this if a slow month has ever crept up on you and the
+  "spring detox package" promo went out two weeks too late to matter.
+category: spa
+tags: [spa, marketing, promotions, seasonal]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Today's date and {{slow_months_csv_path}} (a text file listing months
+  historically slow for this business, one per line, e.g. "January",
+  "August") are your inputs. If a slow month starts within
+  {{lead_days}} days from today, draft 2-3 seasonal package or promo
+  ideas appropriate for a spa/salon business during that month (e.g.
+  holiday gift sets, "new year reset" facials, summer prep packages),
+  each with a one-line pitch and a suggested discount or bundle
+  structure. If no slow month is approaching within the window, say so
+  and stop.
+variables:
+  slow_months_csv_path:
+    default: "./slow-months.txt"
+    description: "Text file, one month name per line, listing your historically slow months."
+  lead_days:
+    default: 21
+    description: How many days before a slow month starts to begin surfacing promo ideas.
+compatible_agents: [generic, claude, codex]
+notes: Ideas are a starting point, not a finished campaign — check pricing and inventory before committing to any bundle.

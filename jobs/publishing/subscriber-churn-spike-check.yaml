@@ -1,0 +1,42 @@
+id: subscriber-churn-spike-check
+version: 1
+name: Subscriber Churn Spike Check
+description: >
+  Compares this period's newsletter or magazine unsubscribe count against
+  the trailing average and flags it if it's spiked well above normal. Use
+  this if churn has ever quietly crept up after a content or pricing
+  change and nobody noticed until subscriber counts had already dropped a
+  lot.
+category: publishing
+tags: [publishing, subscribers, churn, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v mult={{spike_multiplier}} '
+    NR>1 { sum += $2; n++; rows[n]=$1","$2 }
+    END {
+      if (n < 2) { print "Not enough history to compute a baseline"; exit 0; }
+      latest_row = rows[n]; split(latest_row, cur, ",");
+      baseline = (sum - cur[2]) / (n - 1);
+      threshold = baseline * mult;
+      if (baseline > 0 && cur[2]+0 > threshold) {
+        print "CHURN SPIKE: " cur[1] " unsubscribes=" cur[2] " vs baseline avg=" baseline " (threshold " threshold ")";
+      } else {
+        print "OK: " cur[1] " unsubscribes=" cur[2] " within normal range (baseline avg=" baseline ")";
+      }
+    }
+  ' "{{unsubscribes_csv}}"
+variables:
+  unsubscribes_csv:
+    default: "./unsubscribes-by-period.csv"
+    description: "CSV with header row, columns: period_label,unsubscribe_count — one row per period, oldest first, most recent row last."
+  spike_multiplier:
+    default: 2
+    description: Flag the latest period if its unsubscribe count exceeds the trailing average by this multiple.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Append one row per issue/period to unsubscribes-by-period.csv from your
+  ESP's export. The baseline is a simple trailing average over all prior
+  rows, not a seasonal model — tune spike_multiplier to your normal
+  period-to-period variance.

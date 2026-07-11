@@ -1,0 +1,33 @@
+id: customer-sentiment-spike-check
+version: 1
+name: Customer Sentiment Spike Check
+description: >
+  Reads recent incoming customer messages and flags a spike in frustrated
+  or angry language, even if SLA and CSAT still look fine. Use this if
+  customer anger has ever built up over a bad release or outage days
+  before it ever showed up in a survey score or reopen rate.
+category: support
+tags: [support, sentiment, tickets, quality]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the customer-facing messages (not agent replies) on tickets created
+  or updated in {{helpdesk_platform}} in the last {{lookback_hours}} hours.
+  1. Judge the overall tone: roughly what share reads as frustrated, angry,
+     or escalating in urgency, versus neutral or positive.
+  2. Compare that share to what you'd expect as a normal baseline for this
+     kind of support queue — call out only if it looks like a real spike,
+     not routine day-to-day variation.
+  3. If there's a spike, note any shared theme across the negative messages
+     (same feature, same outage, same policy) rather than just a count.
+  4. If nothing stands out, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where incoming customer ticket messages are tracked.
+  lookback_hours:
+    default: 6
+    description: Rolling window of incoming messages to evaluate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Judgment-based, not a fixed keyword list — sentiment reading needs an LLM pass, not a script, to avoid false positives from sarcasm or ordinary complaint language.

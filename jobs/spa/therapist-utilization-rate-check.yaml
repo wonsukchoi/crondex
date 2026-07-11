@@ -1,0 +1,32 @@
+id: therapist-utilization-rate-check
+version: 1
+name: Therapist/Stylist Utilization Rate Check
+description: >
+  Calculates each staff member's booked-vs-available hours for the past
+  week and flags anyone below a utilization threshold. Use this if you've
+  ever noticed one therapist standing around all afternoon while another
+  is double-booked, and wanted a number instead of a gut feeling.
+category: spa
+tags: [spa, staffing, utilization, scheduling]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_utilization_pct}}" '
+    NR==1 {next}
+    {
+      util = ($3 > 0) ? ($2 / $3) * 100 : 0;
+      if (util < min_pct) {
+        printf "LOW UTILIZATION: %s — %.1f%% booked (%d of %d available hours)\n", $1, util, $2, $3;
+      }
+    }
+  ' "{{utilization_csv_path}}"
+variables:
+  utilization_csv_path:
+    default: "./staff-utilization.csv"
+    description: "Path to a CSV with columns: staff_name,booked_hours,available_hours for the reporting week."
+  min_utilization_pct:
+    default: 60
+    description: Utilization percentage below which a staff member gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Low utilization isn't automatically a problem — check for training, PTO, or a new hire ramping up before cutting anyone's hours.

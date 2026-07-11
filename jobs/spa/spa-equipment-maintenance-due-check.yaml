@@ -1,0 +1,36 @@
+id: spa-equipment-maintenance-due-check
+version: 1
+name: Spa Equipment Maintenance Due Check
+description: >
+  Tracks facial steamers, massage tables, hot stone warmers, and other
+  equipment against their maintenance interval and flags anything
+  overdue. Use this if a facial steamer has ever broken down mid-treatment
+  because nobody was tracking when it was last serviced.
+category: spa
+tags: [spa, equipment, maintenance, safety]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      days_left = $3 - days_since;
+      if (days_left <= warn) {
+        printf "MAINTENANCE DUE: %s — last serviced %s, due in %d days\n", $1, $2, days_left;
+      }
+    }
+  ' "{{equipment_csv_path}}"
+variables:
+  equipment_csv_path:
+    default: "./spa-equipment.csv"
+    description: "Path to a CSV with columns: equipment_name,last_service_date (YYYY-MM-DD),service_interval_days."
+  warn_days_before:
+    default: 7
+    description: Days before the next service is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Equipment that touches skin (steamers, wax pots) failing mid-service is a safety issue, not just downtime — pull flagged items from use until serviced, don't let them stay in rotation.

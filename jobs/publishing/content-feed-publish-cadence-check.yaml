@@ -1,0 +1,37 @@
+id: content-feed-publish-cadence-check
+version: 1
+name: Content Feed Publish Cadence Check
+description: >
+  Fetches your site's RSS/Atom feed and flags it if the most recent item's
+  publish date is older than expected, meaning new content has stopped
+  going out on schedule. Use this if a newsletter, blog, or magazine feed
+  has ever gone quiet for weeks without anyone noticing until a reader
+  asked why nothing new showed up.
+category: publishing
+tags: [publishing, rss, feed, cadence, editorial]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  http_code=$(curl -s -o /tmp/content-feed-cadence.xml -w "%{http_code}" "{{feed_url}}");
+  if [ "$http_code" != "200" ]; then echo "FAIL: feed_url returned HTTP $http_code"; exit 1; fi;
+  last_pubdate=$(grep -o "<pubDate>[^<]*</pubDate>" /tmp/content-feed-cadence.xml | head -1 | sed 's/<[^>]*>//g');
+  if [ -z "$last_pubdate" ]; then echo "WARNING: no <pubDate> found in feed — cannot check cadence"; exit 1; fi;
+  pub_ts=$(date -d "$last_pubdate" +%s 2>/dev/null || date -jf "%a, %d %b %Y %T %Z" "$last_pubdate" +%s 2>/dev/null);
+  if [ -z "$pub_ts" ]; then echo "WARNING: could not parse pubDate \"$last_pubdate\""; exit 1; fi;
+  days_since=$(( (today - pub_ts) / 86400 ));
+  if [ "$days_since" -gt "{{max_days_since_publish}}" ]; then echo "STALE FEED: most recent item published $days_since days ago ($last_pubdate)"; else echo "OK: most recent item published $days_since days ago"; fi
+variables:
+  feed_url:
+    default: "https://example.com/feed.xml"
+    description: Public URL of the RSS/Atom feed to check.
+  max_days_since_publish:
+    default: 10
+    description: Flag the feed as stale if the newest item's pubDate is older than this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks publish cadence, not feed validity — pair with a dedicated feed
+  validator if you also need structural/XML checks. pubDate parsing covers
+  standard RFC-822 format; adjust the date format string if your CMS emits
+  a nonstandard timestamp.

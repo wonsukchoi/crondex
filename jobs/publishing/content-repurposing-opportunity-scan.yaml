@@ -1,0 +1,41 @@
+id: content-repurposing-opportunity-scan
+version: 1
+name: Content Repurposing Opportunity Scan
+description: >
+  Reviews recently published articles' performance data and suggests which
+  ones are strong candidates to repurpose into a newsletter roundup,
+  social post, or updated evergreen piece. Use this if high-performing
+  content has ever been published once and never touched again, leaving
+  obvious repurposing value on the table.
+category: publishing
+tags: [publishing, content-strategy, repurposing, editorial]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read {{article_performance_csv}} (columns: title, publish_date, url,
+  pageviews, shares). Identify articles published in the last
+  {{lookback_days}} days whose pageviews or shares are meaningfully above
+  the average for that period, and that haven't already been flagged as
+  repurposed in a prior run (check {{repurposing_log_file}} if it exists).
+  For each candidate, suggest one specific repurposing format (newsletter
+  roundup blurb, social carousel, updated evergreen refresh, etc.) with a
+  one-sentence rationale tied to its numbers. Append the candidates and
+  your suggestions to {{repurposing_log_file}} so future runs don't
+  re-suggest the same piece.
+variables:
+  article_performance_csv:
+    default: "./article-performance.csv"
+    description: "CSV with header row, columns: title,publish_date,url,pageviews,shares."
+  lookback_days:
+    default: 30
+    description: Only consider articles published within this many days of the run.
+  repurposing_log_file:
+    default: "./repurposing-log.md"
+    description: File where prior suggestions are logged, to avoid repeat-suggesting the same article.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Suggestion-only — writes candidates and ideas to repurposing_log_file,
+  doesn't publish or schedule anything itself. "Meaningfully above
+  average" is left to editorial judgment rather than a fixed statistical
+  threshold, since traffic distributions vary a lot by outlet.

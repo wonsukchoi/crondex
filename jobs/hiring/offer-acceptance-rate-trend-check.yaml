@@ -1,0 +1,36 @@
+id: offer-acceptance-rate-trend-check
+version: 1
+name: Offer Acceptance Rate Trend Check
+description: >
+  Reviews recent offers and flags when the acceptance rate drops below a
+  healthy baseline, which often signals a compensation or process problem
+  before it shows up anywhere else. Use this if you've ever only noticed a
+  string of declines after several offers in a row fell through.
+category: hiring
+tags: [hiring, recruiting, offers, metrics]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull offer outcomes from {{ats_system}} for the last {{lookback_days}}
+  days.
+  1. Calculate the offer acceptance rate (accepted / (accepted + declined),
+     excluding still-pending offers).
+  2. Compare it against the {{baseline_acceptance_rate}}% target.
+  3. If it's below target, break declines down by role/level/location if
+     that data is available, and note any pattern (e.g. one team, one
+     comp band, one location).
+  4. Report the rate plainly, flagging whether it's on track or a concern
+     worth raising with recruiting leadership.
+variables:
+  ats_system:
+    default: "your applicant tracking system"
+    description: Where offer outcomes are recorded.
+  lookback_days:
+    default: 30
+    description: Rolling window of offers to include in the rate calculation.
+  baseline_acceptance_rate:
+    default: 85
+    description: Target acceptance rate percentage below which the trend is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only trend report — distinct from offer-expiry-reminder, which tracks individual pending offers rather than the aggregate accept/decline rate.

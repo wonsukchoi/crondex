@@ -1,0 +1,32 @@
+id: matching-gift-deadline-reminder
+version: 1
+name: Matching Gift Deadline Reminder
+description: >
+  Checks pledged employer matching gifts against each company's own
+  submission deadline and flags ones about to expire unclaimed. Use this
+  if a donor's employer match has ever gone unclaimed because nobody
+  tracked the separate deadline for submitting the match request.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, matching-gifts]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 == "no" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn && days_left >= 0) print "MATCH EXPIRING: " $1 " (" $2 ") — deadline " $3 " (" days_left " days left, not yet submitted)";
+    }
+  ' "{{matching_gifts_csv}}"
+variables:
+  matching_gifts_csv:
+    default: "matching-gifts.csv"
+    description: "CSV with header row, columns: donor_name,company,submission_deadline(YYYY-MM-DD),submitted(yes/no)."
+  warn_days:
+    default: 14
+    description: Days before the company's match-submission deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Mark a row's submitted column "yes" once the match request has been filed with the employer — matching-gift deadlines are set by the company, not the donor, and are easy to miss since they're separate from the original gift date.

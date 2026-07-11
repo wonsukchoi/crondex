@@ -1,0 +1,40 @@
+id: pipeline-stage-conversion-check
+version: 1
+name: Pipeline Stage Conversion Check
+description: >
+  Reviews conversion rates between hiring stages (applied, screened,
+  onsite, offer) and flags whichever stage is bleeding candidates faster
+  than usual. Use this if a role has ever quietly stalled because one
+  specific stage — like phone screens never converting to onsites — was
+  the real bottleneck and no one had looked at the funnel that way.
+category: hiring
+tags: [hiring, recruiting, pipeline, metrics]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull candidate stage-transition data from {{ats_system}} for
+  {{role_filter}} over the last {{lookback_days}} days.
+  1. Calculate the conversion rate between each consecutive stage
+     (applied to screened, screened to onsite, onsite to offer, offer to
+     hired).
+  2. Compare each rate against the {{healthy_conversion_pct}}% baseline
+     you'd expect for a healthy pipeline.
+  3. Flag the single weakest stage as the likely bottleneck and suggest
+     what it usually means (e.g. a weak screen-to-onsite rate often
+     points to a screening rubric mismatch, not a sourcing problem).
+variables:
+  ats_system:
+    default: "your applicant tracking system"
+    description: Where stage-transition history is recorded.
+  role_filter:
+    default: "all open roles"
+    description: Which role(s) or department to scope the analysis to.
+  lookback_days:
+    default: 60
+    description: Rolling window of candidates to include in the conversion calculation.
+  healthy_conversion_pct:
+    default: 30
+    description: Baseline stage-to-stage conversion percentage below which a stage is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — distinct from open-req-aging-check, which looks at raw candidate counts per req rather than conversion rates between stages.

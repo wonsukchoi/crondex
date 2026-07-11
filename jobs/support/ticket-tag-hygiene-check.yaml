@@ -1,0 +1,33 @@
+id: ticket-tag-hygiene-check
+version: 1
+name: Ticket Tag Hygiene Check
+description: >
+  Checks what percentage of recently closed tickets are missing a
+  category/topic tag and flags it when too many go untagged. Use this if
+  your "top ticket reasons" report has ever been useless because half the
+  tickets closed that month were never categorized in the first place.
+category: support
+tags: [support, tickets, tagging, reporting]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  total=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{closed_tickets_url}}" | grep -o '"id":' | wc -l | tr -d ' ');
+  untagged=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{closed_tickets_url}}" | grep -o '"tags":\[\]' | wc -l | tr -d ' ');
+  if [ -z "$total" ] || [ "$total" -eq 0 ]; then echo "OK: no closed tickets in the window to check"; exit 0; fi;
+  pct=$(( untagged * 100 / total ));
+  if [ "$pct" -gt "{{max_untagged_pct}}" ]; then echo "WARNING: $pct% of closed tickets ($untagged of $total) have no category tag, above target {{max_untagged_pct}}%"; exit 1;
+  else echo "OK: $pct% of closed tickets ($untagged of $total) are untagged (within target {{max_untagged_pct}}%)"; fi
+variables:
+  closed_tickets_url:
+    default: "https://api.example-helpdesk.com/tickets?status=closed&closed_gte=7d_ago&fields=id,tags"
+    description: Helpdesk API endpoint listing recently closed tickets with their tags field.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  max_untagged_pct:
+    default: 15
+    description: Maximum acceptable percentage of closed tickets with no category tag.
+compatible_agents: [generic, claude, codex]
+notes: Assumes tags come back as a JSON array field named "tags" — adjust the grep pattern if your helpdesk names or nests this field differently.

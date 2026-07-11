@@ -1,0 +1,37 @@
+id: skip-level-meeting-reminder
+version: 1
+name: Skip-Level Meeting Reminder
+description: >
+  Flags direct reports of your reports who haven't had a skip-level
+  1:1 with you in a while. Use this if you've ever realized someone
+  two levels down had gone half a year without ever talking to you
+  directly.
+category: team
+tags: [team, skip-level, 1on1, management]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "DUE: %s — last skip-level %s (%d day(s) ago)\n", $1, $2, days_since;
+      }
+    }
+  ' "{{skip_level_log_csv_path}}"
+variables:
+  skip_level_log_csv_path:
+    default: "./skip-level-log.csv"
+    description: "Path to a CSV with columns: report_name,last_skip_level_date (YYYY-MM-DD)."
+  max_days_since:
+    default: 90
+    description: Flag anyone who hasn't had a skip-level in this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You (or a manager) update skip-level-log.csv after each
+  meeting — this doesn't pull from a calendar automatically.

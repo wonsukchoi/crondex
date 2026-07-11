@@ -1,0 +1,29 @@
+id: unassigned-ticket-check
+version: 1
+name: Unassigned Ticket Check
+description: >
+  Flags open tickets that have sat unassigned to any agent longer than a
+  threshold. Use this if a ticket has ever fallen through the cracks simply
+  because nobody claimed it, not because anyone was overloaded.
+category: support
+tags: [support, tickets, triage, unassigned]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"assignee":null' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no unassigned tickets past {{stale_minutes}} minutes"; exit 0;
+  else echo "WARNING: $count ticket(s) unassigned for over {{stale_minutes}} minutes"; exit 1; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?status=open&assignee=none&age_gt_minutes=30"
+    description: Helpdesk API endpoint pre-filtered to open, unassigned tickets older than the stale window.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  stale_minutes:
+    default: 30
+    description: Minutes a ticket can sit unassigned before it's worth flagging, for labeling output.
+compatible_agents: [generic, claude, codex]
+notes: Read-only triage signal — pairs well with routing/auto-assignment rules but doesn't change any assignment itself.

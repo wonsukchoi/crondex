@@ -1,0 +1,53 @@
+id: grant-restricted-fund-spend-check
+version: 1
+name: Grant Restricted Fund Spend Check
+description: >
+  Compares actual spend against a grant's approved budget line items and
+  flags a category that's over budget or lagging well behind the grant
+  period's pace. Use this if restricted grant funds have ever been
+  over-spent on one line item — risking disallowed costs — or left so
+  under-spent the grant looked unused when the report came due.
+category: nonprofit
+tags: [nonprofit, grants, compliance, finance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v elapsed={{grant_period_elapsed_pct}} -v over={{overspend_alert_pct}} -v under={{underspend_alert_pct}} '
+    NR>1 {
+      pct = ($3/$2)*100;
+      if (pct >= over) print "OVERSPEND: " $1 " at " int(pct) "% of budget (grant period " elapsed "% elapsed)";
+      else if (pct < (elapsed - under)) print "UNDERSPEND: " $1 " at " int(pct) "% of budget (grant period " elapsed "% elapsed)";
+    }
+  ' "{{grant_budget_csv}}"
+prompt: |
+  Read the grant budget line items from {{grant_budget_csv}} (columns:
+  line_item, budgeted, spent). The grant period is {{grant_period_elapsed_pct}}%
+  elapsed.
+  1. For each line item, compute percent of budget spent.
+  2. Flag any at or above {{overspend_alert_pct}}% of budget as an
+     overspend risk, and any more than {{underspend_alert_pct}} points
+     behind the elapsed-period pace as an underspend risk.
+  3. For each flagged line item, draft a short note to the grant program
+     manager explaining the likely cause of the variance and a suggested
+     next step (reallocate, slow spending, or request a budget
+     modification from the funder).
+script_note: >
+  `command` does the raw math and flags line items over/under threshold.
+  `prompt` also drafts an explanation and suggested next step per flagged
+  item, which needs judgment about what caused the variance.
+variables:
+  grant_budget_csv:
+    default: "grant-budget.csv"
+    description: "CSV with header row, columns: line_item,budgeted,spent."
+  grant_period_elapsed_pct:
+    default: 50
+    description: Percent of the grant period elapsed so far — update manually (e.g. monthly) as the grant progresses.
+  overspend_alert_pct:
+    default: 100
+    description: Percent of a line item's budget spent before it's flagged as overspent.
+  underspend_alert_pct:
+    default: 20
+    description: How many points behind the elapsed-period pace a line item can trail before it's flagged as underspent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Pull spent/budgeted figures from your grants-management or accounting export before each run; reallocating between line items usually needs funder pre-approval, so treat flags as a prompt to check, not to act unilaterally.

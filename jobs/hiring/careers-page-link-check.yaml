@@ -1,0 +1,30 @@
+id: careers-page-link-check
+version: 1
+name: Careers Page Link Check
+description: >
+  Checks that every "Apply" link on your careers page actually loads
+  instead of 404ing or redirecting to a dead posting. Use this if a job
+  ad has ever driven traffic to an apply link that silently broke after
+  an ATS migration or a posting got taken down.
+category: hiring
+tags: [hiring, recruiting, careers-page, links]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS= read -r url; do
+    [ -z "$url" ] && continue;
+    code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time {{timeout_seconds}} "$url");
+    if [ "$code" -ge 400 ] || [ "$code" -eq 000 ]; then
+      echo "BROKEN: $url -> HTTP $code";
+    fi;
+  done < "{{apply_links_file}}"
+variables:
+  apply_links_file:
+    default: "./careers-apply-links.txt"
+    description: Path to a text file with one apply-link URL per line, exported from your careers page.
+  timeout_seconds:
+    default: 10
+    description: Seconds to wait for each link before treating it as broken.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check via curl; doesn't crawl the careers page itself, so keep apply-links file current when postings change.

@@ -1,0 +1,32 @@
+id: recurring-donor-payment-failure-check
+version: 1
+name: Recurring Donor Payment Failure Check
+description: >
+  Scans recurring monthly-donation records for failed charges and flags
+  donors whose card needs updating. Use this if a monthly donor has ever
+  quietly stopped giving because their card expired and nobody noticed
+  until the annual report showed the drop.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, payments]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback={{lookback_days}} '
+    NR>1 && $3 == "failed" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline charge_ts; close(cmd);
+      days_since = int((today - charge_ts) / 86400);
+      if (days_since >= 0 && days_since <= lookback) print "PAYMENT FAILED: " $1 " (" $2 ") — last attempt " $4 " (" days_since " days ago)";
+    }
+  ' "{{recurring_donations_csv}}"
+variables:
+  recurring_donations_csv:
+    default: "recurring-donations.csv"
+    description: "CSV with header row, columns: donor_name,email,last_charge_status,last_charge_date(YYYY-MM-DD)."
+  lookback_days:
+    default: 30
+    description: Only flag failures whose last attempt was within this many days, so the same failure doesn't re-alert forever.
+compatible_agents: [generic, claude, codex]
+notes: Export last_charge_status/last_charge_date from your payment processor (Stripe, etc.) or donor CRM into this CSV before each run — reaching out promptly for a card update is what keeps a recurring gift from silently lapsing.

@@ -1,0 +1,30 @@
+id: form-990-filing-deadline-reminder
+version: 1
+name: Form 990 Filing Deadline Reminder
+description: >
+  Warns you as your organization's Form 990 (or extension) filing
+  deadline approaches. Use this if the annual tax filing has ever crept
+  up during year-end fundraising crunch, leaving someone scrambling to
+  request an extension at the last minute.
+category: nonprofit
+tags: [nonprofit, compliance, tax, filing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{filing_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{filing_deadline}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "WARNING: Form 990 due {{filing_deadline}} — $days_left days left";
+    exit 1;
+  else echo "OK: Form 990 due {{filing_deadline}}, $days_left days left"; fi
+variables:
+  filing_deadline:
+    default: "2027-05-15"
+    description: "Form 990 (or extended) due date, YYYY-MM-DD. Standard deadline is the 15th day of the 5th month after fiscal year end — update this each year or after filing Form 8868 for an extension."
+  warn_days:
+    default: 30
+    description: Days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: This only tracks the date you give it — recompute filing_deadline whenever your fiscal year end or extension status changes.

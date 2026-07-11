@@ -1,0 +1,35 @@
+id: help-center-broken-link-check
+version: 1
+name: Help Center Broken Link Check
+description: >
+  Crawls links inside your published help center articles and flags any
+  that return a broken or error status. Use this if a customer has ever
+  hit a dead "click here for setup instructions" link in an article that
+  hadn't been opened, let alone tested, in months.
+category: support
+tags: [support, knowledge-base, help-center, broken-links]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  broken=0;
+  curl -s -H "Authorization: Bearer {{api_token}}" "{{kb_api_url}}" | grep -o 'https\?://[^"[:space:]<>]*' | sort -u | while IFS= read -r url; do
+    code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time {{timeout_seconds}} "$url");
+    if [ "$code" -ge 400 ] || [ "$code" -eq 000 ]; then echo "BROKEN ($code): $url"; broken=1; fi;
+  done;
+  echo "Done checking help center links."
+variables:
+  kb_api_url:
+    default: "https://api.example-helpdesk.com/help_center/articles?status=published"
+    description: Help center API endpoint (or public sitemap) returning article body content or URLs to scan for links.
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait for each linked URL before treating it as unreachable.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Link extraction is a simple regex over raw response text, so it will pick
+  up any URL in the payload, not just ones in article bodies — tighten the
+  grep pattern if your API response includes non-article URLs you don't
+  want checked. Runs against live external sites, so occasional false
+  positives from flaky third-party servers are expected.

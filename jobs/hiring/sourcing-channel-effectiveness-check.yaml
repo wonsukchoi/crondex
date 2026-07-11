@@ -1,0 +1,41 @@
+id: sourcing-channel-effectiveness-check
+version: 1
+name: Sourcing Channel Effectiveness Check
+description: >
+  Compares how many hires each sourcing channel (job boards, referrals,
+  agencies, outbound) actually produces against what you're spending or
+  investing in it, and flags channels that aren't pulling their weight.
+  Use this if you've kept renewing a job board subscription or paying an
+  agency out of habit without checking whether it's still converting to
+  hires.
+category: hiring
+tags: [hiring, recruiting, sourcing, metrics]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull candidate source data from {{ats_system}} for hires made in the
+  last {{lookback_days}} days, grouped by sourcing channel (job boards,
+  referrals, agency, outbound/sourced, career site).
+  1. For each channel, report applicants, hires, and hire rate
+     (hires / applicants).
+  2. If spend-per-channel data is available in {{spend_source}}, compute
+     a rough cost-per-hire per channel too.
+  3. Flag any channel with a hire rate below {{low_hire_rate_pct}}% or
+     that produced zero hires this period despite active spend, as a
+     candidate for cutting or renegotiating.
+variables:
+  ats_system:
+    default: "your applicant tracking system"
+    description: Where candidate source attribution is recorded.
+  lookback_days:
+    default: 90
+    description: Rolling window of hires to include in the channel comparison.
+  spend_source:
+    default: "your recruiting spend tracker (optional, spreadsheet or finance export)"
+    description: Where per-channel spend data can be found, if you track it.
+  low_hire_rate_pct:
+    default: 2
+    description: Hire rate percentage below which a channel is flagged as underperforming.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — distinct from cost-per-hire-budget-check, which totals overall spend per role rather than comparing channel-level hire conversion.

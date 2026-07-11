@@ -1,0 +1,60 @@
+id: canned-response-content-quality-check
+version: 1
+name: Canned Response Content Quality Check
+description: >
+  Scans your saved macros/canned responses for mechanical problems (broken
+  links, leftover placeholder tokens) and, on top of that, has an agent
+  read them for tone and accuracy. Use this if a macro has ever gone out
+  to a customer with an unfilled {{customer_name}} token or a link to a
+  page that no longer exists, because nobody proofreads macros after
+  they're written.
+category: support
+tags: [support, macros, canned-responses, content-quality]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  issues=0;
+  curl -s -H "Authorization: Bearer {{api_token}}" "{{macros_api_url}}" | grep -o '"title":"[^"]*","body":"[^"]*"' | while IFS= read -r line; do
+    title=$(echo "$line" | sed -E 's/.*"title":"([^"]*)".*/\1/');
+    if echo "$line" | grep -qE '\{\{[a-zA-Z_]+\}\}'; then echo "UNFILLED PLACEHOLDER: \"$title\""; issues=1; fi;
+    for url in $(echo "$line" | grep -o 'https\?://[^"\\]*'); do
+      code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time {{timeout_seconds}} "$url");
+      if [ "$code" -ge 400 ] || [ "$code" -eq 000 ]; then echo "BROKEN LINK ($code) in \"$title\": $url"; issues=1; fi;
+    done;
+  done;
+  echo "Done checking macro content for mechanical issues."
+prompt: |
+  Read through the saved macros/canned responses pulled from
+  {{macros_api_url}} in {{helpdesk_platform}}.
+  1. Flag any macro whose wording is outdated (mentions a discontinued
+     product/feature, a pricing figure, or a policy that's likely changed).
+  2. Flag any macro whose tone reads as curt, robotic, or inconsistent with
+     the rest of the set.
+  3. Note any near-duplicate macros that should probably be consolidated.
+  4. If nothing stands out beyond mechanical issues (handled separately),
+     say so in one line.
+variables:
+  macros_api_url:
+    default: "https://api.example-helpdesk.com/macros"
+    description: Helpdesk API endpoint listing saved macros/canned responses with title and body fields.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait for each linked URL before treating it as unreachable.
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Which helpdesk tool the macros live in, for prompt context.
+script_note: >
+  `command` catches mechanical problems for free — unfilled {{placeholder}}
+  tokens and dead links — but has no idea whether the wording is still
+  accurate or reads well; only `prompt` catches outdated policy language,
+  tone drift, or near-duplicate macros worth merging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `macro-usage-staleness-check`, which flags macros by how
+  long since they were *used* — this checks macro *content* directly,
+  regardless of usage frequency.

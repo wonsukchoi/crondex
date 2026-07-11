@@ -1,0 +1,37 @@
+id: holiday-coverage-gap-check
+version: 1
+name: Holiday Coverage Gap Check
+description: >
+  Looks ahead at upcoming holidays or company-wide days off and checks
+  whether support staffing is thin relative to expected ticket volume. Use
+  this if a holiday has ever snuck up with half the team out and nobody
+  noticed the schedule gap until tickets were already piling up.
+category: support
+tags: [support, staffing, coverage, holidays]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look at the next {{lookahead_days}} days for any holidays or company
+  closures relevant to {{team_locale}}, and check them against the current
+  support staff schedule/PTO calendar in {{scheduling_tool}}.
+  1. For each upcoming holiday or high-PTO day, estimate how many agents
+     are scheduled to be on versus a normal day.
+  2. Flag any day where scheduled coverage looks thin relative to
+     typical ticket volume for that day of week.
+  3. If historical ticket volume data is available, note whether that
+     particular holiday period has historically run higher or lower
+     than normal (e.g. post-holiday backlog spikes).
+  4. If coverage looks adequate for the whole window, say so in one line.
+variables:
+  lookahead_days:
+    default: 21
+    description: How many days ahead to scan for holidays/closures.
+  team_locale:
+    default: "US"
+    description: Country/region whose holiday calendar applies to the support team.
+  scheduling_tool:
+    default: "your scheduling/PTO tool (e.g. When I Work, a shared calendar, your helpdesk's own scheduling feature)"
+    description: Where agent shift schedules and PTO are tracked.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Advisory only — flags a staffing risk early enough to still do something about it (call in coverage, set expectations), doesn't change any schedule itself.

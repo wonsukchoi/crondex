@@ -1,0 +1,31 @@
+id: concentration-risk-check
+version: 1
+name: Concentration Risk Check
+description: >
+  Checks your holdings log for any single position that's grown past a
+  concentration threshold of your total tracked portfolio value. Use this
+  if a winning stock has ever quietly grown into an outsized chunk of
+  your net worth without you deciding that on purpose.
+category: investing
+tags: [investing, portfolio, risk, concentration]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  total=$(awk -F, 'NR>1{sum+=$2} END{print sum+0}' {{holdings_csv}});
+  if [ -z "$total" ] || [ "$total" = "0" ]; then echo "WARNING: no holdings found in {{holdings_csv}}"; exit 1; fi;
+  awk -F, -v total="$total" -v thresh={{concentration_threshold_pct}} '
+    NR>1 {
+      pct = ($2/total)*100;
+      if (pct >= thresh) print "WARNING: \"" $1 "\" is " pct "% of tracked portfolio value (threshold " thresh "%)";
+    }
+  ' {{holdings_csv}}
+variables:
+  holdings_csv:
+    default: "holdings.csv"
+    description: "CSV with header row, columns: name,value — one row per position, in your base currency."
+  concentration_threshold_pct:
+    default: 20
+    description: Percent of total tracked value that triggers a concentration flag.
+compatible_agents: [generic, claude, codex]
+notes: Keep holdings.csv updated with current market values (export from your brokerage periodically) for this to be meaningful.

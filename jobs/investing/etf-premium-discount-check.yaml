@@ -1,0 +1,42 @@
+id: etf-premium-discount-check
+version: 1
+name: ETF Premium/Discount to NAV Check
+description: >
+  Checks whether an ETF's market price has drifted too far from its net
+  asset value and flags it if the premium or discount exceeds your
+  threshold. Use this if you hold a thinly-traded or international ETF
+  where price/NAV divergence has ever cost more than expected on entry or
+  exit.
+category: investing
+tags: [investing, etf, nav, premium-discount]
+schedule: "0 16 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  if [ -z "{{api_key}}" ] || [ "{{api_key}}" = "your-api-key-here" ]; then
+    echo "WARNING: no market data API key configured — set the api_key variable to use this job.";
+    exit 1;
+  fi;
+  price=$(curl -s "https://finnhub.io/api/v1/quote?symbol={{ticker}}&token={{api_key}}" | grep -o '"c":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$price" ]; then echo "ERROR: could not fetch price for {{ticker}}"; exit 1; fi;
+  diff_pct=$(awk -v p="$price" -v nav={{nav_estimate}} 'BEGIN{printf "%.2f", ((p-nav)/nav)*100}');
+  if awk -v d="$diff_pct" -v t={{threshold_pct}} 'BEGIN{exit !((d>t)||(d<-t))}'; then
+    echo "WARNING: {{ticker}} price $price is $diff_pct% off its NAV estimate {{nav_estimate}} (threshold {{threshold_pct}}%)";
+  else
+    echo "OK: {{ticker}} price $price is $diff_pct% off NAV estimate {{nav_estimate}}, within threshold.";
+  fi
+variables:
+  ticker:
+    default: "some-etf"
+    description: ETF ticker to check.
+  nav_estimate:
+    default: 100
+    description: Most recent published NAV per share — update from the fund provider's site.
+  threshold_pct:
+    default: 1.5
+    description: Percent deviation from NAV that triggers a warning.
+  api_key:
+    default: "your-api-key-here"
+    description: API key for a market data provider (e.g. Finnhub or Alpha Vantage); required for this job to work.
+compatible_agents: [generic, claude, codex]
+notes: NAV estimate must be updated manually from the fund provider's site — this job only compares the fetched market price against whatever NAV value you supply.

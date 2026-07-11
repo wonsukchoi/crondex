@@ -1,0 +1,38 @@
+id: booking-deposit-collection-check
+version: 1
+name: High-Value Booking Deposit Collection Check
+description: >
+  Flags upcoming appointments above a price threshold that don't have a
+  deposit recorded yet. Use this if a client has ever no-showed a
+  $300 package because no deposit was collected and there was nothing
+  on the line for them to lose.
+category: spa
+tags: [spa, deposits, no-show, front-desk]
+schedule: "0 17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minprice="{{deposit_required_above}}" -v days="{{lookahead_days}}" '
+    NR==1 {next}
+    $3 >= minprice && $4 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (appt_epoch - now_epoch) / 86400;
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "NO DEPOSIT: %s — $%.2f service on %s (%d days out)\n", $1, $3, $2, diff_days;
+      }
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./upcoming-bookings.csv"
+    description: "Path to a CSV with columns: client_name,appointment_date (YYYY-MM-DD),service_price,deposit_collected (yes/no)."
+  deposit_required_above:
+    default: 150
+    description: Service price at or above which a deposit is expected.
+  lookahead_days:
+    default: 5
+    description: How many days ahead to scan for undeposited high-value bookings.
+compatible_agents: [generic, claude, codex]
+notes: Call or text before charging anything — some booking platforms let you auto-charge a saved card, but make sure your cancellation/deposit policy is posted and agreed to first.

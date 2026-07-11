@@ -1,0 +1,36 @@
+id: interview-feedback-score-divergence-check
+version: 1
+name: Interview Feedback Score Divergence Check
+description: >
+  Flags candidates whose interview panel submitted wildly different
+  scores, so someone schedules a debrief instead of the decision quietly
+  defaulting to whoever spoke loudest. Use this if a hiring decision has
+  ever moved forward despite one interviewer strongly disagreeing and no
+  one actually discussing it.
+category: hiring
+tags: [hiring, interviews, feedback, recruiting]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{ats_system}} for candidates with all interview feedback
+  submitted in the last {{lookback_days}} days.
+  1. For each candidate, list each interviewer's overall recommendation
+     and score.
+  2. Flag candidates where scores span more than {{divergence_threshold}}
+     points on the scorecard scale, or where recommendations openly
+     conflict (e.g. one "strong no" alongside one "strong yes").
+  3. For each flagged candidate, note whether a debrief is already
+     scheduled; if not, say so plainly so one gets booked.
+variables:
+  ats_system:
+    default: "your applicant tracking system (e.g. Greenhouse, Lever, Ashby)"
+    description: Where interview scorecards are recorded.
+  lookback_days:
+    default: 3
+    description: How far back to check for candidates with fully submitted feedback.
+  divergence_threshold:
+    default: 2
+    description: Point spread on the scorecard scale that counts as meaningful disagreement.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from interview-feedback-overdue-check, which flags missing feedback — this looks at feedback that's already in but disagrees.

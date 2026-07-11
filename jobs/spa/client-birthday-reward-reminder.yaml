@@ -1,0 +1,33 @@
+id: client-birthday-reward-reminder
+version: 1
+name: Client Birthday Reward Reminder
+description: >
+  Finds clients with a birthday coming up in the next window and drafts
+  a personal birthday message with their reward or discount. Use this if
+  a client has ever mentioned "you sent a birthday text last year, my
+  old salon never did that" — this keeps that habit from depending on
+  someone remembering to do it.
+category: spa
+tags: [spa, retention, birthdays, clients]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read {{clients_csv_path}}, a CSV with columns client_name, birthday
+  (MM-DD), phone_or_email, favorite_service. For every client whose
+  birthday falls within the next {{lookahead_days}} days, draft a short,
+  warm birthday message (2-3 sentences) mentioning their favorite
+  service if known, and include the birthday offer: {{birthday_offer}}.
+  Output one draft per client, ready to send by text or email.
+variables:
+  clients_csv_path:
+    default: "./clients.csv"
+    description: "Path to a CSV with columns: client_name,birthday (MM-DD),phone_or_email,favorite_service."
+  lookahead_days:
+    default: 7
+    description: How many days ahead to look for upcoming birthdays.
+  birthday_offer:
+    default: "20% off any service booked during their birthday month"
+    description: The reward or discount to mention in the draft message.
+compatible_agents: [generic, claude, codex]
+notes: Draft-only — review before sending, and make sure the offer matches what's actually authorized for that month.

@@ -1,0 +1,37 @@
+id: program-outcome-data-collection-reminder
+version: 1
+name: Program Outcome Data Collection Reminder
+description: >
+  Reminds program staff to submit outcome metrics ahead of a grant or
+  board reporting cycle, and drafts the request. Use this if outcome data
+  — people served, results achieved — has ever been scrambled together
+  the night before a report was due because nobody asked for it early
+  enough.
+category: nonprofit
+tags: [nonprofit, programs, reporting, grants]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the program list and leads from {{programs_source}}.
+  1. For any program with a reporting deadline within {{lead_days}} days
+     of {{reporting_deadline}}, identify who owns that program's data.
+  2. Draft a short, specific data-request message to each program lead,
+     listing exactly which metrics are needed: {{required_metrics}}.
+  3. Note which programs, if any, have no clear data owner — that's worth
+     flagging on its own, since it's usually why data collection stalls.
+variables:
+  programs_source:
+    default: "your list of programs and their leads"
+    description: Where programs and their data-owning staff are listed (spreadsheet, program database, etc.).
+  reporting_deadline:
+    default: "2027-01-01"
+    description: The date the outcome report is due (YYYY-MM-DD).
+  lead_days:
+    default: 10
+    description: How many days before the deadline to start requesting data.
+  required_metrics:
+    default: "participants served, outcomes achieved, budget spent"
+    description: The specific metrics program staff need to report.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — send the drafted requests through whatever channel your team already uses (email, Slack, etc.).

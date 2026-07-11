@@ -1,0 +1,36 @@
+id: idle-cash-sweep-check
+version: 1
+name: Idle Cash Sweep Check
+description: >
+  Flags brokerage cash that's sat uninvested longer than your target
+  window, so it doesn't quietly miss out on being invested or swept into
+  a money market/high-yield option. Use this if cash from a sold position
+  or a deposit has ever sat earning nothing for months because moving it
+  was never anyone's job.
+category: investing
+tags: [investing, cash, portfolio, idle-cash]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{idle_days_threshold}} -v minamt={{min_amount_usd}} '
+    NR>1 {
+      cmd="date -d \"" $1 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $1 "\" +%s";
+      cmd | getline dep_ts; close(cmd);
+      days_idle = int((today - dep_ts) / 86400);
+      if (days_idle >= warn && $2+0 >= minamt) print "WARNING: $" $2 " has been sitting uninvested since " $1 " (" days_idle " days)";
+    }
+  ' {{idle_cash_csv}}
+variables:
+  idle_cash_csv:
+    default: "idle-cash-log.csv"
+    description: "CSV with header row, columns: date_deposited(YYYY-MM-DD),amount — log a row whenever cash lands and isn't immediately invested/swept."
+  idle_days_threshold:
+    default: 14
+    description: Days of sitting uninvested before flagging.
+  min_amount_usd:
+    default: 500
+    description: Minimum amount worth flagging (ignore small change).
+compatible_agents: [generic, claude, codex]
+notes: You need to log deposits/cash events into idle-cash-log.csv yourself (or export from your brokerage) — this job can't see your account balance directly.

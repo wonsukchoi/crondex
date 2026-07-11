@@ -1,0 +1,36 @@
+id: audiobook-royalty-rate-tier-check
+version: 1
+name: Audiobook Royalty Rate Tier Check
+description: >
+  Checks audiobook sales-to-date against the unit thresholds in a
+  contract's royalty rate tiers and flags titles that have just crossed
+  into a higher payout tier, so the next statement uses the right rate.
+  Use this if a title has ever been paid out at the wrong royalty rate
+  because nobody was watching for it crossing a tier threshold mid-period.
+category: publishing
+tags: [publishing, audiobook, royalties, contracts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR>1 {
+      units = $2+0;
+      tier2 = $3+0; tier3 = $4+0;
+      tier = "tier 1";
+      if (tier3 > 0 && units >= tier3) tier = "tier 3";
+      else if (tier2 > 0 && units >= tier2) tier = "tier 2";
+      last_tier = $5;
+      if (tier != last_tier) print "TIER CHANGE: \"" $1 "\" now at " units " units — moved from " last_tier " to " tier;
+    }
+  ' "{{audiobook_sales_csv}}"
+variables:
+  audiobook_sales_csv:
+    default: "./audiobook-sales-tiers.csv"
+    description: "CSV with header row, columns: title,units_sold_to_date,tier2_threshold,tier3_threshold,last_recorded_tier(tier 1|tier 2|tier 3)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Expects units_sold_to_date to be refreshed from your audiobook
+  distributor's sales report before each run. After confirming a tier
+  change is correct, update the last_recorded_tier column so the same
+  title doesn't get re-flagged every run.

@@ -1,0 +1,37 @@
+id: csat-survey-response-rate-check
+version: 1
+name: CSAT Survey Response Rate Check
+description: >
+  Checks what percentage of closed tickets actually got a CSAT survey
+  response, separate from the score itself. Use this if your CSAT score has
+  ever looked great simply because only your happiest customers bother to
+  answer the survey, while a shrinking response rate quietly made the
+  number less meaningful.
+category: support
+tags: [support, csat, survey, response-rate]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  closed=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{closed_tickets_url}}" | grep -o '"id":' | wc -l | tr -d ' ');
+  responded=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{survey_responses_url}}" | grep -o '"id":' | wc -l | tr -d ' ');
+  if [ -z "$closed" ] || [ "$closed" -eq 0 ]; then echo "OK: no closed tickets in the window to check"; exit 0; fi;
+  pct=$(( responded * 100 / closed ));
+  if [ "$pct" -lt "{{min_response_rate_pct}}" ]; then echo "WARNING: CSAT survey response rate is $pct% ($responded of $closed), below target {{min_response_rate_pct}}%"; exit 1;
+  else echo "OK: CSAT survey response rate is $pct% ($responded of $closed)"; fi
+variables:
+  closed_tickets_url:
+    default: "https://api.example-helpdesk.com/tickets?status=closed&closed_gte=7d_ago"
+    description: Helpdesk API endpoint listing tickets closed in the lookback window.
+  survey_responses_url:
+    default: "https://api.example-helpdesk.com/csat/responses?created_gte=7d_ago"
+    description: Helpdesk/survey tool API endpoint listing CSAT survey responses in the same window.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token shared by both API endpoints (split into two variables if your tools differ).
+  min_response_rate_pct:
+    default: 20
+    description: Minimum acceptable percentage of closed tickets that received a survey response.
+compatible_agents: [generic, claude, codex]
+notes: Complements `csat-score-watch` — a healthy score on a shrinking response base is a different problem than a low score, and this catches the base shrinking.

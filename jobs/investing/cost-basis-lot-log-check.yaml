@@ -1,0 +1,32 @@
+id: cost-basis-lot-log-check
+version: 1
+name: Cost Basis Lot Log Check
+description: >
+  Compares your trade log against your cost-basis lot log and flags any
+  buy that's missing a matching lot entry. Use this if you've ever
+  manually tracked cost basis and had a lot slip through unrecorded,
+  turning tax time into a scramble to reconstruct it.
+category: investing
+tags: [investing, cost-basis, tax-lots, recordkeeping]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  missing=0;
+  while IFS=, read -r date ticker shares price; do
+    [ "$date" = "date" ] && continue;
+    if ! grep -q "^$date,$ticker," "{{lots_csv}}" 2>/dev/null; then
+      echo "WARNING: trade $date $ticker ($shares sh @ $price) has no matching entry in {{lots_csv}}";
+      missing=1;
+    fi;
+  done < "{{trades_csv}}";
+  if [ "$missing" = "0" ]; then echo "OK: every buy in {{trades_csv}} has a matching cost-basis lot."; fi
+variables:
+  trades_csv:
+    default: "trades.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),ticker,shares,price — your executed buy log."
+  lots_csv:
+    default: "cost-basis-lots.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),ticker,shares,cost_basis — your recorded tax lots."
+compatible_agents: [generic, claude, codex]
+notes: Both CSVs need to be kept up to date manually or exported from your brokerage; this only checks for missing entries, not correctness of the recorded basis.

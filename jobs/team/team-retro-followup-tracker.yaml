@@ -1,0 +1,32 @@
+id: team-retro-followup-tracker
+version: 1
+name: Team Retro Follow-up Tracker
+description: >
+  Checks action items from past team retros and flags the ones still
+  marked open past their target date. Use this if your retros have
+  ever produced a great list of action items that nobody looked at
+  again until the next retro.
+category: team
+tags: [team, retro, action-items, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      age_days = (today - due_epoch) / 86400;
+      if (age_days >= 0) {
+        printf "OVERDUE: \"%s\" (owner: %s) due %s (%d day(s) late)\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{retro_actions_csv_path}}"
+variables:
+  retro_actions_csv_path:
+    default: "./retro-action-items.csv"
+    description: "Path to a CSV with columns: action_item,owner_name,due_date (YYYY-MM-DD),status (open/done)."
+compatible_agents: [generic, claude, codex]
+notes: Assumes retro action items get logged to this CSV as they're created — this is the follow-through check, not the retro tool itself.

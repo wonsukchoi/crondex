@@ -1,0 +1,32 @@
+id: cross-team-dependency-checkin
+version: 1
+name: Cross-Team Dependency Check-in
+description: >
+  Reminds you to check the status of work your team is depending on
+  from other teams, and flags dependencies past their expected date.
+  Use this if a project has ever slipped because a dependency from
+  another team quietly stalled and nobody checked in until it was
+  already blocking the roadmap.
+category: team
+tags: [team, dependencies, cross-team, planning]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $5 != "delivered" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      age_days = (today - due_epoch) / 86400;
+      status = (age_days >= 0) ? "OVERDUE" : "UPCOMING";
+      printf "%s: \"%s\" from %s (owner: %s, expected %s)\n", status, $1, $2, $3, $4;
+    }
+  ' "{{dependencies_csv_path}}"
+variables:
+  dependencies_csv_path:
+    default: "./cross-team-dependencies.csv"
+    description: "Path to a CSV with columns: dependency_name,owning_team,owner_contact,expected_date (YYYY-MM-DD),status (pending/delivered)."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Assumes a maintained dependency tracker — surfaces what needs a check-in, doesn't chase other teams for you.

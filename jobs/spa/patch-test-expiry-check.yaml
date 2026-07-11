@@ -1,0 +1,48 @@
+id: patch-test-expiry-check
+version: 1
+name: Allergy Patch Test Expiry Check
+description: >
+  Flags clients booked for a chemical service (color, lash tint,
+  chemical peel) whose required patch test is missing or older than
+  your salon's safe re-test window. Use this if a client has ever had a
+  reaction during a color service because their patch test was months
+  old and nobody re-checked it before the appointment.
+category: spa
+tags: [spa, safety, patch-test, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxdays="{{patch_test_valid_days}}" -v services="{{chemical_service_types}}" '
+    NR==1 {next}
+    {
+      n = split(services, svc_list, "|");
+      is_chemical = 0;
+      for (i=1; i<=n; i++) if ($4 == svc_list[i]) is_chemical=1;
+      if (!is_chemical) next;
+      if ($3 == "") {
+        printf "NO PATCH TEST ON FILE: %s — booked for %s on %s\n", $1, $4, $2;
+        next;
+      }
+      tcmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      tcmd | getline test_epoch; close(tcmd);
+      scmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      scmd | getline svc_epoch; close(scmd);
+      age_days = (svc_epoch - test_epoch) / 86400;
+      if (age_days > maxdays) {
+        printf "PATCH TEST EXPIRED: %s — test was %d days before service on %s\n", $1, age_days, $2;
+      }
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./upcoming-bookings.csv"
+    description: "Path to a CSV with columns: client_name,service_date (YYYY-MM-DD),patch_test_date (YYYY-MM-DD or blank),service_type."
+  patch_test_valid_days:
+    default: 180
+    description: "Max days a patch test stays valid before it must be re-tested for a returning client — check your product manufacturer's guidance (commonly 6-12 months)."
+  chemical_service_types:
+    default: "color|lash-tint|chemical-peel"
+    description: Pipe-separated list of service_type values that require a patch test.
+compatible_agents: [generic, claude, codex]
+notes: This flags missing or stale patch tests, it doesn't perform one — reschedule or re-test before the appointment, don't proceed without it.

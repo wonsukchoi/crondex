@@ -1,0 +1,47 @@
+id: team-meeting-load-audit
+version: 1
+name: Team Meeting Load Audit
+description: >
+  Reviews the past week's calendar exports for your team and flags
+  anyone whose meeting hours crossed a threshold, so heavy meeting
+  weeks get noticed instead of just becoming the norm. Use this if
+  you manage a team and suspect meetings are quietly eating half of
+  someone's week but nobody's actually added it up.
+category: team
+tags: [team, meetings, calendar, workload]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v threshold="{{weekly_meeting_hours_threshold}}" '
+    NR==1 {next}
+    { total[$1] += $3 }
+    END {
+      for (person in total) {
+        if (total[person] > threshold) {
+          printf "HIGH LOAD: %s spent %.1fh in meetings last week (threshold %sh)\n", person, total[person], threshold;
+        }
+      }
+    }
+  ' "{{meeting_export_csv_path}}"
+prompt: |
+  Review the meeting-load report generated from {{meeting_export_csv_path}}
+  for people over {{weekly_meeting_hours_threshold}} hours of meetings last
+  week. For each flagged person, suggest 1-2 concrete meetings that look
+  like the best candidates to cut, decline, or shorten (recurring status
+  updates and large all-hands-style syncs are usually the best candidates;
+  1:1s and decision-making meetings usually aren't). Keep it to a short,
+  actionable list per person, not a lecture on meeting culture.
+script_note: >
+  The command gives you the raw over-threshold list with hours. The
+  prompt adds judgment about which specific meetings are worth cutting,
+  which needs to look at meeting titles/types, not just totals.
+variables:
+  meeting_export_csv_path:
+    default: "./team-meeting-export.csv"
+    description: "Path to a CSV with columns: person_name,week_start_date,meeting_hours (per meeting or pre-summed per person)."
+  weekly_meeting_hours_threshold:
+    default: 20
+    description: Weekly meeting-hours above which a person is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Requires a calendar export (most calendar tools can export hours per attendee) — this doesn't connect to a calendar API directly.

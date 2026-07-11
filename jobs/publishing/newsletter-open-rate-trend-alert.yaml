@@ -1,0 +1,55 @@
+id: newsletter-open-rate-trend-alert
+version: 1
+name: Newsletter Open Rate Trend Alert
+description: >
+  Tracks whether your newsletter's open rate has been trending down over
+  recent issues and, when it has, gets an LLM pass to suggest likely
+  causes and next steps. Use this if open rates have ever slid gradually
+  issue after issue without anyone flagging it until it was a full-blown
+  deliverability or content problem.
+category: publishing
+tags: [publishing, newsletter, open-rate, engagement]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v drop={{trend_drop_points}} -v window={{trailing_issues}} '
+    NR>1 { n++; rows[n]=$1","$2 }
+    END {
+      if (n < window+1) { print "Not enough issue history to compute a trend"; exit 0; }
+      split(rows[n], cur, ","); latest = cur[2]+0;
+      sum=0; for (i=n-window; i<n; i++) { split(rows[i], r, ","); sum += r[2]+0; }
+      avg_prior = sum / window;
+      delta = avg_prior - latest;
+      if (delta >= drop) print "OPEN RATE DROP: " cur[1] " open_rate=" latest "% vs trailing avg=" avg_prior "% (down " delta " pts)";
+      else print "OK: " cur[1] " open_rate=" latest "% vs trailing avg=" avg_prior "%";
+    }
+  ' "{{open_rates_csv}}"
+prompt: >
+  Read {{open_rates_csv}} (columns: issue_label, open_rate_percent, one row
+  per issue, oldest first). If the most recent issue's open rate has
+  dropped {{trend_drop_points}} points or more below the trailing
+  {{trailing_issues}}-issue average, summarize the trend, list plausible
+  causes worth checking (send time, subject line pattern, list hygiene,
+  deliverability/spam placement, content shift), and suggest one concrete
+  next step to investigate first.
+script_note: >
+  The shell command flags the drop with numbers only. The prompt version
+  adds the narrative synthesis — likely causes and a suggested next step —
+  which the raw numbers alone don't give you.
+variables:
+  open_rates_csv:
+    default: "./newsletter-open-rates.csv"
+    description: "CSV with header row, columns: issue_label,open_rate_percent — one row per issue, oldest first."
+  trailing_issues:
+    default: 5
+    description: Number of prior issues to average as the trend baseline.
+  trend_drop_points:
+    default: 8
+    description: Flag if the latest issue's open rate is this many percentage points or more below the trailing average.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Append one row per send to newsletter-open-rates.csv from your ESP's
+  report export. A single bad issue can look like a "trend" with a short
+  history — trailing_issues should be long enough to smooth out normal
+  noise for your send frequency.

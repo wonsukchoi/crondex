@@ -1,0 +1,29 @@
+id: generator-maintenance-run-reminder
+version: 1
+name: Generator Maintenance Run Reminder
+description: >
+  Reminds you to start and run your backup generator under load based on
+  how long it's been since the last exercise run. Use this if you've ever
+  needed a generator during an outage and discovered then that it wouldn't
+  start.
+category: home
+tags: [home, generator, maintenance, safety]
+schedule: "0 9 * * 0"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_run_date}}; interval={{interval_days}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge "$interval" ]; then echo "REMINDER: generator last exercised $days_since day(s) ago (every $interval day(s)) — start it and run it under load.";
+  else echo "OK: last run $days_since day(s) ago, next run due in $(( interval - days_since )) day(s)."; fi
+variables:
+  last_run_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last started and ran the generator — update this yourself.
+  interval_days:
+    default: 30
+    description: How often to exercise the generator, in days.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_run_date yourself after each run. Only run a generator outdoors/well-ventilated per its manual — this job is just a reminder, not the run itself.

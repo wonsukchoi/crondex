@@ -1,0 +1,37 @@
+id: rental-car-reservation-confirmation-check
+version: 1
+name: Rental Car Reservation Confirmation Check
+description: >
+  Reminds you to double-check a rental car reservation's confirmation
+  status ahead of pickup. Use this if you've ever shown up to a rental
+  counter and found your reservation wasn't actually in the system.
+category: travel
+tags: [travel, car-rental, reservation, reminder]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  pickup="{{pickup_datetime}}"; warn_hours={{warn_hours_before}};
+  pickup_epoch=$(date -j -f "%Y-%m-%d %H:%M" "$pickup" +%s 2>/dev/null || date -d "$pickup" +%s);
+  now_epoch=$(date +%s);
+  hours_left=$(( (pickup_epoch-now_epoch)/3600 ));
+  if [ "$hours_left" -le 0 ]; then echo "note: pickup time has passed — update pickup_datetime for your next rental.";
+  elif [ "$hours_left" -le "$warn_hours" ]; then echo "REMINDER: confirm rental car reservation ({{confirmation_number}} at {{rental_company}}) — pickup in ${hours_left}h.";
+  else echo "OK: ${hours_left}h until rental pickup ($pickup)."; fi
+variables:
+  rental_company:
+    default: "rental company"
+    description: Name of the car rental company.
+  confirmation_number:
+    default: "unset"
+    description: Your reservation confirmation number.
+  pickup_datetime:
+    default: "2026-12-31 10:00"
+    description: Scheduled pickup date and time ("YYYY-MM-DD HH:MM", local to the pickup location).
+  warn_hours_before:
+    default: 48
+    description: Start reminding this many hours before pickup.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. This doesn't call any rental company's API — it's a reminder to
+  log in and verify the reservation yourself. One job per reservation.

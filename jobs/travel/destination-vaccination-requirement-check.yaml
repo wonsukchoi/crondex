@@ -1,0 +1,38 @@
+id: destination-vaccination-requirement-check
+version: 1
+name: Destination Vaccination/Health Requirement Check
+description: >
+  Reminds you to verify vaccination and health-entry requirements for
+  your destination before you travel. Use this if you've ever booked
+  an international trip and only found out about a required vaccine
+  or health form a week before departure.
+category: travel
+tags: [travel, health, vaccination, international]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  The user is traveling to {{destination_country}} on {{trip_start_date}}.
+  Look up (or reason from known general guidance if you can't browse)
+  current vaccination recommendations/requirements and any health-entry
+  forms (e.g. yellow fever proof, health declarations) for that country.
+  If the trip is within {{lead_time_days}} days and no confirmation has
+  been given that requirements are met, produce a short checklist of
+  what to verify or complete, and flag anything that has a lead time
+  (e.g. a vaccine needing to be given weeks in advance).
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country or region you're traveling to.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Date the trip starts (YYYY-MM-DD).
+  lead_time_days:
+    default: 30
+    description: Start checking this many days before departure, since some vaccines need weeks to take effect.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Health-entry requirements change frequently and vary by country, so this
+  is intentionally agent-prompt rather than a hardcoded shell check —
+  verify against an official source (destination government or CDC/WHO
+  equivalent) before relying on the output.

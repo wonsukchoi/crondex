@@ -1,0 +1,37 @@
+id: book-club-schedule-check
+version: 1
+name: Book Club Reading Schedule Check
+description: >
+  Compares today's date against your book club's reading schedule and
+  tells you how many pages/chapters you should have finished by now. Use
+  this if you've ever shown up to book club having read nothing because
+  you lost track of the pace.
+category: learning
+tags: [learning, reading, book-club, schedule]
+schedule: "0 9 * * 3"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%F);
+  target_line=$(awk -F',' -v today="$today" 'NR>1 && $1<=today {line=$0} END{print line}' "{{schedule_csv}}");
+  if [ -z "$target_line" ]; then echo "No milestone due yet for {{book_title}}.";
+  else
+    milestone=$(echo "$target_line" | cut -d',' -f2);
+    m_date=$(echo "$target_line" | cut -d',' -f1);
+    echo "By now ($m_date) you should be through: $milestone for {{book_title}}. Current progress: {{current_progress}}.";
+  fi
+variables:
+  schedule_csv:
+    default: "book-club-schedule.csv"
+    description: "CSV with header row, columns: milestone_date(YYYY-MM-DD),milestone_description."
+  book_title:
+    default: "this month's book"
+    description: Title of the book being read, for labeling output.
+  current_progress:
+    default: "not yet started"
+    description: What you've actually read so far — update this yourself as you progress.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't know your actual progress automatically — you keep
+  current_progress up to date yourself; the job just tells you what the
+  schedule says you should be at.

@@ -1,0 +1,48 @@
+id: mentor-1on1-followup-reminder
+version: 1
+name: Mentor 1:1 Follow-up Reminder
+description: >
+  Reminds you to follow up on action items from your last mentor or
+  mentee 1:1 if too much time has passed since the meeting. Use this if
+  you've ever left a mentoring conversation with good advice and then
+  never actually acted on it.
+category: learning
+tags: [learning, mentorship, career, followup]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  file={{notes_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  last_meeting_date=$(grep -E '^date:' "$file" | tail -n1 | cut -d':' -f2- | xargs);
+  [ -z "$last_meeting_date" ] && { echo "ERROR: no 'date:' line found in $file"; exit 1; };
+  last_ts=$(date -d "$last_meeting_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_meeting_date" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{followup_gap_days}}" ]; then echo "WARNING: $days_since days since last 1:1 with {{mentor_name}} on $last_meeting_date — check open action items"; exit 1;
+  else echo "OK: last 1:1 with {{mentor_name}} was $days_since day(s) ago"; fi
+prompt: |
+  Read the mentoring notes file at {{notes_path}}. Find the most recent
+  meeting entry (look for a 'date:' line) and list any action items or
+  follow-ups mentioned for that entry that don't appear to have a
+  corresponding "done" or "completed" note elsewhere in the file. If it's
+  been {{followup_gap_days}} or more days since that meeting, clearly flag
+  it as overdue for follow-up with {{mentor_name}}.
+script_note: >
+  `command` only checks how long it's been since the last logged meeting
+  date. `prompt` also reads the notes and extracts specific unfinished
+  action items, which needs an LLM to parse free-form text.
+variables:
+  notes_path:
+    default: "./mentor-1on1-notes.md"
+    description: "Path to a markdown file with dated entries (a 'date: YYYY-MM-DD' line per meeting) and notes/action items."
+  mentor_name:
+    default: "your mentor"
+    description: Name of the mentor or mentee, for labeling output.
+  followup_gap_days:
+    default: 21
+    description: Days since the last meeting before a follow-up nudge fires.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  You maintain notes_path yourself, adding a "date: YYYY-MM-DD" line at the
+  start of each new meeting entry — this job only reads it.

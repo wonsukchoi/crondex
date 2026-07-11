@@ -1,0 +1,37 @@
+id: side-project-learning-log-staleness-check
+version: 1
+name: Side-Project Learning Log Staleness Check
+description: >
+  Flags when you haven't written a new entry in your side-project learning
+  log for too long. Use this if you keep notes on what you're learning
+  while building something on the side, but let the notes go stale once
+  life gets busy.
+category: learning
+tags: [learning, side-project, journal, habit]
+schedule: "0 18 * * 0"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  log={{log_path}};
+  [ -f "$log" ] || { echo "ERROR: $log not found"; exit 1; };
+  last_mod_ts=$(stat -f %m "$log" 2>/dev/null || stat -c %Y "$log");
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_mod_ts) / 86400 ));
+  if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: {{project_name}} learning log hasn't been updated in $days_since days"; exit 1;
+  else echo "OK: {{project_name}} learning log last updated $days_since day(s) ago"; fi
+variables:
+  log_path:
+    default: "./learning-log.md"
+    description: Path to the markdown/text file you write learning notes into.
+  project_name:
+    default: "your side project"
+    description: Name of the project, for labeling output.
+  max_gap_days:
+    default: 14
+    description: Days without a file modification before it's flagged stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Uses the file's last-modified timestamp as a proxy for "you
+  wrote something" — it can't tell whether an edit was a real learning
+  entry or a stray save. Portable across macOS (`stat -f`) and Linux
+  (`stat -c`).

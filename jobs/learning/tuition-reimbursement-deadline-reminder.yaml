@@ -1,0 +1,35 @@
+id: tuition-reimbursement-deadline-reminder
+version: 1
+name: Tuition Reimbursement Submission Deadline Reminder
+description: >
+  Warns you before your employer's tuition/education reimbursement
+  submission deadline for a completed course. Use this if you've ever
+  finished a course your company would reimburse and then missed the
+  paperwork window and paid out of pocket for nothing.
+category: learning
+tags: [learning, tuition, reimbursement, deadline, career]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{submission_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{submission_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "OVERDUE: reimbursement submission for {{course_name}} was due {{submission_deadline}} — check with HR whether a late exception is possible"; exit 1;
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: reimbursement submission for {{course_name}} due in $days_left days ({{submission_deadline}}) — gather {{required_docs}}"; exit 1;
+  else echo "OK: reimbursement submission for {{course_name}} due in $days_left days"; fi
+variables:
+  course_name:
+    default: "your completed course"
+    description: Name of the course/program you completed.
+  submission_deadline:
+    default: "2026-12-31"
+    description: Employer's deadline to submit reimbursement paperwork (YYYY-MM-DD).
+  required_docs:
+    default: "proof of completion, grade report, and receipt"
+    description: Reminder text of what documents you typically need to submit.
+  warn_days:
+    default: 14
+    description: Days before deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Manual submission_deadline input per course — update it each time you enroll in something your employer will reimburse. Reimbursement policies vary by employer; this job doesn't know your specific HR process beyond what you put in required_docs.

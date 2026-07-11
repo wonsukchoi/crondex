@@ -1,0 +1,44 @@
+id: multi-location-stock-imbalance-check
+version: 1
+name: Multi-Location Stock Imbalance Check
+description: >
+  Compares stock of the same SKU across multiple locations and flags
+  cases where one location is critically low while another is sitting
+  on a large surplus of the same item. Use this if you've ever placed a
+  new purchase order for a SKU that was actually out of stock at one
+  store or warehouse but overflowing at another one nearby, when a
+  transfer would have solved it for free.
+category: inventory
+tags: [inventory, multi-location, imbalance, transfers]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v low="{{low_stock_threshold}}" -v surplus_mult="{{surplus_multiplier}}" '
+    NR==1 {next}
+    {
+      sku=$1; loc=$2; qty=$3+0;
+      qtys[sku]=qtys[sku] " " loc ":" qty;
+      if (qty <= low) low_locs[sku] = low_locs[sku] " " loc "(" qty ")";
+      if (qty > max_qty[sku]) max_qty[sku]=qty;
+    }
+    END {
+      for (s in low_locs) {
+        if (max_qty[s] >= low * surplus_mult) {
+          printf "IMBALANCE: %s — low at%s, up to %d units elsewhere (all: %s)\n", s, low_locs[s], max_qty[s], qtys[s];
+        }
+      }
+    }
+  ' "{{multi_location_stock_csv_path}}"
+variables:
+  multi_location_stock_csv_path:
+    default: "./multi-location-stock.csv"
+    description: "Path to a CSV with columns: sku,location,quantity — one row per SKU per location."
+  low_stock_threshold:
+    default: 5
+    description: Quantity at or below which a location counts as critically low for that SKU.
+  surplus_multiplier:
+    default: 5
+    description: A location counts as a surplus source if its quantity is at least this many times the low_stock_threshold.
+compatible_agents: [generic, claude, codex]
+notes: Flags candidates for an inter-location transfer rather than a new purchase order — pair with your transfer/fulfillment workflow to act on the results. Distinct from `low-stock-alert`, which checks a single aggregate quantity rather than the spread across locations.

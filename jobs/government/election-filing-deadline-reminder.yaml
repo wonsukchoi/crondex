@@ -1,0 +1,35 @@
+id: election-filing-deadline-reminder
+version: 1
+name: Election Filing Deadline Reminder
+description: >
+  Checks upcoming candidate and petition filing deadlines tracked by an
+  elections office and flags the ones coming up soon. Use this if a
+  filing window has ever closed without your office having sent out the
+  reminders it meant to send to prospective candidates or petitioners.
+category: government
+tags: [government, elections, filing, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "FILING DEADLINE: %s (%s) — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{filing_deadlines_csv_path}}"
+variables:
+  filing_deadlines_csv_path:
+    default: "./election-filing-deadlines.csv"
+    description: "Path to a CSV with columns: election_name,filing_type,deadline_date (YYYY-MM-DD),status (open/closed)."
+  warn_days_before:
+    default: 10
+    description: How many days before a filing deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Filing windows and required documents are set by state election law — confirm dates against your official election calendar before relying on this.

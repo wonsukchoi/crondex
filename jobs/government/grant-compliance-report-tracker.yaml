@@ -1,0 +1,38 @@
+id: grant-compliance-report-tracker
+version: 1
+name: Grantor-Side Compliance Report Tracker
+description: >
+  For a government agency that awards grants to outside recipients
+  (nonprofits, contractors, other agencies): checks which recipients
+  owe a compliance or progress report and flags the ones running late.
+  Use this if a sub-recipient has ever gone quiet on required reporting
+  for months before anyone on your side noticed and followed up.
+category: government
+tags: [government, grants, compliance, reporting, grantor]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{grants_management_system}} for active grant awards where your
+  agency is the grantor.
+  1. List each award: recipient name, report type, due date, and
+     whether it's been received.
+  2. Flag any recipient whose report is more than
+     {{overdue_after_days}} days late as needing follow-up, and note if
+     they have prior late reports on file (a pattern, not a one-off).
+  3. Draft a short compliance follow-up notice per overdue recipient,
+     citing the award terms and the new deadline.
+variables:
+  grants_management_system:
+    default: "your grants management or awards-tracking system"
+    description: Where grant awards, recipients, and report due dates are tracked.
+  overdue_after_days:
+    default: 15
+    description: Days past the due date before a report counts as overdue enough to flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This is the grantor's view (your agency tracking recipients who owe you
+  reports) — the opposite direction of nonprofit/grant-reporting-deadline-check,
+  which tracks a nonprofit's own obligation to report to a funder. Draft-only:
+  follow-up notices go out through whatever process your grants office
+  already uses, not automatically.

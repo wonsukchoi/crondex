@@ -1,0 +1,49 @@
+id: field-tech-truck-roll-backlog-check
+version: 1
+name: Field Technician Truck-Roll Backlog Check
+description: >
+  Checks open field service (truck-roll) tickets for how long they've
+  been waiting to be dispatched and drafts a prioritized backlog summary
+  for dispatch. Use this if installs or repair truck-rolls have ever
+  piled up unnoticed because dispatch was juggling tickets from memory
+  instead of a clear aging view.
+category: telecom
+tags: [telecom, dispatch, field-service, backlog]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v warn_hours="{{warn_hours_open}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline created_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_open = (now_epoch - created_epoch) / 3600;
+      if (hours_open >= warn_hours) {
+        printf "BACKLOGGED: ticket %s (%s) open %.1fh, type=%s\n", $1, $3, hours_open, $5;
+      }
+    }
+  ' "{{truck_roll_tickets_csv_path}}"
+prompt: |
+  Here is the field service ticket export: {{truck_roll_tickets_csv_path}}
+  (columns: ticket_id,created_datetime,customer,status,ticket_type). Tickets
+  still open past {{warn_hours_open}} hours are backlogged.
+  1. Group the backlogged tickets by ticket_type and by rough age bucket.
+  2. Call out any customer with more than one open truck-roll ticket.
+  3. Draft a short prioritized dispatch order (which tickets to send a tech
+     to first) with a one-line reason for each, favoring outages and
+     SLA-sensitive customers over routine installs.
+script_note: >
+  The shell command gives you the raw list of backlogged tickets by age —
+  zero tokens, no prioritization. The prompt adds grouping, repeat-customer
+  detection, and a judgment-based dispatch order the script can't produce.
+variables:
+  truck_roll_tickets_csv_path:
+    default: "./truck-roll-tickets.csv"
+    description: "Path to a CSV with columns: ticket_id,created_datetime (YYYY-MM-DDTHH:MM),customer,status (open/closed),ticket_type (install/repair/outage)."
+  warn_hours_open:
+    default: 24
+    description: Hours a truck-roll ticket can stay open before it's flagged as backlogged.
+compatible_agents: [claude, codex, hermes, generic]
+notes: Read-only analysis — does not dispatch anyone, just prepares the prioritized list for a human dispatcher to act on.

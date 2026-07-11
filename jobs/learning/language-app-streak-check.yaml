@@ -1,0 +1,38 @@
+id: language-app-streak-check
+version: 1
+name: Language Learning App Streak Check
+description: >
+  Checks a log file where you record your language-app streak count and
+  warns if it's dropped or gone stale. Use this if you've ever opened
+  Duolingo (or similar) two weeks late to find your streak quietly died.
+category: learning
+tags: [learning, language, streak, habit]
+schedule: "0 19 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  log={{streak_log_path}};
+  [ -f "$log" ] || { echo "ERROR: $log not found"; exit 1; };
+  last_line=$(tail -n1 "$log");
+  last_date=$(echo "$last_line" | cut -d',' -f1);
+  last_streak=$(echo "$last_line" | cut -d',' -f2);
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: no {{language_name}} streak update logged in $days_since days (last known streak: $last_streak)"; exit 1;
+  else echo "OK: {{language_name}} streak last logged $days_since day(s) ago at $last_streak"; fi
+variables:
+  streak_log_path:
+    default: "./language-streak-log.csv"
+    description: "CSV with rows date,streak_count — append a new row each time you check the app, newest last."
+  language_name:
+    default: "your target language"
+    description: Name of the language being tracked, for labeling output.
+  max_gap_days:
+    default: 2
+    description: Days without a logged streak update before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. This job doesn't talk to Duolingo/Babbel/etc. APIs — you log
+  the streak count yourself (e.g. `echo "$(date +%F),47" >> language-streak-log.csv`)
+  after checking the app. It only reads what you've logged.

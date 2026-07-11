@@ -1,0 +1,37 @@
+id: currency-exchange-favorable-window-alert
+version: 1
+name: Currency Exchange Favorable-Window Alert
+description: >
+  Checks a currency pair's exchange rate against a target rate you set
+  and alerts you when it's favorable to convert. Use this if you're
+  planning to exchange money for an upcoming trip and want to catch a
+  good rate instead of converting on autopilot.
+category: travel
+tags: [travel, currency, exchange-rate, budget]
+schedule: "0 13 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  rate=$(curl -fsS "https://api.exchangerate.host/latest?base={{base_currency}}&symbols={{target_currency}}" 2>/dev/null | grep -o "\"{{target_currency}}\":[0-9.]*" | cut -d: -f2);
+  if [ -z "$rate" ]; then echo "note: could not fetch rate — check network or currency codes."; exit 0; fi;
+  favorable=$(awk -v r="$rate" -v t="{{target_rate}}" -v dir="{{direction}}" 'BEGIN { if (dir=="above") print (r+0 >= t+0) ? 1 : 0; else print (r+0 <= t+0) ? 1 : 0 }');
+  if [ "$favorable" = "1" ]; then echo "FAVORABLE: 1 {{base_currency}} = $rate {{target_currency}} (target: {{direction}} {{target_rate}})"; exit 1;
+  else echo "OK: 1 {{base_currency}} = $rate {{target_currency}}, not yet at target."; fi
+variables:
+  base_currency:
+    default: "USD"
+    description: Currency you're converting from (ISO 4217 code).
+  target_currency:
+    default: "EUR"
+    description: Currency you're converting to (ISO 4217 code).
+  target_rate:
+    default: "0.95"
+    description: The rate you're waiting for.
+  direction:
+    default: "above"
+    description: "\"above\" to alert when rate >= target_rate, \"below\" to alert when rate <= target_rate."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses the free exchangerate.host API (no key required) — swap the curl call
+  if you use a different rate provider. Rates from free APIs can lag real-time
+  bank/card rates; treat this as a directional signal, not a trading tool.

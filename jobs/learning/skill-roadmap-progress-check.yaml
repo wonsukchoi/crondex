@@ -1,0 +1,35 @@
+id: skill-roadmap-progress-check
+version: 1
+name: Skill Roadmap Progress Check
+description: >
+  Reads a checklist file of skill-tree/roadmap items (e.g. a learning
+  roadmap for a new discipline) and reports how many are checked off vs.
+  still open. Use this if you've ever downloaded one of those big "become
+  a X" roadmap images and never looked at it again.
+category: learning
+tags: [learning, roadmap, skills, progress]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{roadmap_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=$(grep -cE '^\s*-\s*\[[ xX]\]' "$file");
+  done=$(grep -cE '^\s*-\s*\[[xX]\]' "$file");
+  if [ "$total" -eq 0 ]; then echo "ERROR: no checklist items found in $file (expected markdown '- [ ]' items)"; exit 1; fi;
+  open=$(( total - done ));
+  pct=$(( done * 100 / total ));
+  echo "{{roadmap_name}}: $done/$total items done ($pct%), $open remaining."
+variables:
+  roadmap_path:
+    default: "./skill-roadmap.md"
+    description: Path to a markdown checklist file using '- [ ]' / '- [x]' items.
+  roadmap_name:
+    default: "your roadmap"
+    description: Name of the skill or discipline the roadmap covers, for labeling output.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You check off items in roadmap_path yourself as you complete
+  them (standard GitHub-flavored markdown task list syntax); this job
+  only counts checked vs. unchecked lines, it doesn't judge quality of
+  learning.

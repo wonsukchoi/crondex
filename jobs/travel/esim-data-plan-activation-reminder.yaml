@@ -1,0 +1,38 @@
+id: esim-data-plan-activation-reminder
+version: 1
+name: eSIM/Data Plan Activation Reminder
+description: >
+  Reminds you to buy and activate an eSIM or international data plan
+  before you land, with enough lead time to install it while you still
+  have reliable wifi. Use this if you've ever landed abroad with no way
+  to get online until you found airport wifi.
+category: travel
+tags: [travel, esim, connectivity, reminder]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip="{{trip_start_date}}"; warn_days={{warn_days_before}};
+  trip_epoch=$(date -d "$trip" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$trip" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next trip.";
+  elif [ "$days_left" -le "$warn_days" ]; then echo "REMINDER: buy/activate {{esim_provider}} eSIM for {{destination_country}} — trip in $days_left day(s). Install it now while you have wifi, activate on arrival.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country or region you need data coverage for.
+  esim_provider:
+    default: "your preferred eSIM provider"
+    description: Which eSIM/data plan provider you typically use (e.g. Airalo, Holafly, or your carrier's international plan).
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  warn_days_before:
+    default: 3
+    description: Start reminding this many days before departure.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. This is a reminder only — it doesn't purchase or activate
+  anything, since eSIM providers don't offer a common public API for this.

@@ -1,0 +1,36 @@
+id: supplier-cost-increase-impact-check
+version: 1
+name: Supplier Cost Increase Impact Check
+description: >
+  Compares the unit cost on each new purchase order against the SKU's
+  previous cost and flags increases past a threshold, so a margin hit
+  gets noticed before hundreds of units are already reordered at the
+  higher price. Use this if a supplier has ever raised prices quietly
+  and it only got noticed when someone reviewed margins weeks later.
+category: inventory
+tags: [inventory, cost, suppliers, margin]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{cost_increase_threshold_pct}}" '
+    NR==1 {next}
+    {
+      sku=$1; supplier=$2; prev_cost=$3+0; new_cost=$4+0;
+      if (prev_cost > 0) {
+        change_pct = ((new_cost - prev_cost) / prev_cost) * 100;
+        if (change_pct >= threshold) {
+          printf "COST INCREASE: %s from %s — $%.2f to $%.2f (+%.1f%%)\n", sku, supplier, prev_cost, new_cost, change_pct;
+        }
+      }
+    }
+  ' "{{new_po_costs_csv_path}}"
+variables:
+  new_po_costs_csv_path:
+    default: "./new-po-costs.csv"
+    description: "Path to a CSV with columns: sku,supplier_name,previous_unit_cost,new_unit_cost — typically the latest open or recently placed purchase orders."
+  cost_increase_threshold_pct:
+    default: 8
+    description: Percent increase in unit cost from the previous purchase that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Feed this from your PO system's line items as new orders are placed or received. Distinct from `supplier-lead-time-drift-check` (tracks delivery speed) — this tracks price, which affects margin and sell price rather than stockout risk.

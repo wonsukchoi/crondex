@@ -1,0 +1,35 @@
+id: cross-platform-episode-parity-check
+version: 1
+name: Podcast Cross-Platform Episode Parity Check
+description: >
+  Compares the published episode count across Spotify, Apple Podcasts, and
+  YouTube and flags a mismatch. Use this if an episode has ever gone out on
+  your main feed but silently failed to show up on one of the platforms
+  your listeners actually use.
+category: podcast
+tags: [podcast, distribution, platforms, parity]
+schedule: "0 11 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the published episode count for {{podcast_name}} on each of these
+  platforms: {{platforms}}.
+  1. Report the current episode count on each platform.
+  2. Flag any platform whose count is lower than the others by more than
+     {{max_count_diff}} episode(s) — that's a likely missed or delayed
+     distribution, not just normal indexing lag.
+  3. If a mismatch is flagged, name the platform and the apparent gap
+     (e.g. "Spotify has 82, Apple has 80 — 2 episodes missing").
+  4. If all platforms match within tolerance, report the counts in one line.
+variables:
+  podcast_name:
+    default: "your podcast"
+    description: Name of the podcast to check.
+  platforms:
+    default: "Spotify, Apple Podcasts, YouTube"
+    description: Comma-separated list of platforms to compare episode counts across.
+  max_count_diff:
+    default: 1
+    description: Allowed difference in episode count between platforms before it's flagged as a mismatch.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A one-episode gap is often just distribution lag of a few hours — a gap of 2+ episodes, or one that persists past a day, is worth investigating with your hosting platform's distribution settings.

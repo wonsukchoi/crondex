@@ -1,0 +1,34 @@
+id: ip-block-utilization-check
+version: 1
+name: IP Address Block Utilization Check
+description: >
+  Checks how full each of your allocated IP address blocks is and warns
+  when a block is running low on free addresses. Use this if you've ever
+  had to scramble for a new allocation, or delay a provisioning order,
+  because a subnet quietly filled up and nobody was watching utilization.
+category: telecom
+tags: [telecom, ip-management, capacity, provisioning]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_pct="{{warn_utilization_pct}}" '
+    NR==1 {next}
+    {
+      block=$1; total=$2+0; used=$3+0;
+      if (total <= 0) next;
+      pct = (used / total) * 100;
+      if (pct >= warn_pct) {
+        printf "BLOCK NEARLY FULL: %s using %d/%d addresses (%.1f%%)\n", block, used, total, pct;
+      }
+    }
+  ' "{{ip_blocks_csv_path}}"
+variables:
+  ip_blocks_csv_path:
+    default: "./ip-blocks.csv"
+    description: "Path to a CSV with columns: block_cidr,total_addresses,used_addresses."
+  warn_utilization_pct:
+    default: 80
+    description: Utilization percentage that triggers a low-availability warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes address counts are exported from your IPAM (IP address management) tool into the CSV before this runs.

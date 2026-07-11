@@ -1,0 +1,41 @@
+id: safety-stock-buffer-erosion-check
+version: 1
+name: Safety Stock Buffer Erosion Check
+description: >
+  Looks at how often a SKU has dipped below its safety stock line over
+  a trailing window, not just whether it's below it right now, and
+  flags SKUs breaching it repeatedly as a sign the buffer itself is set
+  too low. Use this if a "safety" stock level has ever stopped being
+  safe because demand grew but nobody revisited the number, so it kept
+  getting breached quietly instead of ever showing up on a single-point
+  low-stock check.
+category: inventory
+tags: [inventory, safety-stock, trend, buffer]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_breaches="{{min_breach_count}}" '
+    NR==1 {next}
+    {
+      sku=$1; daily_qty=$2+0; safety_level=$3+0;
+      total[sku]++;
+      if (daily_qty < safety_level) breaches[sku]++;
+    }
+    END {
+      for (s in breaches) {
+        if (breaches[s] >= min_breaches) {
+          printf "BUFFER EROSION: %s — below safety stock on %d of %d recorded days\n", s, breaches[s], total[s];
+        }
+      }
+    }
+  ' "{{daily_stock_log_csv_path}}"
+variables:
+  daily_stock_log_csv_path:
+    default: "./daily-stock-log.csv"
+    description: "Path to a CSV logging daily stock snapshots, columns: sku,quantity_on_hand,safety_stock_level — one row per SKU per day over the trailing window you want to check."
+  min_breach_count:
+    default: 3
+    description: Number of days below safety stock within the log window before a SKU is flagged for a buffer review.
+compatible_agents: [generic, claude, codex]
+notes: Requires a daily (or near-daily) stock snapshot log rather than a single current reading — feed it a rolling export (e.g. last 30 days) so repeated breaches are visible. Complements `low-stock-alert`, which only ever sees the current moment.

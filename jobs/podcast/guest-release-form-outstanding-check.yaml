@@ -1,0 +1,34 @@
+id: guest-release-form-outstanding-check
+version: 1
+name: Podcast Guest Release Form Outstanding Check
+description: >
+  Flags recorded guest episodes where the signed appearance release form
+  hasn't come back yet. Use this if you've ever published (or almost
+  published) a guest episode without written permission on file.
+category: podcast
+tags: [podcast, guests, legal, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $3 == "outstanding" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline recorded_ts; close(cmd);
+      days_since = int((today - recorded_ts) / 86400);
+      if (days_since >= warn) print "WARNING: " $1 " recorded " days_since " days ago, release form still outstanding";
+    }
+  ' {{guest_releases_csv}}
+variables:
+  guest_releases_csv:
+    default: "guest-releases.csv"
+    description: "CSV with header row, columns: guest_name,recorded_date(YYYY-MM-DD),release_status(outstanding/signed)."
+  warn_days:
+    default: 5
+    description: Days since recording before an outstanding release form is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Treat this as a hard gate, not just a reminder — don't publish an episode
+  whose guest release is still outstanding. Update release_status to
+  "signed" once the form is back.

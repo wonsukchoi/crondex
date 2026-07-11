@@ -1,0 +1,32 @@
+id: show-notes-publish-lag-check
+version: 1
+name: Podcast Show Notes Publish Lag Check
+description: >
+  Flags episodes that published without show notes (links, timestamps,
+  summary) still missing after a grace period. Use this if listeners have
+  ever asked for a link or timestamp you mentioned in an episode that
+  never made it into the show notes.
+category: podcast
+tags: [podcast, show-notes, publishing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_since = int((today - pub_ts) / 86400);
+      if ($3 == "missing" && days_since >= warn) print "WARNING: " $1 " published " days_since " days ago with no show notes (" $2 ")";
+    }
+  ' {{episodes_csv}}
+variables:
+  episodes_csv:
+    default: "episodes.csv"
+    description: "CSV with header row, columns: episode_title,publish_date(YYYY-MM-DD),show_notes_status(ready/missing)."
+  warn_days:
+    default: 2
+    description: Days after publish to allow before flagging missing show notes.
+compatible_agents: [generic, claude, codex]
+notes: Update show_notes_status to "ready" in episodes.csv once notes are posted, so the row stops flagging.

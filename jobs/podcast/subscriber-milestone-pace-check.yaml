@@ -1,0 +1,41 @@
+id: subscriber-milestone-pace-check
+version: 1
+name: Podcast Subscriber Milestone Pace Check
+description: >
+  Compares your current subscriber/follower count against the pace needed
+  to hit a milestone goal by its target date and flags if you're falling
+  behind. Use this if you've ever set a "10k subscribers by year end" goal
+  and only checked in on it after it was already out of reach.
+category: podcast
+tags: [podcast, growth, subscribers, goals]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current subscriber/follower count for {{podcast_name}} on
+  {{platform}}. Compare it against the goal of {{milestone_target}}
+  subscribers by {{target_date}}.
+  1. Calculate the pace needed per month from today to hit the goal.
+  2. Compare that against the actual growth rate over the last
+     {{lookback_months}} month(s), if that history is available.
+  3. Flag if the current pace is behind what's needed, and by roughly how
+     much.
+  4. If on pace or ahead, report the current count and confirm in one line.
+variables:
+  podcast_name:
+    default: "your podcast"
+    description: Name of the podcast to check.
+  platform:
+    default: "your podcast host's subscriber dashboard"
+    description: Where the subscriber/follower count is tracked.
+  milestone_target:
+    default: 10000
+    description: The subscriber/follower count goal.
+  target_date:
+    default: "December 31"
+    description: The date by which the milestone should be reached.
+  lookback_months:
+    default: 3
+    description: How many months of recent history to use when estimating current growth pace.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Growth pace estimates are only as good as the platform's historical data — some hosts only expose a current snapshot, in which case this job can only report progress-to-date, not pace.

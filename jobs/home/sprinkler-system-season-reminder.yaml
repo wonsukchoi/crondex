@@ -1,0 +1,35 @@
+id: sprinkler-system-season-reminder
+version: 1
+name: Sprinkler System Season Turn-On/Winterize Reminder
+description: >
+  Warns you when it's almost time to turn on your irrigation system for
+  the season or winterize/blow it out before the first freeze. Use this
+  if you've ever cracked a sprinkler line because you forgot to blow it
+  out before winter, or started the season late on a dead lawn.
+category: home
+tags: [home, sprinkler, irrigation, seasonal]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s); year=$(date +%Y);
+  on_date="${year}-{{turn_on_month_day}}"; off_date="${year}-{{turn_off_month_day}}";
+  on_ts=$(date -d "$on_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$on_date" +%s);
+  off_ts=$(date -d "$off_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$off_date" +%s);
+  days_to_on=$(( (on_ts - today) / 86400 ));
+  days_to_off=$(( (off_ts - today) / 86400 ));
+  if [ "$days_to_on" -ge 0 ] && [ "$days_to_on" -le "{{warn_days}}" ]; then echo "REMINDER: turn ON the sprinkler system in $days_to_on day(s) ($on_date).";
+  elif [ "$days_to_off" -ge 0 ] && [ "$days_to_off" -le "{{warn_days}}" ]; then echo "REMINDER: turn OFF/winterize the sprinkler system in $days_to_off day(s) ($off_date).";
+  else echo "OK: no sprinkler turn-on/off action due within {{warn_days}} days."; fi
+variables:
+  turn_on_month_day:
+    default: "04-15"
+    description: Typical seasonal start date for your area, as MM-DD.
+  turn_off_month_day:
+    default: "10-15"
+    description: Typical winterize/blow-out date for your area, as MM-DD.
+  warn_days:
+    default: 7
+    description: Days before the turn-on/turn-off date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Adjust the two dates to your climate; in freeze-free climates you may only need the turn-on date and can set turn_off_month_day far in the future.

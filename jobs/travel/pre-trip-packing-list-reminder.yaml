@@ -1,0 +1,43 @@
+id: pre-trip-packing-list-reminder
+version: 1
+name: Pre-Trip Packing List Reminder
+description: >
+  Generates a packing checklist tailored to your trip length, destination
+  climate, and purpose a few days before departure. Use this if you've
+  ever packed in a rush the morning of a flight and forgotten something
+  obvious.
+category: travel
+tags: [travel, packing, checklist, reminder]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  The user has a trip to {{destination}} starting {{trip_start_date}} and
+  ending {{trip_end_date}}, for the purpose of "{{trip_purpose}}". If today
+  is within {{lead_time_days}} days of the trip start, produce a practical
+  packing checklist grouped by category (documents, clothing, electronics,
+  toiletries, trip-specific items). Factor in the likely climate/season at
+  the destination and the trip's stated purpose (e.g. business trip needs
+  different items than a beach vacation). Keep it concrete and skip generic
+  filler advice.
+variables:
+  destination:
+    default: "your destination"
+    description: City or region you're traveling to.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  trip_end_date:
+    default: "2027-01-05"
+    description: Trip end date (YYYY-MM-DD).
+  trip_purpose:
+    default: "vacation"
+    description: Short description of the trip's purpose (vacation, business, wedding, hiking trip, etc).
+  lead_time_days:
+    default: 3
+    description: Only generate the checklist once the trip is within this many days.
+compatible_agents: [claude, codex, generic]
+notes: >
+  agent-prompt rather than shell since a useful packing list depends on
+  judgment about climate, trip purpose, and length that isn't worth
+  hardcoding into a script.

@@ -1,0 +1,26 @@
+id: bin-location-mismatch-check
+version: 1
+name: Bin Location Mismatch Check
+description: >
+  Compares the bin/shelf location recorded in the inventory system
+  against the location from the most recent scan for each SKU and flags
+  mismatches, which usually mean stock was put away in the wrong spot.
+  Use this if a picker has ever gone to the recorded location for a
+  SKU and found nothing there, even though the system said plenty was
+  in stock.
+category: inventory
+tags: [inventory, location, put-away, data-integrity]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sku, system_location, last_scanned_location, last_scanned_at from inventory_locations where system_location is distinct from last_scanned_location and last_scanned_at >= now() - interval '{{scan_lookback_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the inventory/warehouse database.
+  scan_lookback_days:
+    default: 7
+    description: Only compare against scans from within this many days, so a stale scan doesn't produce a false mismatch.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `inventory_locations` table with `system_location`, `last_scanned_location`, and `last_scanned_at` populated by barcode/RFID scans during picking or put-away — adjust the query to your WMS schema. This is a data-integrity check on where stock is recorded, distinct from `inventory-count-discrepancy-check`, which checks how much stock there is.

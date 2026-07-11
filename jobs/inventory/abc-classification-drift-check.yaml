@@ -1,0 +1,45 @@
+id: abc-classification-drift-check
+version: 1
+name: ABC Classification Drift Check
+description: >
+  Recomputes each SKU's revenue or velocity share from recent sales and
+  flags SKUs whose actual ranking no longer matches the ABC class
+  (A/B/C) assigned to them in the system, which throws off count
+  frequency and service-level priorities based on that class. Use this
+  if a SKU has ever kept its old "C-item" label long after it quietly
+  became a top mover, so it wasn't getting counted or prioritized like
+  one.
+category: inventory
+tags: [inventory, abc-analysis, classification, prioritization]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v a_pct="{{a_class_cutoff_pct}}" -v b_pct="{{b_class_cutoff_pct}}" '
+    NR==1 {next}
+    {
+      sku[NR]=$1; assigned[NR]=$2; revenue[NR]=$3+0; total+=$3+0; n=NR;
+    }
+    END {
+      for (i=2;i<=n;i++) {
+        cum += revenue[i];
+        pct = (total>0) ? (cum/total)*100 : 0;
+        actual = (pct <= a_pct) ? "A" : (pct <= b_pct) ? "B" : "C";
+        if (actual != assigned[i]) {
+          printf "DRIFT: %s — assigned %s, actual %s (cumulative revenue share %.1f%%)\n", sku[i], assigned[i], actual, pct;
+        }
+      }
+    }
+  ' <(sort -t',' -k3,3 -nr "{{sku_revenue_csv_path}}")
+variables:
+  sku_revenue_csv_path:
+    default: "./sku-revenue-with-class.csv"
+    description: "Path to a CSV with columns: sku,assigned_class (A/B/C),trailing_period_revenue. The command sorts it by revenue descending before classifying."
+  a_class_cutoff_pct:
+    default: 80
+    description: Cumulative revenue share (sorted high to low) up to which SKUs are classified A.
+  b_class_cutoff_pct:
+    default: 95
+    description: Cumulative revenue share up to which SKUs are classified B; above this is C.
+compatible_agents: [generic, claude, codex]
+notes: Uses a simple cumulative-revenue-share cutoff (the standard 80/15/5-style Pareto split) — swap in units moved or margin instead of revenue if that's what drives your count frequency and service-level policy.

@@ -1,0 +1,42 @@
+id: voip-call-quality-mos-degradation-check
+version: 1
+name: VoIP Call Quality (MOS Score) Degradation Check
+description: >
+  Checks recent VoIP call quality samples (MOS scores) per trunk or
+  route and flags any averaging below an acceptable threshold. Use this
+  if customers have ever complained about choppy or garbled calls on a
+  route for days before anyone noticed the MOS scores had quietly
+  dropped.
+category: telecom
+tags: [telecom, voip, call-quality, monitoring]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_mos="{{min_acceptable_mos}}" '
+    NR==1 {next}
+    {
+      route=$1; mos=$2+0;
+      sum[route]+=mos; n[route]++;
+    }
+    END {
+      for (r in sum) {
+        avg = sum[r] / n[r];
+        if (avg < min_mos) {
+          printf "CALL QUALITY DEGRADED: route %s avg MOS %.2f over %d calls (min %.2f)\n", r, avg, n[r], min_mos;
+        }
+      }
+    }
+  ' "{{mos_samples_csv_path}}"
+variables:
+  mos_samples_csv_path:
+    default: "./voip-mos-samples.csv"
+    description: "Path to a CSV with columns: route_or_trunk_id,mos_score (1.0-5.0), one row per recent call sample."
+  min_acceptable_mos:
+    default: 3.8
+    description: Minimum acceptable average MOS score before a route is flagged as degraded.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes MOS samples are exported from your SBC/softswitch call quality
+  monitoring into the CSV before this runs. Read-only, no call routing
+  changes made.

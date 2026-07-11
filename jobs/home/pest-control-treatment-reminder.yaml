@@ -1,0 +1,29 @@
+id: pest-control-treatment-reminder
+version: 1
+name: Pest Control Treatment Reminder
+description: >
+  Reminds you to schedule or perform your recurring pest control treatment
+  based on how long it's been since the last one. Use this if you've ever
+  had ants or spiders come back inside because the quarterly treatment
+  quietly slipped to twice a year.
+category: home
+tags: [home, pest-control, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_treated_date}}; interval={{interval_days}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge "$interval" ]; then echo "REMINDER: pest control last treated $days_since day(s) ago (every $interval day(s)) — schedule the next treatment.";
+  else echo "OK: treated $days_since day(s) ago, next due in $(( interval - days_since )) day(s)."; fi
+variables:
+  last_treated_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the last pest control treatment — update this yourself.
+  interval_days:
+    default: 90
+    description: How often treatment is due, in days (matches most quarterly service plans).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_treated_date yourself after each treatment. Adjust interval_days to match your actual service plan (monthly, quarterly, etc.).

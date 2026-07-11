@@ -1,0 +1,32 @@
+id: patreon-membership-fulfillment-check
+version: 1
+name: Podcast Membership/Patreon Fulfillment Check
+description: >
+  Flags paid membership tier perks (bonus episodes, shoutouts, merch) that
+  are overdue for the current period. Use this if a paying supporter has
+  ever asked "where's my bonus episode?" before you'd noticed it hadn't
+  gone out yet.
+category: podcast
+tags: [podcast, membership, patreon, fulfillment]
+schedule: "0 9 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $1 " perk due " ($2) ", " days_left " day(s) left, still pending";
+    }
+  ' {{perks_csv}}
+variables:
+  perks_csv:
+    default: "membership-perks.csv"
+    description: "CSV with header row, columns: perk_name,due_date(YYYY-MM-DD),status(pending/fulfilled)."
+  warn_days:
+    default: 3
+    description: Days before the due date to start warning if a perk is still pending.
+compatible_agents: [generic, claude, codex]
+notes: Keep membership-perks.csv updated with each period's recurring perks (bonus episode, Discord AMA, shoutout) and mark status "fulfilled" once delivered.

@@ -1,0 +1,30 @@
+id: dryer-vent-cleaning-reminder
+version: 1
+name: Dryer Vent Cleaning Reminder
+description: >
+  Reminds you to clean out your dryer vent and lint duct based on how long
+  it's been since the last cleaning. Use this if you've ever noticed
+  clothes taking longer than usual to dry, which is a fire-risk warning
+  sign, not just an annoyance.
+category: home
+tags: [home, dryer, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_cleaned_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: dryer vent last cleaned $days_since day(s) ago (every ${interval} months) — clean the vent/duct.";
+  else echo "OK: dryer vent cleaned $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_cleaned_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last cleaned the dryer vent — update this yourself.
+  interval_months:
+    default: 12
+    description: How often to clean the vent, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_cleaned_date yourself each time you actually clean it. Clogged dryer vents are a leading cause of house fires — don't stretch this interval.

@@ -1,0 +1,35 @@
+id: transit-cost-per-mbps-drift-check
+version: 1
+name: Transit Cost-per-Mbps Drift Check
+description: >
+  Compares each upstream transit provider's current effective cost per
+  Mbps against a target ceiling and flags providers drifting above
+  market rate. Use this if you've ever kept paying above-market transit
+  rates for months because nobody recalculated cost-per-Mbps after the
+  last capacity upgrade or committed-rate change.
+category: telecom
+tags: [telecom, transit, cost, capacity-planning]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v ceiling="{{max_cost_per_mbps}}" '
+    NR==1 {next}
+    {
+      provider=$1; monthly_cost=$2+0; committed_mbps=$3+0;
+      if (committed_mbps <= 0) next;
+      cost_per_mbps = monthly_cost / committed_mbps;
+      if (cost_per_mbps > ceiling) {
+        printf "COST DRIFT: %s at $%.2f/Mbps (ceiling $%.2f) — $%d/mo for %dMbps\n", provider, cost_per_mbps, ceiling, monthly_cost, committed_mbps;
+      }
+    }
+  ' "{{transit_costs_csv_path}}"
+variables:
+  transit_costs_csv_path:
+    default: "./transit-costs.csv"
+    description: "Path to a CSV with columns: provider_name,monthly_cost_usd,committed_mbps."
+  max_cost_per_mbps:
+    default: 0.50
+    description: Target ceiling for cost per Mbps in USD before a provider is flagged for renegotiation.
+compatible_agents: [generic, claude, codex]
+notes: Assumes billed cost and committed capacity are pulled from your transit invoices/contracts into the CSV.

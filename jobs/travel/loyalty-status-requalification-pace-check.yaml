@@ -1,0 +1,47 @@
+id: loyalty-status-requalification-pace-check
+version: 1
+name: Loyalty Status Requalification Pace Check
+description: >
+  Tracks whether you're on pace to hit the miles/nights/segments needed
+  to requalify for elite status before your program year ends. Use this
+  if you've ever realized in November you were 3,000 miles short of
+  keeping status for the next year.
+category: travel
+tags: [travel, loyalty, elite-status, miles]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  year_end_epoch=$(date -d "{{qualification_year_end}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{qualification_year_end}}" +%s);
+  year_start_epoch=$(date -d "{{qualification_year_start}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{qualification_year_start}}" +%s);
+  today_epoch=$(date +%s);
+  total_days=$(( (year_end_epoch-year_start_epoch)/86400 )); [ "$total_days" -lt 1 ] && total_days=1;
+  days_elapsed=$(( (today_epoch-year_start_epoch)/86400 )); [ "$days_elapsed" -lt 0 ] && days_elapsed=0; [ "$days_elapsed" -gt "$total_days" ] && days_elapsed=$total_days;
+  expected=$(awk -v goal="{{requalification_goal}}" -v d="$days_elapsed" -v t="$total_days" 'BEGIN { printf "%.0f", (goal/t)*d }');
+  behind=$(awk -v c="{{current_progress}}" -v e="$expected" 'BEGIN { print (c < e) ? 1 : 0 }');
+  if [ "$behind" = "1" ]; then echo "BEHIND PACE: {{current_progress}} / {{requalification_goal}} {{unit}} so far, expected at least $expected by now (day $days_elapsed of $total_days)."; exit 1;
+  else echo "OK: {{current_progress}} / {{requalification_goal}} {{unit}}, on pace (expected $expected by now)."; fi
+variables:
+  program_name:
+    default: "your loyalty program"
+    description: Name of the airline/hotel loyalty program.
+  requalification_goal:
+    default: "50000"
+    description: Total miles/nights/segments needed to requalify for the target tier this qualification year.
+  unit:
+    default: "miles"
+    description: Unit being tracked (miles, nights, segments, points).
+  current_progress:
+    default: "0"
+    description: Amount earned toward the goal so far this qualification year — update this periodically.
+  qualification_year_start:
+    default: "2026-01-01"
+    description: Start date of the current qualification year (YYYY-MM-DD).
+  qualification_year_end:
+    default: "2026-12-31"
+    description: End date of the current qualification year (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. current_progress is a manual input since loyalty programs
+  rarely expose real-time balances via a public API — update it after each
+  qualifying trip or when you check your account.

@@ -1,0 +1,34 @@
+id: did-inventory-low-stock-check
+version: 1
+name: DID/Phone Number Inventory Low-Stock Check
+description: >
+  Checks your pool of unassigned DIDs (direct inward dial numbers) per
+  rate center or area code and warns when the available count is running
+  low. Use this if a sales order has ever stalled because there were no
+  numbers left to assign in the customer's requested area code.
+category: telecom
+tags: [telecom, did, numbering, inventory]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_available="{{min_available_count}}" '
+    NR==1 {next}
+    $3 == "unassigned" {count[$2]++}
+    END {
+      for (rc in count) {
+        if (count[rc] < min_available) {
+          printf "LOW DID STOCK: rate center/area code %s has only %d unassigned numbers\n", rc, count[rc];
+        }
+      }
+    }
+  ' "{{did_inventory_csv_path}}"
+variables:
+  did_inventory_csv_path:
+    default: "./did-inventory.csv"
+    description: "Path to a CSV with columns: did_number,rate_center_or_area_code,status (unassigned/assigned/ported-out/reserved)."
+  min_available_count:
+    default: 10
+    description: Minimum unassigned DIDs per rate center before it's flagged as low stock.
+compatible_agents: [generic, claude, codex]
+notes: Assumes DID status is exported from your numbering/provisioning system into the CSV before this runs.

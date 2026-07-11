@@ -1,0 +1,37 @@
+id: episode-seo-metadata-completeness-check
+version: 1
+name: Podcast Episode SEO Metadata Completeness Check
+description: >
+  Checks a newly published episode's title, description, and tags against
+  basic discoverability requirements and flags what's missing. Use this if
+  an episode has ever gone out with a generic title or a blank description
+  that made it invisible in podcast app search.
+category: podcast
+tags: [podcast, seo, metadata, discoverability]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  http_code=$(curl -s -o /tmp/episode-seo-check.xml -w "%{http_code}" "{{feed_url}}");
+  if [ "$http_code" != "200" ]; then echo "FAIL: feed_url returned HTTP $http_code"; exit 1; fi;
+  title=$(grep -o "<title>[^<]*</title>" /tmp/episode-seo-check.xml | sed -n '2p' | sed 's/<[^>]*>//g');
+  desc=$(grep -o "<description>[^<]*</description>" /tmp/episode-seo-check.xml | sed -n '2p' | sed 's/<[^>]*>//g');
+  issues="";
+  title_len=${#title};
+  desc_len=${#desc};
+  if [ "$title_len" -lt "{{min_title_length}}" ]; then issues="$issues title too short ($title_len chars);"; fi;
+  if [ "$desc_len" -lt "{{min_description_length}}" ]; then issues="$issues description too short ($desc_len chars);"; fi;
+  if [ -n "$issues" ]; then echo "WARNING: latest episode metadata issues -$issues"; exit 1;
+  else echo "OK: latest episode title ($title_len chars) and description ($desc_len chars) meet minimums"; fi
+variables:
+  feed_url:
+    default: "https://example.com/podcast/feed.xml"
+    description: Public URL of the podcast's RSS feed.
+  min_title_length:
+    default: 15
+    description: Minimum character length for an episode title before it's flagged as too generic/short.
+  min_description_length:
+    default: 100
+    description: Minimum character length for an episode description before it's flagged as too thin.
+compatible_agents: [generic, claude, codex]
+notes: Length checks are a floor, not a quality bar — they catch blank or placeholder metadata, not whether the copy is actually good or keyword-relevant.

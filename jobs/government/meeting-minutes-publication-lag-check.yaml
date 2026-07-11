@@ -1,0 +1,36 @@
+id: meeting-minutes-publication-lag-check
+version: 1
+name: Meeting Minutes Publication Lag Check
+description: >
+  Checks how long it's been since a public meeting happened and flags it
+  if the minutes still haven't been published past your sunshine-law
+  window. Use this if approved minutes have ever gone up online weeks
+  late because drafting and posting them fell to the bottom of someone's
+  list after the meeting itself was handled.
+category: government
+tags: [government, open-meetings, minutes, sunshine-law, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{required_publication_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline meeting_epoch; close(cmd);
+      lag_days = (today - meeting_epoch) / 86400;
+      if (lag_days > days) {
+        printf "MINUTES OVERDUE: %s — met %s, %d days ago, still not published (limit %d)\n", $1, $2, lag_days, days;
+      }
+    }
+  ' "{{meetings_csv_path}}"
+variables:
+  meetings_csv_path:
+    default: "./public-meetings-minutes-log.csv"
+    description: "Path to a CSV with columns: meeting_name,meeting_date (YYYY-MM-DD),minutes_published (yes/no)."
+  required_publication_days:
+    default: 10
+    description: Maximum days after a meeting your jurisdiction's law allows before minutes must be published.
+compatible_agents: [generic, claude, codex]
+notes: This checks minutes going out after a meeting — for notice going out before a meeting, use public-meeting-notice-compliance-check instead. Confirm your actual statutory publication window rather than relying on the default.

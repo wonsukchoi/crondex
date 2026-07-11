@@ -1,0 +1,42 @@
+id: bgp-route-leak-detection
+version: 1
+name: BGP Route Leak / Hijack Detection
+description: >
+  Compares your currently observed BGP origin AS for each monitored
+  prefix against the expected AS and flags mismatches. Use this if one
+  of your IP blocks has ever been hijacked or leaked by another network
+  and the first anyone heard about it was a customer reachability
+  complaint, not a routing alert.
+category: telecom
+tags: [telecom, bgp, routing, security]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  leaked=0;
+  while IFS=',' read -r prefix expected_asn _rest; do
+    [ "$prefix" = "prefix" ] && continue;
+    [ -z "$prefix" ] && continue;
+    observed=$(curl -s --max-time "{{curl_timeout_sec}}" "https://stat.ripe.net/data/prefix-overview/data.json?resource=${prefix}" \
+      | grep -o '"asn":[0-9]*' | head -1 | grep -o '[0-9]*');
+    if [ -z "$observed" ]; then
+      echo "NO DATA: could not resolve origin AS for $prefix";
+    elif [ "$observed" != "$expected_asn" ]; then
+      echo "ROUTE MISMATCH: $prefix expected AS$expected_asn, observed AS$observed";
+      leaked=1;
+    fi;
+  done < "{{prefixes_csv_path}}";
+  if [ "$leaked" -eq 1 ]; then exit 1; else echo "OK: all monitored prefixes match expected origin AS"; fi
+variables:
+  prefixes_csv_path:
+    default: "./bgp-prefixes.csv"
+    description: "Path to a CSV with columns: prefix (CIDR),expected_asn (your legitimate origin AS number)."
+  curl_timeout_sec:
+    default: 10
+    description: Timeout in seconds per RIPEstat lookup.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses RIPEstat's public data API (no auth) as a free, best-effort origin-AS
+  check — for production route-leak detection, replace with a proper BGP
+  monitoring feed (e.g. BGPStream, a route collector, or your RPKI
+  validator). Read-only, no routing changes made.

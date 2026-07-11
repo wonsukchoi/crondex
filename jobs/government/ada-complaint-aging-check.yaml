@@ -1,0 +1,41 @@
+id: ada-complaint-aging-check
+version: 1
+name: ADA Accessibility Complaint Aging Check
+description: >
+  Checks open ADA/accessibility grievances against your target
+  resolution window and flags anything sitting open too long. Use this
+  if an accessibility complaint has ever aged past your grievance
+  procedure's timeline because it wasn't visibly tracked outside one
+  person's inbox.
+category: government
+tags: [government, ada, accessibility, complaints, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{target_resolution_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline filed_epoch; close(cmd);
+      age_days = (today - filed_epoch) / 86400;
+      total++;
+      if (age_days > days) {
+        over_target++;
+        printf "OVER TARGET: complaint %s — open %d days (target %d)\n", $1, age_days, days;
+      }
+    }
+    END {
+      printf "%d open complaints, %d over the %d-day target\n", total, over_target, days;
+    }
+  ' "{{complaints_csv_path}}"
+variables:
+  complaints_csv_path:
+    default: "./ada-complaints.csv"
+    description: "Path to a CSV with columns: complaint_id,filed_date (YYYY-MM-DD),status (open/resolved)."
+  target_resolution_days:
+    default: 30
+    description: Target number of days to resolve or substantively respond to an ADA grievance.
+compatible_agents: [generic, claude, codex]
+notes: Target resolution windows should come from your agency's own published grievance procedure, not this default — ADA itself doesn't set a fixed number of days.

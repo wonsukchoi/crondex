@@ -1,0 +1,27 @@
+id: chapter-marker-completeness-check
+version: 1
+name: Podcast Chapter Marker Completeness Check
+description: >
+  Checks that a newly published episode's audio file has chapter markers
+  embedded before flagging it as missing. Use this if you've ever promised
+  tappable chapters in the show notes but forgot the embedding step and
+  shipped a flat, unchaptered file.
+category: podcast
+tags: [podcast, chapters, metadata, production]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if ! command -v ffprobe >/dev/null 2>&1; then echo "WARNING: ffprobe not installed, cannot check chapters"; exit 1; fi;
+  chapter_count=$(ffprobe -i "{{episode_audio_file}}" -print_format json -show_chapters -loglevel error 2>/dev/null | grep -c '"id"');
+  if [ "$chapter_count" -lt "{{min_chapter_count}}" ]; then echo "WARNING: {{episode_audio_file}} has $chapter_count chapter marker(s), below minimum of {{min_chapter_count}}"; exit 1;
+  else echo "OK: {{episode_audio_file}} has $chapter_count chapter marker(s)"; fi
+variables:
+  episode_audio_file:
+    default: "episode-final.mp3"
+    description: Path to the final exported episode audio file to check for embedded chapters.
+  min_chapter_count:
+    default: 1
+    description: Minimum number of embedded chapter markers expected before the file is flagged as missing chapters.
+compatible_agents: [generic, claude, codex]
+notes: Requires `ffprobe` (part of ffmpeg) on PATH; only checks that chapter markers exist in the file, not that their titles/timestamps are accurate.

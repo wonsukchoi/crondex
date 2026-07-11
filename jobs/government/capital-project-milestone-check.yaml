@@ -1,0 +1,56 @@
+id: capital-project-milestone-check
+version: 1
+name: Capital Improvement Project Milestone Check
+description: >
+  Checks your agency's capital improvement plan (CIP) tracker for
+  project milestones (design complete, bid award, groundbreaking,
+  substantial completion) due soon or already past due and still marked
+  incomplete, then summarizes which projects are at risk of slipping.
+  Use this if a capital project has ever quietly fallen behind schedule
+  for months before it showed up as a surprise in a budget or council
+  update.
+category: government
+tags: [government, capital-projects, cip, milestones, budget]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline target_epoch; close(cmd);
+      diff_days = (target_epoch - today) / 86400;
+      if (diff_days <= days) {
+        printf "MILESTONE AT RISK: %s / %s — target %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{cip_tracker_csv_path}}"
+prompt: |
+  Read {{cip_tracker_csv_path}} (columns: project_name, milestone_name,
+  target_date, complete) and cross-reference it with any project notes
+  or budget updates in {{cip_notes_source}}.
+  1. List every project with a milestone that's overdue or due within
+     {{warn_days_before}} days and still marked incomplete.
+  2. For each, note the likely cause if it's mentioned anywhere in the
+     notes (funding gap, contractor delay, permitting holdup, weather).
+  3. Draft a short capital-projects status summary suitable for a
+     council or budget-office update, grouping projects by risk level.
+script_note: >
+  The command gives you the raw list of at-risk milestones for free. The
+  prompt adds the "why" behind each delay (pulled from project notes) and
+  a drafted narrative summary — useful before a council update, but not
+  needed for a plain daily check.
+variables:
+  cip_tracker_csv_path:
+    default: "./cip-project-milestones.csv"
+    description: "Path to a CSV with columns: project_name,milestone_name,target_date (YYYY-MM-DD),complete (yes/no)."
+  cip_notes_source:
+    default: "your capital projects tracking system or shared project notes"
+    description: Where free-text notes on project status/delays live, for the prompt mode's synthesis.
+  warn_days_before:
+    default: 14
+    description: How many days before (or past) a milestone's target date to flag it.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is your agency's own capital-projects view (design/bid/build/complete milestones on a CIP), distinct from the construction category's job-site jobs (RFIs, submittals, permits) which track an individual contractor's day-to-day site work.

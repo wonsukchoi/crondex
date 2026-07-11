@@ -1,0 +1,40 @@
+id: board-commission-vacancy-check
+version: 1
+name: Board/Commission Vacancy Check
+description: >
+  Checks a roster of appointed board and commission seats for anything
+  currently vacant or with a term ending soon, so a replacement can be
+  found before there's a quorum problem. Use this if a board has ever
+  missed a meeting for lack of quorum because two members' terms lapsed
+  at once and nobody had started the appointment process.
+category: government
+tags: [government, board, commission, vacancy, appointments]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before_term_end}}" -v today="$today" '
+    NR==1 {next}
+    {
+      if ($3 == "vacant") {
+        printf "VACANT NOW: %s — %s\n", $1, $2;
+      } else {
+        cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+        cmd | getline end_epoch; close(cmd);
+        diff_days = (end_epoch - today) / 86400;
+        if (diff_days <= days && diff_days >= 0) {
+          printf "TERM ENDING SOON: %s — %s (%d days)\n", $1, $2, diff_days;
+        }
+      }
+    }
+  ' "{{board_roster_csv_path}}"
+variables:
+  board_roster_csv_path:
+    default: "./board-commission-roster.csv"
+    description: "Path to a CSV with columns: board_name,seat_name,status (filled/vacant),term_end_date (YYYY-MM-DD, blank if vacant)."
+  warn_days_before_term_end:
+    default: 60
+    description: How many days before a filled seat's term ends to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Doesn't check whether a board still has enough seated members to legally meet — pair with your bylaws' quorum threshold if that's a recurring risk.

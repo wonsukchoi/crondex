@@ -1,0 +1,46 @@
+id: whistleblower-complaint-sla-check
+version: 1
+name: Whistleblower/Ethics Complaint SLA Check
+description: >
+  Checks open whistleblower or ethics hotline complaints against your
+  internal acknowledgment and investigation SLA, prioritizes them by
+  severity, and drafts a status note for the compliance officer. Use
+  this if a whistleblower complaint has ever sat unacknowledged past
+  your own policy's response window because it wasn't visible outside
+  one investigator's queue.
+category: government
+tags: [government, whistleblower, ethics, complaints, sla, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{complaint_tracking_system}} for open whistleblower/ethics
+  complaints.
+  1. List each open complaint by case ID only (never names or
+     identifying detail in any output this job produces) along with
+     days since intake and current stage (acknowledged / under
+     investigation / awaiting decision).
+  2. Flag any case past the {{acknowledgment_sla_days}}-day
+     acknowledgment SLA or the {{investigation_sla_days}}-day
+     investigation SLA as needing attention, ranked by how far past SLA
+     it is and any noted severity/retaliation risk.
+  3. Draft a short internal status note for the compliance officer
+     summarizing SLA breaches — do not draft anything for the
+     complainant or any other party.
+variables:
+  complaint_tracking_system:
+    default: "your whistleblower/ethics complaint tracking system"
+    description: Where whistleblower and ethics complaints and their case stages are tracked.
+  acknowledgment_sla_days:
+    default: 5
+    description: Days allowed to acknowledge receipt of a complaint under your policy.
+  investigation_sla_days:
+    default: 45
+    description: Days allowed to complete an investigation under your policy.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Handles sensitive, confidentiality-protected material — run this only
+  against a system and account already scoped to compliance staff, keep
+  output internal to the compliance officer, and never include
+  complainant-identifying details in generated text. Draft-only: nothing
+  is sent automatically.

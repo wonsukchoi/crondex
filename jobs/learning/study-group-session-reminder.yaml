@@ -1,0 +1,46 @@
+id: study-group-session-reminder
+version: 1
+name: Study Group Session Reminder
+description: >
+  Reminds you the day before your recurring study group meets and can
+  help you draft a quick recap of what to bring or review. Use this if
+  you're in a study group for a cert, language, or course and have ever
+  shown up (or forgotten to show up) without having looked at the material
+  since last time.
+category: learning
+tags: [learning, study-group, reminder, social]
+schedule: "0 18 * * *"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  next_meeting_date=$(date -d "{{next_meeting_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{next_meeting_date}}" +%s);
+  today_ts=$(date +%s);
+  days_left=$(( (next_meeting_date - today_ts) / 86400 ));
+  if [ "$days_left" -eq "{{reminder_days_before}}" ]; then echo "REMINDER: {{group_name}} meets on {{next_meeting_date}} — topic: {{current_topic}}"; exit 1;
+  else echo "OK: no reminder due today ($days_left day(s) until next meeting)"; fi
+prompt: |
+  {{group_name}} meets on {{next_meeting_date}} to cover {{current_topic}}.
+  If today is exactly {{reminder_days_before}} day(s) before that date,
+  write a short reminder (2-3 sentences) covering: what to review beforehand,
+  and one or two likely discussion questions about {{current_topic}} worth
+  thinking about before the session. If the reminder isn't due today, just
+  say so.
+script_note: >
+  `command` only checks whether today is the reminder day. `prompt` also
+  drafts what to review and possible discussion questions, which needs an
+  LLM to reason about the topic.
+variables:
+  group_name:
+    default: "your study group"
+    description: Name of the study group, for labeling output.
+  next_meeting_date:
+    default: "2026-08-01"
+    description: Date of the next scheduled session (YYYY-MM-DD) — update after each meeting.
+  current_topic:
+    default: "the current chapter/topic"
+    description: What the group is currently covering.
+  reminder_days_before:
+    default: 1
+    description: Days before the meeting date to fire the reminder.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Update next_meeting_date and current_topic yourself after each session — this job doesn't sync with a shared calendar automatically.

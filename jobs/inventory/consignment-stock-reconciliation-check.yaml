@@ -1,0 +1,42 @@
+id: consignment-stock-reconciliation-check
+version: 1
+name: Consignment Stock Reconciliation Check
+description: >
+  Compares your internal record of consignment stock (inventory you hold
+  but don't own until it sells, or that you've placed at a partner site)
+  against the supplier or partner's own count and flags mismatches. Use
+  this if a consignment relationship has ever gone months without anyone
+  confirming both sides still agree on how much stock is actually there.
+category: inventory
+tags: [inventory, consignment, reconciliation, suppliers]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare your internal consignment stock ledger at
+  {{internal_ledger_file}} against the supplier/partner's own reported
+  count at {{partner_count_file}} (or query {{data_source}} if these are
+  live feeds instead of files).
+  1. For each SKU held on consignment, compute the difference between
+     your recorded quantity and the partner's reported quantity.
+  2. Flag any SKU with a discrepancy of {{threshold_units}} units or
+     more, and note which side (yours or theirs) is higher, since that
+     affects who owes an adjustment.
+  3. Summarize total units and estimated dollar value in dispute across
+     all flagged SKUs, and list which consignment partner each belongs
+     to if there's more than one.
+variables:
+  internal_ledger_file:
+    default: "consignment-ledger.csv"
+    description: CSV export of your internal consignment stock record, columns sku,partner,quantity.
+  partner_count_file:
+    default: "partner-consignment-count.csv"
+    description: CSV export of the partner's reported consignment count, columns sku,partner,quantity.
+  data_source:
+    default: "your consignment tracking system"
+    description: Fallback system of record if counts aren't available as flat files.
+  threshold_units:
+    default: 3
+    description: Absolute unit discrepancy that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — reconciling two independently maintained records and deciding what's a meaningful, actionable gap needs judgment, not a fixed query. Distinct from `inventory-count-discrepancy-check`, which compares your own physical count to your own system record rather than two parties' records of the same consigned stock.

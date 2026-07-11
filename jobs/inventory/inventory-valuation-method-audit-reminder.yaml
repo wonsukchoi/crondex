@@ -1,0 +1,43 @@
+id: inventory-valuation-method-audit-reminder
+version: 1
+name: Inventory Valuation Method Audit Reminder
+description: >
+  Ahead of each period close, reminds someone to review inventory
+  valuation assumptions (FIFO, LIFO, or weighted-average costing) for
+  anomalies like a unit cost that jumped sharply or a SKU that quietly
+  switched costing method. Use this if a valuation error has ever only
+  surfaced when the accountant closed the books, instead of getting
+  caught while it could still be fixed.
+category: inventory
+tags: [inventory, valuation, accounting, audit]
+schedule: "0 9 25 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the inventory valuation export at {{valuation_export_file}}
+  (or query {{data_source}}) ahead of period close.
+  1. For each SKU, compare the current unit cost used for valuation
+     against its cost from the prior period and flag any change greater
+     than {{cost_change_threshold_pct}}%.
+  2. Flag any SKU whose recorded costing method ({{expected_method}}
+     expected) differs from what the export shows, since a silent
+     method switch mid-period distorts cost of goods sold.
+  3. Flag any SKU with a unit cost of zero or blank despite a nonzero
+     quantity on hand — a common sign of an incomplete cost roll-up.
+  4. Summarize total inventory value at risk from the flagged items and
+     suggest which ones need accounting review before the books close.
+variables:
+  valuation_export_file:
+    default: "inventory-valuation.csv"
+    description: "CSV export with columns: sku,quantity,unit_cost,costing_method,period."
+  data_source:
+    default: "your inventory/accounting system"
+    description: Fallback system of record if a flat-file export isn't available.
+  expected_method:
+    default: "FIFO"
+    description: The costing method your business is supposed to use consistently.
+  cost_change_threshold_pct:
+    default: 15
+    description: Percent change in unit cost period-over-period that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is a review reminder, not a substitute for an accountant's sign-off — it exists to surface anomalies early, not to make the valuation call itself.

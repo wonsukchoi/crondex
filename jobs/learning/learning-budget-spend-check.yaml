@@ -1,0 +1,44 @@
+id: learning-budget-spend-check
+version: 1
+name: Learning Budget Spend-vs-Allowance Check
+description: >
+  Tracks how much of your personal or employer learning/education
+  allowance you've spent this period against the total, and flags if
+  you're at risk of leaving money unused. Use this if your company gives
+  you an annual learning stipend that resets and doesn't roll over, and
+  you tend to forget to spend it.
+category: learning
+tags: [learning, budget, stipend, finance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{spend_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  spent=$(awk -F',' 'NR>1{sum+=$2} END{print sum+0}' "$file");
+  allowance={{annual_allowance}};
+  remaining=$(( allowance - spent ));
+  today_month=$(date +%m); today_month=$((10#$today_month));
+  months_left=$(( 12 - today_month + 1 ));
+  if [ "$remaining" -le 0 ]; then echo "OK: {{allowance_name}} fully used ($spent / $allowance).";
+  elif [ "$months_left" -le "{{urgency_months}}" ] && [ "$remaining" -gt 0 ]; then echo "WARNING: $remaining of $allowance left in {{allowance_name}} with only $months_left month(s) left in the period — use it or lose it"; exit 1;
+  else echo "OK: $spent / $allowance spent on {{allowance_name}}, $remaining remaining, $months_left month(s) left."; fi
+variables:
+  spend_log_path:
+    default: "./learning-budget-log.csv"
+    description: "CSV with header row, columns: item,amount — one row per purchase against the allowance."
+  annual_allowance:
+    default: 1000
+    description: Total learning/education allowance for the period, in your currency's smallest whole-number unit.
+  allowance_name:
+    default: "your learning stipend"
+    description: Name of the allowance, for labeling output.
+  urgency_months:
+    default: 2
+    description: Months remaining in the period at which an unused balance starts being flagged as urgent.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Assumes a calendar-year allowance that resets each January —
+  if your employer's period runs on a different cycle, adjust how you log
+  entries or reset spend_log_path accordingly. You log each purchase
+  yourself; this job doesn't integrate with expense systems.

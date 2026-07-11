@@ -1,0 +1,33 @@
+id: trip-expense-receipt-collection-reminder
+version: 1
+name: Trip Expense Receipt Collection Reminder
+description: >
+  Reminds you daily during a business trip to photograph and log
+  receipts before they get lost or thrown away. Use this if you've ever
+  come home from a work trip and had to reconstruct a week of receipts
+  from memory for the expense report.
+category: travel
+tags: [travel, expenses, receipts, business]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_end_epoch=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  today_epoch=$(date +%s);
+  if [ "$today_epoch" -gt "$trip_end_epoch" ]; then echo "note: trip has ended — submit your expense report and update trip_end_date for the next trip."; exit 0; fi;
+  logged=$(wc -l < "{{receipt_log_csv_path}}" 2>/dev/null || echo 0);
+  echo "REMINDER: log today's receipts to {{receipt_log_csv_path}} before you lose them (entries so far: $logged). Deadline to submit: {{expense_report_due_date}}."
+variables:
+  trip_end_date:
+    default: "2026-12-31"
+    description: Last day of the business trip (YYYY-MM-DD) — reminders stop after this.
+  receipt_log_csv_path:
+    default: "./trip-receipts.csv"
+    description: Path to the file/log where you track receipts (photo filenames, amounts, etc).
+  expense_report_due_date:
+    default: "2027-01-15"
+    description: Date the expense report is due, shown as a reminder deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't OCR or file anything for you — it's a nightly nudge to
+  keep the receipt log current while memory of each purchase is still fresh.

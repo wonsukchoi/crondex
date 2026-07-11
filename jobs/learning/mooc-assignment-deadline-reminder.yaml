@@ -1,0 +1,33 @@
+id: mooc-assignment-deadline-reminder
+version: 1
+name: MOOC Assignment Deadline Reminder
+description: >
+  Checks a list of upcoming online-course assignment/quiz deadlines and
+  flags any coming up soon. Use this if you're taking a Coursera/edX/
+  Udacity-style course with graded deadlines and have missed one because
+  the platform's own email reminder got buried.
+category: learning
+tags: [learning, mooc, deadlines, course]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left >= 0 && days_left <= warn) print "DUE SOON: \"" $1 "\" due " $2 " (in " days_left " day(s))";
+      else if (days_left < 0) print "OVERDUE: \"" $1 "\" was due " $2;
+    }
+  ' "{{assignments_csv}}"
+variables:
+  assignments_csv:
+    default: "mooc-assignments.csv"
+    description: "CSV with header row, columns: title,due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 5
+    description: Days ahead of a deadline to start flagging it as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Add a row to mooc-assignments.csv whenever a new assignment/quiz is posted in your course — this job only reads the file, it doesn't pull deadlines from the platform itself.

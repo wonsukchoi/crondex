@@ -1,0 +1,36 @@
+id: maintenance-window-notice-lag-check
+version: 1
+name: Maintenance Window Customer Notification Lag Check
+description: >
+  Checks upcoming planned network maintenance windows and flags any that
+  are inside your required customer-notice lead time but haven't been
+  marked as notified yet. Use this if a maintenance window has ever gone
+  out with too little warning and customers found out only when their
+  service dropped.
+category: telecom
+tags: [telecom, maintenance, notifications, compliance]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_notice_hours="{{min_notice_hours}}" '
+    NR==1 {next}
+    $3 != "yes" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_until = (start_epoch - now_epoch) / 3600;
+      if (hours_until <= min_notice_hours && hours_until >= 0) {
+        printf "NOTICE LAG: maintenance %s starts %s (%.1fh away) and is not marked notified\n", $1, $2, hours_until;
+      }
+    }
+  ' "{{maintenance_windows_csv_path}}"
+variables:
+  maintenance_windows_csv_path:
+    default: "./maintenance-windows.csv"
+    description: "Path to a CSV with columns: window_id,start_datetime (YYYY-MM-DDTHH:MM),customers_notified (yes/no)."
+  min_notice_hours:
+    default: 48
+    description: Minimum hours of customer notice required before a maintenance window starts.
+compatible_agents: [generic, claude, codex]
+notes: Assumes maintenance window scheduling and notification status come from your change-management/NOC calendar exported to the CSV.

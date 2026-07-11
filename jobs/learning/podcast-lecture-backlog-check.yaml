@@ -1,0 +1,31 @@
+id: podcast-lecture-backlog-check
+version: 1
+name: Educational Podcast/Lecture Backlog Check
+description: >
+  Counts how many items are queued in your "to listen/watch" list of
+  educational podcasts or lecture recordings and warns if the backlog has
+  grown too large to realistically get through. Use this if your queue of
+  "I'll listen to that later" talks and episodes only ever grows.
+category: learning
+tags: [learning, podcast, lecture, backlog]
+schedule: "0 9 * * 6"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{backlog_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  count=$(grep -cve '^\s*$' "$file");
+  if [ "$count" -ge "{{backlog_limit}}" ]; then echo "WARNING: $count items queued in your listen/watch backlog (limit {{backlog_limit}}) — consider trimming or picking one now"; exit 1;
+  else echo "OK: $count items queued in your listen/watch backlog."; fi
+variables:
+  backlog_path:
+    default: "./listen-backlog.txt"
+    description: Plain text file, one podcast episode or lecture title per line.
+  backlog_limit:
+    default: 15
+    description: Number of queued items above which the backlog is flagged as too large.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't pull from Pocket Casts/Overcast/YouTube "watch
+  later" automatically — you (or another job) maintain backlog_path.
+  Remove a line once you've listened to it.

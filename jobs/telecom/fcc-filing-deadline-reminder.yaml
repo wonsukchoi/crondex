@@ -1,0 +1,36 @@
+id: fcc-filing-deadline-reminder
+version: 1
+name: FCC/Regulatory Filing Deadline Reminder
+description: >
+  Checks recurring regulatory filings (FCC Form 477/499, state PUC
+  reports, CPNI certifications, etc.) for upcoming due dates and warns
+  with enough lead time to prepare them. Use this if a regulatory filing
+  has ever been late, or nearly late, because the due date lived only in
+  one person's memory.
+category: telecom
+tags: [telecom, fcc, regulatory, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days && diff_days >= 0) {
+        printf "FILING DUE: %s due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{filings_csv_path}}"
+variables:
+  filings_csv_path:
+    default: "./regulatory-filings.csv"
+    description: "Path to a CSV with columns: filing_name (e.g. FCC Form 477, CPNI Certification),due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: Days before the due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes filing due dates are maintained in a compliance calendar exported to the CSV. Does not file anything — reminder only.

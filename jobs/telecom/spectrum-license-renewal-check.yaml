@@ -1,0 +1,38 @@
+id: spectrum-license-renewal-check
+version: 1
+name: Spectrum License Renewal Deadline Check
+description: >
+  Checks your FCC (or other regulator) spectrum license expiration dates
+  and warns when a license is coming up for renewal. Use this if a
+  license has ever lapsed, or nearly lapsed, because the renewal filing
+  window closed while nobody was watching the calendar.
+category: telecom
+tags: [telecom, spectrum, licensing, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days) {
+        printf "LICENSE RENEWAL DUE: %s (call sign/license %s) expires %s (%d days)\n", $1, $3, $2, diff_days;
+      }
+    }
+  ' "{{licenses_csv_path}}"
+variables:
+  licenses_csv_path:
+    default: "./spectrum-licenses.csv"
+    description: "Path to a CSV with columns: market_or_band,expiry_date (YYYY-MM-DD),call_sign_or_license_id."
+  warn_days_before:
+    default: 180
+    description: Days before expiry to start warning — regulatory renewal filings need long lead time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes license expiry dates are exported from your regulatory tracking
+  spreadsheet or FCC ULS export into the CSV. Read-only — does not file
+  anything, just flags what needs attention.

@@ -1,0 +1,37 @@
+id: coding-kata-streak-check
+version: 1
+name: Coding Kata Practice Streak Check
+description: >
+  Checks a log of solved coding katas/practice problems and warns if
+  you've gone too long without solving one. Use this if you're prepping
+  for interviews or just keeping your problem-solving sharp and your
+  LeetCode/Codewars habit has a tendency to quietly disappear.
+category: learning
+tags: [learning, coding, practice, streak]
+schedule: "0 20 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  log={{kata_log_path}};
+  [ -f "$log" ] || { echo "ERROR: $log not found"; exit 1; };
+  last_line=$(tail -n1 "$log");
+  last_date=$(echo "$last_line" | cut -d',' -f1);
+  [ -z "$last_date" ] && { echo "WARNING: no katas logged yet in $log"; exit 1; };
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  count_recent=$(awk -F',' -v cutoff="$(date -d "-7 days" +%F 2>/dev/null || date -v-7d +%F)" '$1>=cutoff' "$log" | wc -l | tr -d ' ');
+  if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: no kata solved in $days_since days ($count_recent solved in last 7 days)"; exit 1;
+  else echo "OK: last kata $days_since day(s) ago, $count_recent solved in last 7 days"; fi
+variables:
+  kata_log_path:
+    default: "./kata-log.csv"
+    description: "CSV with rows date,problem_name,difficulty — one line per solved kata, newest last."
+  max_gap_days:
+    default: 3
+    description: Days without a logged kata before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Append a row (e.g. `echo "$(date +%F),two-sum,easy" >> kata-log.csv`)
+  each time you solve a problem — this job only reads the log, it doesn't
+  pull from LeetCode/Codewars/HackerRank APIs.

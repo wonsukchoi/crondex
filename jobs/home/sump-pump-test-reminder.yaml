@@ -1,0 +1,29 @@
+id: sump-pump-test-reminder
+version: 1
+name: Sump Pump Test Reminder
+description: >
+  Reminds you to test your sump pump by pouring water into the pit based
+  on how long it's been since the last test. Use this if you've ever
+  found out your sump pump had seized up only after a storm flooded the
+  basement.
+category: home
+tags: [home, sump-pump, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_days}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge "$interval" ]; then echo "REMINDER: sump pump last tested $days_since day(s) ago (every $interval day(s)) — pour water into the pit and confirm it kicks on and drains.";
+  else echo "OK: tested $days_since day(s) ago, next test due in $(( interval - days_since )) day(s)."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last tested the sump pump — update this yourself.
+  interval_days:
+    default: 90
+    description: How often to test the pump, in days. Shorten before heavy rain/snowmelt season.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_tested_date yourself after each test. Only relevant if your home has a sump pump/basement drainage system.

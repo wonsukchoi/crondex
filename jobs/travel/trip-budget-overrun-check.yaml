@@ -1,0 +1,44 @@
+id: trip-budget-overrun-check
+version: 1
+name: Trip Budget vs. Actual Spend Check
+description: >
+  Compares your logged trip spending so far against your planned budget
+  and warns you if you're on pace to overrun it. Use this if you've ever
+  come home from a trip and only discovered the damage when the credit
+  card statement arrived.
+category: travel
+tags: [travel, budget, spending, expenses]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  spent=$(awk -F',' 'NR>1 {sum+=$2} END {print sum+0}' "{{spend_log_csv_path}}");
+  trip_start_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  trip_end_epoch=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  today_epoch=$(date +%s);
+  total_days=$(( (trip_end_epoch-trip_start_epoch)/86400 )); [ "$total_days" -lt 1 ] && total_days=1;
+  days_elapsed=$(( (today_epoch-trip_start_epoch)/86400 )); [ "$days_elapsed" -lt 0 ] && days_elapsed=0; [ "$days_elapsed" -gt "$total_days" ] && days_elapsed=$total_days;
+  expected_spend=$(awk -v b="{{trip_budget}}" -v d="$days_elapsed" -v t="$total_days" 'BEGIN { printf "%.2f", (b/t)*d }');
+  over=$(awk -v s="$spent" -v e="$expected_spend" 'BEGIN { print (s > e) ? 1 : 0 }');
+  if [ "$over" = "1" ]; then echo "OVER PACE: spent $spent {{currency}} so far, expected pace was $expected_spend {{currency}} by day $days_elapsed of $total_days."; exit 1;
+  else echo "OK: spent $spent {{currency}}, on pace ($expected_spend {{currency}} expected by day $days_elapsed of $total_days)."; fi
+variables:
+  spend_log_csv_path:
+    default: "./trip-spend.csv"
+    description: "Path to a CSV with columns: item,amount (numeric, no currency symbol), one row per expense logged during the trip."
+  trip_budget:
+    default: "2000"
+    description: Total planned budget for the trip, in your chosen currency.
+  currency:
+    default: "USD"
+    description: Currency label used only for display in the output.
+  trip_start_date:
+    default: "2026-12-01"
+    description: Trip start date (YYYY-MM-DD).
+  trip_end_date:
+    default: "2026-12-10"
+    description: Trip end date (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You log expenses into the CSV yourself (manually or by pasting
+  card transactions) — this doesn't connect to any bank or card API.

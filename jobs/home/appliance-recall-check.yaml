@@ -1,0 +1,36 @@
+id: appliance-recall-check
+version: 1
+name: Appliance Recall Check
+description: >
+  Checks the CPSC recall database for a keyword matching one of your home
+  appliances or products, and flags anything found. Use this if you've
+  ever kept using a recalled appliance for months because the recall
+  notice never reached you.
+category: home
+tags: [home, safety, recall, appliances]
+schedule: "0 9 1 */3 *"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  curl -s "https://www.saferproducts.gov/RestWebServices/Recall?format=json&ProductName={{appliance_keyword}}" |
+  (command -v jq >/dev/null 2>&1 && jq -r '.[] | "\(.RecallDate) - \(.Title)"' || cat)
+prompt: |
+  Search the CPSC SaferProducts recall database (and a general web search as
+  a backup) for any product recall matching "{{appliance_keyword}}" —
+  a home appliance's brand, model number, or product name. For each match
+  found, summarize: what the product is, what the hazard is, and what the
+  manufacturer recommends (repair, replacement, refund, or stop use
+  immediately). If nothing relevant is found, say so plainly rather than
+  listing unrelated recalls.
+script_note: >
+  command returns raw CPSC records only when the keyword matches their
+  exact product-name indexing; prompt also catches recalls indexed under a
+  different name/brand spelling, cross-references model numbers more
+  loosely, and explains the hazard and recommended action in plain
+  language instead of a raw JSON title.
+variables:
+  appliance_keyword:
+    default: "refrigerator"
+    description: Brand, model number, or product name to check for recalls, e.g. "Samsung RF28".
+compatible_agents: [generic, claude, codex]
+notes: Read-only, no destructive action. The CPSC SaferProducts API is US-specific; if you're outside the US, swap in your country's consumer product safety database.

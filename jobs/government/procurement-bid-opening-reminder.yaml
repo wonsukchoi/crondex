@@ -1,0 +1,36 @@
+id: procurement-bid-opening-reminder
+version: 1
+name: Procurement Bid Opening Reminder
+description: >
+  Checks upcoming public procurement bid/solicitation opening dates and
+  flags the ones coming up soon so staff can prep the public bid opening
+  (room booked, bid tabulation sheet ready, witnesses lined up). Use this
+  if a bid opening has ever been scrambled together at the last minute
+  because nobody was watching the calendar of open solicitations.
+category: government
+tags: [government, procurement, bids, solicitation, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "BID OPENING SOON: %s (%s) — opens %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{solicitations_csv_path}}"
+variables:
+  solicitations_csv_path:
+    default: "./procurement-solicitations.csv"
+    description: "Path to a CSV with columns: bid_number,solicitation_name,bid_opening_date (YYYY-MM-DD),status (open/awarded/cancelled)."
+  warn_days_before:
+    default: 5
+    description: How many days before the bid opening date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Some jurisdictions require the opening to be a public, minuted event — check your procurement code for required formalities beyond the reminder itself.

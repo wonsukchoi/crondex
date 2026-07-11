@@ -1,0 +1,30 @@
+id: septic-tank-pump-reminder
+version: 1
+name: Septic Tank Pump Reminder
+description: >
+  Reminds you to have your septic tank pumped based on how long it's been
+  since the last service. Use this if you've ever had a slow drain or
+  backup because pumping got pushed off a year (or three) past when it
+  should've happened.
+category: home
+tags: [home, septic, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_pumped_date}}; interval={{interval_years}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 365 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: septic tank last pumped $days_since day(s) ago (every ${interval} year(s)) — schedule a pump-out.";
+  else echo "OK: pumped $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_pumped_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last had the septic tank pumped — update this yourself.
+  interval_years:
+    default: 3
+    description: How often to pump the tank, in years (household size and tank size shift this).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_pumped_date yourself after each service. Check your local health department's recommended interval — it varies by tank size and household size.

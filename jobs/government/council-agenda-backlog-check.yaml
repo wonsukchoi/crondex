@@ -1,0 +1,38 @@
+id: council-agenda-backlog-check
+version: 1
+name: Council/Board Agenda Item Backlog Check
+description: >
+  Checks how many submitted agenda items are still waiting to be
+  scheduled for a council or board meeting, and flags how many have been
+  waiting longer than your target. Use this if an item has ever sat in a
+  "to be scheduled" pile for months because nobody was tracking total
+  backlog size, not just individual item status.
+category: government
+tags: [government, council, agenda, backlog, meetings]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{target_scheduling_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      age_days = (today - submitted_epoch) / 86400;
+      total++;
+      if (age_days > days) over_target++;
+    }
+    END {
+      printf "%d agenda items pending scheduling, %d over the %d-day target\n", total, over_target, days;
+    }
+  ' "{{agenda_items_csv_path}}"
+variables:
+  agenda_items_csv_path:
+    default: "./council-agenda-items.csv"
+    description: "Path to a CSV with columns: agenda_item_id,submitted_date (YYYY-MM-DD),status (pending/scheduled/completed)."
+  target_scheduling_days:
+    default: 21
+    description: Target number of days to get a submitted item onto a scheduled agenda.
+compatible_agents: [generic, claude, codex]
+notes: Tracks the queue of items waiting for a meeting slot, not an individual meeting's notice timing — distinct from public-meeting-notice-compliance-check and from permit-application-backlog-check, which tracks a different queue (permit applications, not agenda items).

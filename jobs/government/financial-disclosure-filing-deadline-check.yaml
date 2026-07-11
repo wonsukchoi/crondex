@@ -1,0 +1,36 @@
+id: financial-disclosure-filing-deadline-check
+version: 1
+name: Officials' Financial Disclosure Filing Deadline Check
+description: >
+  Checks required financial/ethics disclosure filings for elected
+  officials and covered staff against their due date and flags anyone
+  who hasn't filed as the deadline gets close. Use this if an official
+  has ever missed a disclosure filing deadline and triggered a
+  compliance issue that a reminder earlier would have avoided.
+category: government
+tags: [government, ethics, financial-disclosure, compliance, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "DISCLOSURE NOT FILED: %s (%s) — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{disclosure_csv_path}}"
+variables:
+  disclosure_csv_path:
+    default: "./financial-disclosure-filings.csv"
+    description: "Path to a CSV with columns: official_name,disclosure_type,due_date (YYYY-MM-DD),filed (yes/no)."
+  warn_days_before:
+    default: 14
+    description: How many days before the filing deadline to start warning if a filing is still marked not filed.
+compatible_agents: [generic, claude, codex]
+notes: Which roles are covered and what counts as a reportable interest is set by your jurisdiction's ethics code — this only tracks dates you've already determined apply.

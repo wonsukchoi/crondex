@@ -1,0 +1,22 @@
+id: sku-without-primary-supplier-check
+version: 1
+name: SKU Without Primary Supplier Check
+description: >
+  Flags active SKUs that have no primary supplier assigned in the
+  procurement system, which blocks automatic reordering and forces a
+  manual scramble when stock runs low. Use this if a reorder has ever
+  stalled because a SKU was sellable but nobody had linked it to a
+  vendor to actually buy more from.
+category: inventory
+tags: [inventory, suppliers, data-quality, procurement]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sku, name from products where active = true and sku not in (select sku from supplier_skus where is_primary = true);"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the product/procurement database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `products` table and a `supplier_skus` table with an `is_primary` flag — adjust the query to your schema. Distinct from `supplier-lead-time-drift-check` and `supplier-cost-increase-impact-check`, which check an existing supplier's performance; this checks that a supplier link exists at all.

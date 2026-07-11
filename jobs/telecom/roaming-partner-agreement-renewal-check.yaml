@@ -1,0 +1,35 @@
+id: roaming-partner-agreement-renewal-check
+version: 1
+name: Roaming Partner Agreement Renewal Check
+description: >
+  Checks wireless roaming partner agreements for upcoming renewal or
+  rate-review deadlines and warns with enough lead time to renegotiate.
+  Use this if a roaming agreement has ever rolled over at stale rates
+  because nobody flagged the renewal window before it closed.
+category: telecom
+tags: [telecom, roaming, wireless, contracts]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline renewal_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (renewal_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days && diff_days >= 0) {
+        printf "ROAMING RENEWAL DUE: %s renews %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{roaming_agreements_csv_path}}"
+variables:
+  roaming_agreements_csv_path:
+    default: "./roaming-agreements.csv"
+    description: "Path to a CSV with columns: partner_carrier_name,renewal_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 90
+    description: Days before renewal date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes roaming agreement renewal dates are tracked in a wholesale/partnerships log exported to the CSV.

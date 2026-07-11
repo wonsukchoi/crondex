@@ -1,0 +1,47 @@
+id: ce-credit-hour-tally-check
+version: 1
+name: Professional CE Credit Hour Tally Check
+description: >
+  Adds up logged continuing-education credit hours against what's required
+  by your licensing period deadline and warns if you're pacing behind. Use
+  this if your professional license requires a set number of CE hours per
+  renewal cycle and you've ever scrambled to cram them in during the last
+  month.
+category: learning
+tags: [learning, continuing-education, license, career]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{ce_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  earned=$(awk -F',' 'NR>1{sum+=$2} END{print sum+0}' "$file");
+  required={{required_hours}};
+  remaining=$(( required - earned ));
+  today_ts=$(date +%s);
+  deadline_ts=$(date -d "{{cycle_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{cycle_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today_ts) / 86400 ));
+  if [ "$remaining" -le 0 ]; then echo "OK: {{license_name}} CE requirement met ($earned / $required hours).";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{license_name}} needs $remaining more CE hour(s) with only $days_left day(s) left until {{cycle_deadline}}"; exit 1;
+  else echo "OK: {{license_name}} at $earned / $required CE hours, $remaining remaining, $days_left day(s) left."; fi
+variables:
+  ce_log_path:
+    default: "./ce-credits-log.csv"
+    description: "CSV with header row, columns: activity,hours — one row per completed CE activity."
+  required_hours:
+    default: 20
+    description: Total CE hours required for the current licensing/renewal period.
+  cycle_deadline:
+    default: "2026-12-31"
+    description: Date the current CE reporting cycle ends (YYYY-MM-DD).
+  license_name:
+    default: "your license"
+    description: Name of the professional license or certification, for labeling output.
+  warn_days:
+    default: 45
+    description: Days before the cycle deadline at which an unmet requirement starts being flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Requirements and cycle lengths vary widely by licensing
+  board — set required_hours and cycle_deadline to match your board's
+  actual rules. You log each completed CE activity yourself.

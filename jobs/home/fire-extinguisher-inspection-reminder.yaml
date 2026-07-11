@@ -1,0 +1,30 @@
+id: fire-extinguisher-inspection-reminder
+version: 1
+name: Fire Extinguisher Inspection Reminder
+description: >
+  Reminds you to check the pressure gauge and expiration/recharge date on
+  your home fire extinguishers based on how long it's been since the last
+  check. Use this if you've ever grabbed an extinguisher in an emergency
+  only to find the gauge in the red.
+category: home
+tags: [home, fire-extinguisher, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_checked_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: fire extinguishers last checked $days_since day(s) ago (every ${interval} months) — check gauge/expiry, recharge or replace if needed.";
+  else echo "OK: checked $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last checked the extinguisher(s) — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to check the gauge and tag, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_checked_date yourself each time you check. This is a visual gauge/tag check, not a substitute for professional recharge/service on the interval printed on the unit's tag.

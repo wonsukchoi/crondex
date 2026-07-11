@@ -1,0 +1,22 @@
+id: negative-inventory-check
+version: 1
+name: Negative Inventory Check
+description: >
+  Scans inventory records for SKUs showing a negative quantity on hand, a
+  sign that sales, receiving, or adjustment transactions were recorded out
+  of order or a count was never corrected. Use this if a "negative stock"
+  bug has ever quietly thrown off reorder math or fulfillment promises
+  because nobody was checking for impossible numbers.
+category: inventory
+tags: [inventory, data-integrity, negative-stock]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sku, quantity, last_updated from inventory where quantity < 0 order by quantity asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the inventory database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `inventory` table with `sku`, `quantity`, and `last_updated` columns — adjust the query to your schema. A negative quantity almost always means a data-entry or transaction-ordering bug, not real stock, so treat every hit as worth investigating.

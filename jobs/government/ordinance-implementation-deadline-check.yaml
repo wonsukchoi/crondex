@@ -1,0 +1,37 @@
+id: ordinance-implementation-deadline-check
+version: 1
+name: Ordinance Implementation Deadline Check
+description: >
+  Checks newly passed ordinances or regulations against their effective
+  date and flags any that are close to taking effect while the actual
+  implementation work (updated fee schedule live, new form published,
+  system or signage updated) is still marked not done. Use this if a law
+  has ever taken effect before staff finished doing what it takes to
+  actually enforce or administer it.
+category: government
+tags: [government, ordinance, implementation, compliance, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline eff_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (eff_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "IMPLEMENTATION NOT DONE: %s — effective %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{ordinance_tracker_csv_path}}"
+variables:
+  ordinance_tracker_csv_path:
+    default: "./ordinance-implementation-tracker.csv"
+    description: "Path to a CSV with columns: ordinance_name,effective_date (YYYY-MM-DD),implemented (yes/no)."
+  warn_days_before:
+    default: 14
+    description: How many days before the effective date to start warning if implementation isn't marked done.
+compatible_agents: [generic, claude, codex]
+notes: What counts as "implemented" varies by ordinance — a fee change, a new permit form, updated code enforcement criteria — mark the CSV yes only once the actual operational change is live, not once the ordinance is signed.

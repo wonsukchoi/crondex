@@ -1,0 +1,40 @@
+id: sku-barcode-data-quality-check
+version: 1
+name: SKU Barcode Data Quality Check
+description: >
+  Scans your product/SKU export for missing barcodes, duplicate barcodes
+  assigned to more than one SKU, and barcodes with an invalid length or
+  checksum. Use this if a scan has ever failed at receiving or checkout
+  because a barcode was blank, reused, or malformed, and nobody caught
+  it until it was in front of a customer.
+category: inventory
+tags: [inventory, barcode, data-quality, sku]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      sku=$1; barcode=$2;
+      gsub(/[[:space:]]/, "", barcode);
+      if (barcode == "") { printf "MISSING BARCODE: %s\n", sku; next; }
+      if (barcode !~ /^[0-9]+$/) { printf "INVALID FORMAT (non-numeric): %s — %s\n", sku, barcode; next; }
+      len = length(barcode);
+      if (len != 8 && len != 12 && len != 13 && len != 14) {
+        printf "INVALID LENGTH: %s — %s (%d digits, expected 8/12/13/14)\n", sku, barcode, len;
+      }
+      count[barcode]++; owner[barcode] = owner[barcode] " " sku;
+    }
+    END {
+      for (b in count) {
+        if (count[b] > 1) printf "DUPLICATE BARCODE: %s used by%s\n", b, owner[b];
+      }
+    }
+  ' "{{sku_barcode_csv_path}}"
+variables:
+  sku_barcode_csv_path:
+    default: "./sku-barcodes.csv"
+    description: "Path to a CSV with columns: sku,barcode."
+compatible_agents: [generic, claude, codex]
+notes: Checks length against common UPC-E/UPC-A/EAN-13/GTIN-14 digit counts (8/12/13/14) as a lightweight sanity check — it does not validate the check-digit itself, so a wrong-but-right-length barcode can still slip through.

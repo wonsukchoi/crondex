@@ -1,0 +1,26 @@
+id: episode-backlog-buffer-check
+version: 1
+name: Podcast Episode Backlog Buffer Check
+description: >
+  Counts how many recorded-but-unpublished episodes you have banked and
+  warns when the buffer runs low. Use this if you've ever scrambled to
+  record something last-minute because you didn't notice your usual
+  cushion of ready-to-go episodes had quietly run out.
+category: podcast
+tags: [podcast, backlog, buffer, production]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  ready_count=$(awk -F, 'NR>1 && $2 == "recorded" {c++} END {print c+0}' {{episodes_csv}});
+  if [ "$ready_count" -lt "{{min_buffer_episodes}}" ]; then echo "WARNING: only $ready_count recorded-but-unpublished episode(s) in the buffer, below minimum of {{min_buffer_episodes}}"; exit 1;
+  else echo "OK: $ready_count episode(s) in the buffer"; fi
+variables:
+  episodes_csv:
+    default: "episodes.csv"
+    description: "CSV with header row, columns: episode_title,status(recorded/published/idea)."
+  min_buffer_episodes:
+    default: 2
+    description: Minimum number of recorded-but-unpublished episodes to keep in reserve before warning.
+compatible_agents: [generic, claude, codex]
+notes: Update episodes.csv status to "published" as each episode goes out, so the buffer count stays accurate.

@@ -1,0 +1,35 @@
+id: dark-fiber-lease-utilization-check
+version: 1
+name: Dark Fiber Lease Utilization Check
+description: >
+  Checks leased dark fiber routes for how many strands are actually lit
+  (in use) versus paid for, and flags routes sitting mostly idle. Use
+  this if you've ever kept paying for a full dark fiber lease on a route
+  where most strands sat unused because nobody reviewed utilization
+  after the initial buildout.
+category: telecom
+tags: [telecom, dark-fiber, capacity-planning, cost]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_pct="{{warn_idle_pct}}" '
+    NR==1 {next}
+    {
+      route=$1; total=$2+0; lit=$3+0;
+      if (total <= 0) next;
+      idle_pct = ((total - lit) / total) * 100;
+      if (idle_pct >= warn_pct) {
+        printf "UNDERUTILIZED LEASE: %s using %d/%d strands (%.1f%% idle)\n", route, lit, total, idle_pct;
+      }
+    }
+  ' "{{dark_fiber_csv_path}}"
+variables:
+  dark_fiber_csv_path:
+    default: "./dark-fiber-leases.csv"
+    description: "Path to a CSV with columns: route_name,total_strands_leased,strands_lit."
+  warn_idle_pct:
+    default: 60
+    description: Idle-strand percentage that triggers a review-for-cost-reduction warning.
+compatible_agents: [generic, claude, codex]
+notes: Assumes strand counts are exported from your fiber/network inventory system into the CSV before this runs.

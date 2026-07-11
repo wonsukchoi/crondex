@@ -1,0 +1,62 @@
+id: seasonal-stock-buildup-pacing-check
+version: 1
+name: Seasonal Stock Build-Up Pacing Check
+description: >
+  Compares current stock levels for seasonal items against a build-up
+  target curve ahead of a known peak date, and flags items falling
+  behind pace or running ahead of it. Use this if you've ever hit peak
+  season either short on a hero item or sitting on far too much of it,
+  because build-up progress wasn't checked until it was too late to
+  correct.
+category: inventory
+tags: [inventory, seasonal, planning, pacing]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  peak_epoch=$(date -d "{{peak_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{peak_date}}" +%s);
+  weeks_to_peak=$(( (peak_epoch - today) / 604800 ));
+  awk -F',' -v weeks="$weeks_to_peak" -v tol="{{pacing_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      sku=$1; current=$2+0; target_total=$3+0; total_lead_weeks=$4+0;
+      if (total_lead_weeks <= 0) next;
+      weeks_elapsed = total_lead_weeks - weeks;
+      expected_pct = (weeks_elapsed / total_lead_weeks) * 100;
+      if (expected_pct < 0) expected_pct = 0;
+      if (expected_pct > 100) expected_pct = 100;
+      actual_pct = (target_total > 0) ? (current / target_total) * 100 : 0;
+      gap = actual_pct - expected_pct;
+      if (gap <= -tol) {
+        printf "BEHIND PACE: %s — %.0f%% of target built (expected ~%.0f%%)\n", sku, actual_pct, expected_pct;
+      } else if (gap >= tol) {
+        printf "AHEAD OF PACE: %s — %.0f%% of target built (expected ~%.0f%%)\n", sku, actual_pct, expected_pct;
+      }
+    }
+  ' "{{seasonal_targets_csv_path}}"
+prompt: |
+  Run the pacing calculation above against {{seasonal_targets_csv_path}}
+  for the {{peak_date}} peak, then for each item flagged as behind or
+  ahead of pace, add a short recommendation: whether to expedite a
+  purchase order, pull forward a transfer from another location, or (if
+  running well ahead) consider trimming a future PO to avoid post-peak
+  overstock. Note which flagged items are highest-revenue and therefore
+  most urgent to fix first.
+script_note: >
+  The command gives you the raw behind/ahead-of-pace list with no
+  ranking or recommended action — the prompt adds prioritization by
+  revenue impact and a concrete next step (expedite, transfer, or trim)
+  for each flagged item.
+variables:
+  seasonal_targets_csv_path:
+    default: "./seasonal-buildup-targets.csv"
+    description: "Path to a CSV with columns: sku,current_stock,target_total_stock,total_leadup_weeks (weeks from build-up start to peak_date)."
+  peak_date:
+    default: "2026-11-27"
+    description: The target peak date (e.g. a holiday or seasonal event) build-up is paced against, YYYY-MM-DD.
+  pacing_tolerance_pct:
+    default: 15
+    description: Percentage points a SKU can be off the expected linear pace before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes linear build-up pacing between the start of the lead-up window and peak_date — adjust the awk formula if your ramp is intentionally front- or back-loaded.

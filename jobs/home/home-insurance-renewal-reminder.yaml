@@ -1,0 +1,31 @@
+id: home-insurance-renewal-reminder
+version: 1
+name: Home Insurance Renewal Reminder
+description: >
+  Warns you before your homeowners or renters insurance policy renews or
+  expires, so you have time to shop around or confirm coverage. Use this
+  if you've ever auto-renewed at a worse rate because the renewal notice
+  got buried in your inbox.
+category: home
+tags: [home, insurance, renewal]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{renewal_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{renewal_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{policy_name}} renews/expires in $days_left days ({{renewal_date}})"; exit 1;
+  else echo "OK: {{policy_name}} renews in $days_left days"; fi
+variables:
+  policy_name:
+    default: "homeowners insurance"
+    description: Name of the policy to track (e.g. homeowners, renters, flood, umbrella).
+  renewal_date:
+    default: "2026-09-01"
+    description: Date the policy renews or expires (YYYY-MM-DD).
+  warn_days:
+    default: 30
+    description: Days before renewal to start warning.
+compatible_agents: [generic, claude, codex]
+notes: One policy per job instance — schedule multiple copies with different policy_name/renewal_date for homeowners, flood, umbrella, etc. Update renewal_date after each renewal.

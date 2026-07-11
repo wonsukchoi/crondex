@@ -1,0 +1,48 @@
+id: audio-loudness-spot-check
+version: 1
+name: Podcast Audio Loudness (LUFS) Spot Check
+description: >
+  Measures the integrated loudness of a newly exported episode file and
+  flags it if it's outside your target LUFS range. Use this if you've ever
+  published an episode that came out noticeably quieter or louder than
+  your other episodes because a mastering step got skipped.
+category: podcast
+tags: [podcast, audio, loudness, quality]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if ! command -v ffmpeg >/dev/null 2>&1; then echo "WARNING: ffmpeg not installed, cannot measure loudness"; exit 1; fi;
+  measured=$(ffmpeg -i "{{episode_audio_file}}" -af ebur128=framelog=verbose -f null - 2>&1 | grep "I:" | tail -1 | awk '{print $2}');
+  if [ -z "$measured" ]; then echo "WARNING: could not measure loudness for {{episode_audio_file}}"; exit 1; fi;
+  low=$(echo "{{target_lufs}} - {{tolerance_lu}}" | bc);
+  high=$(echo "{{target_lufs}} + {{tolerance_lu}}" | bc);
+  in_range=$(echo "$measured >= $low && $measured <= $high" | bc);
+  if [ "$in_range" -eq 1 ]; then echo "OK: measured $measured LUFS, within target ({{target_lufs}} +/- {{tolerance_lu}})";
+  else echo "WARNING: measured $measured LUFS, outside target ({{target_lufs}} +/- {{tolerance_lu}})"; exit 1; fi
+script_note: >
+  The script gives you the raw integrated LUFS number and a pass/fail
+  against your target. It won't tell you *why* a file is off (bad mic
+  gain, a missing limiter step, an unnormalized ad insert) — for that,
+  an LLM pass over the ffmpeg loudness report and your mastering checklist
+  adds real diagnostic value.
+prompt: |
+  Run ffmpeg's ebur128 loudness filter over {{episode_audio_file}} to get
+  the integrated LUFS, loudness range, and true peak. Compare the
+  integrated LUFS against a target of {{target_lufs}} LUFS +/-
+  {{tolerance_lu}} LU. If it's out of range, suggest the most likely cause
+  (inconsistent mic gain between segments, missing normalization/limiter
+  step, an unnormalized inserted ad clip) based on the loudness range and
+  true peak values, not just the integrated number.
+variables:
+  episode_audio_file:
+    default: "episode-master.wav"
+    description: Path to the exported/mastered episode audio file to check.
+  target_lufs:
+    default: -16
+    description: Target integrated loudness in LUFS (common podcast target is -16 LUFS for stereo, -19 for mono/Spotify).
+  tolerance_lu:
+    default: 1
+    description: Allowed deviation in LU from the target before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Requires `ffmpeg` with the ebur128 filter (standard in most modern builds) on PATH; runs on the exported file, not a live recording.

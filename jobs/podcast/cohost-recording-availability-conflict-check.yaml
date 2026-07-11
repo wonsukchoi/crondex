@@ -1,0 +1,31 @@
+id: cohost-recording-availability-conflict-check
+version: 1
+name: Podcast Co-Host Recording Availability Conflict Check
+description: >
+  Checks the next scheduled recording slot against each co-host's calendar
+  and flags a conflict. Use this if a recording has ever gotten cancelled
+  at the last minute because nobody checked everyone's calendar first.
+category: podcast
+tags: [podcast, scheduling, cohosts, calendar]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  The next scheduled recording session for {{podcast_name}} is at
+  {{next_recording_slot}}. Check each co-host's calendar
+  ({{cohost_calendars}}) for that time window.
+  1. Report whether each co-host is free or has a conflicting event.
+  2. If anyone has a conflict, name the co-host and the conflicting event.
+  3. If everyone is free, confirm the slot is clear in one line.
+variables:
+  podcast_name:
+    default: "your podcast"
+    description: Name of the podcast whose recording slot is being checked.
+  next_recording_slot:
+    default: "next Tuesday 2pm local time"
+    description: The date/time of the next scheduled recording session.
+  cohost_calendars:
+    default: "co-host calendars shared with this agent"
+    description: How to identify which calendars to check (names, emails, or calendar IDs).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires calendar access (or calendars shared/delegated to the agent) for each co-host to check; without that, this job can only remind the group to confirm manually.

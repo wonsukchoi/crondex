@@ -1,0 +1,38 @@
+id: bank-travel-notification-reminder
+version: 1
+name: Bank Travel Notification & Foreign Fee Reminder
+description: >
+  Reminds you to set travel notices on your cards and check foreign
+  transaction fees before an international trip. Use this if a card has
+  ever been frozen for "suspicious activity" the moment you tried to pay
+  for dinner in another country.
+category: travel
+tags: [travel, banking, cards, international]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip="{{trip_start_date}}"; warn_days={{warn_days_before}};
+  trip_epoch=$(date -d "$trip" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$trip" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next international trip.";
+  elif [ "$days_left" -le "$warn_days" ]; then echo "REMINDER: international trip to {{destination_country}} in $days_left day(s) — set travel notices on {{cards_to_notify}} and confirm foreign transaction fees.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country you're traveling to.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  cards_to_notify:
+    default: "your primary cards"
+    description: Which cards/accounts need a travel notice set (comma-separated names).
+  warn_days_before:
+    default: 7
+    description: Start reminding this many days before the trip.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. This is a reminder only — it doesn't contact your bank or set
+  any notice for you, since most banks don't expose that via a public API.

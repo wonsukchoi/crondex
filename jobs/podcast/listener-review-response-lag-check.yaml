@@ -1,0 +1,32 @@
+id: listener-review-response-lag-check
+version: 1
+name: Podcast Listener Review Response Lag Check
+description: >
+  Flags reviews or listener comments on your podcast that haven't gotten a
+  reply after a grace period. Use this if you've ever wanted to reply to
+  listener feedback but let so much time pass that a response would feel
+  awkward or pointless.
+category: podcast
+tags: [podcast, reviews, community, engagement]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline posted_ts; close(cmd);
+      days_since = int((today - posted_ts) / 86400);
+      if (days_since >= warn) print "WARNING: review/comment from " $1 " posted " days_since " days ago (" $3 "), still no reply";
+    }
+  ' {{reviews_csv}}
+variables:
+  reviews_csv:
+    default: "listener-reviews.csv"
+    description: "CSV with header row, columns: reviewer_name,posted_date(YYYY-MM-DD),platform,replied(yes/no)."
+  warn_days:
+    default: 5
+    description: Days since a review/comment was posted before an unanswered one is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Update replied to "yes" in listener-reviews.csv once you've responded, so the row stops flagging. Complements `podcast-rating-review-watch`, which surfaces new reviews rather than tracking whether they got a reply.

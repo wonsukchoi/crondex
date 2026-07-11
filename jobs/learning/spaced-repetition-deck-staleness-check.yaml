@@ -1,0 +1,38 @@
+id: spaced-repetition-deck-staleness-check
+version: 1
+name: Spaced Repetition Deck Staleness Check
+description: >
+  Checks an exported spaced-repetition app stats file (e.g. from Anki) and
+  warns if your overdue-card count has been climbing, meaning your review
+  habit has slipped even if you haven't fully stopped. Use this if you run
+  a real Anki-style deck (not just the simple CSV in daily-flashcard-review)
+  and want an early warning before the backlog snowballs.
+category: learning
+tags: [learning, spaced-repetition, flashcards, anki]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{stats_export_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found — export your deck's overdue-card count to this path first"; exit 1; };
+  overdue=$(cat "$file" | tr -d '[:space:]');
+  case "$overdue" in ''|*[!0-9]*) echo "ERROR: expected a plain integer in $file, got: $overdue"; exit 1;; esac;
+  if [ "$overdue" -ge "{{overdue_limit}}" ]; then echo "WARNING: {{deck_name}} has $overdue overdue cards (limit {{overdue_limit}}) — your review pace is falling behind"; exit 1;
+  else echo "OK: {{deck_name}} has $overdue overdue cards."; fi
+variables:
+  stats_export_path:
+    default: "./anki-overdue-count.txt"
+    description: Path to a file containing a single integer — the current overdue/due card count for your deck.
+  deck_name:
+    default: "your deck"
+    description: Name of the spaced-repetition deck being tracked, for labeling output.
+  overdue_limit:
+    default: 50
+    description: Overdue card count above which the deck is flagged as falling behind.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. This job doesn't talk to Anki/AnkiConnect or any app API
+  directly — you (or a separate export script/AnkiConnect call) write the
+  current overdue count into stats_export_path before this job runs.
+  Portability note: producing that count is your responsibility since
+  spaced-repetition apps don't share a common CLI.

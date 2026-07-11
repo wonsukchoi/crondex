@@ -1,0 +1,29 @@
+id: water-softener-salt-check-reminder
+version: 1
+name: Water Softener Salt Check Reminder
+description: >
+  Reminds you to check and refill your water softener's salt level based
+  on how long it's been since the last check. Use this if you've ever let
+  the brine tank run dry and ended up with hard water again without
+  noticing for weeks.
+category: home
+tags: [home, water-softener, maintenance]
+schedule: "0 9 * * 0"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_checked_date}}; interval={{interval_days}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge "$interval" ]; then echo "REMINDER: water softener salt last checked $days_since day(s) ago (every $interval day(s)) — check/refill the brine tank.";
+  else echo "OK: checked $days_since day(s) ago, next check due in $(( interval - days_since )) day(s)."; fi
+variables:
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last checked the salt level — update this yourself.
+  interval_days:
+    default: 30
+    description: How often to check the salt level, in days.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_checked_date yourself each time you check. Larger households or harder water need shorter intervals.

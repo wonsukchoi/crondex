@@ -1,0 +1,45 @@
+id: trip-departure-weather-check
+version: 1
+name: Trip Departure Weather Check
+description: >
+  Checks the weather forecast for your destination in the days leading
+  up to departure so you can adjust packing or plans. Use this if you've
+  ever landed somewhere freezing (or pouring rain) with a suitcase full
+  of the wrong clothes.
+category: travel
+tags: [travel, weather, forecast, packing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  curl -fsS "https://api.open-meteo.com/v1/forecast?latitude={{destination_lat}}&longitude={{destination_lon}}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days={{forecast_days}}" 2>/dev/null \
+    || echo "note: could not fetch forecast — check network or lat/lon values."
+prompt: >
+  Fetch (or reason from provided data) the weather forecast for
+  {{destination_lat}},{{destination_lon}} covering the {{forecast_days}}
+  days before the trip starting {{trip_start_date}}. Summarize expected
+  temperature range and precipitation chances in plain language, and note
+  anything that should change what the traveler packs (e.g. rain gear,
+  heavier layers, sun protection).
+script_note: >
+  The command gives you raw daily high/low temperature and precipitation
+  probability from Open-Meteo (no API key required) as JSON. It won't
+  translate that into packing advice or flag what's notable — only the
+  prompt mode adds that interpretation.
+variables:
+  destination_lat:
+    default: "40.7128"
+    description: Destination latitude (decimal degrees).
+  destination_lon:
+    default: "-74.0060"
+    description: Destination longitude (decimal degrees).
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD), used by the prompt mode for framing.
+  forecast_days:
+    default: 7
+    description: How many days of forecast to pull (Open-Meteo supports up to 16).
+compatible_agents: [claude, codex, generic]
+notes: >
+  Uses the free Open-Meteo API (no key required). Look up your destination's
+  latitude/longitude once and set them as defaults for that trip.

@@ -1,0 +1,36 @@
+id: job-backlog-aging-check
+version: 1
+name: Job Backlog Aging Check
+description: >
+  Checks jobs still sitting unscheduled and flags any that have been
+  waiting longer than your target turnaround. Use this if a customer
+  request has ever gotten stuck in an unscheduled queue for days because
+  it fell below newer, easier-to-book jobs and nobody was watching the
+  backlog's age, only its size.
+category: fieldservice
+tags: [fieldservice, backlog, scheduling, queue-aging]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_backlog_days}}" '
+    NR==1 {next}
+    tolower($4) == "unscheduled" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline created_epoch; close(cmd);
+      age_days = (today - created_epoch) / 86400;
+      if (age_days >= max_days) {
+        printf "AGING BACKLOG: job %s for %s — created %s (%d days unscheduled)\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{job_backlog_csv_path}}"
+variables:
+  job_backlog_csv_path:
+    default: "./job-backlog.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,created_date (YYYY-MM-DD),status (unscheduled/scheduled/completed)."
+  max_backlog_days:
+    default: 5
+    description: Days a job can sit unscheduled before it's flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: Prioritize the oldest flagged jobs for the next open slot — this job only surfaces the aging queue, it doesn't schedule anyone.

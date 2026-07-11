@@ -1,0 +1,48 @@
+id: quote-to-invoice-follow-up
+version: 1
+name: Quote-to-Invoice Conversion Follow-Up
+description: >
+  Flags quotes/estimates that were sent to a customer but never approved
+  or converted into a scheduled job after a set number of days, and
+  drafts a follow-up nudge for each. Use this if quotes have ever gone
+  quiet after being sent — no yes, no no, just silence — and nobody
+  circled back to close the sale.
+category: fieldservice
+tags: [fieldservice, quotes, estimates, sales-followup]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_days}}" '
+    NR==1 {next}
+    $4 == "sent" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      age_days = (today - sent_epoch) / 86400;
+      if (age_days >= stale) {
+        printf "STALE QUOTE: %s for %s — $%s, sent %s (%d days ago, no response)\n", $1, $2, $5, $3, age_days;
+      }
+    }
+  ' "{{quotes_csv_path}}"
+script_note: >
+  The shell command only lists quotes that have gone stale without a
+  response — it doesn't write anything. Drafting a persuasive,
+  customer-specific nudge (referencing the job type, price, and how long
+  it's been) is what the prompt mode adds.
+prompt: >
+  Read the quotes log at {{quotes_csv_path}} (columns: quote_id,
+  customer_name, sent_date, status, amount, job_description). Find every
+  quote still in "sent" status that was sent {{stale_days}} or more days
+  ago. For each one, draft a short, low-pressure follow-up message asking
+  if the customer has questions or wants to move forward, referencing the
+  job description and price.
+variables:
+  quotes_csv_path:
+    default: "./quotes.csv"
+    description: "Path to a CSV with columns: quote_id,customer_name,sent_date (YYYY-MM-DD),status (sent/approved/declined),amount,job_description."
+  stale_days:
+    default: 10
+    description: Days a quote can sit unanswered before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Review drafted follow-ups before sending — this job doesn't contact the customer on its own.

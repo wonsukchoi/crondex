@@ -1,0 +1,40 @@
+id: technician-overtime-hours-check
+version: 1
+name: Technician Overtime Hours Check
+description: >
+  Totals each technician's logged hours for the week and flags anyone
+  over your overtime threshold, so payroll surprises and burnout don't
+  sneak up on you. Use this if a labor budget has ever blown past plan
+  because overtime only got noticed when the payroll run came back higher
+  than expected.
+category: fieldservice
+tags: [fieldservice, overtime, labor-hours, payroll]
+schedule: "0 16 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v week="{{current_week_ending}}" -v threshold="{{overtime_threshold_hours}}" '
+    NR==1 {next}
+    $2 == week {
+      hours[$1] += $3 + 0;
+    }
+    END {
+      for (tech in hours) {
+        if (hours[tech] > threshold) {
+          printf "OVERTIME: %s — %.1f hours logged for week ending %s (threshold %s)\n", tech, hours[tech], week, threshold;
+        }
+      }
+    }
+  ' "{{tech_hours_csv_path}}"
+variables:
+  tech_hours_csv_path:
+    default: "./tech-hours.csv"
+    description: "Path to a CSV with columns: tech_name,week_ending (YYYY-MM-DD),hours_worked."
+  current_week_ending:
+    default: "2026-07-12"
+    description: The week_ending value (YYYY-MM-DD) to total hours for — update weekly, or generate dynamically from your time-tracking export.
+  overtime_threshold_hours:
+    default: 40
+    description: Weekly hours above which a technician is flagged for overtime.
+compatible_agents: [generic, claude, codex]
+notes: current_week_ending is a static default — wire it up to your time-tracking system's export or a date calculation so it always points at the current week.

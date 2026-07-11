@@ -1,0 +1,36 @@
+id: job-completion-photo-documentation-check
+version: 1
+name: Job Completion Photo Documentation Check
+description: >
+  Checks recently completed jobs for missing before/after photos, the
+  documentation most warranty claims, insurance disputes, and "the tech
+  never showed" complaints hinge on. Use this if a warranty claim or a
+  customer dispute has ever gone badly because nobody could prove what
+  the job site looked like before or after the work.
+category: fieldservice
+tags: [fieldservice, documentation, photos, compliance]
+schedule: "0 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline completed_epoch; close(cmd);
+      age_days = (today - completed_epoch) / 86400;
+      if (age_days <= lookback && (tolower($4) != "yes" || tolower($5) != "yes")) {
+        printf "MISSING PHOTOS: job %s — tech %s, completed %s (before=%s, after=%s)\n", $1, $2, $3, $4, $5;
+      }
+    }
+  ' "{{job_completion_log_csv_path}}"
+variables:
+  job_completion_log_csv_path:
+    default: "./job-completions.csv"
+    description: "Path to a CSV with columns: job_id,tech_name,completed_date (YYYY-MM-DD),before_photo (yes/no),after_photo (yes/no)."
+  lookback_days:
+    default: 7
+    description: How many days back to check completed jobs for missing photo documentation.
+compatible_agents: [generic, claude, codex]
+notes: Follow up with the tech directly once flagged — this job only surfaces the gap, it doesn't request or upload photos.

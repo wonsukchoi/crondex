@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 712,
+  "count": 725,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -3621,6 +3621,31 @@
       "path": "jobs/support/csat-score-watch.yaml"
     },
     {
+      "id": "csat-survey-follow-up-drafts",
+      "version": 1,
+      "name": "CSAT Survey Follow-Up Drafts",
+      "description": "Reviews recent customer satisfaction survey responses, flags the low scores, and drafts a personal follow-up message for each so a manager can reach out before the customer churns quietly. Use this if a customer has ever left a bad rating that nobody read, or read but never followed up on, and later cancelled the maintenance contract.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "csat",
+        "customer-satisfaction",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/fieldservice/csat-survey-follow-up-drafts.yaml"
+    },
+    {
       "id": "csi-score-monitor",
       "version": 1,
       "name": "Customer Satisfaction Index (CSI) Score Monitor",
@@ -3644,6 +3669,31 @@
         "codex"
       ],
       "path": "jobs/automotive/csi-score-monitor.yaml"
+    },
+    {
+      "id": "customer-appointment-reminder-drafts",
+      "version": 1,
+      "name": "Customer Appointment Reminder Drafts",
+      "description": "Reads tomorrow's scheduled appointments and drafts a short reminder message for each customer confirming the date, time window, and tech name, so someone just has to review and send. Use this if no-shows or last-minute reschedules have ever cost a tech a wasted trip because nobody reminded the customer the day before.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "appointments",
+        "reminders",
+        "customer-communication"
+      ],
+      "schedule": "0 15 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/fieldservice/customer-appointment-reminder-drafts.yaml"
     },
     {
       "id": "customer-health-score-monitor",
@@ -4827,6 +4877,32 @@
       "path": "jobs/marketing/email-list-growth-rate-check.yaml"
     },
     {
+      "id": "emergency-dispatch-escalation-check",
+      "version": 1,
+      "name": "Emergency/After-Hours Dispatch Escalation Check",
+      "description": "Checks incoming emergency or after-hours service calls (burst pipe, no heat, no power) for ones that haven't been acknowledged by on-call dispatch within your response window, and flags them for escalation. Use this if an after-hours emergency call has ever sat in a queue for an hour while the on-call tech's phone was on silent.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "emergency",
+        "dispatch",
+        "escalation",
+        "after-hours"
+      ],
+      "schedule": "*/10 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/emergency-dispatch-escalation-check.yaml"
+    },
+    {
       "id": "employee-discount-abuse-check",
       "version": 1,
       "name": "Employee Discount Abuse Check",
@@ -5233,6 +5309,31 @@
         "codex"
       ],
       "path": "jobs/construction/equipment-utilization-cost-check.yaml"
+    },
+    {
+      "id": "equipment-warranty-status-flagging",
+      "version": 1,
+      "name": "Equipment Warranty Status Flagging",
+      "description": "Checks installed equipment scheduled for service against its install date and warranty length, and flags whether each job should be billed to the manufacturer (still under warranty) or the customer (out of warranty). Use this if a tech has ever billed a customer for a repair that should have been a warranty job, or vice versa, because nobody checked the install date before the invoice went out.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "warranty",
+        "equipment",
+        "billing"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/equipment-warranty-status-flagging.yaml"
     },
     {
       "id": "error-rate-spike-watch",
@@ -6045,6 +6146,31 @@
         "codex"
       ],
       "path": "jobs/manufacturing/first-pass-yield-report.yaml"
+    },
+    {
+      "id": "first-time-fix-rate-check",
+      "version": 1,
+      "name": "First-Time Fix Rate Check",
+      "description": "Calculates the percentage of completed jobs in the trailing window that did NOT need a follow-up callback for the same issue, and flags it when it drops below your target. Use this as an early warning that training gaps, rushed diagnostics, or parts shortages are quietly driving up repeat visits before the callback backlog itself becomes the problem.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "quality",
+        "first-time-fix",
+        "metrics"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/first-time-fix-rate-check.yaml"
     },
     {
       "id": "fleet-inspection-expiry-check",
@@ -7926,6 +8052,81 @@
         "codex"
       ],
       "path": "jobs/publishing/isbn-registration-tracker.yaml"
+    },
+    {
+      "id": "job-backlog-aging-check",
+      "version": 1,
+      "name": "Job Backlog Aging Check",
+      "description": "Checks jobs still sitting unscheduled and flags any that have been waiting longer than your target turnaround. Use this if a customer request has ever gotten stuck in an unscheduled queue for days because it fell below newer, easier-to-book jobs and nobody was watching the backlog's age, only its size.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "backlog",
+        "scheduling",
+        "queue-aging"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/job-backlog-aging-check.yaml"
+    },
+    {
+      "id": "job-completion-photo-documentation-check",
+      "version": 1,
+      "name": "Job Completion Photo Documentation Check",
+      "description": "Checks recently completed jobs for missing before/after photos, the documentation most warranty claims, insurance disputes, and \"the tech never showed\" complaints hinge on. Use this if a warranty claim or a customer dispute has ever gone badly because nobody could prove what the job site looked like before or after the work.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "documentation",
+        "photos",
+        "compliance"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/job-completion-photo-documentation-check.yaml"
+    },
+    {
+      "id": "job-cost-overrun-alert",
+      "version": 1,
+      "name": "Job Cost Overrun Alert",
+      "description": "Compares each completed job's actual cost against what was quoted or estimated and flags any that ran over by more than your tolerance. Use this if a job has ever quietly bled margin — extra parts, extra labor hours, a misjudged estimate — and nobody noticed until the month's numbers came in low.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "job-costing",
+        "margin",
+        "budget"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/job-cost-overrun-alert.yaml"
     },
     {
       "id": "job-posting-expiry-check",
@@ -12912,6 +13113,32 @@
       "path": "jobs/insurance/quote-to-bind-conversion-tracker.yaml"
     },
     {
+      "id": "quote-to-invoice-follow-up",
+      "version": 1,
+      "name": "Quote-to-Invoice Conversion Follow-Up",
+      "description": "Flags quotes/estimates that were sent to a customer but never approved or converted into a scheduled job after a set number of days, and drafts a follow-up nudge for each. Use this if quotes have ever gone quiet after being sent — no yes, no no, just silence — and nobody circled back to close the sale.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "quotes",
+        "estimates",
+        "sales-followup"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/quote-to-invoice-follow-up.yaml"
+    },
+    {
       "id": "raw-material-shortage-risk-check",
       "version": 1,
       "name": "Raw Material Shortage Risk Check",
@@ -14549,6 +14776,31 @@
       "path": "jobs/support/sla-breach-warning.yaml"
     },
     {
+      "id": "sla-response-time-breach-monitor",
+      "version": 1,
+      "name": "SLA Response-Time Breach Monitor",
+      "description": "Checks open service tickets against the response-time commitment tied to their priority level and flags any that have already breached, or are about to. Use this if a premium-support customer has ever waited hours for a first response on an issue you promised a 30-minute turnaround on.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "sla",
+        "response-time",
+        "tickets"
+      ],
+      "schedule": "*/15 6-20 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/sla-response-time-breach-monitor.yaml"
+    },
+    {
       "id": "sla-uptime-breach-tracker",
       "version": 1,
       "name": "SLA Uptime Breach Tracker",
@@ -15901,6 +16153,57 @@
       "path": "jobs/fieldservice/tech-license-renewal-check.yaml"
     },
     {
+      "id": "technician-daily-route-optimization-check",
+      "version": 1,
+      "name": "Technician Daily Route Optimization Check",
+      "description": "Flags technicians whose route log shows a lot of backtracking — a high average number of miles driven between consecutive stops — which usually means the day's jobs got scheduled in the order they were booked rather than by geography. Use this if techs have ever burned an extra hour driving across town and back because two nearby jobs got split across the morning and afternoon.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "dispatch",
+        "routing",
+        "efficiency"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/technician-daily-route-optimization-check.yaml"
+    },
+    {
+      "id": "technician-overtime-hours-check",
+      "version": 1,
+      "name": "Technician Overtime Hours Check",
+      "description": "Totals each technician's logged hours for the week and flags anyone over your overtime threshold, so payroll surprises and burnout don't sneak up on you. Use this if a labor budget has ever blown past plan because overtime only got noticed when the payroll run came back higher than expected.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "overtime",
+        "labor-hours",
+        "payroll"
+      ],
+      "schedule": "0 16 * * 5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/technician-overtime-hours-check.yaml"
+    },
+    {
       "id": "telehealth-session-issue-check",
       "version": 1,
       "name": "Telehealth Session No-Show/Tech-Failure Check",
@@ -16915,6 +17218,31 @@
         "codex"
       ],
       "path": "jobs/realestate/utility-billback-reconciliation-check.yaml"
+    },
+    {
+      "id": "van-tool-inventory-reconciliation-check",
+      "version": 1,
+      "name": "Van/Tool Inventory Reconciliation Check",
+      "description": "Compares a truck's expected tool and equipment list against the count from its last physical audit or scan, and flags any mismatches. Use this if a specialty tool or piece of diagnostic equipment has ever gone missing from a van for weeks before anyone noticed it wasn't there.",
+      "category": "fieldservice",
+      "tags": [
+        "fieldservice",
+        "inventory",
+        "tools",
+        "asset-tracking"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fieldservice/van-tool-inventory-reconciliation-check.yaml"
     },
     {
       "id": "vehicle-idle-time-check",

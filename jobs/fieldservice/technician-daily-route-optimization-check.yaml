@@ -1,0 +1,55 @@
+id: technician-daily-route-optimization-check
+version: 1
+name: Technician Daily Route Optimization Check
+description: >
+  Flags technicians whose route log shows a lot of backtracking — a high
+  average number of miles driven between consecutive stops — which usually
+  means the day's jobs got scheduled in the order they were booked rather
+  than by geography. Use this if techs have ever burned an extra hour
+  driving across town and back because two nearby jobs got split across
+  the morning and afternoon.
+category: fieldservice
+tags: [fieldservice, dispatch, routing, efficiency]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v max_avg="{{max_avg_miles_per_stop}}" '
+    NR==1 {next}
+    {
+      key = $1 "|" $2;
+      miles[key] += $5 + 0;
+      stops[key] += 1;
+    }
+    END {
+      for (k in miles) {
+        split(k, parts, "|");
+        avg = miles[k] / stops[k];
+        if (avg > max_avg) {
+          printf "HIGH MILEAGE ROUTE: %s on %s — %d stops, %.1f avg mi/stop (limit %s)\n", parts[2], parts[1], stops[k], avg, max_avg;
+        }
+      }
+    }
+  ' "{{route_log_csv_path}}"
+script_note: >
+  The shell command only flags days where average mileage between stops
+  exceeds a threshold — a cheap proxy for a poorly sequenced route. It
+  can't actually re-order the stops into a lower-mileage route; that
+  needs an LLM (or mapping API) reasoning over stop addresses and drive
+  times, which is what the prompt mode adds.
+prompt: >
+  Read the technician route log at {{route_log_csv_path}} (columns: date,
+  tech_name, stop_sequence, job_id, miles_from_previous). For each
+  technician whose average miles between stops on a given day exceeds
+  {{max_avg_miles_per_stop}}, suggest a reordered stop sequence that
+  reduces total backtracking, and summarize how much drive time it would
+  likely save.
+variables:
+  route_log_csv_path:
+    default: "./route-log.csv"
+    description: "Path to a CSV with columns: date,tech_name,stop_sequence,job_id,miles_from_previous."
+  max_avg_miles_per_stop:
+    default: 15
+    description: Average miles between stops above which a route is flagged as inefficient.
+compatible_agents: [generic, claude, codex]
+notes: This only flags inefficient routing after the fact — pair it with a dispatch tool that can actually re-sequence stops before the day starts.

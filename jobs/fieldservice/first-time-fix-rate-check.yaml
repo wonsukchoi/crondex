@@ -1,0 +1,51 @@
+id: first-time-fix-rate-check
+version: 1
+name: First-Time Fix Rate Check
+description: >
+  Calculates the percentage of completed jobs in the trailing window that
+  did NOT need a follow-up callback for the same issue, and flags it when
+  it drops below your target. Use this as an early warning that training
+  gaps, rushed diagnostics, or parts shortages are quietly driving up
+  repeat visits before the callback backlog itself becomes the problem.
+category: fieldservice
+tags: [fieldservice, quality, first-time-fix, metrics]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback="{{lookback_days}}" -v min_rate="{{min_first_time_fix_rate}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline completed_epoch; close(cmd);
+      age_days = (today - completed_epoch) / 86400;
+      if (age_days <= lookback) {
+        total += 1;
+        if (tolower($4) == "yes") callbacks += 1;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = 100 * (total - callbacks) / total;
+        printf "First-time fix rate over last %s days: %.1f%% (%d/%d jobs, %d needed a callback)\n", lookback, rate, total - callbacks, total, callbacks;
+        if (rate < min_rate) {
+          printf "BELOW TARGET: rate %.1f%% is under the %s%% target\n", rate, min_rate;
+        }
+      } else {
+        print "No completed jobs found in the lookback window.";
+      }
+    }
+  ' "{{job_history_csv_path}}"
+variables:
+  job_history_csv_path:
+    default: "./job-history.csv"
+    description: "Path to a CSV with columns: job_id,tech_name,completed_date (YYYY-MM-DD),required_callback (yes/no)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of completed jobs to include in the rate calculation.
+  min_first_time_fix_rate:
+    default: 85
+    description: Target first-time fix rate (percent); the job flags when the actual rate falls below this.
+compatible_agents: [generic, claude, codex]
+notes: This is an aggregate trend check, not a per-job callback tracker — pair it with unresolved-callback-tracker for the individual open callbacks.

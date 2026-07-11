@@ -1,0 +1,38 @@
+id: equipment-warranty-status-flagging
+version: 1
+name: Equipment Warranty Status Flagging
+description: >
+  Checks installed equipment scheduled for service against its install
+  date and warranty length, and flags whether each job should be billed
+  to the manufacturer (still under warranty) or the customer (out of
+  warranty). Use this if a tech has ever billed a customer for a repair
+  that should have been a warranty job, or vice versa, because nobody
+  checked the install date before the invoice went out.
+category: fieldservice
+tags: [fieldservice, warranty, equipment, billing]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    tolower($5) == "needs_service" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline install_epoch; close(cmd);
+      warranty_end = install_epoch + ($4 * 30 * 86400);
+      if (today <= warranty_end) {
+        days_left = (warranty_end - today) / 86400;
+        printf "IN WARRANTY: equipment %s for %s — bill manufacturer (%d days of coverage left)\n", $1, $2, days_left;
+      } else {
+        days_out = (today - warranty_end) / 86400;
+        printf "OUT OF WARRANTY: equipment %s for %s — bill customer (expired %d days ago)\n", $1, $2, days_out;
+      }
+    }
+  ' "{{equipment_warranty_csv_path}}"
+variables:
+  equipment_warranty_csv_path:
+    default: "./equipment-warranty.csv"
+    description: "Path to a CSV with columns: equipment_id,customer_name,install_date (YYYY-MM-DD),warranty_length_months,status (needs_service/scheduled/serviced)."
+compatible_agents: [generic, claude, codex]
+notes: Confirm the manufacturer's exact terms before billing — coverage can vary by part vs. labor and this job only estimates from install date and stated warranty length.

@@ -1,0 +1,36 @@
+id: job-cost-overrun-alert
+version: 1
+name: Job Cost Overrun Alert
+description: >
+  Compares each completed job's actual cost against what was quoted or
+  estimated and flags any that ran over by more than your tolerance.
+  Use this if a job has ever quietly bled margin — extra parts, extra
+  labor hours, a misjudged estimate — and nobody noticed until the
+  month's numbers came in low.
+category: fieldservice
+tags: [fieldservice, job-costing, margin, budget]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{overrun_threshold_pct}}" '
+    NR==1 {next}
+    $5 == "completed" {
+      est = $3 + 0; actual = $4 + 0;
+      if (est > 0) {
+        pct_over = 100 * (actual - est) / est;
+        if (pct_over >= threshold) {
+          printf "COST OVERRUN: job %s for %s — estimated $%.2f, actual $%.2f (%.1f%% over)\n", $1, $2, est, actual, pct_over;
+        }
+      }
+    }
+  ' "{{jobs_cost_csv_path}}"
+variables:
+  jobs_cost_csv_path:
+    default: "./job-costs.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,estimated_cost,actual_cost,status (completed/in-progress)."
+  overrun_threshold_pct:
+    default: 15
+    description: Percentage over the estimate at which a job is flagged as a cost overrun.
+compatible_agents: [generic, claude, codex]
+notes: Review the flagged jobs with the tech and dispatcher to find the root cause — this job only surfaces the variance, it doesn't diagnose why.

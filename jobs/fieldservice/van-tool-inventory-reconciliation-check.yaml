@@ -1,0 +1,30 @@
+id: van-tool-inventory-reconciliation-check
+version: 1
+name: Van/Tool Inventory Reconciliation Check
+description: >
+  Compares a truck's expected tool and equipment list against the count
+  from its last physical audit or scan, and flags any mismatches. Use
+  this if a specialty tool or piece of diagnostic equipment has ever gone
+  missing from a van for weeks before anyone noticed it wasn't there.
+category: fieldservice
+tags: [fieldservice, inventory, tools, asset-tracking]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      expected = $3 + 0; scanned = $4 + 0;
+      if (scanned != expected) {
+        diff = scanned - expected;
+        printf "MISMATCH: van %s (%s) — %s expected %d, scanned %d (%+d)\n", $1, $2, $5, expected, scanned, diff;
+      }
+    }
+  ' "{{van_inventory_audit_csv_path}}"
+variables:
+  van_inventory_audit_csv_path:
+    default: "./van-inventory-audit.csv"
+    description: "Path to a CSV with columns: van_id,tech_name,expected_qty,scanned_qty,tool_name."
+compatible_agents: [generic, claude, codex]
+notes: Investigate mismatches with the assigned tech before assuming loss or theft — transfers between vans and job-site drop-offs are common innocent causes.

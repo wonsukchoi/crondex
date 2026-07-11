@@ -1,0 +1,43 @@
+id: sla-response-time-breach-monitor
+version: 1
+name: SLA Response-Time Breach Monitor
+description: >
+  Checks open service tickets against the response-time commitment tied
+  to their priority level and flags any that have already breached, or
+  are about to. Use this if a premium-support customer has ever waited
+  hours for a first response on an issue you promised a 30-minute
+  turnaround on.
+category: fieldservice
+tags: [fieldservice, sla, response-time, tickets]
+schedule: "*/15 6-20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      sla_sec = $6 * 60;
+      if ($5 == "") {
+        elapsed_min = (now - reported_epoch) / 60;
+        if (now - reported_epoch > sla_sec) {
+          printf "SLA BREACH (unresponded): ticket %s — %s priority, %s, %d min elapsed (SLA %s min)\n", $1, $3, $2, elapsed_min, $6;
+        }
+      } else {
+        cmd2 = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $5 "\" +%s 2>/dev/null";
+        cmd2 | getline responded_epoch; close(cmd2);
+        if (responded_epoch - reported_epoch > sla_sec) {
+          actual_min = (responded_epoch - reported_epoch) / 60;
+          printf "SLA BREACH (late response): ticket %s — %s priority, %s, responded in %d min (SLA %s min)\n", $1, $3, $2, actual_min, $6;
+        }
+      }
+    }
+  ' "{{sla_tickets_csv_path}}"
+variables:
+  sla_tickets_csv_path:
+    default: "./sla-tickets.csv"
+    description: "Path to a CSV with columns: ticket_id,customer_name,priority,reported_at (YYYY-MM-DD HH:MM),responded_at (blank if not yet responded),sla_minutes."
+compatible_agents: [generic, claude, codex]
+notes: Reach out or reassign the ticket once flagged — this job only surfaces the breach, it doesn't page a tech or respond on your behalf.

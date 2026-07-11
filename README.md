@@ -104,7 +104,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-712 jobs across 48 categories:
+725 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -119,7 +119,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 19 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
-| `fieldservice` | 7 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
+| `fieldservice` | 20 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 24 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 7 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 19 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |

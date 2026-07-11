@@ -1,0 +1,36 @@
+id: emergency-dispatch-escalation-check
+version: 1
+name: Emergency/After-Hours Dispatch Escalation Check
+description: >
+  Checks incoming emergency or after-hours service calls (burst pipe, no
+  heat, no power) for ones that haven't been acknowledged by on-call
+  dispatch within your response window, and flags them for escalation.
+  Use this if an after-hours emergency call has ever sat in a queue for
+  an hour while the on-call tech's phone was on silent.
+category: fieldservice
+tags: [fieldservice, emergency, dispatch, escalation, after-hours]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v max_ack="{{max_ack_minutes}}" '
+    NR==1 {next}
+    tolower($4) == "emergency" && $5 == "" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      wait_min = (now - reported_epoch) / 60;
+      if (wait_min >= max_ack) {
+        printf "ESCALATE: call %s — %s, reported %s, unacknowledged for %d min\n", $1, $2, $3, wait_min;
+      }
+    }
+  ' "{{emergency_calls_csv_path}}"
+variables:
+  emergency_calls_csv_path:
+    default: "./emergency-calls.csv"
+    description: "Path to a CSV with columns: call_id,customer_name,reported_at (YYYY-MM-DD HH:MM),priority,acknowledged_at (blank if not yet)."
+  max_ack_minutes:
+    default: 15
+    description: Minutes an emergency call can go unacknowledged before it's escalated.
+compatible_agents: [generic, claude, codex]
+notes: Call the on-call tech or backup directly once flagged — this job only surfaces the miss, it doesn't page anyone on its own.

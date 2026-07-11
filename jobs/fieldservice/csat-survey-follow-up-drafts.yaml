@@ -1,0 +1,33 @@
+id: csat-survey-follow-up-drafts
+version: 1
+name: CSAT Survey Follow-Up Drafts
+description: >
+  Reviews recent customer satisfaction survey responses, flags the low
+  scores, and drafts a personal follow-up message for each so a manager
+  can reach out before the customer churns quietly. Use this if a
+  customer has ever left a bad rating that nobody read, or read but never
+  followed up on, and later cancelled the maintenance contract.
+category: fieldservice
+tags: [fieldservice, csat, customer-satisfaction, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the customer satisfaction survey responses at
+  {{csat_survey_csv_path}} (columns: job_id, customer_name, tech_name,
+  survey_date, score, comments). Identify every response scored at or
+  below {{low_score_threshold}} out of 5. For each one, draft a short,
+  genuine follow-up message from the business owner or manager
+  apologizing and asking what went wrong and how it can be made right.
+  Then summarize any recurring themes across the low-score comments
+  (e.g. a specific tech, a specific issue type) so leadership can spot a
+  pattern, not just individual complaints.
+variables:
+  csat_survey_csv_path:
+    default: "./csat-surveys.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,tech_name,survey_date,score,comments."
+  low_score_threshold:
+    default: 3
+    description: Survey score (out of 5) at or below which a response triggers a follow-up draft.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — a manager should personalize and send these, not blast them out automatically.

@@ -1,0 +1,32 @@
+id: customer-appointment-reminder-drafts
+version: 1
+name: Customer Appointment Reminder Drafts
+description: >
+  Reads tomorrow's scheduled appointments and drafts a short reminder
+  message for each customer confirming the date, time window, and tech
+  name, so someone just has to review and send. Use this if no-shows or
+  last-minute reschedules have ever cost a tech a wasted trip because
+  nobody reminded the customer the day before.
+category: fieldservice
+tags: [fieldservice, appointments, reminders, customer-communication]
+schedule: "0 15 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the upcoming appointments at {{appointments_csv_path}} (columns:
+  job_id, customer_name, contact_info, appointment_time, tech_name,
+  eta_window). Find every appointment scheduled within the next
+  {{reminder_lead_hours}} hours. For each one, draft a short, friendly
+  reminder message (suitable for SMS or email) confirming the date, time
+  window, and technician name, and asking the customer to reply if they
+  need to reschedule. Present the drafts grouped by appointment time —
+  do not send anything.
+variables:
+  appointments_csv_path:
+    default: "./upcoming-appointments.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,contact_info,appointment_time,tech_name,eta_window."
+  reminder_lead_hours:
+    default: 24
+    description: How far ahead of the appointment time to draft a reminder.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — review and send the reminders yourself through your usual SMS/email tool before this touches a real customer inbox.

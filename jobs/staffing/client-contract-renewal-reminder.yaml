@@ -1,0 +1,36 @@
+id: client-contract-renewal-reminder
+version: 1
+name: Client Staffing Contract Renewal Reminder
+description: >
+  Flags client service agreements approaching their renewal or expiry date
+  so account managers can start the renewal conversation early. Use this
+  if a client contract has ever lapsed silently and put an active
+  placement's billing in a gray area.
+category: staffing
+tags: [staffing, contracts, clients, renewals]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{remind_within_days}}" '
+    NR==1 {next}
+    {
+      client=$1; end_date=$2;
+      cmd = "date -d \"" end_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" end_date "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (end_epoch - now_epoch) / 86400;
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "CONTRACT RENEWAL DUE: %s — expires %s (%d days out)\n", client, end_date, diff_days;
+      }
+    }
+  ' "{{client_contracts_csv_path}}"
+variables:
+  client_contracts_csv_path:
+    default: "./client-contracts.csv"
+    description: "Path to a CSV with columns: client_name,contract_end_date (YYYY-MM-DD)."
+  remind_within_days:
+    default: 45
+    description: Days before contract expiry to start flagging it for renewal.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder — actually renegotiating rates or terms is a decision for account management.

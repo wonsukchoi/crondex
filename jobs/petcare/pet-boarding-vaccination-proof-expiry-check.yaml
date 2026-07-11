@@ -1,0 +1,35 @@
+id: pet-boarding-vaccination-proof-expiry-check
+version: 1
+name: Boarding Vaccination Proof-on-File Expiry Check
+description: >
+  Scans your client roster for pets whose vaccination proof on file (rabies,
+  bordetella, etc.) has expired or is expiring soon, which most boarding and
+  daycare facilities require before admission. Use this if you've ever had a
+  pet arrive for a stay only to discover at check-in that their paperwork was
+  out of date. This just checks the records you already have on file for
+  admission purposes — it does not administer or schedule the vaccines
+  themselves.
+category: petcare
+tags: [petcare, boarding, daycare, vaccination-records, admission, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  warn_by=$(date -d "+{{warn_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{warn_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v warn="$warn_by" '
+    NR==1 {next}
+    {
+      if ($3 < today) print "EXPIRED: " $1 " (" $2 ") — proof on file expired " $3;
+      else if ($3 <= warn) print "EXPIRING SOON: " $1 " (" $2 ") — expires " $3;
+    }
+  ' "{{roster_csv_path}}"
+variables:
+  roster_csv_path:
+    default: "./pet-roster.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,vaccination_proof_expiry (YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: How many days ahead of expiry to start flagging a pet as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: Read-only paperwork check against your own records — it does not verify accuracy with a vet's office. Update the CSV whenever a client provides a new vaccination certificate.

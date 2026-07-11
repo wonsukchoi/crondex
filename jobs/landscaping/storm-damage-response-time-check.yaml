@@ -1,0 +1,36 @@
+id: storm-damage-response-time-check
+version: 1
+name: Storm-Damage Cleanup Response-Time Check
+description: >
+  Checks open storm-damage cleanup requests (downed limbs, fence damage,
+  flooded beds) against your response-time target and flags any that are
+  still unresolved past that window. Use this if a storm-damage request
+  has ever sat open for a week while the client called around asking why
+  nobody had come out yet.
+category: landscaping
+tags: [landscaping, storm-damage, response-time, emergency]
+schedule: "0 */6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v max_hours="{{max_response_hours}}" '
+    NR==1 {next}
+    tolower($4) != "resolved" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      hours_open = (now - reported_epoch) / 3600;
+      if (hours_open >= max_hours) {
+        printf "OVERDUE: request %s (%s) open %d hour(s), status=%s\n", $1, $3, hours_open, $4;
+      }
+    }
+  ' "{{storm_requests_csv_path}}"
+variables:
+  storm_requests_csv_path:
+    default: "./storm-damage-requests.csv"
+    description: "Path to a CSV with columns: request_id,reported_at (YYYY-MM-DD HH:MM),client_name,status (open/in-progress/resolved)."
+  max_response_hours:
+    default: 48
+    description: Hours a storm-damage request can stay unresolved before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Prioritize hazards (blocked driveways, downed limbs near structures) manually — this job flags age only, not severity.

@@ -1,0 +1,39 @@
+id: immunization-inventory-check
+version: 1
+name: Pharmacy Immunization Inventory Check
+description: >
+  Checks the pharmacy counter's vaccine stock (flu, COVID, and other
+  pharmacist-administered immunizations) against a minimum on-hand level
+  and expiry dates. Use this if you've ever had to turn a walk-in
+  vaccination patient away because the freezer was low or the remaining
+  doses were about to expire.
+category: pharmacy
+tags: [pharmacy, immunizations, vaccines, inventory]
+schedule: "0 7 * * 1,4"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s); warn_days={{warn_days_before_expiry}}; min_qty={{min_stock_qty}};
+  { read -r header; while IFS=',' read -r vaccine lot qty expiry; do
+      [ -z "$vaccine" ] && continue;
+      exp_epoch=$(date -j -f %Y-%m-%d "$expiry" +%s 2>/dev/null || date -d "$expiry" +%s);
+      days_left=$(( (exp_epoch-today_epoch)/86400 ));
+      if [ "$qty" -lt "$min_qty" ]; then echo "LOW STOCK: $vaccine (lot $lot) — only $qty dose(s) left."; fi;
+      if [ "$days_left" -lt 0 ]; then echo "EXPIRED: $vaccine (lot $lot) expired $expiry — pull from stock.";
+      elif [ "$days_left" -le "$warn_days" ]; then echo "EXPIRING SOON: $vaccine (lot $lot), $days_left day(s) left ($expiry)."; fi
+    done; } < "{{vaccine_inventory_csv_path}}"
+variables:
+  vaccine_inventory_csv_path:
+    default: "./vaccine-inventory.csv"
+    description: "Path to a CSV with columns: vaccine_name,lot_number,quantity_on_hand,expiry_date (YYYY-MM-DD)."
+  min_stock_qty:
+    default: 10
+    description: Minimum doses on hand before a vaccine is flagged as low stock.
+  warn_days_before_expiry:
+    default: 30
+    description: Flag lots expiring within this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, read-only. Vaccines require cold-chain storage — pair this
+  with jobs/pharmacy/refrigerated-medication-temperature-log-check.yaml
+  rather than relying on stock count alone to catch a storage failure.

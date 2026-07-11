@@ -1,0 +1,37 @@
+id: grooming-rebooking-gap-check
+version: 1
+name: Grooming Client Rebooking Gap Check
+description: >
+  Compares each client's typical grooming interval against how long it's
+  actually been since their last visit, and flags anyone who's overdue for
+  a rebooking outreach. Use this if regular grooming clients have ever
+  quietly drifted away without anyone reaching out to get them back on the
+  calendar.
+category: petcare
+tags: [petcare, grooming, rebooking, retention, scheduling]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      interval = $3 + 0;
+      if (days_since > interval + grace) {
+        printf "OVERDUE FOR REBOOK: %s (%s) — last visit %d days ago, typical interval %d days\n", $1, $2, days_since, interval;
+      }
+    }
+  ' "{{clients_csv_path}}"
+variables:
+  clients_csv_path:
+    default: "./grooming-clients.csv"
+    description: "Path to a CSV with columns: owner_name,last_visit_date (YYYY-MM-DD),typical_interval_days."
+  grace_days:
+    default: 7
+    description: Extra days beyond a client's typical interval before flagging them as overdue for rebooking.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from groomer-appointment-no-show-check.yaml, which tracks missed appointments rather than clients who never rebooked at all.

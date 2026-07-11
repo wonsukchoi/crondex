@@ -1,0 +1,38 @@
+id: workers-comp-certificate-expiry-check
+version: 1
+name: Workers' Comp Certificate Expiry Check Per Client Site
+description: >
+  Checks the agency's workers' compensation certificate of insurance on
+  file for each client site and flags any expiring soon or already lapsed.
+  Use this if a client has ever demanded a current COI on short notice and
+  the agency scrambled to find out whether theirs had lapsed.
+category: staffing
+tags: [staffing, workers-comp, insurance, compliance, client-sites]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      site=$1; expiry=$2;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "EXPIRED: %s — workers comp COI expired %s\n", site, expiry;
+      } else if (diff_days <= days) {
+        printf "EXPIRING SOON: %s — workers comp COI expires %s (%d days out)\n", site, expiry, diff_days;
+      }
+    }
+  ' "{{coi_records_csv_path}}"
+variables:
+  coi_records_csv_path:
+    default: "./workers-comp-coi.csv"
+    description: "Path to a CSV with columns: client_site_name,coi_expiry_date (YYYY-MM-DD)."
+  warn_within_days:
+    default: 30
+    description: Days before COI expiry to start flagging a site.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Renewing the policy or requesting an updated certificate from the carrier is a manual step.

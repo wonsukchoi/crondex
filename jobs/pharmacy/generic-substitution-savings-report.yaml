@@ -1,0 +1,38 @@
+id: generic-substitution-savings-report
+version: 1
+name: Generic Substitution Savings Report
+description: >
+  Reads a period's dispensing log and summarizes how much patients and
+  payers saved (or missed saving) from generic substitution versus brand
+  fills. Use this if you've ever wanted a plain-English monthly summary of
+  substitution impact without building a spreadsheet from scratch each time.
+category: pharmacy
+tags: [pharmacy, generics, cost-savings, reporting, billing]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read last month's dispensing log from {{dispensing_log_csv_path}}
+  (columns: drug_name, dispensed_as (generic/brand), brand_price,
+  generic_price, quantity_dispensed).
+
+  1. Calculate total estimated savings from fills dispensed as generic
+     (price difference x quantity, summed).
+  2. Identify the brand-name fills where a generic equivalent existed but
+     wasn't used, and estimate the missed savings — note this can be for
+     valid clinical reasons (e.g. narrow therapeutic index, patient/
+     prescriber preference, DAW code) and isn't automatically a problem.
+  3. Rank the top 5 drugs by total savings generated and the top 5 by
+     missed-savings potential.
+  4. Write a short plain-language summary suitable for a monthly staff
+     meeting, not a raw data dump.
+variables:
+  dispensing_log_csv_path:
+    default: "./dispensing-log.csv"
+    description: "Path to last month's dispensing log export."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only reporting job — it does not change dispensing behavior or
+  suggest overriding a prescriber's or patient's DAW (dispense as written)
+  choice. Treat "missed savings" figures as a discussion prompt, not a
+  clinical directive.

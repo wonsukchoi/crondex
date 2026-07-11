@@ -1,0 +1,38 @@
+id: incident-report-followup-tracker
+version: 1
+name: Incident Report Follow-Up Tracker
+description: >
+  Reviews open incident reports (a scuffle in daycare, a minor scratch, a
+  gate left open) and drafts a status summary of which ones still need a
+  follow-up action — an owner call, a policy note, a facility fix — before
+  they're closed out. Use this if incident reports have ever piled up
+  without anyone confirming the follow-up actually happened. This is
+  business/administrative tracking, not a medical assessment of any injury.
+category: petcare
+tags: [petcare, boarding, daycare, incident, follow-up, safety]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the incident report log at {{incident_log_csv_path}} (columns:
+  incident_date, pet_name, owner_name, description, status
+  open/pending/closed, followup_notes).
+
+  1. List every incident still marked "open" or "pending", oldest first.
+  2. For each, summarize what happened in plain language and note what
+     follow-up action (owner call, updated handling instructions, facility
+     repair, staff retraining) still appears outstanding based on the
+     notes.
+  3. Flag any incident open for more than {{stale_after_days}} days as
+     needing immediate attention.
+  4. Do not offer a medical opinion on any injury mentioned — only track
+     the administrative follow-up status.
+variables:
+  incident_log_csv_path:
+    default: "./incident-log.csv"
+    description: Path to the incident report log CSV.
+  stale_after_days:
+    default: 14
+    description: Days an incident can stay open before being flagged as needing immediate attention.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Summarizes and tracks status only — does not close incidents or contact clients on its own.

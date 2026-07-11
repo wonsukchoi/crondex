@@ -1,0 +1,37 @@
+id: assignment-end-date-redeployment-check
+version: 1
+name: Assignment End-Date Approaching Redeployment Check
+description: >
+  Looks ahead at active placements whose assignment end date is
+  approaching and drafts a redeployment plan so workers can move to a new
+  order instead of going idle. Use this if a good worker has ever finished
+  an assignment and gone quiet (or taken a job elsewhere) because nobody
+  lined up their next placement in time.
+category: staffing
+tags: [staffing, redeployment, assignment-end, retention]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read placements ending within {{lookahead_days}} days from
+  {{active_placements_path}}, and open orders from {{open_orders_path}}.
+  1. List each worker whose assignment is ending soon, with the end date
+     and their skill set/role.
+  2. Match them against currently open orders that fit their skills and
+     location, and suggest the best redeployment candidate order for each
+     worker.
+  3. Flag any ending worker with no reasonable match in open orders — that
+     one's a retention risk and needs proactive outreach before their
+     current assignment ends.
+variables:
+  active_placements_path:
+    default: "./active-placements.csv"
+    description: Path to active placements with worker name, role/skills, client, and assignment end date.
+  open_orders_path:
+    default: "./open-orders.csv"
+    description: Path to currently open client job orders with role, skills required, and location.
+  lookahead_days:
+    default: 10
+    description: How many days before an assignment ends to start planning redeployment.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Suggests matches only — actually pitching a worker for a new order is a recruiter decision.

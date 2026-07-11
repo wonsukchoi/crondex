@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 935,
+  "count": 1015,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -50,6 +50,32 @@
         "codex"
       ],
       "path": "jobs/security/2fa-enrollment-audit.yaml"
+    },
+    {
+      "id": "340b-program-compliance-check",
+      "version": 1,
+      "name": "340B Program Eligibility Compliance Check",
+      "description": "Checks a log of 340B-priced dispenses against patient eligibility criteria (associated with a covered entity, qualifying encounter on file) and flags any dispense missing the documentation a 340B audit would expect. Use this if a 340B-priced claim has ever been submitted without the backing eligibility record being confirmed first.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "340b",
+        "compliance",
+        "billing",
+        "audit"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/340b-program-compliance-check.yaml"
     },
     {
       "id": "3pl-performance-scorecard",
@@ -513,6 +539,35 @@
       "path": "jobs/support/agent-workload-balance-check.yaml"
     },
     {
+      "id": "aggressive-behavior-flag-review-reminder",
+      "version": 1,
+      "name": "Aggressive Behavior Flag Review Reminder",
+      "description": "Reminds staff to periodically re-review pets flagged for aggressive or reactive behavior during boarding or daycare, and drafts a summary of each flagged pet's incident history so the review is quick. Use this if a behavior flag has ever sat unreviewed for months, leaving staff unsure whether it's still accurate or handling instructions have changed.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "behavior",
+        "safety",
+        "incident"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/petcare/aggressive-behavior-flag-review-reminder.yaml"
+    },
+    {
       "id": "airdrop-claim-deadline-tracker",
       "version": 1,
       "name": "Airdrop Claim Deadline Tracker",
@@ -795,6 +850,33 @@
         "codex"
       ],
       "path": "jobs/automotive/ase-certification-expiry-check.yaml"
+    },
+    {
+      "id": "assignment-end-date-redeployment-check",
+      "version": 1,
+      "name": "Assignment End-Date Approaching Redeployment Check",
+      "description": "Looks ahead at active placements whose assignment end date is approaching and drafts a redeployment plan so workers can move to a new order instead of going idle. Use this if a good worker has ever finished an assignment and gone quiet (or taken a job elsewhere) because nobody lined up their next placement in time.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "redeployment",
+        "assignment-end",
+        "retention"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/staffing/assignment-end-date-redeployment-check.yaml"
     },
     {
       "id": "assignment-grading-backlog-check",
@@ -1156,6 +1238,31 @@
       "path": "jobs/hiring/background-check-status-check.yaml"
     },
     {
+      "id": "background-check-turnaround-sla-check",
+      "version": 1,
+      "name": "Background Check Vendor Turnaround SLA Check",
+      "description": "Tracks how long the third-party background-check vendor is taking on in-progress checks for candidates about to be placed, and flags any past the vendor's promised SLA. Use this if a placement start date has ever been at risk because the background-check vendor was quietly running slow and nobody escalated it.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "background-checks",
+        "vendor",
+        "sla"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/background-check-turnaround-sla-check.yaml"
+    },
+    {
       "id": "backup-reminder",
       "version": 1,
       "name": "Backup Freshness Check",
@@ -1356,6 +1463,32 @@
       "path": "jobs/personal/bill-due-reminder.yaml"
     },
     {
+      "id": "bill-pay-rate-margin-drift-check",
+      "version": 1,
+      "name": "Bill Rate vs Pay Rate Margin Drift Check",
+      "description": "Recomputes the markup margin between what each client is billed and what each worker is paid on active placements, and flags any that have drifted below a minimum threshold. Use this if a payroll burden or tax rate change has ever quietly eroded margin on placements nobody re-priced.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "margin",
+        "billing",
+        "pay-rate"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/bill-pay-rate-margin-drift-check.yaml"
+    },
+    {
       "id": "bin-location-mismatch-check",
       "version": 1,
       "name": "Bin Location Mismatch Check",
@@ -1506,6 +1639,60 @@
         "codex"
       ],
       "path": "jobs/veterinary/boarding-checkout-reminder.yaml"
+    },
+    {
+      "id": "boarding-deposit-collection-check",
+      "version": 1,
+      "name": "Boarding Reservation Deposit Collection Check",
+      "description": "Lists upcoming boarding reservations that don't yet have a deposit recorded as collected, so the front desk can follow up before drop-off. Use this if you've ever had a client cancel a booked stay last-minute with no deposit on file to cover the lost slot.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "reservations",
+        "deposits",
+        "billing"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/boarding-deposit-collection-check.yaml"
+    },
+    {
+      "id": "boarding-facility-temperature-log-check",
+      "version": 1,
+      "name": "Boarding Facility Temperature/HVAC Log Check",
+      "description": "Reads a logged temperature reading for your boarding or daycare space and alerts if it's outside a safe range for the animals kenneled there. Use this if an HVAC failure has ever gone unnoticed overnight and left boarded pets in an uncomfortable or unsafe kennel area.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "facility",
+        "temperature",
+        "hvac",
+        "safety"
+      ],
+      "schedule": "0 */2 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/boarding-facility-temperature-log-check.yaml"
     },
     {
       "id": "boarding-kennel-capacity-utilization-check",
@@ -2069,6 +2256,56 @@
       "path": "jobs/spa/cancellation-waitlist-fill-check.yaml"
     },
     {
+      "id": "candidate-availability-roster-staleness-check",
+      "version": 1,
+      "name": "Candidate Availability Roster Staleness Check",
+      "description": "Flags candidates in the available-for-work pool whose availability status hasn't been confirmed in a while, so recruiters don't submit someone who's actually already taken another job. Use this if you've ever pitched a \"bench-ready\" candidate to a client only to find out they started elsewhere two weeks ago.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "candidates",
+        "availability",
+        "bench"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/candidate-availability-roster-staleness-check.yaml"
+    },
+    {
+      "id": "candidate-certification-expiry-check",
+      "version": 1,
+      "name": "Candidate Certification/Skills-Test Expiry Check",
+      "description": "Checks bench candidates' job-specific certifications and skills-test results (e.g. forklift license, typing test, ServSafe) against their expiry dates and flags anyone whose credential has lapsed before they get submitted to a client. Use this if a candidate has ever been submitted for a role on the strength of a certification that had actually already expired.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "certifications",
+        "skills-tests",
+        "candidates"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/candidate-certification-expiry-check.yaml"
+    },
+    {
       "id": "candidate-experience-survey-followup",
       "version": 1,
       "name": "Candidate Experience Survey Follow-up",
@@ -2118,6 +2355,57 @@
         "codex"
       ],
       "path": "jobs/hiring/candidate-followup-nudge.yaml"
+    },
+    {
+      "id": "candidate-no-show-pattern-check",
+      "version": 1,
+      "name": "Candidate No-Show/Attendance Pattern Check",
+      "description": "Scans recent assignment attendance records for workers with repeated no-shows or late arrivals and flags the pattern before it becomes a client complaint. Use this if a client has ever called to complain about a worker's attendance before the agency's own records had caught the same pattern.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "attendance",
+        "no-show",
+        "worker-performance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/candidate-no-show-pattern-check.yaml"
+    },
+    {
+      "id": "candidate-timesheet-submission-overdue-check",
+      "version": 1,
+      "name": "Candidate Timesheet Submission Overdue Check",
+      "description": "Scans active placements for timesheets that haven't been submitted after the pay period closed and flags who's overdue. Use this if payroll has ever been delayed because a temp worker's timesheet didn't come in and nobody caught it until the run was already late.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "timesheets",
+        "payroll",
+        "placements"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/candidate-timesheet-submission-overdue-check.yaml"
     },
     {
       "id": "canned-response-content-quality-check",
@@ -3220,6 +3508,133 @@
       "path": "jobs/spa/client-birthday-reward-reminder.yaml"
     },
     {
+      "id": "client-churn-risk-check",
+      "version": 1,
+      "name": "Client Churn-Risk Check",
+      "description": "Reviews recent missed or skipped visits and open complaints per client and flags accounts crossing your churn-risk thresholds, then drafts a short outreach note for each one. Use this if a long-time client has ever cancelled without warning, and you later realized they'd had two missed visits and an unresolved complaint in the month before they left.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "churn",
+        "retention",
+        "customer-service",
+        "complaints"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/landscaping/client-churn-risk-check.yaml"
+    },
+    {
+      "id": "client-contract-renewal-reminder",
+      "version": 1,
+      "name": "Client Staffing Contract Renewal Reminder",
+      "description": "Flags client service agreements approaching their renewal or expiry date so account managers can start the renewal conversation early. Use this if a client contract has ever lapsed silently and put an active placement's billing in a gray area.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "contracts",
+        "clients",
+        "renewals"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/client-contract-renewal-reminder.yaml"
+    },
+    {
+      "id": "client-credit-limit-exposure-check",
+      "version": 1,
+      "name": "Client Credit-Limit Exposure Check",
+      "description": "Compares each client's outstanding accounts-receivable balance against their approved credit limit and flags anyone over or close to the limit before more workers get placed with them. Use this if the agency has ever kept staffing a client whose unpaid balance had already blown past their credit limit.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "credit-limit",
+        "accounts-receivable",
+        "risk"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/client-credit-limit-exposure-check.yaml"
+    },
+    {
+      "id": "client-emergency-contact-staleness-check",
+      "version": 1,
+      "name": "Client Emergency Contact Staleness Check",
+      "description": "Flags clients whose emergency contact and authorized-decision-maker information hasn't been confirmed in a while. Use this if you've ever needed to reach someone about a boarded or daycare pet and found the phone number on file was disconnected or years out of date.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "records",
+        "emergency-contact"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/client-emergency-contact-staleness-check.yaml"
+    },
+    {
+      "id": "client-invoice-aging-check",
+      "version": 1,
+      "name": "Client Invoice Payment-Terms Aging Check",
+      "description": "Checks outstanding client invoices against their agreed payment terms and flags anything past due, since a staffing agency has to pay workers every week regardless of when clients pay. Use this if slow-paying clients have ever squeezed cash flow before anyone noticed how far past terms an invoice had gone.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "invoicing",
+        "accounts-receivable",
+        "cash-flow"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/client-invoice-aging-check.yaml"
+    },
+    {
       "id": "client-payment-plan-delinquency-check",
       "version": 1,
       "name": "Client Payment Plan Delinquency Check",
@@ -3295,6 +3710,33 @@
         "codex"
       ],
       "path": "jobs/spa/client-review-response-lag-check.yaml"
+    },
+    {
+      "id": "client-satisfaction-survey-followup-check",
+      "version": 1,
+      "name": "Client Satisfaction Survey Follow-Up Check",
+      "description": "Reviews recent client satisfaction/NPS survey responses and drafts follow-up outreach for any client who scored low or flagged an issue with a placement. Use this if a low client satisfaction score has ever sat in a spreadsheet for weeks without anyone reaching out to find out what went wrong.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "client-satisfaction",
+        "nps",
+        "account-management"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/staffing/client-satisfaction-survey-followup-check.yaml"
     },
     {
       "id": "climate-control-compliance-check",
@@ -3795,6 +4237,34 @@
       "path": "jobs/hr/compliance-training-completion-check.yaml"
     },
     {
+      "id": "compounding-log-review",
+      "version": 1,
+      "name": "Compounding Log Review",
+      "description": "Reviews the pharmacy's compounding log for a batch of custom-prepared medications and checks for missing required fields (formula, lot, beyond-use date, preparer initials, quality-check sign-off). Use this if a compounding log entry has ever been finalized missing a required field that only got caught at an inspection.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "compounding",
+        "quality",
+        "compliance",
+        "log-review"
+      ],
+      "schedule": "0 19 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/compounding-log-review.yaml"
+    },
+    {
       "id": "concentration-risk-check",
       "version": 1,
       "name": "Concentration Risk Check",
@@ -4181,6 +4651,32 @@
       "path": "jobs/veterinary/controlled-substance-log-audit.yaml"
     },
     {
+      "id": "controlled-substance-perpetual-inventory-check",
+      "version": 1,
+      "name": "Controlled Substance Perpetual Inventory Check",
+      "description": "Compares the pharmacy's running perpetual-inventory log for Schedule II drugs against the last physical count and flags any mismatch beyond a small tolerance. Use this if a Schedule II count has ever drifted for days before anyone noticed, rather than being caught the same shift.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "controlled-substances",
+        "dea",
+        "inventory",
+        "compliance"
+      ],
+      "schedule": "0 21 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/controlled-substance-perpetual-inventory-check.yaml"
+    },
+    {
       "id": "conveyor-sortation-downtime-watch",
       "version": 1,
       "name": "Conveyor & Sortation System Downtime Watch",
@@ -4538,6 +5034,32 @@
         "codex"
       ],
       "path": "jobs/construction/crew-safety-cert-expiry-check.yaml"
+    },
+    {
+      "id": "crew-safety-training-renewal-check",
+      "version": 1,
+      "name": "Crew Safety Training Renewal Check",
+      "description": "Checks each crew member's safety training records (equipment handling, chemical safety, OSHA refreshers) for certifications expiring within your warning window and flags them. Use this if a crew member's safety training has ever lapsed without anyone noticing until an incident or audit brought it up.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "safety",
+        "training",
+        "compliance",
+        "crew"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/crew-safety-training-renewal-check.yaml"
     },
     {
       "id": "critical-path-material-lead-time-review",
@@ -5448,6 +5970,33 @@
       "path": "jobs/gaming/dau-mau-stickiness-watch.yaml"
     },
     {
+      "id": "daycare-staff-dog-ratio-check",
+      "version": 1,
+      "name": "Daycare Playgroup Staff-to-Dog Ratio Check",
+      "description": "Compares the number of dogs checked into each daycare playgroup against the staff assigned to supervise it and flags any group over your target ratio. Use this if you've ever had a playgroup get too crowded for the handlers on the floor before anyone noticed.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "daycare",
+        "playgroup",
+        "staffing",
+        "safety",
+        "ratio"
+      ],
+      "schedule": "0 9,13 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/daycare-staff-dog-ratio-check.yaml"
+    },
+    {
       "id": "db-backup-verify",
       "version": 1,
       "name": "Database Backup Restore Verification",
@@ -5495,6 +6044,32 @@
         "codex"
       ],
       "path": "jobs/investing/dca-contribution-reminder.yaml"
+    },
+    {
+      "id": "dea-biennial-inventory-reminder",
+      "version": 1,
+      "name": "DEA Biennial Controlled Substance Inventory Reminder",
+      "description": "Checks the date of the pharmacy's last full physical inventory of controlled substances (required at least every two years by DEA rule, or on whatever shorter interval your state requires) and warns as the deadline approaches. Use this if scheduling the full count has ever slipped your mind until it was almost overdue.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "controlled-substances",
+        "dea",
+        "compliance",
+        "inventory"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/dea-biennial-inventory-reminder.yaml"
     },
     {
       "id": "defi-liquidation-risk-watch",
@@ -6183,6 +6758,35 @@
         "generic"
       ],
       "path": "jobs/agriculture/drought-monitor-alert.yaml"
+    },
+    {
+      "id": "drug-recall-check",
+      "version": 1,
+      "name": "Drug Recall vs. On-Hand Stock Check",
+      "description": "Matches a list of recently announced drug recalls against the pharmacy's current inventory export and flags any lot number in stock. Use this if a recalled lot has ever sat on the shelf for days after the recall notice went out simply because no one cross-checked it against inventory.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "recalls",
+        "inventory",
+        "safety",
+        "compliance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/drug-recall-check.yaml"
     },
     {
       "id": "dryer-vent-cleaning-reminder",
@@ -7558,6 +8162,32 @@
       "path": "jobs/team/expense-report-deadline-reminder.yaml"
     },
     {
+      "id": "expired-medication-disposal-tracker",
+      "version": 1,
+      "name": "Expired Medication Disposal Tracker",
+      "description": "Scans the pharmacy's inventory log for items already past expiry that haven't been marked as pulled/returned/disposed yet. Use this if expired stock has ever lingered on the shelf past its pull date simply because no one circled back to finish the disposal step.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "inventory",
+        "expiry",
+        "disposal",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 2",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/expired-medication-disposal-tracker.yaml"
+    },
+    {
       "id": "expiring-api-key-rotation",
       "version": 1,
       "name": "Expiring API Key Rotation Reminder",
@@ -7733,6 +8363,32 @@
       "path": "jobs/ecommerce/failed-payment-dunning-check.yaml"
     },
     {
+      "id": "fall-cleanup-contract-renewal-reminder",
+      "version": 1,
+      "name": "Fall Cleanup Contract Renewal Reminder",
+      "description": "Checks your client contract list for seasonal fall cleanup service (leaf removal, bed winterizing, final mow) whose renewal date is approaching and flags the ones that haven't been confirmed yet. Use this if leaf season has ever snuck up while half your fall-cleanup clients still hadn't signed off.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "contracts",
+        "seasonal",
+        "fall",
+        "renewal"
+      ],
+      "schedule": "0 8 15 8,9 *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/fall-cleanup-contract-renewal-reminder.yaml"
+    },
+    {
       "id": "farm-equipment-dot-inspection-reminder",
       "version": 1,
       "name": "Farm Equipment DOT/Road Safety Inspection Reminder",
@@ -7859,6 +8515,33 @@
         "generic"
       ],
       "path": "jobs/devops/feature-flag-staleness-audit.yaml"
+    },
+    {
+      "id": "fertilizer-application-window-check",
+      "version": 1,
+      "name": "Fertilizer Application Scheduling Window Check",
+      "description": "Checks the forecast soil/air temperature against your fertilizer program's application window and flags whether this week's scheduled applications should proceed, be held, or be moved up. Use this if fertilizer has ever gone down too early or too late in the season and wasted product or burned the turf.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "fertilizer",
+        "seasonal",
+        "scheduling",
+        "turf"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/landscaping/fertilizer-application-window-check.yaml"
     },
     {
       "id": "fi-product-attachment-rate-tracker",
@@ -8138,6 +8821,33 @@
         "codex"
       ],
       "path": "jobs/fieldservice/first-time-fix-rate-check.yaml"
+    },
+    {
+      "id": "flea-tick-treatment-verification-check",
+      "version": 1,
+      "name": "Flea/Tick Treatment Verification Before Boarding Admission",
+      "description": "Checks your admission records for upcoming boarding or daycare check-ins where proof of current flea/tick treatment hasn't been recorded, which most facilities require to protect other boarded animals. Use this if you've ever admitted a pet without confirming treatment status and dealt with an infestation risk across the whole kennel afterward. This checks paperwork only — it does not apply or recommend any treatment.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "flea-tick",
+        "admission",
+        "compliance"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/flea-tick-treatment-verification-check.yaml"
     },
     {
       "id": "fleet-inspection-expiry-check",
@@ -8565,6 +9275,32 @@
       "path": "jobs/logistics/freight-rate-spike-watch.yaml"
     },
     {
+      "id": "frequent-boarder-loyalty-milestone-check",
+      "version": 1,
+      "name": "Frequent Boarder Loyalty Milestone Check",
+      "description": "Scans boarding stay history for clients who've just crossed a loyalty program milestone (a certain number of stays or nights) and lists them so you can send a reward or thank-you. Use this if loyal repeat boarding clients have ever hit a milestone without the facility ever noticing or rewarding it.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "loyalty",
+        "retention",
+        "milestones"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/frequent-boarder-loyalty-milestone-check.yaml"
+    },
+    {
       "id": "frequent-flyer-miles-expiry",
       "version": 1,
       "name": "Frequent Flyer Miles Expiry Check",
@@ -8614,6 +9350,32 @@
         "generic"
       ],
       "path": "jobs/fleet/fuel-card-anomaly-check.yaml"
+    },
+    {
+      "id": "fuel-cost-per-route-tracker",
+      "version": 1,
+      "name": "Fuel Cost Per Route Tracker",
+      "description": "Totals logged fuel spend per route over the trailing window and flags any route whose cost per stop has crept above your target, a sign of an inefficient route or a fuel-card issue. Use this if fuel costs have ever quietly eaten your margin on a route without anyone noticing until the monthly statement arrived.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "fuel",
+        "cost",
+        "routes",
+        "finance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/fuel-cost-per-route-tracker.yaml"
     },
     {
       "id": "fuel-efficiency-trend-monitor",
@@ -8897,6 +9659,34 @@
         "codex"
       ],
       "path": "jobs/home/generator-maintenance-run-reminder.yaml"
+    },
+    {
+      "id": "generic-substitution-savings-report",
+      "version": 1,
+      "name": "Generic Substitution Savings Report",
+      "description": "Reads a period's dispensing log and summarizes how much patients and payers saved (or missed saving) from generic substitution versus brand fills. Use this if you've ever wanted a plain-English monthly summary of substitution impact without building a spreadsheet from scratch each time.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "generics",
+        "cost-savings",
+        "reporting",
+        "billing"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/generic-substitution-savings-report.yaml"
     },
     {
       "id": "geofence-violation-check",
@@ -9185,6 +9975,136 @@
         "generic"
       ],
       "path": "jobs/nonprofit/grant-restricted-fund-spend-check.yaml"
+    },
+    {
+      "id": "groomer-appointment-no-show-check",
+      "version": 1,
+      "name": "Groomer Appointment No-Show Pattern Check",
+      "description": "Calculates the weekly no-show rate for grooming appointments and flags when it crosses a threshold, plus lists which clients have no-showed more than once. Use this if empty grooming slots from no-shows have ever eaten into a groomer's paid hours without anyone tracking the pattern.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "grooming",
+        "appointments",
+        "no-show",
+        "scheduling"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/groomer-appointment-no-show-check.yaml"
+    },
+    {
+      "id": "groomer-schedule-underbooking-check",
+      "version": 1,
+      "name": "Groomer Schedule Underbooking Check",
+      "description": "Checks each groomer's schedule for the coming days and flags anyone whose booked hours fall below your target utilization, so staff can push rebooking outreach or promotions before those slots go to waste. Use this if a groomer's calendar has ever quietly gone half-empty for a week without anyone noticing until payroll.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "grooming",
+        "scheduling",
+        "utilization",
+        "staffing"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/groomer-schedule-underbooking-check.yaml"
+    },
+    {
+      "id": "grooming-equipment-sanitation-log-check",
+      "version": 1,
+      "name": "Grooming Table & Equipment Sanitation Log Check",
+      "description": "Checks your daily sanitation log for grooming tables, tubs, clippers, and dryers to make sure every station was logged as cleaned each business day, and flags any missed entries. Use this if you've ever needed to prove a consistent cleaning record for an inspection or a client complaint and found gaps in the log.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "grooming",
+        "sanitation",
+        "equipment",
+        "compliance"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/grooming-equipment-sanitation-log-check.yaml"
+    },
+    {
+      "id": "grooming-rebooking-gap-check",
+      "version": 1,
+      "name": "Grooming Client Rebooking Gap Check",
+      "description": "Compares each client's typical grooming interval against how long it's actually been since their last visit, and flags anyone who's overdue for a rebooking outreach. Use this if regular grooming clients have ever quietly drifted away without anyone reaching out to get them back on the calendar.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "grooming",
+        "rebooking",
+        "retention",
+        "scheduling"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/grooming-rebooking-gap-check.yaml"
+    },
+    {
+      "id": "grooming-supply-low-stock-check",
+      "version": 1,
+      "name": "Grooming Supply Low-Stock Check",
+      "description": "Scans your grooming supply inventory (shampoo, conditioner, ear cleaner, clipper blades, etc.) and flags anything at or below its reorder threshold. Use this if a groomer has ever run out of a core product mid-shift and had to turn away or delay a booked appointment.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "grooming",
+        "inventory",
+        "supplies",
+        "reorder"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/grooming-supply-low-stock-check.yaml"
     },
     {
       "id": "group-booking-space-utilization-check",
@@ -9721,6 +10641,36 @@
       "path": "jobs/realestate/hoa-fee-collection-check.yaml"
     },
     {
+      "id": "holiday-boarding-overbooking-risk-check",
+      "version": 1,
+      "name": "Holiday Boarding Overbooking Risk Check",
+      "description": "Looks at upcoming holiday-period boarding reservations against capacity and staffing levels, and gives a plain-language risk assessment of whether you're headed toward overbooking. Use this if a busy holiday weekend has ever left you scrambling to find extra kennel space or overnight staff after the reservations were already confirmed.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "holiday",
+        "capacity",
+        "overbooking",
+        "risk"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/petcare/holiday-boarding-overbooking-risk-check.yaml"
+    },
+    {
       "id": "holiday-coverage-gap-check",
       "version": 1,
       "name": "Holiday Coverage Gap Check",
@@ -9994,6 +10944,31 @@
       "path": "jobs/content/image-alt-text-audit.yaml"
     },
     {
+      "id": "immunization-inventory-check",
+      "version": 1,
+      "name": "Pharmacy Immunization Inventory Check",
+      "description": "Checks the pharmacy counter's vaccine stock (flu, COVID, and other pharmacist-administered immunizations) against a minimum on-hand level and expiry dates. Use this if you've ever had to turn a walk-in vaccination patient away because the freezer was low or the remaining doses were about to expire.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "immunizations",
+        "vaccines",
+        "inventory"
+      ],
+      "schedule": "0 7 * * 1,4",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/immunization-inventory-check.yaml"
+    },
+    {
       "id": "immunization-record-compliance-check",
       "version": 1,
       "name": "Immunization Record Compliance Check",
@@ -10070,6 +11045,35 @@
         "generic"
       ],
       "path": "jobs/productivity/inbox-triage.yaml"
+    },
+    {
+      "id": "incident-report-followup-tracker",
+      "version": 1,
+      "name": "Incident Report Follow-Up Tracker",
+      "description": "Reviews open incident reports (a scuffle in daycare, a minor scratch, a gate left open) and drafts a status summary of which ones still need a follow-up action — an owner call, a policy note, a facility fix — before they're closed out. Use this if incident reports have ever piled up without anyone confirming the follow-up actually happened. This is business/administrative tracking, not a medical assessment of any injury.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "incident",
+        "follow-up",
+        "safety"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/petcare/incident-report-followup-tracker.yaml"
     },
     {
       "id": "incident-report-followup-tracking",
@@ -10535,6 +11539,32 @@
         "codex"
       ],
       "path": "jobs/telecom/ip-block-utilization-check.yaml"
+    },
+    {
+      "id": "irrigation-inspection-scheduling-check",
+      "version": 1,
+      "name": "Commercial Irrigation System Inspection Scheduling Check",
+      "description": "Checks your commercial client list for irrigation systems whose last inspection date has passed the required inspection interval, and flags them so a visit can be scheduled. Use this if a commercial property's sprinkler system has ever run for weeks with a broken head or stuck valve because inspections weren't on anyone's calendar.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "irrigation",
+        "inspection",
+        "commercial",
+        "scheduling"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/irrigation-inspection-scheduling-check.yaml"
     },
     {
       "id": "irrigation-schedule-check",
@@ -12530,6 +13560,33 @@
       "path": "jobs/personal/medication-refill-reminder.yaml"
     },
     {
+      "id": "medication-therapy-management-outreach",
+      "version": 1,
+      "name": "Medication Therapy Management Outreach Drafter",
+      "description": "Reads the list of patients due for a Medication Therapy Management (MTM) review this month and drafts a short, plain-language outreach message for each, explaining why a review is being offered. Use this if MTM-eligible patients have ever gone un-contacted because drafting individual outreach took longer than anyone had time for.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "mtm",
+        "patient-outreach",
+        "adherence"
+      ],
+      "schedule": "0 10 1 * *",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/medication-therapy-management-outreach.yaml"
+    },
+    {
       "id": "meeting-minutes-publication-lag-check",
       "version": 1,
       "name": "Meeting Minutes Publication Lag Check",
@@ -13001,6 +14058,56 @@
       "path": "jobs/realestate/move-in-move-out-inspection-tracker.yaml"
     },
     {
+      "id": "mower-maintenance-due-check",
+      "version": 1,
+      "name": "Mower/Trimmer Equipment Maintenance Due Check",
+      "description": "Checks your equipment log for mowers, trimmers, and blowers whose hours or days since last service have passed the maintenance interval, and flags them before they break down mid-route. Use this if a mower has ever died on a job site because nobody tracked when the blades or oil were last serviced.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "equipment",
+        "maintenance",
+        "mowers"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/mower-maintenance-due-check.yaml"
+    },
+    {
+      "id": "mowing-frequency-contract-drift-check",
+      "version": 1,
+      "name": "Mowing Frequency Contract vs. Actual Visits Drift Check",
+      "description": "Compares each client's contracted mowing frequency (e.g. weekly, biweekly) against the actual number of visits logged in the trailing window, and flags clients who are under- or over-serviced relative to their contract. Use this if you've ever gotten a call asking why a \"weekly\" client only got mowed twice in a month, or realized you were giving a biweekly client weekly service for free.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "contracts",
+        "mowing",
+        "service-quality"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/mowing-frequency-contract-drift-check.yaml"
+    },
+    {
       "id": "mql-to-sql-handoff-sla-check",
       "version": 1,
       "name": "MQL-to-SQL Handoff SLA Check",
@@ -13050,6 +14157,32 @@
         "codex"
       ],
       "path": "jobs/marketing/mql-volume-pace-check.yaml"
+    },
+    {
+      "id": "mulch-inventory-low-stock-check",
+      "version": 1,
+      "name": "Mulch/Material Inventory Low-Stock Check",
+      "description": "Checks your bulk material inventory (mulch, topsoil, rock, gravel) against a reorder threshold and flags anything running low. Use this if a crew has ever shown up to a mulch job and found the yard was already out of the material they needed.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "inventory",
+        "materials",
+        "mulch",
+        "supply"
+      ],
+      "schedule": "0 6 * * 1,4",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/mulch-inventory-low-stock-check.yaml"
     },
     {
       "id": "multi-account-cash-position-rollup",
@@ -14550,6 +15683,32 @@
       "path": "jobs/legal/patent-maintenance-fee-reminder.yaml"
     },
     {
+      "id": "patient-adherence-pdc-gap-check",
+      "version": 1,
+      "name": "Patient Adherence (PDC) Gap Check",
+      "description": "Calculates each maintenance-medication patient's proportion of days covered (PDC) from their fill history and flags anyone who's dropped below your adherence target. Use this if you've ever wanted to catch a patient slipping on a chronic medication before it shows up as a bad quality-measure score at the end of the quarter.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "adherence",
+        "pdc",
+        "quality-measures",
+        "patients"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/patient-adherence-pdc-gap-check.yaml"
+    },
+    {
       "id": "patient-balance-collections-aging-check",
       "version": 1,
       "name": "Overdue Patient Balance Aging Check",
@@ -14790,6 +15949,32 @@
       "path": "jobs/hr/payroll-cutoff-checklist-reminder.yaml"
     },
     {
+      "id": "payroll-funding-deadline-check",
+      "version": 1,
+      "name": "Payroll Funding/Factoring Deadline Check",
+      "description": "Checks that the funds needed to cover this week's payroll run (whether from the agency's own cash or a factoring/invoice-financing draw) will be available before the payroll cutoff. Use this if a payroll run has ever been at risk because a factoring draw request was submitted too close to the funding deadline.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "payroll",
+        "funding",
+        "factoring",
+        "cash-flow"
+      ],
+      "schedule": "0 7 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/payroll-funding-deadline-check.yaml"
+    },
+    {
       "id": "payroll-run-reminder",
       "version": 1,
       "name": "Payroll Run Reminder",
@@ -14840,6 +16025,63 @@
         "generic"
       ],
       "path": "jobs/growth/paywall-upgrade-prompt-conversion-check.yaml"
+    },
+    {
+      "id": "pbm-claim-rejection-triage",
+      "version": 1,
+      "name": "PBM Claim Rejection Triage",
+      "description": "Reads today's export of rejected insurance/PBM claims and groups them by rejection reason (prior auth needed, refill too soon, non-formulary, plan terminated, etc.) so the pharmacist knows which ones are quick fixes and which need a prescriber call. Use this if rejected claims have ever piled up unsorted at the register while a line of patients waits.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "insurance",
+        "pbm",
+        "claims",
+        "billing"
+      ],
+      "schedule": "0 11,17 * * 1-6",
+      "timezone": "America/New_York",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/pbm-claim-rejection-triage.yaml"
+    },
+    {
+      "id": "pbm-reimbursement-rate-audit",
+      "version": 1,
+      "name": "PBM Reimbursement Rate Audit",
+      "description": "Compares what a PBM actually paid against the contracted reimbursement rate for a sample of recent claims and flags underpayments. Use this if you've ever suspected a PBM was quietly paying below contract on some claims but never had time to check systematically.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "pbm",
+        "reimbursement",
+        "billing",
+        "audit"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/pharmacy/pbm-reimbursement-rate-audit.yaml"
     },
     {
       "id": "peering-transit-contract-renewal-check",
@@ -15045,6 +16287,111 @@
       "path": "jobs/agriculture/pest-disease-outbreak-alert.yaml"
     },
     {
+      "id": "pesticide-application-log-compliance-check",
+      "version": 1,
+      "name": "Pesticide/Chemical Application Log Compliance Check",
+      "description": "Checks that every chemical/pesticide application logged this week has the fields most state licensing boards require (applicator ID, product name, EPA registration number, site, rate) filled in, and flags rows missing any of them. Use this if you've ever been asked for application records during a state inspection and found gaps in the log.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "pesticide",
+        "compliance",
+        "licensing",
+        "safety"
+      ],
+      "schedule": "0 17 * * 5",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/pesticide-application-log-compliance-check.yaml"
+    },
+    {
+      "id": "pesticide-applicator-license-expiry-check",
+      "version": 1,
+      "name": "Pesticide Applicator License Expiry Check",
+      "description": "Checks each crew member's pesticide/herbicide applicator license expiration date and flags anyone expiring within your warning window. Use this if a technician has ever sprayed a client's lawn with an expired license because nobody was tracking renewal dates.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "pesticide",
+        "licensing",
+        "compliance",
+        "crew"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/pesticide-applicator-license-expiry-check.yaml"
+    },
+    {
+      "id": "pet-boarding-vaccination-proof-expiry-check",
+      "version": 1,
+      "name": "Boarding Vaccination Proof-on-File Expiry Check",
+      "description": "Scans your client roster for pets whose vaccination proof on file (rabies, bordetella, etc.) has expired or is expiring soon, which most boarding and daycare facilities require before admission. Use this if you've ever had a pet arrive for a stay only to discover at check-in that their paperwork was out of date. This just checks the records you already have on file for admission purposes — it does not administer or schedule the vaccines themselves.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "vaccination-records",
+        "admission",
+        "compliance"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/pet-boarding-vaccination-proof-expiry-check.yaml"
+    },
+    {
+      "id": "pet-care-instructions-staleness-check",
+      "version": 1,
+      "name": "Pet Care Instructions Staleness Check",
+      "description": "Flags boarded or daycare pets whose feeding, medication-administration, or special-care instructions on file haven't been reviewed or updated in a while. Use this if a pet's care routine has ever changed (new diet, new dosage) without the facility's notes catching up, leading to staff following outdated instructions. This is a record-freshness check, not a medical review.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "care-instructions",
+        "records"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/pet-care-instructions-staleness-check.yaml"
+    },
+    {
       "id": "pet-medication-refill-backlog-check",
       "version": 1,
       "name": "Pet Medication Refill Request Backlog Check",
@@ -15121,6 +16468,84 @@
       "path": "jobs/finance/petty-cash-float-reconciliation.yaml"
     },
     {
+      "id": "pharmacist-license-renewal-check",
+      "version": 1,
+      "name": "Pharmacist License and DEA Registration Renewal Check",
+      "description": "Checks each pharmacist's state pharmacy license and DEA registration expiration dates and warns before either lapses. Use this if you've ever worried a pharmacist could end up dispensing on an expired license or registration because renewal paperwork got missed.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "compliance",
+        "licensing",
+        "dea",
+        "staff"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/pharmacist-license-renewal-check.yaml"
+    },
+    {
+      "id": "pharmacy-prior-authorization-backlog-check",
+      "version": 1,
+      "name": "Pharmacy-Initiated Prior Authorization Backlog Check",
+      "description": "Checks prior-authorization requests the pharmacy has submitted to a PBM or insurer on a patient's behalf and flags any still awaiting a decision past a reasonable wait time. Use this if a patient has ever been stuck without their medication because a PA request the pharmacy sent out got lost in someone's queue with no follow-up.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "prior-authorization",
+        "insurance",
+        "pbm",
+        "patients"
+      ],
+      "schedule": "0 9,15 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/pharmacy-prior-authorization-backlog-check.yaml"
+    },
+    {
+      "id": "pharmacy-technician-certification-tracking",
+      "version": 1,
+      "name": "Pharmacy Technician Certification Tracking",
+      "description": "Tracks each pharmacy technician's certification (e.g. PTCB/ExCPT) and state registration expiration dates and warns before either lapses. Use this if you've ever discovered a technician's certification had already expired when it came up during a routine check.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "staff",
+        "certification",
+        "compliance",
+        "technicians"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/pharmacy-technician-certification-tracking.yaml"
+    },
+    {
       "id": "pick-pack-error-rate-watch",
       "version": 1,
       "name": "Pick/Pack Error Rate Watch",
@@ -15144,6 +16569,33 @@
         "codex"
       ],
       "path": "jobs/warehousing/pick-pack-error-rate-watch.yaml"
+    },
+    {
+      "id": "pickup-authorization-mismatch-check",
+      "version": 1,
+      "name": "Pet Pickup Authorization Mismatch Check",
+      "description": "Cross-checks today's scheduled boarding and daycare pickups against each pet's list of authorized pickup people, and flags any pickup entry naming someone not on that list. Use this if a pet has ever nearly been released to someone who wasn't actually authorized because the front desk didn't have the list handy at the moment.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "daycare",
+        "pickup",
+        "authorization",
+        "safety"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/pickup-authorization-mismatch-check.yaml"
     },
     {
       "id": "pipeline-hygiene-audit",
@@ -15196,6 +16648,33 @@
         "generic"
       ],
       "path": "jobs/hiring/pipeline-stage-conversion-check.yaml"
+    },
+    {
+      "id": "placement-fill-rate-check",
+      "version": 1,
+      "name": "Placement Fill-Rate vs Open Orders Check",
+      "description": "Compares how many open job orders from clients got filled with candidates this period against how many came in, and calls out branches or recruiters whose fill rate is dropping. Use this if you only find out fill rate is slipping once a client complains about slow turnaround.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "fill-rate",
+        "orders",
+        "recruiting-ops"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/staffing/placement-fill-rate-check.yaml"
     },
     {
       "id": "planogram-compliance-audit-check",
@@ -16302,6 +17781,32 @@
       "path": "jobs/logistics/proof-of-delivery-reconciliation-check.yaml"
     },
     {
+      "id": "property-access-note-staleness-check",
+      "version": 1,
+      "name": "Client Property-Access Note Staleness Check",
+      "description": "Checks each client's property access notes (gate codes, dog warnings, key locations) for how long it's been since they were last confirmed and flags any that are older than your staleness window. Use this if a crew has ever been locked out by a changed gate code, or surprised by a dog nobody warned them about because the notes hadn't been updated in a year.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "client-notes",
+        "access",
+        "safety",
+        "data-quality"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/property-access-note-staleness-check.yaml"
+    },
+    {
       "id": "property-maintenance-inspection-reminder",
       "version": 1,
       "name": "Property Maintenance Inspection Reminder",
@@ -16405,6 +17910,32 @@
         "generic"
       ],
       "path": "jobs/crypto/protocol-exploit-news-monitor.yaml"
+    },
+    {
+      "id": "pseudoephedrine-sales-log-compliance-check",
+      "version": 1,
+      "name": "Pseudoephedrine Sales Log Compliance Check",
+      "description": "Reviews the pharmacy's logged pseudoephedrine (and other Combat Methamphetamine Epidemic Act-tracked) sales for a day and flags any entry missing an ID record, or any buyer approaching the legal purchase limit across recent purchases. Use this if a pseudoephedrine sale has ever been logged without full ID info, or a buyer's running total has ever gone unchecked until an audit caught it.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "pseudoephedrine",
+        "compliance",
+        "otc",
+        "log-review"
+      ],
+      "schedule": "0 21 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/pseudoephedrine-sales-log-compliance-check.yaml"
     },
     {
       "id": "pto-balance-check",
@@ -16960,6 +18491,32 @@
       "path": "jobs/government/records-fee-waiver-decision-deadline-check.yaml"
     },
     {
+      "id": "recurring-contract-invoice-aging-check",
+      "version": 1,
+      "name": "Recurring Service Contract Invoice Aging Check",
+      "description": "Scans open invoices for recurring maintenance clients and flags any invoice past its due date, grouped by how many days overdue. Use this if a recurring client has ever quietly gone three billing cycles past due while crews kept servicing the property anyway.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "invoicing",
+        "billing",
+        "accounts-receivable",
+        "contracts"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/recurring-contract-invoice-aging-check.yaml"
+    },
+    {
       "id": "recurring-donor-payment-failure-check",
       "version": 1,
       "name": "Recurring Donor Payment Failure Check",
@@ -17183,6 +18740,57 @@
         "codex"
       ],
       "path": "jobs/growth/referral-program-performance-tracker.yaml"
+    },
+    {
+      "id": "refill-sync-enrollment-check",
+      "version": 1,
+      "name": "Medication Refill Sync Program Check",
+      "description": "Checks patients enrolled in your refill-synchronization program (all their maintenance meds filled on one shared date each month) for medications that have drifted off that shared date. Use this if a synced patient has ever ended up back on separate pickup dates without anyone noticing the drift.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "refill-sync",
+        "adherence",
+        "workflow"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/refill-sync-enrollment-check.yaml"
+    },
+    {
+      "id": "refrigerated-medication-temperature-log-check",
+      "version": 1,
+      "name": "Refrigerated Medication Temperature Log Check",
+      "description": "Checks the pharmacy fridge/freezer temperature log for readings outside the safe range for refrigerated medications and vaccines. Use this if a temperature excursion has ever gone unnoticed for hours because no one was actively watching the log between scheduled checks.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "cold-chain",
+        "vaccines",
+        "inventory",
+        "safety"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/refrigerated-medication-temperature-log-check.yaml"
     },
     {
       "id": "reinsurance-treaty-renewal-tracker",
@@ -17941,6 +19549,32 @@
       "path": "jobs/hospitality/room-maintenance-work-order-tracker.yaml"
     },
     {
+      "id": "route-crew-scheduling-gap-check",
+      "version": 1,
+      "name": "Route/Crew Scheduling Gap Check",
+      "description": "Scans tomorrow's mowing/maintenance route list and flags any stop that has no crew assigned, or a crew assigned with zero members. Use this if a crew has ever shown up to the yard in the morning and found out a route had nobody on it.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "scheduling",
+        "crew",
+        "routes",
+        "dispatch"
+      ],
+      "schedule": "0 15 * * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/route-crew-scheduling-gap-check.yaml"
+    },
+    {
       "id": "route-load-optimization-check",
       "version": 1,
       "name": "Route Load Optimization Check",
@@ -18244,6 +19878,32 @@
       "path": "jobs/fitness/safety-equipment-inspection-check.yaml"
     },
     {
+      "id": "safety-equipment-inspection-log-check",
+      "version": 1,
+      "name": "Facility Safety Equipment Inspection Log Check",
+      "description": "Checks that fire extinguishers, first-aid kits, and gate/latch hardware around the boarding, daycare, and grooming areas each have a logged inspection within the required interval, and flags anything overdue. Use this if a routine safety inspection has ever quietly lapsed until an insurance or licensing visit caught it.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "facility",
+        "safety",
+        "inspection",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/safety-equipment-inspection-log-check.yaml"
+    },
+    {
       "id": "safety-inspection-due-reminder",
       "version": 1,
       "name": "Health & Safety Inspection Due Reminder",
@@ -18394,6 +20054,86 @@
         "generic"
       ],
       "path": "jobs/personal/screen-time-check.yaml"
+    },
+    {
+      "id": "script-queue-aging-check",
+      "version": 1,
+      "name": "Prescription (Script) Queue Aging Check",
+      "description": "Scans the pharmacy's incoming prescription queue export and flags any script that's been sitting unfilled longer than your target turnaround time. Use this if a prescription has ever gotten buried in the queue during a busy shift and a patient showed up before it was ready.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "prescriptions",
+        "queue",
+        "workflow",
+        "turnaround"
+      ],
+      "schedule": "*/30 8-20 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/script-queue-aging-check.yaml"
+    },
+    {
+      "id": "seasonal-boarding-waitlist-review",
+      "version": 1,
+      "name": "Seasonal Boarding Waitlist Review",
+      "description": "During peak boarding seasons (holidays, summer), reviews the waitlist against openings created by cancellations and suggests who to contact next, in what order. Use this if you've ever had a boarding slot open up during a busy season and let it sit empty while the waitlist went uncontacted.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "boarding",
+        "waitlist",
+        "seasonal",
+        "scheduling"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/petcare/seasonal-boarding-waitlist-review.yaml"
+    },
+    {
+      "id": "seasonal-color-rotation-planting-reminder",
+      "version": 1,
+      "name": "Seasonal Color-Rotation Planting Reminder",
+      "description": "Checks each commercial client's contracted seasonal color rotation (spring/summer/fall/winter annuals) against the last planting date and flags any bed that's overdue for the next rotation. Use this if a property manager has ever complained that last season's flowers were still dead in the beds when the new season started.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "planting",
+        "seasonal",
+        "color-rotation",
+        "commercial"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/seasonal-color-rotation-planting-reminder.yaml"
     },
     {
       "id": "seasonal-package-promo-reminder",
@@ -19256,6 +20996,33 @@
       "path": "jobs/home/smoke-detector-battery-check.yaml"
     },
     {
+      "id": "snow-removal-activation-threshold-check",
+      "version": 1,
+      "name": "Snow Removal Contract Activation Threshold Check",
+      "description": "Checks the forecast against your snow-removal contract trigger (snowfall total or temperature) and flags whether crews should be activated for tomorrow. Use this if you've ever had a client dispute a snow-removal invoice because it wasn't clear the contracted trigger threshold was actually met.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "snow-removal",
+        "weather",
+        "contracts",
+        "seasonal"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "America/Chicago",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/landscaping/snow-removal-activation-threshold-check.yaml"
+    },
+    {
       "id": "social-mentions-watch",
       "version": 1,
       "name": "Social Mentions Watch",
@@ -19590,6 +21357,32 @@
       "path": "jobs/agriculture/spray-application-window-check.yaml"
     },
     {
+      "id": "spring-startup-contract-renewal-reminder",
+      "version": 1,
+      "name": "Spring Startup Contract Renewal Reminder",
+      "description": "Checks your client contract list for seasonal spring startup service (irrigation turn-on, first mow, bed cleanup) whose renewal date is approaching and flags the ones that haven't been confirmed yet. Use this if a client has ever assumed they were renewed and you found out in April they'd switched to a competitor.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "contracts",
+        "seasonal",
+        "spring",
+        "renewal"
+      ],
+      "schedule": "0 8 1 2,3 *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/spring-startup-contract-renewal-reminder.yaml"
+    },
+    {
       "id": "sprinkler-system-season-reminder",
       "version": 1,
       "name": "Sprinkler System Season Turn-On/Winterize Reminder",
@@ -19793,6 +21586,32 @@
       "path": "jobs/healthcare/staff-cme-credit-tracking.yaml"
     },
     {
+      "id": "staff-pet-first-aid-cert-expiry-check",
+      "version": 1,
+      "name": "Staff Pet First-Aid Certification Expiry Check",
+      "description": "Scans your staff roster for pet first-aid certifications that have expired or are expiring soon. Use this if you've ever discovered during a scheduling crunch that the only certified staff member on shift had let their certification lapse.",
+      "category": "petcare",
+      "tags": [
+        "petcare",
+        "staffing",
+        "certification",
+        "first-aid",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/petcare/staff-pet-first-aid-cert-expiry-check.yaml"
+    },
+    {
       "id": "staff-shift-coverage-gap-check",
       "version": 1,
       "name": "Staff Shift Coverage Gap Check",
@@ -19816,6 +21635,32 @@
         "codex"
       ],
       "path": "jobs/fitness/staff-shift-coverage-gap-check.yaml"
+    },
+    {
+      "id": "staffing-agency-license-renewal-check",
+      "version": 1,
+      "name": "Staffing Agency License and Bond Renewal Check",
+      "description": "Tracks state staffing-agency licenses and surety bonds the agency holds in each operating state and flags any approaching their renewal deadline. Use this if the agency has ever operated in a state past its license renewal date without anyone realizing it had lapsed.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "licensing",
+        "bonding",
+        "compliance",
+        "regulatory"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/staffing-agency-license-renewal-check.yaml"
     },
     {
       "id": "staging-prod-config-diff",
@@ -20098,6 +21943,31 @@
         "codex"
       ],
       "path": "jobs/ecommerce/storefront-ssl-domain-expiry-check.yaml"
+    },
+    {
+      "id": "storm-damage-response-time-check",
+      "version": 1,
+      "name": "Storm-Damage Cleanup Response-Time Check",
+      "description": "Checks open storm-damage cleanup requests (downed limbs, fence damage, flooded beds) against your response-time target and flags any that are still unresolved past that window. Use this if a storm-damage request has ever sat open for a week while the client called around asking why nobody had come out yet.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "storm-damage",
+        "response-time",
+        "emergency"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "America/Chicago",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/landscaping/storm-damage-response-time-check.yaml"
     },
     {
       "id": "stream-schedule-reminder",
@@ -21071,6 +22941,58 @@
       "path": "jobs/healthcare/telehealth-session-issue-check.yaml"
     },
     {
+      "id": "temp-to-perm-conversion-fee-tracker",
+      "version": 1,
+      "name": "Temp-to-Perm Conversion Fee Tracking Reminder",
+      "description": "Reviews recently converted temp-to-perm placements and confirms the conversion fee owed by the client has been invoiced, factoring in any fee reduction that applies as the worker's temp tenure lengthens. Use this if a client has ever hired a temp worker permanently and the conversion fee slipped through without being billed.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "temp-to-perm",
+        "conversion-fee",
+        "billing"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/staffing/temp-to-perm-conversion-fee-tracker.yaml"
+    },
+    {
+      "id": "temp-worker-onboarding-paperwork-check",
+      "version": 1,
+      "name": "Temp Worker Onboarding Paperwork Completeness Check",
+      "description": "Checks newly placed temp workers against a required-document checklist (I-9, W-4, direct deposit, client-specific forms) and flags anyone starting an assignment with paperwork still missing. Use this if a worker has ever shown up on their first day at a client site with onboarding paperwork incomplete.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "onboarding",
+        "compliance",
+        "paperwork"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/temp-worker-onboarding-paperwork-check.yaml"
+    },
+    {
       "id": "tenant-application-review-backlog-check",
       "version": 1,
       "name": "Tenant Application Review Backlog Check",
@@ -21853,6 +23775,32 @@
       "path": "jobs/spa/treatment-room-double-booking-check.yaml"
     },
     {
+      "id": "tree-trimming-utility-clearance-check",
+      "version": 1,
+      "name": "Tree-Trimming Utility-Line Clearance Check",
+      "description": "Reviews jobs on the upcoming tree-trimming schedule that are flagged as near overhead utility lines and checks whether a utility clearance notification or permit has been filed, drafting the notification if it's missing. Use this if a crew has ever started trimming near a power line without the utility company having been notified first.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "tree-trimming",
+        "utility",
+        "permits",
+        "safety"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/Chicago",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/landscaping/tree-trimming-utility-clearance-check.yaml"
+    },
+    {
       "id": "trial-expiring-nudge",
       "version": 1,
       "name": "Trial Expiring Nudge",
@@ -22158,6 +24106,31 @@
         "codex"
       ],
       "path": "jobs/insurance/underwriting-queue-sla-monitor.yaml"
+    },
+    {
+      "id": "unfilled-order-aging-check",
+      "version": 1,
+      "name": "Unfilled Order Aging Check",
+      "description": "Flags open client job orders that still have zero candidates submitted, ranked by how long they've been sitting open. Use this if an order has ever gone stale because it fell to the bottom of a recruiter's queue and nobody noticed no one had been submitted yet.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "open-orders",
+        "recruiting-ops",
+        "aging"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/unfilled-order-aging-check.yaml"
     },
     {
       "id": "unpaid-invoice-aging-check",
@@ -23428,6 +25401,32 @@
       "path": "jobs/construction/weather-delay-impact-log.yaml"
     },
     {
+      "id": "weather-delay-reschedule-check",
+      "version": 1,
+      "name": "Weather-Delay Rescheduling Check",
+      "description": "Checks tomorrow's forecast against your rain/wind thresholds and, if the route would need to be delayed, lists which scheduled stops need to be pushed to the next available day. Use this if a crew has ever headed out into a downpour because nobody checked the forecast before route assignments went out.",
+      "category": "landscaping",
+      "tags": [
+        "landscaping",
+        "weather",
+        "scheduling",
+        "routes"
+      ],
+      "schedule": "0 16 * * *",
+      "timezone": "America/Chicago",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/landscaping/weather-delay-reschedule-check.yaml"
+    },
+    {
       "id": "weather-frost-alert",
       "version": 1,
       "name": "Frost/Freeze Risk Alert",
@@ -23643,6 +25642,31 @@
       "path": "jobs/government/whistleblower-complaint-sla-check.yaml"
     },
     {
+      "id": "will-call-bin-aging-check",
+      "version": 1,
+      "name": "Will-Call Bin Aging Check",
+      "description": "Scans filled prescriptions still sitting in the will-call bin and flags any that have gone unpicked-up past your store's return-to-stock window. Use this if the will-call bin has ever quietly filled up with old prescriptions that should have been returned to stock weeks ago.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "will-call",
+        "inventory",
+        "workflow"
+      ],
+      "schedule": "0 10 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/pharmacy/will-call-bin-aging-check.yaml"
+    },
+    {
       "id": "winback-reactivation-campaign-tracker",
       "version": 1,
       "name": "Win-Back Reactivation Campaign Tracker",
@@ -23747,6 +25771,84 @@
         "codex"
       ],
       "path": "jobs/manufacturing/work-order-backlog-check.yaml"
+    },
+    {
+      "id": "worker-safety-training-expiry-check",
+      "version": 1,
+      "name": "Worker Safety Training Expiry Check Per Assignment Type",
+      "description": "Checks each active temp worker's required safety training (forklift, OSHA 10, site-specific inductions, etc.) against what their current assignment type requires and flags anyone whose certification has expired or is about to. Use this if a worker has ever been sent to a warehouse or industrial site with an expired safety certification and it only surfaced during a client audit.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "safety-training",
+        "compliance",
+        "assignments"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/worker-safety-training-expiry-check.yaml"
+    },
+    {
+      "id": "workers-comp-certificate-expiry-check",
+      "version": 1,
+      "name": "Workers' Comp Certificate Expiry Check Per Client Site",
+      "description": "Checks the agency's workers' compensation certificate of insurance on file for each client site and flags any expiring soon or already lapsed. Use this if a client has ever demanded a current COI on short notice and the agency scrambled to find out whether theirs had lapsed.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "workers-comp",
+        "insurance",
+        "compliance",
+        "client-sites"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/staffing/workers-comp-certificate-expiry-check.yaml"
+    },
+    {
+      "id": "workers-comp-claim-followup-check",
+      "version": 1,
+      "name": "Workers' Comp Claim Status Follow-Up Check",
+      "description": "Reviews open workers' compensation claims for injured temp workers and drafts a status-check follow-up for any claim that hasn't been updated recently. Use this if an open workers' comp claim has ever sat untouched for weeks because nobody was assigned to keep checking on it.",
+      "category": "staffing",
+      "tags": [
+        "staffing",
+        "workers-comp",
+        "claims",
+        "follow-up"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/staffing/workers-comp-claim-followup-check.yaml"
     },
     {
       "id": "workers-comp-claim-status-check",

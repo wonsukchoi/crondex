@@ -1,0 +1,39 @@
+id: temp-worker-onboarding-paperwork-check
+version: 1
+name: Temp Worker Onboarding Paperwork Completeness Check
+description: >
+  Checks newly placed temp workers against a required-document checklist
+  (I-9, W-4, direct deposit, client-specific forms) and flags anyone
+  starting an assignment with paperwork still missing. Use this if a
+  worker has ever shown up on their first day at a client site with
+  onboarding paperwork incomplete.
+category: staffing
+tags: [staffing, onboarding, compliance, paperwork]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v startWithin="{{check_within_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; start_date=$2; docs_complete=$3;
+      if (docs_complete == "no") {
+        cmd = "date -d \"" start_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" start_date "\" +%s 2>/dev/null";
+        cmd | getline start_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        diff_days = (start_epoch - now_epoch) / 86400;
+        if (diff_days <= startWithin) {
+          printf "PAPERWORK INCOMPLETE: %s — assignment starts %s (%d days out)\n", worker, start_date, diff_days;
+        }
+      }
+    }
+  ' "{{onboarding_status_csv_path}}"
+variables:
+  onboarding_status_csv_path:
+    default: "./onboarding-status.csv"
+    description: "Path to a CSV with columns: worker_name,assignment_start_date (YYYY-MM-DD),required_docs_complete (yes/no)."
+  check_within_days:
+    default: 3
+    description: Days before assignment start at which incomplete paperwork gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Collecting missing forms from the worker is a manual onboarding-coordinator task.

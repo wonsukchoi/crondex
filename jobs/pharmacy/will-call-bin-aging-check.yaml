@@ -1,0 +1,41 @@
+id: will-call-bin-aging-check
+version: 1
+name: Will-Call Bin Aging Check
+description: >
+  Scans filled prescriptions still sitting in the will-call bin and flags
+  any that have gone unpicked-up past your store's return-to-stock window.
+  Use this if the will-call bin has ever quietly filled up with old
+  prescriptions that should have been returned to stock weeks ago.
+category: pharmacy
+tags: [pharmacy, will-call, inventory, workflow]
+schedule: "0 10 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  { read -r header; while IFS=',' read -r rx patient filled_date; do
+      [ -z "$rx" ] && continue;
+      fill_epoch=$(date -j -f %Y-%m-%d "$filled_date" +%s 2>/dev/null || date -d "$filled_date" +%s);
+      days_waiting=$(( (today_epoch-fill_epoch)/86400 ));
+      if [ "$days_waiting" -ge "{{return_to_stock_days}}" ]; then
+        echo "RETURN TO STOCK: Rx #$rx ($patient) filled $filled_date — $days_waiting day(s) in will-call.";
+      elif [ "$days_waiting" -ge "{{followup_call_days}}" ]; then
+        echo "FOLLOW-UP CALL DUE: Rx #$rx ($patient) filled $filled_date — $days_waiting day(s) in will-call.";
+      fi
+    done; } < "{{will_call_csv_path}}"
+variables:
+  will_call_csv_path:
+    default: "./will-call-bin.csv"
+    description: "Path to a CSV with columns: rx_number,patient_name,filled_date (YYYY-MM-DD). Rows should be removed once picked up."
+  followup_call_days:
+    default: 7
+    description: Days sitting unpicked before a reminder call to the patient is warranted.
+  return_to_stock_days:
+    default: 14
+    description: Days sitting unpicked before the fill should be returned to stock per your store policy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only aging list — does not place calls or return anything to stock
+  itself; state law and your store policy govern the actual return-to-stock
+  and any required patient notification. Contains patient names — handle
+  the CSV per your pharmacy's privacy policy.

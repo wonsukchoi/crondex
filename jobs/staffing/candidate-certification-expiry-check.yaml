@@ -1,0 +1,40 @@
+id: candidate-certification-expiry-check
+version: 1
+name: Candidate Certification/Skills-Test Expiry Check
+description: >
+  Checks bench candidates' job-specific certifications and skills-test
+  results (e.g. forklift license, typing test, ServSafe) against their
+  expiry dates and flags anyone whose credential has lapsed before they
+  get submitted to a client. Use this if a candidate has ever been
+  submitted for a role on the strength of a certification that had
+  actually already expired.
+category: staffing
+tags: [staffing, certifications, skills-tests, candidates]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; cert_type=$2; expiry=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "EXPIRED: %s — %s expired %s\n", candidate, cert_type, expiry;
+      } else if (diff_days <= days) {
+        printf "EXPIRING SOON: %s — %s expires %s (%d days out)\n", candidate, cert_type, expiry, diff_days;
+      }
+    }
+  ' "{{candidate_certs_csv_path}}"
+variables:
+  candidate_certs_csv_path:
+    default: "./candidate-certifications.csv"
+    description: "Path to a CSV with columns: candidate_name,certification_or_test_type,expiry_date (YYYY-MM-DD), for bench candidates with job-specific credentials."
+  warn_within_days:
+    default: 30
+    description: Days before expiry at which a candidate's credential gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Scheduling a retest or recertification with the candidate is a manual recruiter follow-up.

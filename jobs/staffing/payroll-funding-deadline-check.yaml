@@ -1,0 +1,39 @@
+id: payroll-funding-deadline-check
+version: 1
+name: Payroll Funding/Factoring Deadline Check
+description: >
+  Checks that the funds needed to cover this week's payroll run (whether
+  from the agency's own cash or a factoring/invoice-financing draw) will
+  be available before the payroll cutoff. Use this if a payroll run has
+  ever been at risk because a factoring draw request was submitted too
+  close to the funding deadline.
+category: staffing
+tags: [staffing, payroll, funding, factoring, cash-flow]
+schedule: "0 7 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hoursBuffer="{{funding_buffer_hours}}" '
+    NR==1 {next}
+    {
+      payroll_run=$1; payroll_cutoff=$2; funding_requested=$3; funds_confirmed=$4;
+      if (funds_confirmed == "no") {
+        cmd = "date -d \"" payroll_cutoff "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" payroll_cutoff "\" +%s 2>/dev/null";
+        cmd | getline cutoff_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        hours_left = (cutoff_epoch - now_epoch) / 3600;
+        if (hours_left <= hoursBuffer) {
+          printf "FUNDING AT RISK: %s — cutoff %s, %.1f hours left, requested=%s\n", payroll_run, payroll_cutoff, hours_left, funding_requested;
+        }
+      }
+    }
+  ' "{{payroll_funding_csv_path}}"
+variables:
+  payroll_funding_csv_path:
+    default: "./payroll-funding-status.csv"
+    description: "Path to a CSV with columns: payroll_run_name,payroll_cutoff_datetime (YYYY-MM-DD HH:MM),funding_requested (yes/no),funds_confirmed (yes/no)."
+  funding_buffer_hours:
+    default: 24
+    description: Hours before the payroll cutoff at which unconfirmed funding gets flagged as at risk.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Submitting or expediting a factoring draw request is a manual finance-team action, and this can be time-sensitive — treat a flag as urgent.

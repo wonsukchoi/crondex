@@ -1,0 +1,37 @@
+id: candidate-availability-roster-staleness-check
+version: 1
+name: Candidate Availability Roster Staleness Check
+description: >
+  Flags candidates in the available-for-work pool whose availability
+  status hasn't been confirmed in a while, so recruiters don't submit
+  someone who's actually already taken another job. Use this if you've
+  ever pitched a "bench-ready" candidate to a client only to find out they
+  started elsewhere two weeks ago.
+category: staffing
+tags: [staffing, candidates, availability, bench]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v staleDays="{{staleness_threshold_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; last_confirmed=$2;
+      cmd = "date -d \"" last_confirmed "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_confirmed "\" +%s 2>/dev/null";
+      cmd | getline conf_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_stale = (now_epoch - conf_epoch) / 86400;
+      if (days_stale >= staleDays) {
+        printf "STALE AVAILABILITY: %s — last confirmed %s (%.0f days ago)\n", candidate, last_confirmed, days_stale;
+      }
+    }
+  ' "{{candidate_roster_csv_path}}"
+variables:
+  candidate_roster_csv_path:
+    default: "./candidate-availability-roster.csv"
+    description: "Path to a CSV with columns: candidate_name,availability_last_confirmed_date (YYYY-MM-DD), limited to candidates currently marked available."
+  staleness_threshold_days:
+    default: 14
+    description: Days since last confirmation before a candidate's availability counts as stale.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Actually re-confirming availability with the candidate is a recruiter follow-up call or text.

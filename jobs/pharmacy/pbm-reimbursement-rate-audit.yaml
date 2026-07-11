@@ -1,0 +1,53 @@
+id: pbm-reimbursement-rate-audit
+version: 1
+name: PBM Reimbursement Rate Audit
+description: >
+  Compares what a PBM actually paid against the contracted reimbursement
+  rate for a sample of recent claims and flags underpayments. Use this if
+  you've ever suspected a PBM was quietly paying below contract on some
+  claims but never had time to check systematically.
+category: pharmacy
+tags: [pharmacy, pbm, reimbursement, billing, audit]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' -v tol="{{tolerance_dollars}}" '
+    NR==1 {next}
+    {
+      contracted=$4; paid=$5; diff=contracted-paid;
+      if (diff > tol) {
+        printf "UNDERPAID: claim %s — %s — contracted $%s, paid $%s (short $%.2f)\n", $1, $2, contracted, paid, diff;
+      }
+    }
+  ' "{{remittance_csv_path}}"
+prompt: |
+  Run the underpayment check using {{remittance_csv_path}} (columns:
+  claim_id, drug_name, pbm_name, contracted_rate, amount_paid) against a
+  tolerance of {{tolerance_dollars}}.
+
+  For claims flagged as underpaid:
+  1. Group them by pbm_name and drug_name to see if underpayment is
+     concentrated (one PBM, one drug category) or scattered.
+  2. Estimate total dollars short across the flagged claims.
+  3. Draft a short summary suitable for raising with the PBM's provider
+     relations contact, citing the specific claim IDs and the shortfall —
+     do not send anything, just prepare the draft.
+script_note: >
+  The shell command gives you the same underpaid-claim list and per-claim
+  shortfall instantly with zero tokens; the prompt version additionally
+  groups the pattern by PBM/drug and drafts the provider-relations summary,
+  which needs judgment the script can't provide.
+variables:
+  remittance_csv_path:
+    default: "./pbm-remittance.csv"
+    description: "Path to a CSV export of remittance data with contracted vs. paid rates."
+  tolerance_dollars:
+    default: 0.50
+    description: Dollar shortfall per claim before it's flagged (avoids noise from rounding).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only audit of an already-exported remittance file — it does not
+  dispute claims or contact the PBM automatically. Confirm any pattern with
+  your actual PBM contract terms before escalating, since some rate
+  differences are legitimate (MAC list updates, DAW code effects).

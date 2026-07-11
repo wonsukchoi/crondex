@@ -1,0 +1,32 @@
+id: recurring-contract-invoice-aging-check
+version: 1
+name: Recurring Service Contract Invoice Aging Check
+description: >
+  Scans open invoices for recurring maintenance clients and flags any
+  invoice past its due date, grouped by how many days overdue. Use this
+  if a recurring client has ever quietly gone three billing cycles past
+  due while crews kept servicing the property anyway.
+category: landscaping
+tags: [landscaping, invoicing, billing, accounts-receivable, contracts]
+schedule: "0 8 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    tolower($4) != "paid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_over = (today - due_epoch) / 86400;
+      if (days_over > 0) {
+        printf "OVERDUE: invoice %s for %s — $%s, %d day(s) past due\n", $1, $2, $5, days_over;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./recurring-invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,client_name,due_date (YYYY-MM-DD),status (paid/unpaid),amount."
+compatible_agents: [generic, claude, codex]
+notes: Read-only aging report — send collections reminders separately, this job doesn't contact clients.

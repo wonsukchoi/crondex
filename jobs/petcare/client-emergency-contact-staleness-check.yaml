@@ -1,0 +1,33 @@
+id: client-emergency-contact-staleness-check
+version: 1
+name: Client Emergency Contact Staleness Check
+description: >
+  Flags clients whose emergency contact and authorized-decision-maker
+  information hasn't been confirmed in a while. Use this if you've ever
+  needed to reach someone about a boarded or daycare pet and found the
+  phone number on file was disconnected or years out of date.
+category: petcare
+tags: [petcare, boarding, daycare, records, emergency-contact]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      age_days = (today - last_epoch) / 86400;
+      if (age_days > stale) printf "STALE CONTACT: %s (%s) — last confirmed %s (%d days ago)\n", $1, $2, $3, age_days;
+    }
+  ' "{{clients_csv_path}}"
+variables:
+  clients_csv_path:
+    default: "./clients.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,emergency_contact_last_confirmed (YYYY-MM-DD)."
+  stale_after_days:
+    default: 365
+    description: Days since last confirmation before emergency contact info is considered stale.
+compatible_agents: [generic, claude, codex]
+notes: Flags records for staff to reconfirm with the client at next drop-off or by phone — it does not attempt to contact anyone itself.

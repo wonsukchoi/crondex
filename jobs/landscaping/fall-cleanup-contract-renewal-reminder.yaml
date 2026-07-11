@@ -1,0 +1,36 @@
+id: fall-cleanup-contract-renewal-reminder
+version: 1
+name: Fall Cleanup Contract Renewal Reminder
+description: >
+  Checks your client contract list for seasonal fall cleanup service
+  (leaf removal, bed winterizing, final mow) whose renewal date is
+  approaching and flags the ones that haven't been confirmed yet. Use
+  this if leaf season has ever snuck up while half your fall-cleanup
+  clients still hadn't signed off.
+category: landscaping
+tags: [landscaping, contracts, seasonal, fall, renewal]
+schedule: "0 8 15 8,9 *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    tolower($3) == "fall-cleanup" && tolower($4) != "confirmed" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline renew_epoch; close(cmd);
+      days_left = (renew_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        printf "UNCONFIRMED: %s fall-cleanup renewal due %s (%d days), status=%s\n", $1, $2, days_left, $4;
+      }
+    }
+  ' "{{contracts_csv_path}}"
+variables:
+  contracts_csv_path:
+    default: "./client-contracts.csv"
+    description: "Path to a CSV with columns: client_name,renewal_date (YYYY-MM-DD),service_type,status (confirmed/pending/declined)."
+  warn_days:
+    default: 30
+    description: Days before the renewal date to start flagging unconfirmed fall-cleanup contracts.
+compatible_agents: [generic, claude, codex]
+notes: Follow up with the client directly once flagged — this job only surfaces who hasn't confirmed yet.

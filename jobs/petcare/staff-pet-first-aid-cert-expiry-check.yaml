@@ -1,0 +1,32 @@
+id: staff-pet-first-aid-cert-expiry-check
+version: 1
+name: Staff Pet First-Aid Certification Expiry Check
+description: >
+  Scans your staff roster for pet first-aid certifications that have
+  expired or are expiring soon. Use this if you've ever discovered during a
+  scheduling crunch that the only certified staff member on shift had let
+  their certification lapse.
+category: petcare
+tags: [petcare, staffing, certification, first-aid, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  warn_by=$(date -d "+{{warn_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{warn_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v warn="$warn_by" '
+    NR==1 {next}
+    {
+      if ($2 < today) print "EXPIRED: " $1 " — pet first-aid cert expired " $2;
+      else if ($2 <= warn) print "EXPIRING SOON: " $1 " — expires " $2;
+    }
+  ' "{{staff_certs_csv_path}}"
+variables:
+  staff_certs_csv_path:
+    default: "./staff-certifications.csv"
+    description: "Path to a CSV with columns: staff_name,first_aid_cert_expiry (YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: How many days ahead of expiry to start flagging a certification as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: Update the CSV whenever a staff member renews their certification so the schedule always has an accurately-certified handler on shift.

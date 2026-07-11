@@ -1,0 +1,32 @@
+id: mulch-inventory-low-stock-check
+version: 1
+name: Mulch/Material Inventory Low-Stock Check
+description: >
+  Checks your bulk material inventory (mulch, topsoil, rock, gravel)
+  against a reorder threshold and flags anything running low. Use this if
+  a crew has ever shown up to a mulch job and found the yard was already
+  out of the material they needed.
+category: landscaping
+tags: [landscaping, inventory, materials, mulch, supply]
+schedule: "0 6 * * 1,4"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v default_min="{{default_reorder_threshold}}" '
+    NR==1 {next}
+    {
+      min_qty = ($3 != "") ? $3 : default_min;
+      if ($2+0 <= min_qty+0) {
+        printf "LOW STOCK: %s — %s yard(s) on hand (reorder threshold %s)\n", $1, $2, min_qty;
+      }
+    }
+  ' "{{material_inventory_csv_path}}"
+variables:
+  material_inventory_csv_path:
+    default: "./material-inventory.csv"
+    description: "Path to a CSV with columns: material_name,quantity_on_hand,reorder_threshold (blank to use the default)."
+  default_reorder_threshold:
+    default: 10
+    description: Default reorder threshold (in yards or the unit your inventory sheet uses) applied when a material has no per-row threshold.
+compatible_agents: [generic, claude, codex]
+notes: Units (yards, tons, bags) are whatever your inventory CSV uses — keep them consistent across rows.

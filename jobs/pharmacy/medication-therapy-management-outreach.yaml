@@ -1,0 +1,41 @@
+id: medication-therapy-management-outreach
+version: 1
+name: Medication Therapy Management Outreach Drafter
+description: >
+  Reads the list of patients due for a Medication Therapy Management (MTM)
+  review this month and drafts a short, plain-language outreach message for
+  each, explaining why a review is being offered. Use this if MTM-eligible
+  patients have ever gone un-contacted because drafting individual outreach
+  took longer than anyone had time for.
+category: pharmacy
+tags: [pharmacy, mtm, patient-outreach, adherence]
+schedule: "0 10 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the MTM-eligible patient list from {{mtm_roster_csv_path}} (columns:
+  patient_name, reason_flagged, preferred_contact_method, phone_or_email).
+
+  For each patient:
+  1. Draft a short, plain-language outreach message (no clinical jargon)
+     inviting them to schedule an MTM review, briefly mentioning the
+     general reason (e.g. "you're on several medications" or "a recent
+     therapy change") without restating detailed clinical specifics.
+  2. Match the tone/length to their preferred_contact_method (a text/SMS
+     draft should be one or two lines; an email draft can be a short
+     paragraph).
+  3. Save all drafts to {{draft_output_path}} — do not send anything.
+  4. Flag any row missing contact info instead of guessing.
+variables:
+  mtm_roster_csv_path:
+    default: "./mtm-eligible-patients.csv"
+    description: "Path to this month's CSV export of MTM-eligible patients."
+  draft_output_path:
+    default: "./mtm-outreach-drafts.md"
+    description: Where to save the drafted (unsent) outreach messages for pharmacist review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — never sends messages automatically; a pharmacist should
+  review and personally approve each draft before it goes out. Handles
+  patient health information, so keep the roster file and drafts local and
+  follow your pharmacy's HIPAA policy.

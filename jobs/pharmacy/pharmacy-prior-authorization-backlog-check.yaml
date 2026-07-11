@@ -1,0 +1,42 @@
+id: pharmacy-prior-authorization-backlog-check
+version: 1
+name: Pharmacy-Initiated Prior Authorization Backlog Check
+description: >
+  Checks prior-authorization requests the pharmacy has submitted to a PBM
+  or insurer on a patient's behalf and flags any still awaiting a decision
+  past a reasonable wait time. Use this if a patient has ever been stuck
+  without their medication because a PA request the pharmacy sent out got
+  lost in someone's queue with no follow-up.
+category: pharmacy
+tags: [pharmacy, prior-authorization, insurance, pbm, patients]
+schedule: "0 9,15 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v hours="{{escalate_after_hours}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      age_hours = (today - submitted_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "PA PENDING: %s — %s submitted %s (%d hrs ago)\n", $1, $2, $3, age_hours;
+      }
+    }
+  ' "{{pa_requests_csv_path}}"
+variables:
+  pa_requests_csv_path:
+    default: "./prior-authorization-requests.csv"
+    description: "Path to a CSV with columns: patient_name,drug_name,submitted_date (YYYY-MM-DD),status (pending/approved/denied)."
+  escalate_after_hours:
+    default: 72
+    description: Hours a pharmacy-submitted PA request can sit pending before it's flagged for a follow-up call.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only triage on a locally exported log — this covers PA requests the
+  pharmacy itself submitted while waiting to dispense, distinct from
+  jobs/healthcare/prior-authorization-expiry-check.yaml, which tracks
+  already-approved authorizations nearing their expiration date in a
+  clinical practice. Following up with the PBM/insurer is still a
+  human/pharmacist action.

@@ -1,0 +1,33 @@
+id: boarding-deposit-collection-check
+version: 1
+name: Boarding Reservation Deposit Collection Check
+description: >
+  Lists upcoming boarding reservations that don't yet have a deposit
+  recorded as collected, so the front desk can follow up before drop-off.
+  Use this if you've ever had a client cancel a booked stay last-minute
+  with no deposit on file to cover the lost slot.
+category: petcare
+tags: [petcare, boarding, reservations, deposits, billing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  lookahead=$(date -d "+{{lookahead_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{lookahead_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v ahead="$lookahead" '
+    NR==1 {next}
+    {
+      if ($3 >= today && $3 <= ahead && $4 != "collected") {
+        print "DEPOSIT MISSING: " $1 " (" $2 ") — check-in " $3;
+      }
+    }
+  ' "{{reservations_csv_path}}"
+variables:
+  reservations_csv_path:
+    default: "./boarding-reservations.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD),deposit_status (collected/pending/waived)."
+  lookahead_days:
+    default: 5
+    description: How many days ahead to look for upcoming check-ins missing a deposit.
+compatible_agents: [generic, claude, codex]
+notes: Purely a paperwork check against your own reservation records — mark a deposit "waived" in the CSV for any client you intentionally exempt so they aren't flagged.

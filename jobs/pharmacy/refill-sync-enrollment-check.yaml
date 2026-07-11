@@ -1,0 +1,36 @@
+id: refill-sync-enrollment-check
+version: 1
+name: Medication Refill Sync Program Check
+description: >
+  Checks patients enrolled in your refill-synchronization program (all
+  their maintenance meds filled on one shared date each month) for
+  medications that have drifted off that shared date. Use this if a
+  synced patient has ever ended up back on separate pickup dates without
+  anyone noticing the drift.
+category: pharmacy
+tags: [pharmacy, refill-sync, adherence, workflow]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tol="{{allowed_drift_days}}" '
+    NR==1 {next}
+    {
+      target_day=$3; next_fill_day=$4; drift=target_day-next_fill_day; if (drift<0) drift=-drift;
+      if (drift > tol) {
+        printf "SYNC DRIFT: %s — %s next fill on day %s, sync target day %s (drift %s day(s))\n", $1, $2, next_fill_day, target_day, drift;
+      }
+    }
+  ' "{{sync_roster_csv_path}}"
+variables:
+  sync_roster_csv_path:
+    default: "./refill-sync-roster.csv"
+    description: "Path to a CSV with columns: patient_name,drug_name,sync_target_day_of_month,next_fill_day_of_month."
+  allowed_drift_days:
+    default: 3
+    description: How many days a medication's next fill date can drift from the patient's sync target date before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a locally maintained roster export — reconciling
+  a drifted fill date back onto the sync schedule is still a pharmacist/tech
+  decision (it can require a short fill or prescriber contact).

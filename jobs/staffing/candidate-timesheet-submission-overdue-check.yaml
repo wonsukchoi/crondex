@@ -1,0 +1,38 @@
+id: candidate-timesheet-submission-overdue-check
+version: 1
+name: Candidate Timesheet Submission Overdue Check
+description: >
+  Scans active placements for timesheets that haven't been submitted after
+  the pay period closed and flags who's overdue. Use this if payroll has
+  ever been delayed because a temp worker's timesheet didn't come in and
+  nobody caught it until the run was already late.
+category: staffing
+tags: [staffing, timesheets, payroll, placements]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v graceHours="{{grace_period_hours}}" '
+    NR==1 {next}
+    {
+      worker=$1; client=$2; period_end=$3; submitted=$4;
+      if (submitted == "no") {
+        cmd = "date -d \"" period_end "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" period_end "\" +%s 2>/dev/null";
+        cmd | getline end_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        hours_late = (now_epoch - end_epoch) / 3600;
+        if (hours_late >= graceHours) {
+          printf "OVERDUE TIMESHEET: %s at %s — period ended %s (%.0f hours late)\n", worker, client, period_end, hours_late;
+        }
+      }
+    }
+  ' "{{timesheets_csv_path}}"
+variables:
+  timesheets_csv_path:
+    default: "./active-timesheets.csv"
+    description: "Path to a CSV with columns: worker_name,client_name,pay_period_end_date (YYYY-MM-DD),submitted (yes/no)."
+  grace_period_hours:
+    default: 24
+    description: Hours after period end before a missing timesheet counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Feed it from your VMS/timesheet portal export; chasing the worker or client supervisor is a manual follow-up.

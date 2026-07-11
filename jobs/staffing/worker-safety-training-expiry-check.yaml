@@ -1,0 +1,40 @@
+id: worker-safety-training-expiry-check
+version: 1
+name: Worker Safety Training Expiry Check Per Assignment Type
+description: >
+  Checks each active temp worker's required safety training (forklift,
+  OSHA 10, site-specific inductions, etc.) against what their current
+  assignment type requires and flags anyone whose certification has
+  expired or is about to. Use this if a worker has ever been sent to a
+  warehouse or industrial site with an expired safety certification and
+  it only surfaced during a client audit.
+category: staffing
+tags: [staffing, safety-training, compliance, assignments]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; assignment_type=$2; cert_type=$3; expiry=$4;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "EXPIRED: %s (%s) — %s expired %s on %s assignment\n", worker, cert_type, cert_type, expiry, assignment_type;
+      } else if (diff_days <= days) {
+        printf "EXPIRING SOON: %s (%s) — %s expires %s (%d days out) on %s assignment\n", worker, cert_type, cert_type, expiry, diff_days, assignment_type;
+      }
+    }
+  ' "{{safety_certs_csv_path}}"
+variables:
+  safety_certs_csv_path:
+    default: "./worker-safety-certs.csv"
+    description: "Path to a CSV with columns: worker_name,assignment_type,certification_type,expiry_date (YYYY-MM-DD), for workers on assignment types requiring safety training."
+  warn_within_days:
+    default: 14
+    description: Days before a certification expires at which a worker gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Scheduling recertification training is a manual coordinator step; pulling a worker off-site for an expired cert is a safety/compliance judgment call.

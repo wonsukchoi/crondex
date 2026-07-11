@@ -1,0 +1,40 @@
+id: compounding-log-review
+version: 1
+name: Compounding Log Review
+description: >
+  Reviews the pharmacy's compounding log for a batch of custom-prepared
+  medications and checks for missing required fields (formula, lot,
+  beyond-use date, preparer initials, quality-check sign-off). Use this if
+  a compounding log entry has ever been finalized missing a required field
+  that only got caught at an inspection.
+category: pharmacy
+tags: [pharmacy, compounding, quality, compliance, log-review]
+schedule: "0 19 * * 1-5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read today's compounding log entries from {{compounding_log_csv_path}}
+  (columns: batch_id, formula_name, lot_number, beyond_use_date,
+  preparer_initials, qc_signoff).
+
+  For each entry:
+  1. Flag any missing field by name.
+  2. Flag any beyond-use-date that looks implausibly far out (more than
+     {{max_reasonable_buds_days}} days from today) for a second look —
+     don't assume it's wrong, just flag it for the pharmacist to confirm.
+  3. Flag any entry with no qc_signoff recorded.
+  4. Summarize how many entries were clean vs. flagged.
+  Do not alter the log or approve/reject any batch — this is a review
+  summary only, for the supervising pharmacist to act on.
+variables:
+  compounding_log_csv_path:
+    default: "./compounding-log.csv"
+    description: "Path to today's compounding log export."
+  max_reasonable_buds_days:
+    default: 180
+    description: Beyond-use dates further out than this many days get flagged for a sanity check (adjust based on the preparation types your pharmacy compounds).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only documentation check against USDP <795>/<797>-style recordkeeping
+  expectations — it does not verify the compounding itself was done
+  correctly, only that the paperwork is complete.

@@ -1,0 +1,36 @@
+id: seasonal-color-rotation-planting-reminder
+version: 1
+name: Seasonal Color-Rotation Planting Reminder
+description: >
+  Checks each commercial client's contracted seasonal color rotation
+  (spring/summer/fall/winter annuals) against the last planting date and
+  flags any bed that's overdue for the next rotation. Use this if a
+  property manager has ever complained that last season's flowers were
+  still dead in the beds when the new season started.
+category: landscaping
+tags: [landscaping, planting, seasonal, color-rotation, commercial]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v rotation_days="{{rotation_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= rotation_days) {
+        printf "ROTATION DUE: %s — beds last planted %d day(s) ago (rotation interval %d)\n", $1, days_since, rotation_days;
+      }
+    }
+  ' "{{color_rotation_clients_csv_path}}"
+variables:
+  color_rotation_clients_csv_path:
+    default: "./color-rotation-clients.csv"
+    description: "Path to a CSV with columns: client_name,last_planting_date (YYYY-MM-DD)."
+  rotation_interval_days:
+    default: 90
+    description: Days between seasonal color rotations before a client's beds are flagged as due.
+compatible_agents: [generic, claude, codex]
+notes: Confirm plant selection with the client before installing — this job only flags timing, not species or budget.

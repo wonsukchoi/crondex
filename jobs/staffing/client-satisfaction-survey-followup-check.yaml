@@ -1,0 +1,36 @@
+id: client-satisfaction-survey-followup-check
+version: 1
+name: Client Satisfaction Survey Follow-Up Check
+description: >
+  Reviews recent client satisfaction/NPS survey responses and drafts
+  follow-up outreach for any client who scored low or flagged an issue
+  with a placement. Use this if a low client satisfaction score has ever
+  sat in a spreadsheet for weeks without anyone reaching out to find out
+  what went wrong.
+category: staffing
+tags: [staffing, client-satisfaction, nps, account-management]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read recent client survey responses from {{survey_responses_path}}
+  covering the last {{lookback_days}} days.
+  1. Identify any response scoring at or below {{low_score_threshold}} (on
+     the survey's own scale) or containing negative free-text comments.
+  2. For each, summarize the concern in one line and note which
+     placement/branch it relates to.
+  3. Draft a short, specific follow-up message to the client contact
+     acknowledging the feedback and asking what would help — do not send
+     it, just draft it for the account manager to review and send.
+variables:
+  survey_responses_path:
+    default: "./client-satisfaction-responses.csv"
+    description: Path to exported client survey/NPS responses.
+  lookback_days:
+    default: 14
+    description: How many days back to review for new low-scoring responses.
+  low_score_threshold:
+    default: 6
+    description: Score at or below which a response is treated as needing follow-up (on a 0-10 scale by default).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Drafts follow-up messages only — sending anything to a client is a human decision.

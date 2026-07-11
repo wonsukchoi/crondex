@@ -1,0 +1,38 @@
+id: staffing-agency-license-renewal-check
+version: 1
+name: Staffing Agency License and Bond Renewal Check
+description: >
+  Tracks state staffing-agency licenses and surety bonds the agency holds
+  in each operating state and flags any approaching their renewal
+  deadline. Use this if the agency has ever operated in a state past its
+  license renewal date without anyone realizing it had lapsed.
+category: staffing
+tags: [staffing, licensing, bonding, compliance, regulatory]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      state=$1; license_type=$2; expiry=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (exp_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "EXPIRED: %s (%s) — expired %s\n", state, license_type, expiry;
+      } else if (diff_days <= days) {
+        printf "RENEWAL DUE: %s (%s) — expires %s (%d days out)\n", state, license_type, expiry, diff_days;
+      }
+    }
+  ' "{{licenses_csv_path}}"
+variables:
+  licenses_csv_path:
+    default: "./agency-licenses-bonds.csv"
+    description: "Path to a CSV with columns: state,license_or_bond_type,expiry_date (YYYY-MM-DD), covering every state the agency operates in."
+  warn_within_days:
+    default: 60
+    description: Days before expiry to start flagging a license or bond for renewal.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Filing the renewal paperwork or paying the bond premium is a manual compliance-team step; requirements vary by state so verify current rules before renewing.

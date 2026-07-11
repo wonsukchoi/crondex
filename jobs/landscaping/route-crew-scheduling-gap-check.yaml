@@ -1,0 +1,37 @@
+id: route-crew-scheduling-gap-check
+version: 1
+name: Route/Crew Scheduling Gap Check
+description: >
+  Scans tomorrow's mowing/maintenance route list and flags any stop that
+  has no crew assigned, or a crew assigned with zero members. Use this if
+  a crew has ever shown up to the yard in the morning and found out a
+  route had nobody on it.
+category: landscaping
+tags: [landscaping, scheduling, crew, routes, dispatch]
+schedule: "0 15 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v target_date="{{target_date}}" '
+    NR==1 {next}
+    $2 == target_date {
+      total += 1;
+      if ($3 == "" || $4 == "0" || $4 == "") {
+        printf "UNSTAFFED: stop %s (%s) on %s has no crew assigned\n", $1, $2, $3;
+        gaps += 1;
+      }
+    }
+    END {
+      if (total == 0) { print "No stops found for " target_date; exit 0; }
+      printf "Checked %d stop(s) for %s: %d unstaffed\n", total, target_date, gaps+0;
+    }
+  ' "{{route_schedule_csv_path}}"
+variables:
+  route_schedule_csv_path:
+    default: "./route-schedule.csv"
+    description: "Path to a CSV with columns: stop_id,service_date (YYYY-MM-DD),crew_name,crew_size."
+  target_date:
+    default: "2026-07-12"
+    description: "Date (YYYY-MM-DD) to check for scheduling gaps, typically tomorrow."
+compatible_agents: [generic, claude, codex]
+notes: Read-only check — reassign the crew yourself once a gap is flagged. Pair with a scheduler that regenerates target_date daily if you want this fully automated.

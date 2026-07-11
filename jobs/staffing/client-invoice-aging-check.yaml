@@ -1,0 +1,40 @@
+id: client-invoice-aging-check
+version: 1
+name: Client Invoice Payment-Terms Aging Check
+description: >
+  Checks outstanding client invoices against their agreed payment terms
+  and flags anything past due, since a staffing agency has to pay workers
+  every week regardless of when clients pay. Use this if slow-paying
+  clients have ever squeezed cash flow before anyone noticed how far past
+  terms an invoice had gone.
+category: staffing
+tags: [staffing, invoicing, accounts-receivable, cash-flow]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v graceDays="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      client=$1; invoice_date=$2; terms_days=$3+0; paid=$4;
+      if (paid == "no") {
+        cmd = "date -d \"" invoice_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" invoice_date "\" +%s 2>/dev/null";
+        cmd | getline inv_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        due_epoch = inv_epoch + (terms_days * 86400);
+        days_past_due = (now_epoch - due_epoch) / 86400;
+        if (days_past_due >= graceDays) {
+          printf "PAST DUE: %s — invoiced %s, %d-day terms, %.0f days past due\n", client, invoice_date, terms_days, days_past_due;
+        }
+      }
+    }
+  ' "{{client_invoices_csv_path}}"
+variables:
+  client_invoices_csv_path:
+    default: "./client-invoices.csv"
+    description: "Path to a CSV with columns: client_name,invoice_date (YYYY-MM-DD),payment_terms_days,paid (yes/no)."
+  grace_period_days:
+    default: 5
+    description: Days past the due date allowed before an unpaid invoice gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Sending a collections notice or pausing further placements for a client is a manual finance/account-management decision.

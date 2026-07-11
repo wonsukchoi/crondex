@@ -1,0 +1,56 @@
+id: holiday-boarding-overbooking-risk-check
+version: 1
+name: Holiday Boarding Overbooking Risk Check
+description: >
+  Looks at upcoming holiday-period boarding reservations against capacity
+  and staffing levels, and gives a plain-language risk assessment of
+  whether you're headed toward overbooking. Use this if a busy holiday
+  weekend has ever left you scrambling to find extra kennel space or
+  overnight staff after the reservations were already confirmed.
+category: petcare
+tags: [petcare, boarding, holiday, capacity, overbooking, risk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%Y-%m-%d);
+  window_end=$(date -d "+{{lookahead_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{lookahead_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v end="$window_end" '
+    NR==1 {next}
+    { if ($3 >= today && $3 <= end) count[$3]++ }
+    END { for (d in count) printf "%s: %d reservation(s)\n", d, count[d] }
+  ' "{{reservations_csv_path}}" | sort
+prompt: |
+  Read the daily reservation counts for the next {{lookahead_days}} days
+  from {{reservations_csv_path}}, along with total kennel capacity
+  ({{total_kennel_capacity}}) and available overnight staff
+  ({{overnight_staff_count}}).
+
+  1. Identify any day where reservation count is on pace to exceed kennel
+     capacity or exceed what the available overnight staff can reasonably
+     supervise.
+  2. Give a plain-language risk rating (low/medium/high) per day, factoring
+     in that holiday periods often get last-minute walk-in requests too.
+  3. Suggest concrete mitigations: closing further bookings for a specific
+     day, adding a staff shift, or opening an overflow arrangement, in
+     order of least to most costly.
+script_note: >
+  `command` gives raw daily reservation counts with no capacity or staffing
+  comparison — you'd still have to eyeball it against your kennel count.
+  `prompt` cross-references capacity and staffing and gives a per-day risk
+  rating with concrete next steps.
+variables:
+  reservations_csv_path:
+    default: "./boarding-reservations.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD)."
+  lookahead_days:
+    default: 21
+    description: How many days ahead to check for holiday-period overbooking risk.
+  total_kennel_capacity:
+    default: 20
+    description: Total number of boarding runs/kennels available.
+  overnight_staff_count:
+    default: 2
+    description: Number of overnight staff typically scheduled.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Advisory only — does not close bookings or contact staff automatically; a person decides what to act on.

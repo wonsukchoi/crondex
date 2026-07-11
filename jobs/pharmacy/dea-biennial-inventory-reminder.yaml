@@ -1,0 +1,40 @@
+id: dea-biennial-inventory-reminder
+version: 1
+name: DEA Biennial Controlled Substance Inventory Reminder
+description: >
+  Checks the date of the pharmacy's last full physical inventory of
+  controlled substances (required at least every two years by DEA rule,
+  or on whatever shorter interval your state requires) and warns as the
+  deadline approaches. Use this if scheduling the full count has ever
+  slipped your mind until it was almost overdue.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, compliance, inventory]
+schedule: "0 9 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  last_epoch=$(date -d "{{last_inventory_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_inventory_date}}" +%s);
+  due_epoch=$(( last_epoch + ({{interval_months}} * 30 * 86400) ));
+  now_epoch=$(date +%s);
+  days_left=$(( (due_epoch - now_epoch) / 86400 ));
+  if [ "$days_left" -le "{{warn_days_before}}" ]; then
+    echo "BIENNIAL INVENTORY DUE: schedule your full controlled-substance count — approx. $days_left day(s) left.";
+  else
+    echo "Biennial inventory not due yet — approx. $days_left day(s) remaining.";
+  fi
+variables:
+  last_inventory_date:
+    default: "2025-01-01"
+    description: "Date (YYYY-MM-DD) of the last completed full physical controlled-substance inventory."
+  interval_months:
+    default: 24
+    description: Months allowed between required full inventories (24 for the DEA federal minimum; set lower if your state requires more frequent counts).
+  warn_days_before:
+    default: 30
+    description: How many days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A scheduling reminder only — it does not perform the count itself or
+  verify accuracy. Confirm your state board's inventory interval, which can
+  be shorter than the federal two-year minimum, and update interval_months
+  accordingly.

@@ -1,0 +1,50 @@
+id: drug-recall-check
+version: 1
+name: Drug Recall vs. On-Hand Stock Check
+description: >
+  Matches a list of recently announced drug recalls against the pharmacy's
+  current inventory export and flags any lot number in stock. Use this if
+  a recalled lot has ever sat on the shelf for days after the recall notice
+  went out simply because no one cross-checked it against inventory.
+category: pharmacy
+tags: [pharmacy, recalls, inventory, safety, compliance]
+schedule: "0 6 * * *"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' 'NR==FNR { if (FNR>1) recalled[$1","$2]=$3; next }
+    FNR==1 {next}
+    { key=$1","$2; if (key in recalled) printf "RECALLED LOT ON HAND: %s (lot %s) — recall reason: %s — qty on hand: %s\n", $1, $2, recalled[key], $3 }
+  ' "{{recall_list_csv_path}}" "{{inventory_csv_path}}"
+prompt: |
+  Run the recall-vs-inventory match using {{recall_list_csv_path}} (columns:
+  drug_name, lot_number, recall_reason) against {{inventory_csv_path}}
+  (columns: drug_name, lot_number, quantity_on_hand).
+
+  For any lot found on hand:
+  1. Summarize the recall reason in plain language.
+  2. Note the recall class if it's in the source data (Class I/II/III) and
+     explain in one line what that severity means.
+  3. List what typically needs to happen next (quarantine the stock, notify
+     affected patients if any were dispensed from that lot, follow the
+     manufacturer's return/destruction instructions) as a checklist — do
+     not take any of these actions automatically.
+variables:
+  recall_list_csv_path:
+    default: "./drug-recalls.csv"
+    description: "Path to a locally maintained CSV of recent recall notices (e.g. transcribed from FDA/manufacturer alerts)."
+  inventory_csv_path:
+    default: "./pharmacy-inventory.csv"
+    description: "Path to a CSV export of current on-hand inventory with lot numbers."
+script_note: >
+  The shell command gives you the same recalled-lot match instantly with
+  zero tokens; the prompt version additionally explains the recall reason
+  and severity in plain language and lays out the next-step checklist,
+  which the script alone can't do.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only match against locally maintained files — it does not pull live
+  FDA recall feeds or notify patients on its own. A confirmed recalled lot
+  on hand still requires the pharmacist to follow the manufacturer's and
+  board of pharmacy's actual recall procedure, including any required
+  patient notification.

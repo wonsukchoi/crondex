@@ -1,0 +1,38 @@
+id: boarding-facility-temperature-log-check
+version: 1
+name: Boarding Facility Temperature/HVAC Log Check
+description: >
+  Reads a logged temperature reading for your boarding or daycare space and
+  alerts if it's outside a safe range for the animals kenneled there. Use
+  this if an HVAC failure has ever gone unnoticed overnight and left
+  boarded pets in an uncomfortable or unsafe kennel area.
+category: petcare
+tags: [petcare, boarding, daycare, facility, temperature, hvac, safety]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  reading=$(tail -n 1 "{{temperature_log_csv_path}}" | awk -F',' '{print $2}');
+  low="{{min_safe_fahrenheit}}";
+  high="{{max_safe_fahrenheit}}";
+  if [ -z "$reading" ]; then
+    echo "WARNING: no temperature reading found in log";
+  else
+    awk -v r="$reading" -v lo="$low" -v hi="$high" 'BEGIN {
+      if (r+0 < lo+0) print "ALERT: temperature " r "F is below the safe minimum of " lo "F";
+      else if (r+0 > hi+0) print "ALERT: temperature " r "F is above the safe maximum of " hi "F";
+      else print "OK: temperature " r "F is within the safe range (" lo "-" hi "F)";
+    }'
+  fi
+variables:
+  temperature_log_csv_path:
+    default: "./facility-temperature-log.csv"
+    description: "Path to a CSV with columns: timestamp,temperature_fahrenheit, appended by a sensor or manual reading."
+  min_safe_fahrenheit:
+    default: 65
+    description: Minimum acceptable temperature for the kennel/boarding area in Fahrenheit.
+  max_safe_fahrenheit:
+    default: 80
+    description: Maximum acceptable temperature for the kennel/boarding area in Fahrenheit.
+compatible_agents: [generic, claude, codex]
+notes: Only as good as the freshness of the last logged reading — pair with an actual sensor feed or a staff manual-check routine, not a substitute for one.

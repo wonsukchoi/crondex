@@ -1,0 +1,35 @@
+id: pet-care-instructions-staleness-check
+version: 1
+name: Pet Care Instructions Staleness Check
+description: >
+  Flags boarded or daycare pets whose feeding, medication-administration,
+  or special-care instructions on file haven't been reviewed or updated in
+  a while. Use this if a pet's care routine has ever changed (new diet, new
+  dosage) without the facility's notes catching up, leading to staff
+  following outdated instructions. This is a record-freshness check, not a
+  medical review.
+category: petcare
+tags: [petcare, boarding, daycare, care-instructions, records]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      age_days = (today - last_epoch) / 86400;
+      if (age_days > stale) printf "STALE: %s (%s) — instructions last reviewed %s (%d days ago)\n", $1, $2, $3, age_days;
+    }
+  ' "{{care_notes_csv_path}}"
+variables:
+  care_notes_csv_path:
+    default: "./pet-care-notes.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,last_reviewed_date (YYYY-MM-DD) for feeding/medication/special-care instructions."
+  stale_after_days:
+    default: 180
+    description: Days since the last review before care instructions are considered stale.
+compatible_agents: [generic, claude, codex]
+notes: Flags for a human to confirm the instructions are still accurate with the owner — it does not interpret or change any care instructions itself.

@@ -1,0 +1,34 @@
+id: 340b-program-compliance-check
+version: 1
+name: 340B Program Eligibility Compliance Check
+description: >
+  Checks a log of 340B-priced dispenses against patient eligibility
+  criteria (associated with a covered entity, qualifying encounter on
+  file) and flags any dispense missing the documentation a 340B audit
+  would expect. Use this if a 340B-priced claim has ever been submitted
+  without the backing eligibility record being confirmed first.
+category: pharmacy
+tags: [pharmacy, 340b, compliance, billing, audit]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      patient=$1; covered_entity=$2; encounter_ref=$3;
+      if (covered_entity == "" || encounter_ref == "") {
+        printf "MISSING DOCUMENTATION: %s — 340B dispense logged without %s%s.\n", patient, (covered_entity=="" ? "covered-entity link " : ""), (encounter_ref=="" ? "qualifying-encounter reference" : "");
+      }
+    }
+  ' "{{dispense_log_csv_path}}"
+variables:
+  dispense_log_csv_path:
+    default: "./340b-dispense-log.csv"
+    description: "Path to today's CSV export of 340B-flagged dispenses with columns: patient_name,covered_entity,encounter_reference."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only documentation check against a locally exported log, not a live
+  connection to a 340B split-billing/TPA platform. A flagged entry needs
+  pharmacist/compliance review before resubmission or reclassification as
+  a non-340B fill — this job does not alter billing status itself.

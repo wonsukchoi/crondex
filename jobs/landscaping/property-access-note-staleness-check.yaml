@@ -1,0 +1,37 @@
+id: property-access-note-staleness-check
+version: 1
+name: Client Property-Access Note Staleness Check
+description: >
+  Checks each client's property access notes (gate codes, dog warnings,
+  key locations) for how long it's been since they were last confirmed
+  and flags any that are older than your staleness window. Use this if a
+  crew has ever been locked out by a changed gate code, or surprised by a
+  dog nobody warned them about because the notes hadn't been updated in
+  a year.
+category: landscaping
+tags: [landscaping, client-notes, access, safety, data-quality]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_age="{{max_age_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline confirmed_epoch; close(cmd);
+      age_days = (today - confirmed_epoch) / 86400;
+      if (age_days >= max_age) {
+        printf "STALE: %s access notes last confirmed %d day(s) ago (limit %d)\n", $1, age_days, max_age;
+      }
+    }
+  ' "{{access_notes_csv_path}}"
+variables:
+  access_notes_csv_path:
+    default: "./client-access-notes.csv"
+    description: "Path to a CSV with columns: client_name,last_confirmed_date (YYYY-MM-DD)."
+  max_age_days:
+    default: 180
+    description: Days since last confirmation after which a client's access notes are flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Confirm the notes with the client directly, don't just re-date the record without actually verifying gate codes and pet info.

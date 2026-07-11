@@ -1,0 +1,36 @@
+id: mower-maintenance-due-check
+version: 1
+name: Mower/Trimmer Equipment Maintenance Due Check
+description: >
+  Checks your equipment log for mowers, trimmers, and blowers whose hours
+  or days since last service have passed the maintenance interval, and
+  flags them before they break down mid-route. Use this if a mower has
+  ever died on a job site because nobody tracked when the blades or oil
+  were last serviced.
+category: landscaping
+tags: [landscaping, equipment, maintenance, mowers]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval_days="{{service_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= interval_days) {
+        printf "SERVICE DUE: %s (%s) — %d days since last service (interval %d)\n", $1, $2, days_since, interval_days;
+      }
+    }
+  ' "{{equipment_log_csv_path}}"
+variables:
+  equipment_log_csv_path:
+    default: "./equipment-log.csv"
+    description: "Path to a CSV with columns: equipment_id,equipment_type,last_service_date (YYYY-MM-DD)."
+  service_interval_days:
+    default: 60
+    description: Days between routine services before a piece of equipment is flagged as due.
+compatible_agents: [generic, claude, codex]
+notes: Interval is a simple day-count proxy — swap in engine-hour tracking if your equipment logs hours instead of dates.

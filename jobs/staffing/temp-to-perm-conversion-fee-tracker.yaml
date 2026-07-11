@@ -1,0 +1,35 @@
+id: temp-to-perm-conversion-fee-tracker
+version: 1
+name: Temp-to-Perm Conversion Fee Tracking Reminder
+description: >
+  Reviews recently converted temp-to-perm placements and confirms the
+  conversion fee owed by the client has been invoiced, factoring in any
+  fee reduction that applies as the worker's temp tenure lengthens. Use
+  this if a client has ever hired a temp worker permanently and the
+  conversion fee slipped through without being billed.
+category: staffing
+tags: [staffing, temp-to-perm, conversion-fee, billing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the conversion log at {{conversions_log_path}} for temp-to-perm
+  conversions in the last {{lookback_days}} days.
+  1. For each conversion, check whether a conversion fee invoice has been
+     sent to the client.
+  2. If the contract has a sliding-scale fee schedule based on how long
+     the worker was on assignment, calculate the fee owed given the
+     worker's tenure at conversion and compare it to what was invoiced (if
+     anything).
+  3. List any conversion missing an invoice, or where the invoiced amount
+     doesn't match the fee schedule, as something for billing to follow
+     up on.
+variables:
+  conversions_log_path:
+    default: "./temp-to-perm-conversions.csv"
+    description: "Path to a log/CSV of recent conversions with worker name, client, assignment start date, conversion date, and invoice status."
+  lookback_days:
+    default: 30
+    description: How many days back to review for un-invoiced or mis-invoiced conversions.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only review. Actually issuing or correcting an invoice is a billing-team action.

@@ -1,0 +1,39 @@
+id: client-churn-risk-check
+version: 1
+name: Client Churn-Risk Check
+description: >
+  Reviews recent missed or skipped visits and open complaints per client
+  and flags accounts crossing your churn-risk thresholds, then drafts a
+  short outreach note for each one. Use this if a long-time client has
+  ever cancelled without warning, and you later realized they'd had two
+  missed visits and an unresolved complaint in the month before they left.
+category: landscaping
+tags: [landscaping, churn, retention, customer-service, complaints]
+schedule: "0 9 * * 1"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: >
+  Read the client visit log at {{visit_log_csv_path}} (columns:
+  client_name, visit_date, status (completed/missed/skipped)) and the
+  complaint log at {{complaint_log_csv_path}} (columns: client_name,
+  complaint_date, resolved (yes/no)), both restricted to the trailing
+  {{lookback_days}} days. Flag any client with {{missed_visit_threshold}}
+  or more missed/skipped visits, or any unresolved complaint, as at risk
+  of churning. For each at-risk client, draft a short, genuine outreach
+  message from the account manager checking in and offering to make it
+  right, and summarize why each client was flagged.
+variables:
+  visit_log_csv_path:
+    default: "./client-visit-log.csv"
+    description: "Path to a CSV with columns: client_name,visit_date (YYYY-MM-DD),status (completed/missed/skipped)."
+  complaint_log_csv_path:
+    default: "./client-complaint-log.csv"
+    description: "Path to a CSV with columns: client_name,complaint_date (YYYY-MM-DD),resolved (yes/no)."
+  lookback_days:
+    default: 60
+    description: Trailing days of visit and complaint history to consider when scoring churn risk.
+  missed_visit_threshold:
+    default: 2
+    description: Number of missed/skipped visits in the lookback window that triggers a churn-risk flag.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — an account manager should personalize and send outreach, not send it automatically.

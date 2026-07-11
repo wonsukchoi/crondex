@@ -1,0 +1,38 @@
+id: unfilled-order-aging-check
+version: 1
+name: Unfilled Order Aging Check
+description: >
+  Flags open client job orders that still have zero candidates submitted,
+  ranked by how long they've been sitting open. Use this if an order has
+  ever gone stale because it fell to the bottom of a recruiter's queue and
+  nobody noticed no one had been submitted yet.
+category: staffing
+tags: [staffing, open-orders, recruiting-ops, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v alertDays="{{alert_after_days}}" '
+    NR==1 {next}
+    {
+      client=$1; order_id=$2; opened_date=$3; submittals=$4+0;
+      if (submittals == 0) {
+        cmd = "date -d \"" opened_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" opened_date "\" +%s 2>/dev/null";
+        cmd | getline open_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_open = (now_epoch - open_epoch) / 86400;
+        if (days_open >= alertDays) {
+          printf "STALE ORDER, ZERO SUBMITTALS: %s (%s) — open %.0f days\n", order_id, client, days_open;
+        }
+      }
+    }
+  ' "{{open_orders_csv_path}}"
+variables:
+  open_orders_csv_path:
+    default: "./open-orders.csv"
+    description: "Path to a CSV with columns: client_name,order_id,opened_date (YYYY-MM-DD),submittal_count."
+  alert_after_days:
+    default: 5
+    description: Days an order can sit with zero submittals before it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Reassigning an order to another recruiter or sourcing more actively is a manager decision.

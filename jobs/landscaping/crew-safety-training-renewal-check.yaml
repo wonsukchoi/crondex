@@ -1,0 +1,37 @@
+id: crew-safety-training-renewal-check
+version: 1
+name: Crew Safety Training Renewal Check
+description: >
+  Checks each crew member's safety training records (equipment handling,
+  chemical safety, OSHA refreshers) for certifications expiring within
+  your warning window and flags them. Use this if a crew member's safety
+  training has ever lapsed without anyone noticing until an incident or
+  audit brought it up.
+category: landscaping
+tags: [landscaping, safety, training, compliance, crew]
+schedule: "0 8 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      days_left = (exp_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        if (days_left < 0) printf "EXPIRED: %s — %s expired %d day(s) ago\n", $1, $2, -days_left;
+        else printf "EXPIRING: %s — %s expires in %d day(s)\n", $1, $2, days_left;
+      }
+    }
+  ' "{{safety_training_csv_path}}"
+variables:
+  safety_training_csv_path:
+    default: "./crew-safety-training.csv"
+    description: "Path to a CSV with columns: crew_member_name,training_name,expiration_date (YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a training certification's expiration to start flagging a crew member.
+compatible_agents: [generic, claude, codex]
+notes: Schedule the refresher directly with your training provider once flagged — this job only surfaces the date.

@@ -1,0 +1,36 @@
+id: frequent-boarder-loyalty-milestone-check
+version: 1
+name: Frequent Boarder Loyalty Milestone Check
+description: >
+  Scans boarding stay history for clients who've just crossed a loyalty
+  program milestone (a certain number of stays or nights) and lists them so
+  you can send a reward or thank-you. Use this if loyal repeat boarding
+  clients have ever hit a milestone without the facility ever noticing or
+  rewarding it.
+category: petcare
+tags: [petcare, boarding, loyalty, retention, milestones]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v milestones="{{milestone_stay_counts}}" '
+    NR==1 {next}
+    { stays[$2]++ }
+    END {
+      n = split(milestones, m, " ");
+      for (owner in stays) {
+        for (i = 1; i <= n; i++) {
+          if (stays[owner] == m[i]+0) printf "MILESTONE: %s just reached %d stay(s)\n", owner, stays[owner];
+        }
+      }
+    }
+  ' "{{completed_stays_csv_path}}"
+variables:
+  completed_stays_csv_path:
+    default: "./completed-boarding-stays.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkout_date, one row per completed stay."
+  milestone_stay_counts:
+    default: "5 10 25 50"
+    description: Space-separated list of stay counts that trigger a milestone reward notice.
+compatible_agents: [generic, claude, codex]
+notes: Only flags the exact milestone count reached this run — re-running against updated data catches new clients as they cross each threshold.

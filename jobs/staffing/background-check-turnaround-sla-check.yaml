@@ -1,0 +1,39 @@
+id: background-check-turnaround-sla-check
+version: 1
+name: Background Check Vendor Turnaround SLA Check
+description: >
+  Tracks how long the third-party background-check vendor is taking on
+  in-progress checks for candidates about to be placed, and flags any past
+  the vendor's promised SLA. Use this if a placement start date has ever
+  been at risk because the background-check vendor was quietly running
+  slow and nobody escalated it.
+category: staffing
+tags: [staffing, background-checks, vendor, sla]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v slaDays="{{vendor_sla_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; submitted_date=$2; status=$3;
+      if (status == "pending") {
+        cmd = "date -d \"" submitted_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" submitted_date "\" +%s 2>/dev/null";
+        cmd | getline sub_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_elapsed = (now_epoch - sub_epoch) / 86400;
+        if (days_elapsed > slaDays) {
+          printf "SLA BREACH: %s — submitted %s, pending %.0f days (SLA %d)\n", candidate, submitted_date, days_elapsed, slaDays;
+        }
+      }
+    }
+  ' "{{background_checks_csv_path}}"
+variables:
+  background_checks_csv_path:
+    default: "./background-checks.csv"
+    description: "Path to a CSV with columns: candidate_name,submitted_date (YYYY-MM-DD),status (pending/complete)."
+  vendor_sla_days:
+    default: 3
+    description: Business days the vendor commits to for turnaround before a check counts as breaching SLA.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Escalating with the vendor's account rep is a manual step.

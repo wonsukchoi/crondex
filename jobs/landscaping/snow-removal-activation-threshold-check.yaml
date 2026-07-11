@@ -1,0 +1,40 @@
+id: snow-removal-activation-threshold-check
+version: 1
+name: Snow Removal Contract Activation Threshold Check
+description: >
+  Checks the forecast against your snow-removal contract trigger
+  (snowfall total or temperature) and flags whether crews should be
+  activated for tomorrow. Use this if you've ever had a client dispute a
+  snow-removal invoice because it wasn't clear the contracted trigger
+  threshold was actually met.
+category: landscaping
+tags: [landscaping, snow-removal, weather, contracts, seasonal]
+schedule: "0 18 * * *"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  curl -s "https://api.open-meteo.com/v1/forecast?latitude={{latitude}}&longitude={{longitude}}&daily=snowfall_sum&forecast_days=2&timezone=auto" |
+  grep -o '"snowfall_sum":\[[^]]*\]'
+prompt: |
+  Fetch tomorrow's snowfall forecast for latitude {{latitude}}, longitude
+  {{longitude}} (use any weather API available). If forecast snowfall total
+  is at or above {{snowfall_trigger_cm}}cm, report that the snow-removal
+  contract trigger is met and crews should be activated for tomorrow.
+  Otherwise report that the trigger was not met and no activation is
+  needed, and note how close the forecast came to the threshold.
+script_note: >
+  `command` only returns the raw forecast snowfall number — you'd still
+  have to compare it against the trigger yourself. `prompt` does the
+  comparison and states the activation decision plainly.
+variables:
+  latitude:
+    default: "41.9"
+    description: Latitude of the service area.
+  longitude:
+    default: "-87.6"
+    description: Longitude of the service area.
+  snowfall_trigger_cm:
+    default: 5
+    description: Forecast snowfall total (cm) at or above which the contract's activation trigger is met.
+compatible_agents: [claude, codex, generic]
+notes: Uses the free Open-Meteo API in script mode (no key required); confirm your actual contract language, some use inches and per-event vs. per-storm triggers.

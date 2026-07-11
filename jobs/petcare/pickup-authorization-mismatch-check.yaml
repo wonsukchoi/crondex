@@ -1,0 +1,38 @@
+id: pickup-authorization-mismatch-check
+version: 1
+name: Pet Pickup Authorization Mismatch Check
+description: >
+  Cross-checks today's scheduled boarding and daycare pickups against each
+  pet's list of authorized pickup people, and flags any pickup entry naming
+  someone not on that list. Use this if a pet has ever nearly been released
+  to someone who wasn't actually authorized because the front desk didn't
+  have the list handy at the moment.
+category: petcare
+tags: [petcare, boarding, daycare, pickup, authorization, safety]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==FNR {
+      if (FNR>1) { auth[$1","$2] = 1 }
+      next
+    }
+    FNR==1 { next }
+    {
+      if ($3 == today) {
+        key = $1","$2;
+        if (!(key in auth)) print "NOT AUTHORIZED: " $2 " listed to pick up " $1 " today, not on authorized list";
+      }
+    }
+  ' "{{authorized_pickups_csv_path}}" "{{scheduled_pickups_csv_path}}"
+variables:
+  authorized_pickups_csv_path:
+    default: "./authorized-pickups.csv"
+    description: "Path to a CSV with columns: pet_name,authorized_person_name, one row per authorized person per pet."
+  scheduled_pickups_csv_path:
+    default: "./scheduled-pickups.csv"
+    description: "Path to a CSV with columns: pet_name,scheduled_pickup_person_name,pickup_date (YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: Name-matching is exact-string only; keep spelling consistent between the two CSVs or this will produce false positives. Always have staff verify ID at pickup regardless of what this reports.

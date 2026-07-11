@@ -1,0 +1,39 @@
+id: pharmacy-technician-certification-tracking
+version: 1
+name: Pharmacy Technician Certification Tracking
+description: >
+  Tracks each pharmacy technician's certification (e.g. PTCB/ExCPT) and
+  state registration expiration dates and warns before either lapses.
+  Use this if you've ever discovered a technician's certification had
+  already expired when it came up during a routine check.
+category: pharmacy
+tags: [pharmacy, staff, certification, compliance, technicians]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "EXPIRING: %s — %s (%s) expires %s (%d days)\n", $1, $3, $2, $4, diff_days;
+      }
+    }
+  ' "{{tech_credential_csv_path}}"
+variables:
+  tech_credential_csv_path:
+    default: "./pharmacy-tech-credentials.csv"
+    description: "Path to a CSV with columns: technician_name,credential_type (ptcb/excpt/state-registration),number,expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained CSV; does not check a live certifying-body
+  or state-board database. Specific to pharmacy technician credentials, kept
+  separate from jobs/pharmacy/pharmacist-license-renewal-check.yaml since
+  the license types, renewal cycles, and continuing-education rules differ.

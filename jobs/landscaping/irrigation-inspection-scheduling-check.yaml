@@ -1,0 +1,36 @@
+id: irrigation-inspection-scheduling-check
+version: 1
+name: Commercial Irrigation System Inspection Scheduling Check
+description: >
+  Checks your commercial client list for irrigation systems whose last
+  inspection date has passed the required inspection interval, and flags
+  them so a visit can be scheduled. Use this if a commercial property's
+  sprinkler system has ever run for weeks with a broken head or stuck
+  valve because inspections weren't on anyone's calendar.
+category: landscaping
+tags: [landscaping, irrigation, inspection, commercial, scheduling]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval_days="{{inspection_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= interval_days) {
+        printf "INSPECTION DUE: %s — %d days since last irrigation inspection (interval %d)\n", $1, days_since, interval_days;
+      }
+    }
+  ' "{{irrigation_clients_csv_path}}"
+variables:
+  irrigation_clients_csv_path:
+    default: "./irrigation-clients.csv"
+    description: "Path to a CSV with columns: client_name,last_inspection_date (YYYY-MM-DD)."
+  inspection_interval_days:
+    default: 90
+    description: Days between required irrigation inspections before a client is flagged as due.
+compatible_agents: [generic, claude, codex]
+notes: Interval defaults to a quarterly commercial cadence — adjust per contract terms or local water-authority requirements.

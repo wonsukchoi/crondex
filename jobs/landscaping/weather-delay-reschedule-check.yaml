@@ -1,0 +1,47 @@
+id: weather-delay-reschedule-check
+version: 1
+name: Weather-Delay Rescheduling Check
+description: >
+  Checks tomorrow's forecast against your rain/wind thresholds and, if
+  the route would need to be delayed, lists which scheduled stops need to
+  be pushed to the next available day. Use this if a crew has ever headed
+  out into a downpour because nobody checked the forecast before route
+  assignments went out.
+category: landscaping
+tags: [landscaping, weather, scheduling, routes]
+schedule: "0 16 * * *"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  curl -s "https://api.open-meteo.com/v1/forecast?latitude={{latitude}}&longitude={{longitude}}&daily=precipitation_sum,windspeed_10m_max&forecast_days=2&timezone=auto" |
+  grep -o '"precipitation_sum":\[[^]]*\]\|"windspeed_10m_max":\[[^]]*\]'
+prompt: |
+  Fetch tomorrow's forecast for latitude {{latitude}}, longitude {{longitude}}
+  (use any weather API available). If forecast precipitation is at or above
+  {{rain_threshold_mm}}mm or wind speed is at or above {{wind_threshold_kmh}}
+  km/h, read the route list at {{route_schedule_csv_path}} for tomorrow's
+  date and list every stop that should be pushed to the next business day.
+  Otherwise report that no delay is needed.
+script_note: >
+  `command` only returns raw precipitation/wind numbers — you'd still have
+  to compare against thresholds and cross-reference the route list
+  yourself. `prompt` does the threshold check and produces the actual list
+  of stops to reschedule.
+variables:
+  latitude:
+    default: "39.1"
+    description: Latitude of the service area.
+  longitude:
+    default: "-94.6"
+    description: Longitude of the service area.
+  rain_threshold_mm:
+    default: 8
+    description: Forecast precipitation (mm) at or above which the route is considered delayed.
+  wind_threshold_kmh:
+    default: 40
+    description: Forecast max wind speed (km/h) at or above which the route is considered delayed.
+  route_schedule_csv_path:
+    default: "./route-schedule.csv"
+    description: "Path to a CSV with columns: stop_id,service_date (YYYY-MM-DD),crew_name,crew_size."
+compatible_agents: [claude, codex, generic]
+notes: Uses the free Open-Meteo API in script mode (no key required); confirm reschedules with clients before moving their stop.

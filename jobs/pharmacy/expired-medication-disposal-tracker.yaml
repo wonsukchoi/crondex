@@ -1,0 +1,32 @@
+id: expired-medication-disposal-tracker
+version: 1
+name: Expired Medication Disposal Tracker
+description: >
+  Scans the pharmacy's inventory log for items already past expiry that
+  haven't been marked as pulled/returned/disposed yet. Use this if expired
+  stock has ever lingered on the shelf past its pull date simply because
+  no one circled back to finish the disposal step.
+category: pharmacy
+tags: [pharmacy, inventory, expiry, disposal, compliance]
+schedule: "0 7 * * 2"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  { read -r header; while IFS=',' read -r drug lot expiry status; do
+      [ -z "$drug" ] && continue;
+      exp_epoch=$(date -j -f %Y-%m-%d "$expiry" +%s 2>/dev/null || date -d "$expiry" +%s);
+      if [ "$exp_epoch" -lt "$today_epoch" ] && [ "$status" != "disposed" ] && [ "$status" != "returned" ]; then
+        echo "PENDING DISPOSAL: $drug (lot $lot) expired $expiry, current status: $status";
+      fi
+    done; } < "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./pharmacy-inventory.csv"
+    description: "Path to a CSV with columns: drug_name,lot_number,expiry_date (YYYY-MM-DD),status (active/disposed/returned)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, read-only flag list only — it does not dispose of anything.
+  Controlled substances require DEA-registered reverse-distributor disposal,
+  not routine trash disposal; route those lots through your normal
+  controlled-substance destruction process, not this job.

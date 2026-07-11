@@ -1,0 +1,38 @@
+id: client-credit-limit-exposure-check
+version: 1
+name: Client Credit-Limit Exposure Check
+description: >
+  Compares each client's outstanding accounts-receivable balance against
+  their approved credit limit and flags anyone over or close to the limit
+  before more workers get placed with them. Use this if the agency has
+  ever kept staffing a client whose unpaid balance had already blown past
+  their credit limit.
+category: staffing
+tags: [staffing, credit-limit, accounts-receivable, risk]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warnPct="{{warn_at_pct_of_limit}}" '
+    NR==1 {next}
+    {
+      client=$1; credit_limit=$2+0; outstanding_balance=$3+0;
+      if (credit_limit > 0) {
+        pct_used = (outstanding_balance / credit_limit) * 100;
+        if (pct_used >= 100) {
+          printf "OVER LIMIT: %s — $%.2f owed against $%.2f limit (%.0f%% used)\n", client, outstanding_balance, credit_limit, pct_used;
+        } else if (pct_used >= warnPct) {
+          printf "APPROACHING LIMIT: %s — $%.2f owed against $%.2f limit (%.0f%% used)\n", client, outstanding_balance, credit_limit, pct_used;
+        }
+      }
+    }
+  ' "{{client_credit_csv_path}}"
+variables:
+  client_credit_csv_path:
+    default: "./client-credit-exposure.csv"
+    description: "Path to a CSV with columns: client_name,approved_credit_limit,outstanding_ar_balance."
+  warn_at_pct_of_limit:
+    default: 80
+    description: Percent of credit limit used at which a client gets flagged as approaching risk.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Pausing new placements or requiring a deposit from a client is a manual finance/sales decision.

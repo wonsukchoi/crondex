@@ -1,0 +1,45 @@
+id: pseudoephedrine-sales-log-compliance-check
+version: 1
+name: Pseudoephedrine Sales Log Compliance Check
+description: >
+  Reviews the pharmacy's logged pseudoephedrine (and other Combat
+  Methamphetamine Epidemic Act-tracked) sales for a day and flags any
+  entry missing an ID record, or any buyer approaching the legal
+  purchase limit across recent purchases. Use this if a pseudoephedrine
+  sale has ever been logged without full ID info, or a buyer's running
+  total has ever gone unchecked until an audit caught it.
+category: pharmacy
+tags: [pharmacy, pseudoephedrine, compliance, otc, log-review]
+schedule: "0 21 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v limit_g="{{monthly_limit_grams}}" '
+    NR==1 {next}
+    {
+      buyer=$1; id_number=$2; grams=$4; running_total[buyer]+=grams;
+      if (id_number == "" ) {
+        printf "MISSING ID: sale to %s on %s logged with no ID number.\n", buyer, $3;
+      }
+    }
+    END {
+      for (b in running_total) {
+        if (running_total[b] > limit_g) {
+          printf "OVER LIMIT: %s — %.1fg logged this month (limit %sg).\n", b, running_total[b], limit_g;
+        }
+      }
+    }
+  ' "{{sales_log_csv_path}}"
+variables:
+  sales_log_csv_path:
+    default: "./pseudoephedrine-sales-log.csv"
+    description: "Path to a rolling monthly CSV with columns: buyer_name,id_number,sale_date,grams_sold."
+  monthly_limit_grams:
+    default: 9
+    description: Rolling 30-day purchase limit in grams — the CMEA federal default is 9g; lower this if your state sets a stricter cap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance check on a locally maintained log export, not a
+  live NPLEx/state tracking-system connection. Contains buyer PII —
+  keep the CSV local and handle per your store's privacy policy. Confirm
+  your state's limit, which can be lower than the federal 9g default.

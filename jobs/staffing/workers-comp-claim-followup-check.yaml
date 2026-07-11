@@ -1,0 +1,31 @@
+id: workers-comp-claim-followup-check
+version: 1
+name: Workers' Comp Claim Status Follow-Up Check
+description: >
+  Reviews open workers' compensation claims for injured temp workers and
+  drafts a status-check follow-up for any claim that hasn't been updated
+  recently. Use this if an open workers' comp claim has ever sat untouched
+  for weeks because nobody was assigned to keep checking on it.
+category: staffing
+tags: [staffing, workers-comp, claims, follow-up]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read open workers' comp claims from {{claims_log_path}}.
+  1. For each open claim, check the date of the last status update or
+     carrier contact.
+  2. Flag any claim with no update in the last {{stale_after_days}} days.
+  3. For each flagged claim, draft a short status-check message to the
+     insurance carrier or claims adjuster asking for an update, referencing
+     the claim number and injury date — do not send it, just draft it for
+     the claims coordinator to review and send.
+variables:
+  claims_log_path:
+    default: "./workers-comp-claims.csv"
+    description: "Path to a CSV/log of open workers' comp claims with claim number, worker name, injury date, and last update date."
+  stale_after_days:
+    default: 14
+    description: Days since the last update after which an open claim gets flagged for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Drafts follow-up messages only — contacting the carrier or adjuster is a human decision, and claim details are sensitive so handle the data accordingly.

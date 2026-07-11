@@ -1,0 +1,30 @@
+id: grooming-supply-low-stock-check
+version: 1
+name: Grooming Supply Low-Stock Check
+description: >
+  Scans your grooming supply inventory (shampoo, conditioner, ear cleaner,
+  clipper blades, etc.) and flags anything at or below its reorder
+  threshold. Use this if a groomer has ever run out of a core product
+  mid-shift and had to turn away or delay a booked appointment.
+category: petcare
+tags: [petcare, grooming, inventory, supplies, reorder]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v default_threshold="{{default_reorder_threshold}}" '
+    NR==1 {next}
+    {
+      threshold = ($3 != "" ? $3 : default_threshold);
+      if ($2+0 <= threshold+0) print "LOW STOCK: " $1 " — " $2 " unit(s) left (reorder at " threshold ")";
+    }
+  ' "{{supply_inventory_csv_path}}"
+variables:
+  supply_inventory_csv_path:
+    default: "./grooming-supplies.csv"
+    description: "Path to a CSV with columns: item_name,quantity_on_hand,reorder_threshold (optional per-item override)."
+  default_reorder_threshold:
+    default: 5
+    description: Default reorder threshold used for any item that doesn't specify its own in the CSV.
+compatible_agents: [generic, claude, codex]
+notes: Update the CSV from your actual stockroom counts on a regular cadence — this only reflects whatever quantities were last recorded.

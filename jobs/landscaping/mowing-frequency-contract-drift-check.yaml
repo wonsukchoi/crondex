@@ -1,0 +1,54 @@
+id: mowing-frequency-contract-drift-check
+version: 1
+name: Mowing Frequency Contract vs. Actual Visits Drift Check
+description: >
+  Compares each client's contracted mowing frequency (e.g. weekly,
+  biweekly) against the actual number of visits logged in the trailing
+  window, and flags clients who are under- or over-serviced relative to
+  their contract. Use this if you've ever gotten a call asking why a
+  "weekly" client only got mowed twice in a month, or realized you were
+  giving a biweekly client weekly service for free.
+category: landscaping
+tags: [landscaping, contracts, mowing, service-quality]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback="{{lookback_days}}" '
+    FNR==NR {
+      if (FNR==1) { next }
+      contracted[$1] = $2;
+      next;
+    }
+    FNR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      age_days = (today - visit_epoch) / 86400;
+      if (age_days <= lookback) visits[$1] += 1;
+    }
+    END {
+      for (client in contracted) {
+        freq = contracted[client];
+        expected = (freq == "weekly") ? lookback/7 : (freq == "biweekly") ? lookback/14 : lookback/30;
+        actual = visits[client] + 0;
+        diff = actual - expected;
+        if (diff <= -1 || diff >= 1) {
+          printf "DRIFT: %s contracted %s (~%.1f expected) got %d visit(s) in last %d days\n", client, freq, expected, actual, lookback;
+        }
+      }
+    }
+  ' "{{client_contracts_csv_path}}" "{{visit_log_csv_path}}"
+variables:
+  client_contracts_csv_path:
+    default: "./client-mowing-contracts.csv"
+    description: "Path to a CSV with columns: client_name,frequency (weekly/biweekly/monthly)."
+  visit_log_csv_path:
+    default: "./mowing-visit-log.csv"
+    description: "Path to a CSV with columns: client_name,visit_date (YYYY-MM-DD)."
+  lookback_days:
+    default: 28
+    description: Trailing days of visit history to compare against the contracted frequency.
+compatible_agents: [generic, claude, codex]
+notes: Expected-visit math is approximate (calendar-based, not weather-adjusted) — treat flags as a starting point for a manual check, not a precise billing dispute.

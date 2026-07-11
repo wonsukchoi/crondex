@@ -1,0 +1,35 @@
+id: placement-fill-rate-check
+version: 1
+name: Placement Fill-Rate vs Open Orders Check
+description: >
+  Compares how many open job orders from clients got filled with candidates
+  this period against how many came in, and calls out branches or
+  recruiters whose fill rate is dropping. Use this if you only find out
+  fill rate is slipping once a client complains about slow turnaround.
+category: staffing
+tags: [staffing, fill-rate, orders, recruiting-ops]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull open-order and placement data from {{ats_vms_system}} for the last
+  {{lookback_days}} days.
+  1. For each branch/recruiter, compute fill rate: placements made divided
+     by orders received in the window.
+  2. Flag anyone whose fill rate is below {{fill_rate_floor_pct}}%, and note
+     whether it's a candidate-supply problem (few submittals) or a
+     client-side problem (orders getting cancelled or roles changing).
+  3. Rank branches/recruiters from lowest to highest fill rate so the
+     weakest spot is obvious first.
+variables:
+  ats_vms_system:
+    default: "your ATS/VMS (e.g. Bullhorn, JobDiva, Vincere)"
+    description: Where open orders and placements are tracked.
+  lookback_days:
+    default: 30
+    description: Rolling window in days used to compute fill rate.
+  fill_rate_floor_pct:
+    default: 60
+    description: Fill rate percentage below which a branch/recruiter gets flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — staffing decisions (reassigning orders, adding recruiters) are a manager call.

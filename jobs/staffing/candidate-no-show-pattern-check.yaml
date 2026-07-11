@@ -1,0 +1,58 @@
+id: candidate-no-show-pattern-check
+version: 1
+name: Candidate No-Show/Attendance Pattern Check
+description: >
+  Scans recent assignment attendance records for workers with repeated
+  no-shows or late arrivals and flags the pattern before it becomes a
+  client complaint. Use this if a client has ever called to complain about
+  a worker's attendance before the agency's own records had caught the
+  same pattern.
+category: staffing
+tags: [staffing, attendance, no-show, worker-performance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v threshold="{{incident_threshold}}" -v days="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; incident_date=$2; incident_type=$3;
+      cmd = "date -d \"" incident_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" incident_date "\" +%s 2>/dev/null";
+      cmd | getline inc_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - inc_epoch) / 86400;
+      if ((incident_type == "no-show" || incident_type == "late") && age_days <= days) {
+        count[worker]++;
+      }
+    }
+    END {
+      for (w in count) {
+        if (count[w] >= threshold) {
+          printf "ATTENDANCE PATTERN: %s — %d incidents in last %s days\n", w, count[w], days;
+        }
+      }
+    }
+  ' "{{attendance_log_csv_path}}"
+prompt: |
+  Read {{attendance_log_csv_path}} (columns: worker_name, incident_date,
+  incident_type) and count no-show/late incidents per worker in the last
+  {{lookback_days}} days, same as the script. For any worker at or above
+  {{incident_threshold}} incidents, also note which client site(s) they're
+  currently assigned to and whether the incidents cluster around a
+  particular day of week or shift, which the raw count doesn't surface.
+script_note: >
+  The command gives you the flagged worker list and incident counts. The
+  prompt adds client-site context and pattern detection (day-of-week/shift
+  clustering), which needs interpretation beyond a simple count.
+variables:
+  attendance_log_csv_path:
+    default: "./worker-attendance-log.csv"
+    description: "Path to a CSV with columns: worker_name,incident_date (YYYY-MM-DD),incident_type (no-show/late/on-time)."
+  lookback_days:
+    default: 30
+    description: Rolling window in days to look for attendance incidents.
+  incident_threshold:
+    default: 2
+    description: Number of no-show/late incidents within the window that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Deciding whether to counsel a worker or pull them from an assignment is a manual staffing-coordinator judgment call.

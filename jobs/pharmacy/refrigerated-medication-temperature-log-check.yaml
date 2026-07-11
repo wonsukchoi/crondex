@@ -1,0 +1,39 @@
+id: refrigerated-medication-temperature-log-check
+version: 1
+name: Refrigerated Medication Temperature Log Check
+description: >
+  Checks the pharmacy fridge/freezer temperature log for readings outside
+  the safe range for refrigerated medications and vaccines. Use this if a
+  temperature excursion has ever gone unnoticed for hours because no one
+  was actively watching the log between scheduled checks.
+category: pharmacy
+tags: [pharmacy, cold-chain, vaccines, inventory, safety]
+schedule: "0 * * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v min="{{min_temp_c}}" -v max="{{max_temp_c}}" '
+    NR==1 {next}
+    {
+      temp=$2;
+      if (temp+0 < min || temp+0 > max) {
+        printf "TEMPERATURE EXCURSION: %s reading %s°C at %s (safe range %s-%s°C)\n", $1, temp, $3, min, max;
+      }
+    }
+  ' "{{temp_log_csv_path}}"
+variables:
+  temp_log_csv_path:
+    default: "./fridge-temperature-log.csv"
+    description: "Path to a CSV with columns: unit_name,temperature_c,reading_time. Populated by a manual log or a data-logger export."
+  min_temp_c:
+    default: 2
+    description: Minimum safe temperature in Celsius (standard vaccine/refrigerated-drug range is 2-8°C — confirm against your specific products' labeling).
+  max_temp_c:
+    default: 8
+    description: Maximum safe temperature in Celsius.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, read-only check of an already-logged reading — it does not
+  read a thermometer or data logger directly. On a confirmed excursion,
+  follow your manufacturer's/vaccine program's excursion protocol
+  (quarantine affected stock, don't dispense) before assuming it's safe.

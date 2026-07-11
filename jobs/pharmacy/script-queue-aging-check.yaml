@@ -1,0 +1,38 @@
+id: script-queue-aging-check
+version: 1
+name: Prescription (Script) Queue Aging Check
+description: >
+  Scans the pharmacy's incoming prescription queue export and flags any
+  script that's been sitting unfilled longer than your target turnaround
+  time. Use this if a prescription has ever gotten buried in the queue
+  during a busy shift and a patient showed up before it was ready.
+category: pharmacy
+tags: [pharmacy, prescriptions, queue, workflow, turnaround]
+schedule: "*/30 8-20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v minutes="{{escalate_after_minutes}}" '
+    NR==1 {next}
+    $4 == "queued" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      age_minutes = (today - received_epoch) / 60;
+      if (age_minutes >= minutes) {
+        printf "SCRIPT AGING: Rx #%s — %s queued at %s (%d min ago)\n", $1, $2, $3, age_minutes;
+      }
+    }
+  ' "{{queue_export_csv_path}}"
+variables:
+  queue_export_csv_path:
+    default: "./script-queue.csv"
+    description: "Path to a CSV export of the fill queue with columns: rx_number,drug_name,received_at (YYYY-MM-DD HH:MM),status (queued/filling/ready)."
+  escalate_after_minutes:
+    default: 45
+    description: Minutes a script can sit queued before it's flagged for a tech/pharmacist to prioritize.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a periodic CSV export from your pharmacy management system (e.g. a
+  scheduled report), not a live connection — most retail pharmacy systems
+  don't expose a public API. Read-only triage; does not touch dispensing.

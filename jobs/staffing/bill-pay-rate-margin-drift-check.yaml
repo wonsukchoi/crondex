@@ -1,0 +1,50 @@
+id: bill-pay-rate-margin-drift-check
+version: 1
+name: Bill Rate vs Pay Rate Margin Drift Check
+description: >
+  Recomputes the markup margin between what each client is billed and what
+  each worker is paid on active placements, and flags any that have
+  drifted below a minimum threshold. Use this if a payroll burden or tax
+  rate change has ever quietly eroded margin on placements nobody
+  re-priced.
+category: staffing
+tags: [staffing, margin, billing, pay-rate]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v floor="{{min_margin_pct}}" '
+    NR==1 {next}
+    {
+      worker=$1; client=$2; bill_rate=$3+0; pay_rate=$4+0; burden_pct=$5+0;
+      loaded_cost = pay_rate * (1 + burden_pct / 100);
+      if (bill_rate > 0) {
+        margin_pct = ((bill_rate - loaded_cost) / bill_rate) * 100;
+        if (margin_pct < floor) {
+          printf "MARGIN DRIFT: %s at %s — bill $%.2f, loaded cost $%.2f, margin %.1f%%\n", worker, client, bill_rate, loaded_cost, margin_pct;
+        }
+      }
+    }
+  ' "{{placement_rates_csv_path}}"
+prompt: |
+  Read {{placement_rates_csv_path}} (columns: worker_name, client_name,
+  bill_rate, pay_rate, burden_pct) and compute loaded cost and margin for
+  each active placement, same as the script. Flag anything below
+  {{min_margin_pct}}% margin, but also group the flagged placements by
+  client and by cause (a burden-rate change, a pay-rate bump, or a bill
+  rate that was never adjusted) so account managers know whether to
+  renegotiate with the client or absorb the cost.
+script_note: >
+  The command gives you the raw list of placements under the margin floor.
+  The prompt adds grouping by likely cause and by client, which needs
+  judgment about which factor moved and isn't derivable from the numbers
+  alone.
+variables:
+  placement_rates_csv_path:
+    default: "./placement-rates.csv"
+    description: "Path to a CSV with columns: worker_name,client_name,bill_rate,pay_rate,burden_pct (payroll tax/benefits load as a percent of pay rate)."
+  min_margin_pct:
+    default: 18
+    description: Minimum acceptable margin percentage before a placement gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only analysis. Re-pricing a placement or renegotiating a client's bill rate is a manual account-management decision.

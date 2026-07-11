@@ -1,0 +1,38 @@
+id: groomer-schedule-underbooking-check
+version: 1
+name: Groomer Schedule Underbooking Check
+description: >
+  Checks each groomer's schedule for the coming days and flags anyone whose
+  booked hours fall below your target utilization, so staff can push
+  rebooking outreach or promotions before those slots go to waste. Use this
+  if a groomer's calendar has ever quietly gone half-empty for a week
+  without anyone noticing until payroll.
+category: petcare
+tags: [petcare, grooming, scheduling, utilization, staffing]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_utilization_pct}}" '
+    NR==1 {next}
+    {
+      booked[$1] += $3;
+      available[$1] += $2;
+    }
+    END {
+      for (g in available) {
+        pct = (available[g] > 0) ? (booked[g] / available[g]) * 100 : 0;
+        printf "%s: %.1f%% booked (%d of %d hour(s))\n", g, pct, booked[g], available[g];
+        if (pct < target) printf "ALERT: %s is under the %s%% utilization target for the coming week\n", g, target;
+      }
+    }
+  ' "{{schedule_csv_path}}"
+variables:
+  schedule_csv_path:
+    default: "./groomer-schedule.csv"
+    description: "Path to a CSV with columns: groomer_name,available_hours,booked_hours per day for the coming week."
+  target_utilization_pct:
+    default: 70
+    description: Target percentage of available hours that should be booked before a groomer is flagged as underbooked.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from groomer-appointment-no-show-check.yaml, which tracks missed appointments rather than empty slots that were never booked.

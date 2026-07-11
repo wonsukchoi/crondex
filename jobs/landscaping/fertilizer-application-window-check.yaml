@@ -1,0 +1,43 @@
+id: fertilizer-application-window-check
+version: 1
+name: Fertilizer Application Scheduling Window Check
+description: >
+  Checks the forecast soil/air temperature against your fertilizer
+  program's application window and flags whether this week's scheduled
+  applications should proceed, be held, or be moved up. Use this if
+  fertilizer has ever gone down too early or too late in the season and
+  wasted product or burned the turf.
+category: landscaping
+tags: [landscaping, fertilizer, seasonal, scheduling, turf]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  curl -s "https://api.open-meteo.com/v1/forecast?latitude={{latitude}}&longitude={{longitude}}&daily=temperature_2m_min,temperature_2m_max&forecast_days=7&temperature_unit=fahrenheit&timezone=auto" |
+  grep -o '"temperature_2m_min":\[[^]]*\]\|"temperature_2m_max":\[[^]]*\]'
+prompt: |
+  Fetch the 7-day forecast for latitude {{latitude}}, longitude {{longitude}}
+  (use any weather API available). Compare the forecast temperature range
+  against the target application window of {{min_temp_f}}F to
+  {{max_temp_f}}F. For each day, report whether fertilizer application
+  should proceed, be held (too cold/too hot), or is borderline, and give
+  the best day(s) this week to apply.
+script_note: >
+  `command` only returns raw daily min/max temperatures — you'd still have
+  to compare each day against the application window yourself. `prompt`
+  does that comparison and recommends the best application day(s).
+variables:
+  latitude:
+    default: "39.1"
+    description: Latitude of the service area.
+  longitude:
+    default: "-94.6"
+    description: Longitude of the service area.
+  min_temp_f:
+    default: 55
+    description: Minimum soil/air temperature (F) for the fertilizer program's application window.
+  max_temp_f:
+    default: 85
+    description: Maximum soil/air temperature (F) for the fertilizer program's application window.
+compatible_agents: [claude, codex, generic]
+notes: Uses the free Open-Meteo API in script mode (no key required); air temperature is a proxy for soil temperature, use a soil probe reading if precision matters for your program.

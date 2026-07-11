@@ -1,0 +1,37 @@
+id: aggressive-behavior-flag-review-reminder
+version: 1
+name: Aggressive Behavior Flag Review Reminder
+description: >
+  Reminds staff to periodically re-review pets flagged for aggressive or
+  reactive behavior during boarding or daycare, and drafts a summary of
+  each flagged pet's incident history so the review is quick. Use this if
+  a behavior flag has ever sat unreviewed for months, leaving staff unsure
+  whether it's still accurate or handling instructions have changed.
+category: petcare
+tags: [petcare, boarding, daycare, behavior, safety, incident]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the behavior flag log at {{behavior_flags_csv_path}} (columns:
+  pet_name, owner_name, flag_date, description, last_reviewed_date).
+
+  1. List every pet whose flag hasn't been reviewed in over
+     {{review_interval_days}} days.
+  2. For each one, summarize the recorded incident history in plain
+     language for a staff member who's never met the pet.
+  3. Suggest, based on the pattern (single isolated incident vs. repeated
+     incidents), whether the flag likely still warrants special handling
+     or might be worth a fresh in-person reassessment.
+  4. Do not recommend removing a flag outright — only recommend a human
+     review; this is a staffing safety reminder, not a behavioral
+     diagnosis.
+variables:
+  behavior_flags_csv_path:
+    default: "./behavior-flags.csv"
+    description: Path to the CSV log of pets flagged for aggressive or reactive behavior.
+  review_interval_days:
+    default: 90
+    description: Days since the last review before a behavior flag is surfaced for re-review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: For staff situational awareness only — never removes or downgrades a safety flag automatically; a person must make that call.

@@ -1,0 +1,30 @@
+id: grooming-equipment-sanitation-log-check
+version: 1
+name: Grooming Table & Equipment Sanitation Log Check
+description: >
+  Checks your daily sanitation log for grooming tables, tubs, clippers, and
+  dryers to make sure every station was logged as cleaned each business
+  day, and flags any missed entries. Use this if you've ever needed to
+  prove a consistent cleaning record for an inspection or a client
+  complaint and found gaps in the log.
+category: petcare
+tags: [petcare, grooming, sanitation, equipment, compliance]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  for station in {{stations}}; do
+    if ! grep -q "^${station},${today}," "{{sanitation_log_csv_path}}" 2>/dev/null; then
+      echo "MISSING LOG: $station not logged as cleaned today ($today)";
+    fi
+  done
+variables:
+  sanitation_log_csv_path:
+    default: "./sanitation-log.csv"
+    description: "Path to a CSV with columns: station_name,date (YYYY-MM-DD),cleaned_by, appended whenever a station is sanitized."
+  stations:
+    default: "grooming-table-1 grooming-table-2 tub-1 tub-2 dryer-1"
+    description: Space-separated list of station names that must have a sanitation entry each day.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a POSIX shell with `grep`; station names must not contain spaces or commas. This only checks that a log entry exists, not that the cleaning was actually done thoroughly.

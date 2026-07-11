@@ -1,0 +1,39 @@
+id: patient-adherence-pdc-gap-check
+version: 1
+name: Patient Adherence (PDC) Gap Check
+description: >
+  Calculates each maintenance-medication patient's proportion of days
+  covered (PDC) from their fill history and flags anyone who's dropped
+  below your adherence target. Use this if you've ever wanted to catch a
+  patient slipping on a chronic medication before it shows up as a bad
+  quality-measure score at the end of the quarter.
+category: pharmacy
+tags: [pharmacy, adherence, pdc, quality-measures, patients]
+schedule: "0 6 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v target="{{pdc_target_percent}}" '
+    NR==1 {next}
+    {
+      patient=$1; drug=$2; days_covered=$3; days_in_period=$4;
+      pdc = (days_in_period > 0) ? (days_covered/days_in_period*100) : 0;
+      if (pdc < target) {
+        printf "PDC GAP: %s — %s — %.1f%% covered (target %s%%)\n", patient, drug, pdc, target;
+      }
+    }
+  ' "{{fill_history_csv_path}}"
+variables:
+  fill_history_csv_path:
+    default: "./adherence-fill-history.csv"
+    description: "Path to a CSV with columns: patient_name,drug_name,days_covered,days_in_period, precomputed from fill-date gaps for the measurement window."
+  pdc_target_percent:
+    default: 80
+    description: "Minimum PDC percentage before a patient is flagged (80% is the common CMS Star Ratings threshold)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a locally computed adherence export — it does not
+  calculate PDC directly from raw claims itself. Contains patient-specific
+  health information; keep the CSV local per your pharmacy's HIPAA policy,
+  and treat a flagged gap as a prompt for outreach, not a judgment about
+  the patient.

@@ -1,0 +1,35 @@
+id: flea-tick-treatment-verification-check
+version: 1
+name: Flea/Tick Treatment Verification Before Boarding Admission
+description: >
+  Checks your admission records for upcoming boarding or daycare check-ins
+  where proof of current flea/tick treatment hasn't been recorded, which
+  most facilities require to protect other boarded animals. Use this if
+  you've ever admitted a pet without confirming treatment status and dealt
+  with an infestation risk across the whole kennel afterward. This checks
+  paperwork only — it does not apply or recommend any treatment.
+category: petcare
+tags: [petcare, boarding, daycare, flea-tick, admission, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  lookahead=$(date -d "+{{lookahead_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{lookahead_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v ahead="$lookahead" '
+    NR==1 {next}
+    {
+      if ($3 >= today && $3 <= ahead && $4 != "verified") {
+        print "TREATMENT NOT VERIFIED: " $1 " (" $2 ") — check-in " $3;
+      }
+    }
+  ' "{{admissions_csv_path}}"
+variables:
+  admissions_csv_path:
+    default: "./boarding-admissions.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD),flea_tick_status (verified/pending/exempt)."
+  lookahead_days:
+    default: 3
+    description: How many days ahead to check for upcoming admissions missing flea/tick verification.
+compatible_agents: [generic, claude, codex]
+notes: Administrative paperwork check only, not a substitute for an actual physical inspection at drop-off.

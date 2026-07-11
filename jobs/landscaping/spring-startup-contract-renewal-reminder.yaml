@@ -1,0 +1,36 @@
+id: spring-startup-contract-renewal-reminder
+version: 1
+name: Spring Startup Contract Renewal Reminder
+description: >
+  Checks your client contract list for seasonal spring startup service
+  (irrigation turn-on, first mow, bed cleanup) whose renewal date is
+  approaching and flags the ones that haven't been confirmed yet. Use
+  this if a client has ever assumed they were renewed and you found out
+  in April they'd switched to a competitor.
+category: landscaping
+tags: [landscaping, contracts, seasonal, spring, renewal]
+schedule: "0 8 1 2,3 *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    tolower($3) == "spring-startup" && tolower($4) != "confirmed" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline renew_epoch; close(cmd);
+      days_left = (renew_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        printf "UNCONFIRMED: %s spring-startup renewal due %s (%d days), status=%s\n", $1, $2, days_left, $4;
+      }
+    }
+  ' "{{contracts_csv_path}}"
+variables:
+  contracts_csv_path:
+    default: "./client-contracts.csv"
+    description: "Path to a CSV with columns: client_name,renewal_date (YYYY-MM-DD),service_type,status (confirmed/pending/declined)."
+  warn_days:
+    default: 30
+    description: Days before the renewal date to start flagging unconfirmed spring-startup contracts.
+compatible_agents: [generic, claude, codex]
+notes: Follow up with the client directly once flagged — this job only surfaces who hasn't confirmed yet.

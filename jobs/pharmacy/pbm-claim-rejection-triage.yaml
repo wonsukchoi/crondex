@@ -1,0 +1,39 @@
+id: pbm-claim-rejection-triage
+version: 1
+name: PBM Claim Rejection Triage
+description: >
+  Reads today's export of rejected insurance/PBM claims and groups them by
+  rejection reason (prior auth needed, refill too soon, non-formulary, plan
+  terminated, etc.) so the pharmacist knows which ones are quick fixes and
+  which need a prescriber call. Use this if rejected claims have ever piled
+  up unsorted at the register while a line of patients waits.
+category: pharmacy
+tags: [pharmacy, insurance, pbm, claims, billing]
+schedule: "0 11,17 * * 1-6"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read today's rejected-claims export from {{rejections_csv_path}} (columns:
+  patient_name, drug_name, reject_code, reject_reason, submitted_at).
+
+  1. Group the rejections by reason category (e.g. "prior authorization
+     required", "refill too soon", "non-formulary / needs substitution",
+     "plan/eligibility issue", "other").
+  2. For each group, list the count and the affected patients/drugs.
+  3. Call out which categories are likely same-day fixable at the counter
+     (e.g. day-supply adjustment, override code) versus which need a
+     prescriber or PBM help-desk call.
+  4. Flag anything mentioning a controlled substance for pharmacist
+     review before any resubmission — do not suggest an automatic override.
+  Do not draft or send anything to PBMs, prescribers, or patients; produce a
+  triage summary only.
+variables:
+  rejections_csv_path:
+    default: "./pbm-rejected-claims.csv"
+    description: "Path to a CSV export of today's rejected claims from your pharmacy/claims-adjudication system."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only triage of an already-exported file; this job does not connect to
+  a live PBM switch or resubmit claims. Any patient-identifying data in the
+  export should be handled per your pharmacy's HIPAA policy — keep the CSV
+  local and don't paste it into unrelated tools.

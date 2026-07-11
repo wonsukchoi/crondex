@@ -1,0 +1,45 @@
+id: groomer-appointment-no-show-check
+version: 1
+name: Groomer Appointment No-Show Pattern Check
+description: >
+  Calculates the weekly no-show rate for grooming appointments and flags
+  when it crosses a threshold, plus lists which clients have no-showed more
+  than once. Use this if empty grooming slots from no-shows have ever eaten
+  into a groomer's paid hours without anyone tracking the pattern.
+category: petcare
+tags: [petcare, grooming, appointments, no-show, scheduling]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{alert_threshold_pct}}" -v repeat="{{repeat_flag_count}}" '
+    NR==1 {next}
+    {
+      total++;
+      if ($3 == "no-show") { noshow++; client_noshows[$2]++; }
+    }
+    END {
+      if (total > 0) {
+        rate = (noshow / total) * 100;
+        printf "NO-SHOW RATE: %d/%d appointments = %.1f%%\n", noshow, total, rate;
+        if (rate >= threshold) printf "ALERT: no-show rate %.1f%% is at or above the %.1f%% threshold\n", rate, threshold;
+      } else {
+        print "No grooming appointments found in the input.";
+      }
+      for (c in client_noshows) {
+        if (client_noshows[c] >= repeat) printf "REPEAT NO-SHOW: %s has %d no-show(s)\n", c, client_noshows[c];
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./grooming-appointments.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,status (completed/no-show/cancelled), covering the reporting period."
+  alert_threshold_pct:
+    default: 12
+    description: No-show rate percentage that triggers an alert.
+  repeat_flag_count:
+    default: 2
+    description: Number of no-shows by the same client within the period before flagging them as a repeat offender.
+compatible_agents: [generic, claude, codex]
+notes: Consider requiring a deposit or confirmation text for clients flagged as repeat no-shows — this job only reports the pattern, it doesn't take action.

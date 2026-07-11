@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-935 jobs across 48 categories:
+1015 jobs across 52 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -137,6 +137,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 20 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 20 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 19 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
@@ -144,6 +145,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `marketing` | 20 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
+| `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
+| `pharmacy` | 20 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
@@ -153,6 +156,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `sales` | 18 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
+| `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 20 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 20 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |

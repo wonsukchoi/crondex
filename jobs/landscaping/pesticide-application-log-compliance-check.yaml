@@ -1,0 +1,38 @@
+id: pesticide-application-log-compliance-check
+version: 1
+name: Pesticide/Chemical Application Log Compliance Check
+description: >
+  Checks that every chemical/pesticide application logged this week has
+  the fields most state licensing boards require (applicator ID, product
+  name, EPA registration number, site, rate) filled in, and flags rows
+  missing any of them. Use this if you've ever been asked for application
+  records during a state inspection and found gaps in the log.
+category: landscaping
+tags: [landscaping, pesticide, compliance, licensing, safety]
+schedule: "0 17 * * 5"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      missing = "";
+      if ($2 == "") missing = missing "applicator_id ";
+      if ($3 == "") missing = missing "product_name ";
+      if ($4 == "") missing = missing "epa_reg_number ";
+      if ($5 == "") missing = missing "site ";
+      if ($6 == "") missing = missing "application_rate ";
+      if (missing != "") {
+        printf "INCOMPLETE: application %s (%s) missing: %s\n", $1, $3, missing;
+        flagged += 1;
+      }
+      total += 1;
+    }
+    END { printf "Checked %d application log(s): %d incomplete\n", total+0, flagged+0; }
+  ' "{{application_log_csv_path}}"
+variables:
+  application_log_csv_path:
+    default: "./pesticide-application-log.csv"
+    description: "Path to a CSV with columns: application_id,applicator_id,product_name,epa_reg_number,site,application_rate,application_date."
+compatible_agents: [generic, claude, codex]
+notes: This checks for missing fields only, not regulatory correctness — confirm the exact fields your state requires before relying on this for an inspection.

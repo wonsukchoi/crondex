@@ -1,0 +1,41 @@
+id: seasonal-boarding-waitlist-review
+version: 1
+name: Seasonal Boarding Waitlist Review
+description: >
+  During peak boarding seasons (holidays, summer), reviews the waitlist
+  against openings created by cancellations and suggests who to contact
+  next, in what order. Use this if you've ever had a boarding slot open up
+  during a busy season and let it sit empty while the waitlist went
+  uncontacted.
+category: petcare
+tags: [petcare, boarding, waitlist, seasonal, scheduling]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the boarding waitlist at {{waitlist_csv_path}} (columns: pet_name,
+  owner_name, requested_checkin, requested_checkout, date_added_to_waitlist)
+  and the current reservation calendar at {{reservations_csv_path}} (columns:
+  pet_name, owner_name, checkin_date, checkout_date, status).
+
+  1. Identify any date ranges in the next {{lookahead_days}} days where a
+     previously-booked reservation was cancelled, creating an opening.
+  2. For each opening, list waitlisted pets whose requested dates fit,
+     ordered by how long they've been waiting (oldest first).
+  3. Draft a short, friendly outreach message per pet offering the opening,
+     with a reasonable response deadline before moving to the next person
+     on the list.
+  4. Note any opening with no matching waitlist entry so staff can consider
+     opening it up for new bookings.
+variables:
+  waitlist_csv_path:
+    default: "./boarding-waitlist.csv"
+    description: Path to the boarding waitlist CSV.
+  reservations_csv_path:
+    default: "./boarding-reservations.csv"
+    description: Path to the current boarding reservation calendar CSV.
+  lookahead_days:
+    default: 14
+    description: How many days ahead to look for openings to fill from the waitlist.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Drafts outreach messages only — review before sending, since it doesn't know about informal holds or verbal promises made outside the CSV.

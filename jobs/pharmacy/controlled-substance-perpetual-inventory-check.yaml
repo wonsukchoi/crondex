@@ -1,0 +1,37 @@
+id: controlled-substance-perpetual-inventory-check
+version: 1
+name: Controlled Substance Perpetual Inventory Check
+description: >
+  Compares the pharmacy's running perpetual-inventory log for Schedule
+  II drugs against the last physical count and flags any mismatch beyond
+  a small tolerance. Use this if a Schedule II count has ever drifted for
+  days before anyone noticed, rather than being caught the same shift.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, inventory, compliance]
+schedule: "0 21 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{tolerance_units}}" '
+    NR==1 {next}
+    {
+      running=$3; counted=$4; diff=running-counted; if (diff<0) diff=-diff;
+      if (diff > tolerance) {
+        printf "MISMATCH: %s (Schedule %s) — running balance %s vs. physical count %s (diff %s)\n", $1, $2, running, counted, diff;
+      }
+    }
+  ' "{{perpetual_log_csv_path}}"
+variables:
+  perpetual_log_csv_path:
+    default: "./controlled-substance-perpetual-log.csv"
+    description: "Path to a CSV with columns: drug_name,dea_schedule,running_balance,last_physical_count."
+  tolerance_units:
+    default: 0
+    description: Allowed difference (in dosage units) between running balance and physical count before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation of a locally maintained log — does not replace
+  DEA Form 222 recordkeeping, your PDMP obligations, or the pharmacist's own
+  loss-reporting duty (DEA Form 106) if a real discrepancy is confirmed.
+  Any confirmed loss/theft must still be reported through the normal
+  DEA/state board channel, not by this job.

@@ -1,0 +1,39 @@
+id: playtest-feedback-digest
+version: 1
+name: Playtest Feedback Digest
+description: >
+  Summarizes new closed-beta or playtest survey responses and bug reports
+  into recurring themes so design and QA don't have to read every
+  submission individually. Use this if valuable playtester feedback has
+  ever sat unread in a form's response sheet until the build was already
+  locked.
+category: gaming
+tags: [gaming, playtest, qa, feedback, beta]
+schedule: "0 10 * * 1,4"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review new playtest/closed-beta feedback for {{game_name}} submitted
+  via {{feedback_source}} in the last {{lookback_days}} days.
+  1. Group responses into recurring themes (e.g. "tutorial unclear",
+     "difficulty spike in level 3", "UI element hard to find") with a
+     count of how many responses mentioned each.
+  2. Separate bug reports from subjective feedback/opinions, and flag
+     any bug report that sounds like a crash, save-corruption, or
+     progression blocker as high priority.
+  3. Note standout quotes (positive or negative) that illustrate a theme
+     well.
+  4. If volume was too low to find patterns, just list the raw
+     submissions.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title in playtest.
+  feedback_source:
+    default: "the playtest feedback form"
+    description: Where feedback comes in (survey tool, Discord channel, support form, etc.).
+  lookback_days:
+    default: 3
+    description: How far back to pull new feedback submissions.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Summarization only — doesn't file bugs or tasks automatically; hand high-priority items to your own bug tracker.

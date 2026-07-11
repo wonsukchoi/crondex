@@ -1,0 +1,45 @@
+id: cheat-report-triage
+version: 1
+name: Cheat/Exploit Report Triage
+description: >
+  Reviews the backlog of player-submitted cheat and exploit reports and
+  groups them by likely severity so your trust & safety team knows what
+  to look at first. Use this if a cheating wave has ever gone unchecked
+  for days because reports piled up in a queue nobody triaged.
+category: gaming
+tags: [gaming, cheating, anti-cheat, trust-and-safety, moderation]
+schedule: "0 8,14,20 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the player-submitted cheat/exploit report queue for
+  {{game_name}} (via {{report_queue_source}}) filed in the last
+  {{lookback_hours}} hours.
+  1. Group reports by the account/player being reported — a player with
+     multiple independent reports in the window is higher priority than
+     a single one-off report.
+  2. Classify each group by likely type (aimbot/wallhack, speed/movement
+     exploit, duping/economy exploit, boosting/smurfing, other) based on
+     the report descriptions and any attached evidence.
+  3. Rank groups by severity: multiple corroborating reports plus
+     evidence (clip/screenshot) ranks highest; a single unverified report
+     ranks lowest.
+  4. Output a ranked list with player identifier, report count, type, and
+     a one-line recommended next step (escalate to manual review, request
+     more evidence, or no action). Do not ban or action any account —
+     this is a triage report only.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check.
+  report_queue_source:
+    default: "the in-game report/support ticket system"
+    description: Where cheat reports are filed (support desk, in-game report tool, community Discord, etc.).
+  lookback_hours:
+    default: 24
+    description: How far back to pull reports from.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Report-only — no account is banned, suspended, or actioned
+  automatically. Final ban decisions need human (or dedicated anti-cheat
+  system) review, especially given false-positive risk.

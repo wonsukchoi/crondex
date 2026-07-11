@@ -1,0 +1,63 @@
+id: store-review-score-watch
+version: 1
+name: Store Listing Review Score Watch
+description: >
+  Checks your game's rating trend on the app/game store it's listed on
+  and flags a sudden drop, which is often the first public sign of a
+  broken patch. Use this if your store rating has ever slid a full star
+  before anyone on the team saw the reviews causing it.
+category: gaming
+tags: [gaming, store-listing, reviews, ratings, live-ops]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  current={{current_rating}}; baseline={{baseline_rating}};
+  drop=$(awk -v c="$current" -v b="$baseline" 'BEGIN { printf "%.2f", b - c }');
+  flag=$(awk -v d="$drop" -v t="{{drop_threshold}}" 'BEGIN { print (d >= t) ? 1 : 0 }');
+  if [ "$flag" -eq 1 ]; then
+    echo "WARNING: rating dropped ${drop} stars (current ${current}, baseline ${baseline})";
+    exit 1;
+  else
+    echo "OK: rating is ${current} (baseline ${baseline})";
+  fi
+prompt: |
+  Check {{game_name}}'s current rating and recent review volume on
+  {{store_name}} (via the store's developer dashboard/API, or the public
+  listing page).
+  1. Compare the current rating to the {{lookback_days}}-day-ago
+     baseline of {{baseline_rating}}.
+  2. If it's dropped by {{drop_threshold}} stars or more, or review
+     volume has spiked, read a sample of the most recent low-star reviews
+     and summarize the top 2-3 recurring complaints (crashes, a specific
+     bug, monetization backlash, server issues).
+  3. If the drop lines up with a recent patch or event, note that.
+  4. If the rating is stable, report it in one line.
+script_note: >
+  `command` just compares two rating numbers you supply — it can't read
+  store review text or explain what's driving a drop. `prompt` reads the
+  actual reviews and summarizes the recurring complaint.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  store_name:
+    default: "Steam"
+    description: Store the game is listed on (e.g. "Steam", "App Store", "Google Play").
+  current_rating:
+    default: 4.2
+    description: Current store rating out of 5 (command mode manual input).
+  baseline_rating:
+    default: 4.5
+    description: Prior baseline rating to compare against (command mode manual input).
+  drop_threshold:
+    default: 0.2
+    description: Star drop (out of 5) that counts as worth flagging.
+  lookback_days:
+    default: 7
+    description: How many days back the baseline rating is from (prompt mode).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  `command` mode needs current/baseline ratings supplied manually or via
+  your own scraping/export step — most stores don't expose a public
+  ratings API without developer credentials.

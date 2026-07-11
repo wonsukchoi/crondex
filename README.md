@@ -104,7 +104,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-738 jobs across 48 categories:
+752 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -123,7 +123,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `finance` | 24 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 19 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
-| `gaming` | 7 | Streaming and community server ops — schedules, patches, tournaments. |
+| `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 7 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |

@@ -1,0 +1,65 @@
+id: game-economy-inflation-watch
+version: 1
+name: In-Game Economy Inflation Watch
+description: >
+  Checks your game's soft-currency source-to-sink ratio and flags when
+  players are earning far more than they're spending, a leading sign of
+  economy inflation. Use this if your in-game currency has ever quietly
+  become worthless because sinks stopped keeping pace with sources and
+  nobody caught it until prices had to be re-balanced from scratch.
+category: gaming
+tags: [gaming, economy, currency, live-ops, balance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  sources={{daily_currency_sources}}; sinks={{daily_currency_sinks}};
+  if [ "$sinks" -le 0 ]; then echo "ERROR: sink value must be greater than 0"; exit 1; fi;
+  ratio=$(awk -v s="$sources" -v k="$sinks" 'BEGIN { printf "%.2f", s / k }');
+  over=$(awk -v r="$ratio" -v t="{{max_healthy_ratio}}" 'BEGIN { print (r > t) ? 1 : 0 }');
+  if [ "$over" -eq 1 ]; then
+    echo "WARNING: source-to-sink ratio is ${ratio}x (threshold {{max_healthy_ratio}}x) — currency is inflating";
+    exit 1;
+  else
+    echo "OK: source-to-sink ratio is ${ratio}x";
+  fi
+prompt: |
+  Pull {{game_name}}'s soft-currency economy telemetry for the last
+  {{lookback_days}} days (total currency earned/"sourced" vs. currency
+  spent/"sunk", from your analytics or live-ops dashboard).
+  1. Compute the source-to-sink ratio and compare it to the healthy
+     benchmark of roughly {{max_healthy_ratio}}x.
+  2. If it's over that ratio, identify which sources grew fastest (a
+     new event reward, a farming exploit, a drop-rate bug) and which
+     sinks are underperforming (nothing new to spend on, a sink removed
+     in a past patch).
+  3. Note the median player's currency balance trend if available — a
+     rising median balance confirms inflation is actually reaching players.
+  4. If the ratio is healthy, report it in one line.
+script_note: >
+  `command` only compares two numbers you supply by hand (or pipe in from
+  your own export) against a threshold — it can't pull live telemetry or
+  explain *why* the ratio moved. `prompt` pulls the real source/sink
+  breakdown and points at the likely cause.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  lookback_days:
+    default: 7
+    description: Rolling window of economy activity to evaluate.
+  daily_currency_sources:
+    default: 1000000
+    description: Total soft currency earned across all players in the window (command mode manual input).
+  daily_currency_sinks:
+    default: 700000
+    description: Total soft currency spent across all players in the window (command mode manual input).
+  max_healthy_ratio:
+    default: 1.3
+    description: Source-to-sink ratio above which the economy is considered inflating.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  `command` mode needs source/sink totals fed in manually or via your own
+  export script — most economy telemetry lives behind an analytics
+  dashboard with no universal CLI, so there's no generic way to fetch it
+  in shell.

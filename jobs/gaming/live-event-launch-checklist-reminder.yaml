@@ -1,0 +1,49 @@
+id: live-event-launch-checklist-reminder
+version: 1
+name: Live-Ops Event Launch Checklist Reminder
+description: >
+  Counts down to your next scheduled live-ops event (a seasonal update,
+  a limited-time mode, a battle pass launch) and reminds you while
+  there's still time to finish prep. Use this if an event has ever gone
+  live with an unfinished storefront banner or a config flag nobody
+  flipped because the countdown snuck up on the team.
+category: gaming
+tags: [gaming, live-ops, events, seasonal, reminder]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  event_epoch=$(date -d "{{event_launch_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{event_launch_date}}" +%s 2>/dev/null);
+  now_epoch=$(date +%s);
+  if [ -z "$event_epoch" ]; then
+    echo "ERROR: could not parse event_launch_date '{{event_launch_date}}' (use YYYY-MM-DD)";
+    exit 1;
+  fi;
+  diff_days=$(( (event_epoch - now_epoch) / 86400 ));
+  if [ "$diff_days" -lt 0 ]; then
+    echo "PAST: {{event_name}} launch date ({{event_launch_date}}) has already passed";
+  elif [ "$diff_days" -le "{{warn_days_before}}" ]; then
+    echo "COUNTDOWN: {{event_name}} launches in $diff_days day(s) on {{event_launch_date}} — confirm: {{prep_checklist}}";
+    exit 1;
+  else
+    echo "OK: {{event_name}} launches in $diff_days day(s) on {{event_launch_date}} — outside the {{warn_days_before}}-day prep window";
+  fi
+variables:
+  event_name:
+    default: "Season 1 Launch"
+    description: Name of the upcoming live-ops event.
+  event_launch_date:
+    default: "2026-08-01"
+    description: Event launch date (YYYY-MM-DD).
+  warn_days_before:
+    default: 7
+    description: How many days before launch to start the countdown reminder.
+  prep_checklist:
+    default: "storefront banner, patch config flag, marketing push, server capacity scaling"
+    description: Short comma-separated list of prep items to double-check, printed with the reminder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Plain date-threshold reminder — it doesn't verify any checklist item
+  was actually completed, just resurfaces the list while there's still
+  time to act on it. Update event_launch_date/prep_checklist per event,
+  or maintain multiple copies of this job for a busy live-ops calendar.

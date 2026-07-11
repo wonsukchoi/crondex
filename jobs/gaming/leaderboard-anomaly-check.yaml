@@ -1,0 +1,69 @@
+id: leaderboard-anomaly-check
+version: 1
+name: Leaderboard Anomaly Check
+description: >
+  Scans recent leaderboard climbers for score jumps that look physically
+  implausible and flags them for anti-cheat review. Use this if a
+  cheater has ever sat at the top of your leaderboard for a season before
+  anyone questioned how they got there.
+category: gaming
+tags: [gaming, leaderboard, anti-cheat, competitive]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v mult="{{max_plausible_jump_multiplier}}" '
+    NR==1 {next}
+    {
+      player=$1; prev=$2+0; curr=$3+0;
+      if (prev > 0) {
+        jump = curr / prev;
+        if (jump >= mult) {
+          printf "FLAGGED: %s jumped %.1fx (prev %d -> curr %d)\n", player, jump, prev, curr;
+          flagged=1;
+        }
+      }
+    }
+    END { if (!flagged) print "OK: no implausible score jumps found" }
+  ' "{{leaderboard_snapshot_csv_path}}"
+prompt: |
+  Review the leaderboard score-change data for {{game_name}}'s
+  {{leaderboard_name}} leaderboard over the last {{lookback_days}} days
+  (from {{leaderboard_snapshot_csv_path}} or your live leaderboard API).
+  1. Flag players whose score increased by {{max_plausible_jump_multiplier}}x
+     or more since the last snapshot, or who jumped an unusually large
+     number of rank positions in one period.
+  2. For each flagged player, note anything corroborating a cheating
+     concern if available (recent cheat reports, account age, prior
+     bans) versus a plausible explanation (a new season reset, a
+     legitimate skill-based climb, a bug in a specific game mode's
+     scoring).
+  3. Rank flagged players by how implausible the jump looks.
+  4. If nothing looks anomalous, say so in one line. Do not remove any
+     score or account from the leaderboard — this is a report only.
+script_note: >
+  `command` only compares two snapshot columns in a CSV against a flat
+  multiplier threshold — it can't cross-reference cheat reports or judge
+  whether a jump has a legitimate explanation. `prompt` adds that
+  context and ranks by plausibility.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  leaderboard_name:
+    default: "Ranked Season"
+    description: Name of the leaderboard being checked.
+  leaderboard_snapshot_csv_path:
+    default: "./leaderboard-snapshots.csv"
+    description: "Path to a CSV with columns: player_id,previous_score,current_score."
+  lookback_days:
+    default: 7
+    description: How far back the snapshot comparison spans (prompt mode).
+  max_plausible_jump_multiplier:
+    default: 3
+    description: Score multiplier (current/previous) above which a jump is flagged as implausible.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a leading signal for manual anti-cheat review, not a
+  conviction — legitimate causes (season resets, scoring bugs, smurf
+  accounts placing low then climbing fast) can also trigger a flag.

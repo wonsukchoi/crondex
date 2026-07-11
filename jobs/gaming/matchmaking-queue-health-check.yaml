@@ -1,0 +1,42 @@
+id: matchmaking-queue-health-check
+version: 1
+name: Matchmaking Queue Health Check
+description: >
+  Pings your game's matchmaking service health endpoint and flags it if
+  it's down or responding too slowly. Use this if players have ever sat
+  in a matchmaking queue for minutes before anyone on the team noticed a
+  region's matchmaker had quietly stalled.
+category: gaming
+tags: [gaming, matchmaking, live-service, uptime]
+schedule: "*/5 * * * *"
+runner: shell
+command: >
+  url={{matchmaking_health_url}}; timeout={{timeout_seconds}};
+  start=$(date +%s%N 2>/dev/null || date +%s);
+  code=$(curl -o /dev/null -s -w '%{http_code}' --max-time "$timeout" "$url");
+  end=$(date +%s%N 2>/dev/null || date +%s);
+  elapsed_ms=$(( (end - start) / 1000000 ));
+  if [ "$code" -ge 200 ] && [ "$code" -lt 400 ] && [ "$elapsed_ms" -le "{{max_response_ms}}" ]; then
+    echo "OK: $url returned $code in ${elapsed_ms}ms";
+  elif [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+    echo "SLOW: $url returned $code in ${elapsed_ms}ms (over {{max_response_ms}}ms threshold)";
+    exit 1;
+  else
+    echo "DOWN: $url returned $code";
+    exit 1;
+  fi
+variables:
+  matchmaking_health_url:
+    default: "https://matchmaker.yourgame.example.com/health"
+    description: Health/status endpoint of your matchmaking service.
+  timeout_seconds:
+    default: 5
+    description: Max seconds to wait for a response before treating it as down.
+  max_response_ms:
+    default: 1500
+    description: Response time in milliseconds above which a healthy status code still counts as degraded.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Note on elapsed time is best-effort millisecond math via `date` — precision
+  varies by OS. Point this at a health/status endpoint your matchmaking
+  service already exposes, not the raw matchmaking API itself.

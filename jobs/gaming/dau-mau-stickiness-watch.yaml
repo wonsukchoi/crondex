@@ -1,0 +1,62 @@
+id: dau-mau-stickiness-watch
+version: 1
+name: DAU/MAU Stickiness Watch
+description: >
+  Checks your game's daily-active-to-monthly-active user ratio (a core
+  "stickiness" health metric) and flags when it's trending down. Use this
+  if engagement has ever quietly eroded for weeks before it showed up as
+  a scary number in a monthly business review.
+category: gaming
+tags: [gaming, dau, mau, engagement, analytics]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  dau={{dau}}; mau={{mau}};
+  if [ "$mau" -le 0 ]; then echo "ERROR: MAU must be greater than 0"; exit 1; fi;
+  ratio_pct=$(awk -v d="$dau" -v m="$mau" 'BEGIN { printf "%.1f", (d / m) * 100 }');
+  below=$(awk -v r="$ratio_pct" -v t="{{min_healthy_pct}}" 'BEGIN { print (r < t) ? 1 : 0 }');
+  if [ "$below" -eq 1 ]; then
+    echo "WARNING: DAU/MAU stickiness is ${ratio_pct}% (below {{min_healthy_pct}}% floor) — DAU ${dau}, MAU ${mau}";
+    exit 1;
+  else
+    echo "OK: DAU/MAU stickiness is ${ratio_pct}% — DAU ${dau}, MAU ${mau}";
+  fi
+prompt: |
+  Pull DAU and MAU for {{game_name}} for the last {{lookback_weeks}}
+  weeks from your analytics dashboard.
+  1. Compute the DAU/MAU stickiness ratio for each week and the trend
+     over the window.
+  2. Flag if the most recent week's ratio is below {{min_healthy_pct}}%
+     or has dropped meaningfully vs. the trailing average.
+  3. If MAU is flat but DAU is falling (or vice versa), call that out —
+     it points to a different underlying problem (casual drop-off vs.
+     core-player fatigue).
+  4. If stickiness is stable or improving, report the trend in one line.
+script_note: >
+  `command` just divides two numbers you supply against a floor
+  threshold — no trend, no breakdown of which side (DAU or MAU) is
+  moving. `prompt` pulls the real weekly series and distinguishes what
+  kind of drop-off is happening.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  lookback_weeks:
+    default: 4
+    description: Weeks of DAU/MAU history to compare (prompt mode).
+  dau:
+    default: 8000
+    description: Current daily active users (command mode manual input).
+  mau:
+    default: 40000
+    description: Current monthly active users (command mode manual input).
+  min_healthy_pct:
+    default: 15
+    description: Minimum healthy DAU/MAU percentage for this genre; below this is worth investigating.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  "Healthy" stickiness varies a lot by genre (a daily-login mobile game
+  expects a much higher ratio than a narrative single-player-plus-online
+  title) — set {{min_healthy_pct}} to your own historical baseline, not
+  a generic industry number.

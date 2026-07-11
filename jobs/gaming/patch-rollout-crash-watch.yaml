@@ -1,0 +1,71 @@
+id: patch-rollout-crash-watch
+version: 1
+name: Patch Rollout Crash Watch
+description: >
+  Checks your crash reporter for a spike tied to a specific build/patch
+  version right after it ships, so a bad rollout gets caught in hours,
+  not in next week's player reviews. Use this if a patch has ever shipped
+  with a crash-on-launch bug that only got noticed once refund requests
+  started piling up.
+category: gaming
+tags: [gaming, patch, crash-reporting, live-ops, quality]
+schedule: "*/30 * * * *"
+runner: hybrid
+timezone: "UTC"
+command: >
+  if [ -n "${CRASHLYTICS_API_TOKEN:-}" ] || [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ] && [ -n "{{sentry_project}}" ]; then
+      count=$(curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/{{sentry_org}}/{{sentry_project}}/events/?statsPeriod=30m&query=release:{{build_version}}" | grep -o '"id"' | wc -l | tr -d ' ');
+      if [ "$count" -ge "{{crash_threshold}}" ]; then
+        echo "WARNING: $count crashes in last 30m for build {{build_version}} (threshold {{crash_threshold}})";
+        exit 1;
+      else
+        echo "OK: $count crashes in last 30m for build {{build_version}}";
+      fi
+    else
+      echo "SENTRY_AUTH_TOKEN/sentry_project not set — use agent-prompt mode or a Crashlytics export instead";
+    fi
+  else
+    echo "No crash-reporter credentials found (CRASHLYTICS_API_TOKEN/SENTRY_AUTH_TOKEN) — use agent-prompt mode instead";
+  fi
+prompt: |
+  Check your crash reporter (Crashlytics, Sentry, Bugsnag, or a platform
+  cert crash dashboard) for {{game_name}} build/version {{build_version}}
+  since it started rolling out, over the last {{lookback_hours}} hours.
+  1. Compare this build's crash rate (crashes per session or per active
+     user) to the prior stable build's baseline.
+  2. If it's spiking beyond {{crash_threshold}} crashes, or clearly above
+     baseline, identify the top 3 crash signatures/stack traces by
+     frequency and which platform/device they cluster on.
+  3. Recommend whether to keep rolling out, pause the rollout, or
+     hotfix — do not take any rollout action, this is a report only.
+  4. If crash rate is normal, report it in one line.
+script_note: >
+  `command` only supports Sentry's REST API with a flat crash-count
+  threshold for one build. `prompt` works with any crash reporter, adds a
+  baseline comparison against the prior build, and clusters crashes by
+  signature/platform.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  build_version:
+    default: "1.0.0"
+    description: The build/patch version currently rolling out.
+  sentry_org:
+    default: "your-org"
+    description: Sentry organization slug (command mode).
+  sentry_project:
+    default: "your-project"
+    description: Sentry project slug (command mode).
+  crash_threshold:
+    default: 25
+    description: Crash count in the window that counts as a spike.
+  lookback_hours:
+    default: 2
+    description: How far back to look for crashes tied to this build (prompt mode).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Run this at tighter intervals right after a rollout starts, then back
+  off once the build looks stable. Script mode needs SENTRY_AUTH_TOKEN;
+  swap in your crash reporter's own API for other tools.

@@ -1,0 +1,43 @@
+id: discord-mod-queue-digest
+version: 1
+name: Discord Community Mod Queue Digest
+description: >
+  Summarizes flagged messages, mod-bot actions, and open reports in your
+  game's Discord server since the last check, so moderators start their
+  shift with a prioritized list instead of scrolling channel history. Use
+  this if a raid, a flame war, or a scam-link wave has ever been well
+  underway before a moderator happened to notice.
+category: gaming
+tags: [gaming, discord, community, moderation]
+schedule: "0 9,17 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the {{discord_server_name}} Discord server (via the server's
+  audit log, mod-bot logs, and #{{reports_channel}} channel) for activity
+  in the last {{lookback_hours}} hours.
+  1. Summarize automated mod-bot actions taken (mutes, kicks, bans,
+     deleted messages) with counts by type.
+  2. List open/unresolved user reports with a one-line summary of each
+     and how long it's been sitting.
+  3. Flag any pattern worth human attention: a spike in reports in one
+     channel, repeated reports about the same user, or signs of a
+     coordinated raid/spam wave (many new accounts posting the same
+     link).
+  4. If activity was routine, say so in one line. Do not mute, kick, ban,
+     or delete anything — this is a digest only.
+variables:
+  discord_server_name:
+    default: "your Discord server"
+    description: Name of the game's Discord community server.
+  reports_channel:
+    default: "mod-reports"
+    description: Channel name where members file reports (without the #).
+  lookback_hours:
+    default: 8
+    description: How far back to summarize activity.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only digest — takes no moderation action itself. Needs a Discord
+  bot/integration with audit-log and channel-read access; scope its
+  permissions to read-only if you don't want it able to act at all.

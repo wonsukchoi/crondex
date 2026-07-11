@@ -1,0 +1,65 @@
+id: monetization-conversion-rate-watch
+version: 1
+name: Monetization Conversion Rate Watch
+description: >
+  Checks the conversion rate from free player to paying player (or store
+  visit to purchase) and flags a meaningful drop. Use this if a store
+  UI change or a pricing tweak has ever quietly tanked purchases for a
+  week before anyone checked the revenue dashboard.
+category: gaming
+tags: [gaming, monetization, iap, conversion, revenue]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  current={{current_conversion_pct}}; baseline={{baseline_conversion_pct}};
+  if [ -z "$baseline" ] || [ "$(awk -v b="$baseline" 'BEGIN{print (b<=0)}')" -eq 1 ]; then
+    echo "ERROR: baseline_conversion_pct must be greater than 0"; exit 1;
+  fi;
+  drop_pct=$(awk -v c="$current" -v b="$baseline" 'BEGIN { printf "%.1f", ((b - c) / b) * 100 }');
+  flag=$(awk -v d="$drop_pct" -v t="{{drop_threshold_pct}}" 'BEGIN { print (d >= t) ? 1 : 0 }');
+  if [ "$flag" -eq 1 ]; then
+    echo "WARNING: conversion rate down ${drop_pct}% relative to baseline (current ${current}%, baseline ${baseline}%)";
+    exit 1;
+  else
+    echo "OK: conversion rate is ${current}% (baseline ${baseline}%)";
+  fi
+prompt: |
+  Pull {{game_name}}'s free-to-paying player conversion rate (or store
+  visit-to-purchase rate for {{storefront_name}}) for the last
+  {{lookback_days}} days from your analytics/BI dashboard.
+  1. Compare it to the trailing baseline of {{baseline_conversion_pct}}%.
+  2. If it's dropped {{drop_threshold_pct}}% or more relative to
+     baseline, break down where the funnel is leaking (fewer storefront
+     visits, more visits but fewer purchases, a specific SKU or platform
+     underperforming) and note anything that changed recently (a price
+     change, a UI change, a payment provider issue).
+  3. If conversion is stable or improved, report it in one line.
+script_note: >
+  `command` only compares two percentages you supply against a threshold
+  — no funnel breakdown, no explanation of where the leak is. `prompt`
+  pulls the real funnel data and points at the likely cause.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check (used in prompt mode).
+  storefront_name:
+    default: "the in-game store"
+    description: Which storefront/platform to check (used in prompt mode).
+  current_conversion_pct:
+    default: 2.1
+    description: Current conversion rate percentage (command mode manual input).
+  baseline_conversion_pct:
+    default: 2.8
+    description: Trailing baseline conversion rate percentage (command mode manual input).
+  drop_threshold_pct:
+    default: 15
+    description: Relative percentage drop from baseline that counts as worth flagging.
+  lookback_days:
+    default: 7
+    description: Rolling window of conversion data to evaluate (prompt mode).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  `command` mode needs conversion percentages supplied manually or via
+  your own analytics export — most monetization dashboards don't expose
+  a generic CLI/API for this number.

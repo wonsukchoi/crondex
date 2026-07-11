@@ -1,0 +1,42 @@
+id: mod-submission-review-queue-check
+version: 1
+name: Mod/Workshop Submission Review Queue Check
+description: >
+  Checks how long mod or user-generated-content submissions have been
+  sitting unreviewed in your workshop/marketplace queue and flags the
+  oldest ones. Use this if a modder has ever given up on your platform
+  because their submission sat in review limbo for weeks with no
+  response.
+category: gaming
+tags: [gaming, mods, workshop, ugc, moderation]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_age_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submit_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = int((now_epoch - submit_epoch) / 86400);
+      if (age_days >= days) {
+        printf "STALE SUBMISSION: %s (submitted %s) — %d days in queue\n", $1, $2, age_days;
+        stale=1;
+      }
+    }
+    END { if (!stale) print "OK: no submissions older than " days " days" }
+  ' "{{submission_queue_csv_path}}"
+variables:
+  submission_queue_csv_path:
+    default: "./mod-submission-queue.csv"
+    description: "Path to a CSV with columns: submission_title,submitted_date (YYYY-MM-DD)."
+  warn_age_days:
+    default: 10
+    description: Days a submission can sit unreviewed before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Export your submission queue's title/submitted-date columns to the CSV
+  from whatever workshop platform you use (Steam Workshop, a custom
+  marketplace, curseforge-style tooling) — this is a plain age check, not
+  a content moderation pass.

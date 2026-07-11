@@ -1,0 +1,41 @@
+id: platform-cert-deadline-tracker
+version: 1
+name: Platform Certification Deadline Tracker
+description: >
+  Warns you before a console platform's certification/submission deadline
+  (TRC, XR, Lotcheck, or a store compliance re-check) arrives. Use this
+  if a cert deadline has ever slipped past because it lived in one
+  producer's memory instead of anyone's calendar, delaying a launch or
+  risking a platform holder relationship.
+category: gaming
+tags: [gaming, certification, console, compliance, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "CERT DEADLINE: %s (%s) — due %s (%d days)\n", $1, $3, $2, diff_days;
+      }
+    }
+  ' "{{cert_deadlines_csv_path}}"
+variables:
+  cert_deadlines_csv_path:
+    default: "./platform-cert-deadlines.csv"
+    description: "Path to a CSV with columns: milestone_name,due_date (YYYY-MM-DD),platform."
+  warn_days_before:
+    default: 14
+    description: How many days before a cert deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Maintain the CSV from your platform holder's cert calendar (Xbox TRC,
+  PlayStation XR, Nintendo Lotcheck, Steam/mobile store compliance
+  re-checks) — this is a plain date-threshold reminder, not a
+  submission-status checker, since cert queues aren't exposed via a
+  common API.

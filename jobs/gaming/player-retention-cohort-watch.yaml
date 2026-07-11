@@ -1,0 +1,39 @@
+id: player-retention-cohort-watch
+version: 1
+name: Player Retention Cohort Watch
+description: >
+  Checks your game's Day-1/Day-7/Day-30 player retention rates and flags
+  when a recent cohort is falling off faster than usual. Use this if
+  you've ever shipped a change and only found out weeks later, from a
+  quarterly report, that new players stopped coming back.
+category: gaming
+tags: [gaming, retention, analytics, players]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check Day-1, Day-7, and Day-30 retention for players who joined
+  {{game_name}} in the last {{lookback_weeks}} weeks, using whatever
+  analytics dashboard or API is available (e.g. GameAnalytics, Firebase,
+  in-house telemetry).
+  1. Report each retention cohort's D1/D7/D30 percentage.
+  2. Flag any cohort where D1 or D7 retention is more than
+     {{drop_threshold_pct}}% below the trailing average for that metric.
+  3. If a drop lines up with a specific patch, event end, or onboarding
+     change, note it.
+  4. If retention is stable or improving, report the trend in one line.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title to check.
+  lookback_weeks:
+    default: 6
+    description: How many weeks of cohorts to compare.
+  drop_threshold_pct:
+    default: 10
+    description: Percentage-point drop below the trailing average that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This tracks new-player retention cohorts (D1/D7/D30), distinct from
+  subscriber-churn-watch (a streamer's channel subscriber count) — needs
+  access to your game's analytics platform, not a social platform API.

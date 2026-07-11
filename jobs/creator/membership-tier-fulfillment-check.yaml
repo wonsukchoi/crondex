@@ -1,0 +1,30 @@
+id: membership-tier-fulfillment-check
+version: 1
+name: Membership Tier Fulfillment Check
+description: >
+  Checks that each paid membership tier's promised perk (exclusive post,
+  Discord shoutout, mailed reward, etc.) actually went out this cycle. Use
+  this if a Patreon or channel-membership tier has ever quietly not
+  delivered its perk for a month before a member called it out.
+category: creator
+tags: [creator, membership, patreon, fulfillment]
+schedule: "0 9 28 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v period="{{current_period}}" '
+    NR==1 {next}
+    $3 == period && $4 == "no" {
+      printf "NOT FULFILLED: tier \"%s\" — perk \"%s\" for %s\n", $1, $2, $3;
+    }
+  ' "{{membership_perks_csv_path}}"
+variables:
+  membership_perks_csv_path:
+    default: "./membership-perks.csv"
+    description: "Path to a CSV with columns: tier_name,perk_description,period (e.g. 2026-07),fulfilled (yes/no)."
+  current_period:
+    default: "2026-07"
+    description: The billing/reward period (e.g. YYYY-MM) to check for this run.
+compatible_agents: [generic, claude, codex]
+notes: Update fulfilled to "yes" per tier/period as perks go out — this only flags what's still marked "no" once the period is nearly over.

@@ -1,0 +1,35 @@
+id: comment-toxicity-moderation-check
+version: 1
+name: Comment Toxicity Moderation Check
+description: >
+  Scans recent comments on your posts/videos for harassment, hate speech,
+  or spam and flags what needs hiding, deleting, or reporting. Use this if
+  you've ever found a pile-on or a spam wave in your comments days after it
+  started because nobody was watching closely enough.
+category: creator
+tags: [creator, moderation, comments, community]
+schedule: "0 8,16 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check comments posted on {{platform_hint}} in the last {{lookback_hours}}
+  hours across recent content.
+  1. Identify comments that look like harassment, hate speech, targeted
+     abuse, or spam/scam links.
+  2. For each, quote the comment (trimmed), note the post it's on, and
+     classify it (harassment / hate speech / spam / scam-link / other).
+  3. Recommend an action per comment: hide, delete, ban user, or report
+     to platform. Do not take the action — this is a report only.
+  4. If nothing concerning was found, say so in one line.
+variables:
+  platform_hint:
+    default: "your primary platform (YouTube, Instagram, TikTok, etc.)"
+    description: Which platform's comments to check.
+  lookback_hours:
+    default: 24
+    description: How far back to scan for new comments.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Report-only by default — no comment is hidden, deleted, or reported
+  automatically. Judging tone/context in comments needs an agent, not a
+  fixed keyword script, so there's no shell mode.

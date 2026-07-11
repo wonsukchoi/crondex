@@ -1,0 +1,48 @@
+id: upload-cadence-consistency-check
+version: 1
+name: Upload Cadence Consistency Check
+description: >
+  Looks at your actual upload history and flags when the gaps between
+  posts have been drifting longer than your normal rhythm — even if
+  nothing's technically overdue yet. Use this if your posting pace has
+  ever crept from weekly to "whenever" without any single missed post
+  ever standing out on its own.
+category: creator
+tags: [creator, publishing, consistency, analytics]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v recent_n="{{recent_n}}" -v drift="{{drift_threshold_pct}}" '
+    NR==1 {next}
+    { cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null"; cmd | getline ts; close(cmd); dates[NR-1]=ts }
+    END {
+      n = NR - 1;
+      if (n < recent_n + 3) { print "Not enough upload history yet to judge cadence."; exit; }
+      total_gap = 0; baseline_n = n - recent_n - 1;
+      for (i = 1; i <= n - recent_n - 1; i++) total_gap += (dates[i+1] - dates[i]);
+      baseline_avg = total_gap / baseline_n / 86400;
+      recent_gap = 0;
+      for (i = n - recent_n; i < n; i++) recent_gap += (dates[i+1] - dates[i]);
+      recent_avg = recent_gap / (recent_n - 1) / 86400;
+      pct_change = (recent_avg - baseline_avg) / baseline_avg * 100;
+      printf "Baseline avg gap: %.1f days. Recent avg gap: %.1f days (%.0f%% change).\n", baseline_avg, recent_avg, pct_change;
+      if (pct_change >= drift) printf "DRIFT: cadence has slowed by %.0f%% versus your usual rhythm.\n", pct_change;
+    }
+  ' "{{upload_log_csv_path}}"
+variables:
+  upload_log_csv_path:
+    default: "./upload-log.csv"
+    description: "CSV with a single header row and one column: publish_date (YYYY-MM-DD), one row per post, oldest first."
+  recent_n:
+    default: 5
+    description: How many of the most recent posts count as the "recent" window.
+  drift_threshold_pct:
+    default: 40
+    description: Percent increase in average gap (recent vs. baseline) that counts as meaningful drift.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Different from content-calendar-gap-check, which only checks whether
+  something is scheduled for the next few days — this looks backward at
+  your actual publish history to catch a slow-motion slowdown in cadence
+  even when nothing is missing from the calendar yet.

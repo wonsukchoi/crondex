@@ -1,0 +1,42 @@
+id: audience-retention-dropoff-check
+version: 1
+name: Audience Retention Drop-off Check
+description: >
+  Checks the audience retention curve on recent videos for a sharp
+  drop-off point and flags where viewers are bailing. Use this if you've
+  ever found out weeks later that most viewers were leaving 30 seconds in
+  and you kept the same intro anyway.
+category: creator
+tags: [creator, video, retention, analytics]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the audience retention graph for videos published on
+  {{channel_url}} in the last {{lookback_days}} days.
+  1. For each video, find the steepest single drop-off point in the
+     retention curve (the point where the biggest chunk of viewers leave
+     within a short window).
+  2. Flag any video where that drop exceeds {{dropoff_threshold_pct}}%
+     of viewers within a short span, and note roughly where in the video
+     it happens (timestamp or % through).
+  3. If visible from the data, note what's happening at that point
+     (intro length, ad break, topic shift, pacing) as a possible cause.
+  4. If no video crosses the threshold, say so in one line.
+variables:
+  channel_url:
+    default: "https://www.youtube.com/@yourchannel"
+    description: Channel to check recent videos for.
+  lookback_days:
+    default: 7
+    description: How far back to check for videos with retention data.
+  dropoff_threshold_pct:
+    default: 20
+    description: Percent of viewers lost in a short window that counts as a notable drop-off.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Different signal from engagement-drop-watch, which compares
+  likes/comments/views trend across posts over time — this looks inside a
+  single video's retention curve for where viewers actually stop watching.
+  No generic script mode — retention curve data needs a platform analytics
+  API/dashboard read, not a fixed formula.

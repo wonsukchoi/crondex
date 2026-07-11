@@ -1,0 +1,34 @@
+id: gear-maintenance-reminder
+version: 1
+name: Creator Gear Maintenance Reminder
+description: >
+  Checks your camera, mic, and lighting gear against their maintenance or
+  calibration schedule and flags anything due. Use this if a camera
+  sensor has ever gone un-cleaned for a year or a battery's ever died
+  mid-shoot because nobody tracked its age.
+category: creator
+tags: [creator, gear, equipment, maintenance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      interval_days = $4;
+      due_ts = last_ts + (interval_days * 86400);
+      if (today >= due_ts) {
+        overdue_days = (today - due_ts) / 86400;
+        printf "DUE: %s — %s maintenance overdue by %d days (last done %s)\n", $1, $2, overdue_days, $3;
+      }
+    }
+  ' "{{gear_maintenance_csv_path}}"
+variables:
+  gear_maintenance_csv_path:
+    default: "./gear-maintenance.csv"
+    description: "Path to a CSV with columns: item_name,maintenance_type,last_done_date (YYYY-MM-DD),interval_days."
+compatible_agents: [generic, claude, codex]
+notes: Covers things like sensor cleaning, firmware updates, battery replacement cycles, and tripod/rig hardware checks — update last_done_date each time you actually do the maintenance.

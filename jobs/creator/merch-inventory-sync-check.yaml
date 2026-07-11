@@ -1,0 +1,41 @@
+id: merch-inventory-sync-check
+version: 1
+name: Merch Inventory Sync Check
+description: >
+  Checks merch stock levels against recent sales pace and flags anything
+  about to sell out or that's been dead stock for months. Use this if a
+  best-selling shirt has ever gone out of stock mid-launch because nobody
+  was watching the count, or slow movers have quietly tied up cash.
+category: creator
+tags: [creator, merch, inventory, sales]
+schedule: "0 8 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v low="{{low_stock_threshold}}" -v stale="{{stale_days}}" -v today="$(date +%s)" '
+    NR==1 {next}
+    {
+      qty=$2; daily_sales=$3; last_sale=$4; name=$1;
+      cmd = "date -d \"" last_sale "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_sale "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      idle_days = (today - last_ts) / 86400;
+      if (qty <= low) printf "LOW STOCK: %s — %d units left\n", name, qty;
+      if (daily_sales > 0) {
+        days_left = qty / daily_sales;
+        if (days_left <= 7) printf "SELLOUT RISK: %s — ~%.1f days of stock at current pace\n", name, days_left;
+      }
+      if (idle_days >= stale) printf "STALE: %s — no sale in %d days (%d units tied up)\n", name, idle_days, qty;
+    }
+  ' "{{merch_inventory_csv_path}}"
+variables:
+  merch_inventory_csv_path:
+    default: "./merch-inventory.csv"
+    description: "Path to a CSV with columns: item_name,qty_on_hand,avg_daily_sales,last_sale_date (YYYY-MM-DD)."
+  low_stock_threshold:
+    default: 15
+    description: Units on hand at or below this trigger a low-stock flag.
+  stale_days:
+    default: 60
+    description: Days with no sale before an item is flagged as dead stock.
+compatible_agents: [generic, claude, codex]
+notes: Export current stock and sales pace from your storefront (Shopify, Printful, etc.) into merch-inventory.csv before running.

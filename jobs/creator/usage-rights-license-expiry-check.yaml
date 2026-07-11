@@ -1,0 +1,39 @@
+id: usage-rights-license-expiry-check
+version: 1
+name: Content Usage Rights Expiry Check
+description: >
+  Checks how long a brand or licensee is allowed to keep using content
+  you sold/granted usage rights for (whitelisting, paid ads, resyndication)
+  and flags anything expiring soon. Use this if a brand has ever kept
+  running your face in their paid ads months after your usage-rights
+  window actually ended.
+category: creator
+tags: [creator, licensing, usage-rights, brand-deal]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) printf "WARNING: %s usage rights for \"%s\" expire in %d days (%s)\n", $1, $2, days_left, $3;
+    }
+  ' "{{usage_rights_csv_path}}"
+variables:
+  usage_rights_csv_path:
+    default: "./usage-rights.csv"
+    description: "Path to a CSV with columns: brand_name,content_description,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: Days before a usage-rights window expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is about rights you granted a brand to reuse your content/likeness
+  (whitelisting, paid usage, resyndication), not affiliate links or
+  content you licensed in from someone else. Follow up with the brand
+  yourself once flagged — this job only surfaces which windows are
+  closing.

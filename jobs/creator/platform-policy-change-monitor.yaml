@@ -1,0 +1,37 @@
+id: platform-policy-change-monitor
+version: 1
+name: Platform Policy and Algorithm Change Monitor
+description: >
+  Checks official platform blogs/changelogs for monetization, community
+  guideline, or algorithm updates that could affect your channel. Use this
+  if a policy change has ever hit your monetization or reach before you'd
+  even heard it was coming.
+category: creator
+tags: [creator, platform, policy, algorithm]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the official blog/creator updates/changelog pages for
+  {{platforms}} for anything published in the last {{lookback_days}} days.
+  1. List any update related to monetization rules, community
+     guidelines, recommendation/algorithm changes, or content policy.
+  2. For each, summarize in one or two sentences what's changing and
+     when it takes effect.
+  3. Flag anything that looks like it could directly affect a
+     {{content_niche}} creator's reach or earnings.
+  4. Ignore purely cosmetic app UI updates.
+variables:
+  platforms:
+    default: "YouTube, Instagram, TikTok"
+    description: Comma-separated platforms whose official update pages to check.
+  lookback_days:
+    default: 7
+    description: How far back to check for new policy/algorithm announcements.
+  content_niche:
+    default: "general"
+    description: Your content niche, used to judge which updates are actually relevant to you.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — reading and summarizing prose announcements
+  from multiple platforms' blogs needs an agent, not a fixed script.

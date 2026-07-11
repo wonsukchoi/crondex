@@ -1,0 +1,43 @@
+id: livestream-schedule-reminder
+version: 1
+name: Livestream Schedule Reminder
+description: >
+  Reminds you (and can prep a going-live announcement) ahead of your
+  regular streaming slot so a scheduled stream never just quietly doesn't
+  happen. Use this if you've ever promised viewers a regular stream time
+  and then missed it because the day snuck up on you.
+category: creator
+tags: [creator, livestream, streaming, schedule]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now_min=$(( $(date +%H) * 60 + $(date +%-M) ));
+  target_min=$(( $(echo "{{stream_time}}" | cut -d: -f1) * 60 + $(echo "{{stream_time}}" | cut -d: -f2) ));
+  today_dow=$(date +%u);
+  match=0;
+  IFS=',' read -ra DAYS <<< "{{stream_days}}";
+  for d in "${DAYS[@]}"; do [ "$d" = "$today_dow" ] && match=1; done;
+  diff=$(( target_min - now_min ));
+  if [ "$match" -eq 1 ] && [ "$diff" -ge 0 ] && [ "$diff" -le "{{reminder_lead_minutes}}" ]; then
+    echo "REMINDER: stream scheduled today at {{stream_time}} ({{timezone_label}}) — starts in ${diff} minutes";
+  fi
+variables:
+  stream_days:
+    default: "2,4,6"
+    description: "Comma-separated ISO weekdays streams happen on (1=Mon ... 7=Sun)."
+  stream_time:
+    default: "18:00"
+    description: "24-hour HH:MM local stream start time."
+  reminder_lead_minutes:
+    default: 60
+    description: How many minutes before stream start to fire the reminder.
+  timezone_label:
+    default: "local time"
+    description: Label shown in the reminder text for clarity; set the job's timezone field to match your actual streaming timezone.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Schedule this job to run hourly (or more often) so it can catch the
+  lead-time window; the command itself only prints when today matches a
+  stream day and the time window is right. Set `timezone` above to the
+  timezone you actually stream in.

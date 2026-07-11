@@ -1,0 +1,33 @@
+id: collab-outreach-followup-check
+version: 1
+name: Collab Outreach Follow-up Check
+description: >
+  Checks your collab/outreach tracker for creators or brands you messaged
+  who never replied, and flags who's due a follow-up. Use this if a collab
+  pitch has ever gone quiet and just got forgotten instead of getting one
+  more nudge.
+category: creator
+tags: [creator, collab, outreach, networking]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{followup_after_days}}" '
+    NR==1 {next}
+    $4 == "no_reply" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_ts; close(cmd);
+      elapsed = (today - sent_ts) / 86400;
+      if (elapsed >= days) printf "FOLLOW UP: %s (%s) — pitched %s, no reply in %d days\n", $1, $2, $3, elapsed;
+    }
+  ' "{{outreach_csv_path}}"
+variables:
+  outreach_csv_path:
+    default: "./collab-outreach.csv"
+    description: "Path to a CSV with columns: contact_name,collab_type,date_sent (YYYY-MM-DD),status (no_reply/replied/declined/booked)."
+  followup_after_days:
+    default: 7
+    description: Days of silence before a contact is flagged for a follow-up nudge.
+compatible_agents: [generic, claude, codex]
+notes: Send the actual follow-up message yourself once flagged — this job only surfaces who's overdue for one, and update status to replied/declined/booked as things move.

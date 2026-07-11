@@ -1,0 +1,52 @@
+id: thumbnail-ab-test-performance-check
+version: 1
+name: Thumbnail A/B Test Performance Check
+description: >
+  Compares click-through rate between thumbnail variants on a video and
+  flags a clear winner (or a test that's still too close to call). Use
+  this if you've ever run a thumbnail test and forgotten to check back
+  until the platform already auto-picked one for you.
+category: creator
+tags: [creator, thumbnails, video, analytics]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_impr="{{min_impressions}}" -v lead="{{lead_threshold_pct}}" '
+    NR==1 {next}
+    { impressions[$1]+=$3; clicks[$1]+=$4; video[$1]=$2 }
+    END {
+      for (v in impressions) {
+        if (impressions[v] < min_impr) { printf "PENDING: %s variant %s only %d impressions (need %d)\n", video[v], v, impressions[v], min_impr; continue; }
+        ctr[v] = clicks[v] / impressions[v] * 100;
+        printf "%s variant %s: CTR %.2f%% (%d/%d)\n", video[v], v, ctr[v], clicks[v], impressions[v];
+      }
+    }
+  ' "{{thumbnail_test_csv_path}}"
+prompt: |
+  Read {{thumbnail_test_csv_path}} (columns: variant_id, video_title,
+  impressions, clicks) for an in-flight thumbnail A/B test.
+  1. Compute click-through rate per variant.
+  2. If any variant has fewer than {{min_impressions}} impressions, say
+     the test needs more time and don't call a winner yet.
+  3. Otherwise, if one variant's CTR leads the others by
+     {{lead_threshold_pct}}% or more (relative), declare it the winner and
+     recommend switching to it full-time.
+  4. If the leader is within {{lead_threshold_pct}}%, say the test is too
+     close to call and recommend continuing.
+script_note: >
+  `command` computes CTR per variant from the CSV and prints the raw
+  numbers, zero tokens. `prompt` also applies the win-threshold judgment
+  call and gives a plain-language recommendation.
+variables:
+  thumbnail_test_csv_path:
+    default: "./thumbnail-ab-tests.csv"
+    description: "Path to a CSV with columns: variant_id,video_title,impressions,clicks."
+  min_impressions:
+    default: 1000
+    description: Minimum impressions per variant before calling a result.
+  lead_threshold_pct:
+    default: 10
+    description: Relative CTR lead (percent) required to call a winner.
+compatible_agents: [generic, claude, codex]
+notes: Export impressions/clicks per thumbnail variant from your platform's analytics into thumbnail-ab-tests.csv before running.

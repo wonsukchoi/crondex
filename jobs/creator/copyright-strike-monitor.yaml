@@ -1,0 +1,38 @@
+id: copyright-strike-monitor
+version: 1
+name: Copyright Claim and Strike Monitor
+description: >
+  Checks your channel dashboard for new copyright claims, content ID
+  matches, or strikes and summarizes what needs a dispute or response. Use
+  this if a copyright claim has ever sat on a video for weeks, quietly
+  demonetizing it, before you noticed the notification.
+category: creator
+tags: [creator, copyright, compliance, video]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{channel_url}} (and its studio/creator dashboard if accessible)
+  for copyright claims, Content ID matches, or strikes issued in the last
+  {{lookback_hours}} hours.
+  1. List each claim/strike with the affected video, the claimant if
+     shown, and what it affects (monetization, visibility, or the whole
+     channel).
+  2. Note which ones look disputable (e.g. fair use, licensed music,
+     your own re-upload) versus ones that look legitimate.
+  3. Flag any strike specifically — strikes threaten the channel, claims
+     usually just affect one video's revenue.
+  4. If nothing new, say so in one line.
+variables:
+  channel_url:
+    default: "https://www.youtube.com/@yourchannel"
+    description: Channel to check for copyright claims and strikes.
+  lookback_hours:
+    default: 24
+    description: How far back to check for new claims or strikes.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Report-only — does not file a dispute automatically, since disputing a
+  false claim needs your judgment on the specifics. No generic script
+  mode: reading a platform's claims dashboard needs an agent, not a fixed
+  script.

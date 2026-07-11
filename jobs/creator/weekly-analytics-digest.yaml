@@ -1,0 +1,39 @@
+id: weekly-analytics-digest
+version: 1
+name: Weekly Creator Analytics Digest
+description: >
+  Pulls the week's key numbers (views, subscribers/followers gained, top
+  and bottom performing posts, revenue if available) across your platforms
+  into one short summary. Use this if you've ever opened five different
+  analytics dashboards on a Monday just to piece together how last week
+  actually went.
+category: creator
+tags: [creator, analytics, reporting, digest]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull last week's (last {{period_days}} days) performance across
+  {{platforms}}.
+  1. Report total views/impressions and net follower/subscriber change
+     per platform, with week-over-week comparison if available.
+  2. Call out the single best and single worst performing piece of
+     content from the week, with a one-line guess at why.
+  3. If revenue/ad data is available, include total estimated earnings.
+  4. Keep the whole digest to about {{max_length_words}} words —
+     this is meant to be read in under a minute.
+variables:
+  platforms:
+    default: "YouTube, Instagram, TikTok"
+    description: Comma-separated platforms to pull numbers from.
+  period_days:
+    default: 7
+    description: Length of the reporting window in days.
+  max_length_words:
+    default: 200
+    description: Target word count so the digest stays skimmable.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — pulling and normalizing numbers across
+  different platform analytics APIs, then picking a "best/worst" post,
+  needs an agent rather than one fixed query.

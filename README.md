@@ -104,11 +104,11 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-645 jobs across 48 categories:
+659 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
-| `agriculture` | 7 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 7 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |

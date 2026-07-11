@@ -1,0 +1,38 @@
+id: grain-elevator-price-comparison
+version: 1
+name: Grain Elevator Price Comparison
+description: >
+  Compares today's cash bid across a list of your local grain elevators or
+  buyers and flags which one is paying the most. Use this if you've ever
+  sold to the closest elevator out of habit without checking whether
+  another buyer down the road was paying more that day.
+category: agriculture
+tags: [agriculture, grain, elevator, price, comparison]
+schedule: "0 15 * * 1-5"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v mindiff="{{min_diff_to_flag}}" '
+    NR==1 {next}
+    {
+      buyer[NR]=$1; price[NR]=$2+0;
+      if (price[NR] > best || NR==2) { best = price[NR]; bestbuyer = $1 }
+      sum += price[NR]; count++;
+    }
+    END {
+      avg = (count>0) ? sum/count : 0;
+      printf "Best bid: %s at %.2f (avg %.2f across %d buyers)\n", bestbuyer, best, avg, count;
+      if ((best - avg) >= mindiff) {
+        printf "WORTH THE DRIVE: %s beats the average by %.2f/unit\n", bestbuyer, best - avg;
+      }
+    }
+  ' "{{elevator_bids_csv_path}}"
+variables:
+  elevator_bids_csv_path:
+    default: "./elevator-bids.csv"
+    description: "Path to a CSV with columns: elevator_name,cash_bid_price. One row per buyer, same commodity/unit."
+  min_diff_to_flag:
+    default: 0.10
+    description: Minimum price difference above average (per unit) worth flagging as a better sale option.
+compatible_agents: [generic, claude, codex]
+notes: Doesn't account for hauling distance/cost or basis differences — factor those in yourself before deciding to drive further for a better bid.

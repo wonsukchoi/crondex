@@ -1,0 +1,39 @@
+id: land-lease-renewal-reminder
+version: 1
+name: Farmland Lease Renewal Reminder
+description: >
+  Checks each farmland lease's end date and required notice period, and
+  warns when it's time to start renewal or renegotiation conversations.
+  Use this if you've ever lost a rented parcel to another farmer simply
+  because you didn't reach out to the landowner before the notice deadline
+  passed.
+category: agriculture
+tags: [agriculture, land-lease, renewal, farmland]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline end_ts; close(cmd);
+      notice_days = $3+0;
+      days_until_notice_due = (end_ts - today) / 86400 - notice_days;
+      if (days_until_notice_due <= 0) {
+        printf "ACT NOW: %s — lease ends %s, notice period (%d days) has started or passed\n", $1, $2, notice_days;
+      } else if (days_until_notice_due <= {{warn_days_before}}) {
+        printf "UPCOMING: %s — lease ends %s, notice deadline in %d days\n", $1, $2, days_until_notice_due;
+      }
+    }
+  ' "{{leases_csv_path}}"
+variables:
+  leases_csv_path:
+    default: "./farmland-leases.csv"
+    description: "Path to a CSV with columns: parcel_name,lease_end_date (YYYY-MM-DD),notice_period_days."
+  warn_days_before:
+    default: 30
+    description: Days before the notice deadline to start warning, on top of the notice period itself.
+compatible_agents: [generic, claude, codex]
+notes: Notice-period terms come from your actual lease agreement — read each lease's renewal/termination clause before filling in notice_period_days.

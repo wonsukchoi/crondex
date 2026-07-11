@@ -1,0 +1,35 @@
+id: water-rights-permit-renewal-reminder
+version: 1
+name: Water Rights / Well Permit Renewal Reminder
+description: >
+  Checks a list of water rights and well permits against their expiration
+  dates and warns before any lapse, so your irrigation isn't running on an
+  expired permit. Use this if you've ever discovered a permit had lapsed
+  only when an inspector or neighbor pointed it out.
+category: agriculture
+tags: [agriculture, water-rights, permit, compliance, well]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "RENEW: %s (permit %s) expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{permits_csv_path}}"
+variables:
+  permits_csv_path:
+    default: "./water-permits.csv"
+    description: "Path to a CSV with columns: source_name,permit_number,expiration_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 90
+    description: Days before expiration to start warning, since renewals often take time to process.
+compatible_agents: [generic, claude, codex]
+notes: Renewal lead times and requirements vary a lot by state/water district — check your local water authority's actual processing time and adjust warn_days_before accordingly.

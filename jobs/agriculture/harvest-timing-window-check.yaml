@@ -1,0 +1,45 @@
+id: harvest-timing-window-check
+version: 1
+name: Harvest Timing Window Check
+description: >
+  Checks a crop's expected maturity date against the near-term weather
+  forecast and flags the best upcoming window to harvest before rain,
+  wind, or an early freeze causes losses. Use this if you've ever left a
+  crop in the field a few days too long and watched a storm knock it down.
+category: agriculture
+tags: [agriculture, harvest, weather, timing]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check the forecast for the next {{forecast_days}} days at latitude
+  {{latitude}}, longitude {{longitude}} (use any weather API available).
+  The crop ({{crop}}) is expected to reach harvest-ready maturity around
+  {{expected_maturity_date}}.
+  1. Identify any stretch of {{min_dry_window_days}}+ consecutive days with
+     low rain chance and acceptable wind for harvest equipment.
+  2. Flag any incoming rain, high wind, or freeze event that would close a
+     harvest window if it isn't used first.
+  3. Recommend the best window to target, or say "not yet ready" if
+     {{expected_maturity_date}} hasn't arrived.
+variables:
+  crop:
+    default: "soybeans"
+    description: Crop being tracked for harvest timing.
+  expected_maturity_date:
+    default: "2026-09-25"
+    description: Estimated date the crop reaches harvest-ready maturity (YYYY-MM-DD).
+  latitude:
+    default: "40.0"
+    description: Latitude of the field.
+  longitude:
+    default: "-95.0"
+    description: Longitude of the field.
+  forecast_days:
+    default: 10
+    description: Days of forecast to scan for a harvest window.
+  min_dry_window_days:
+    default: 2
+    description: Minimum consecutive dry, low-wind days needed to call it a usable harvest window.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A forecast-based planning aid — always confirm actual crop moisture/maturity in the field before committing equipment and labor to a harvest date.

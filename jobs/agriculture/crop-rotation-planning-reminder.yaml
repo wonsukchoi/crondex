@@ -1,0 +1,37 @@
+id: crop-rotation-planning-reminder
+version: 1
+name: Crop Rotation Planning Reminder
+description: >
+  Once a year, ahead of planting season, reminds you to review each field's
+  recent crop history and flags any field that's about to grow the same
+  crop family two years running. Use this if you've ever planted corn on
+  corn (or any repeat) out of habit and paid for it in yield or pest
+  pressure.
+category: agriculture
+tags: [agriculture, crop-rotation, planning, soil-health]
+schedule: "0 8 1 2 *"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Review the field crop history at {{field_history_csv_path}} (columns:
+  field_name, year, crop_planted).
+  1. For each field, identify the crop planted in the most recent
+     {{lookback_years}} years.
+  2. Flag any field where the same crop or crop family (e.g. corn/corn,
+     soybean/soybean) is planned or likely to repeat for {{planting_year}}
+     based on the pattern so far.
+  3. For each flagged field, suggest one or two rotation crops that would
+     break a pest/disease cycle or rebuild soil nitrogen, in plain language.
+  4. List fields with no rotation concern with no further comment.
+variables:
+  field_history_csv_path:
+    default: "./field-crop-history.csv"
+    description: "Path to a CSV with columns: field_name,year,crop_planted."
+  lookback_years:
+    default: 3
+    description: How many years of history to review per field.
+  planting_year:
+    default: 2027
+    description: The upcoming planting year this reminder is planning for.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Rotation suggestions are general agronomic guidance, not a substitute for advice from your local extension office or agronomist.

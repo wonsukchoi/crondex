@@ -1,0 +1,31 @@
+id: usda-report-release-reminder
+version: 1
+name: USDA Report Release Reminder
+description: >
+  Checks for upcoming USDA NASS/WASDE report releases (Crop Progress,
+  Grain Stocks, WASDE, and similar) relevant to a tracked commodity within
+  the next few days, so you know a market-moving report is about to drop.
+  Use this if you've ever been caught off guard by a price swing right
+  after a report you didn't know was coming.
+category: agriculture
+tags: [agriculture, usda, market, reports, commodity]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check the USDA NASS/WASDE report release calendar (or general
+  agricultural market news) for any report relevant to {{commodity}}
+  scheduled to release in the next {{lookahead_days}} days.
+  1. List each upcoming report by name and release date/time.
+  2. Note briefly why it typically matters for {{commodity}} prices (e.g.
+     "WASDE updates the supply/demand balance sheet").
+  3. If nothing relevant is scheduled in the window, say so plainly.
+variables:
+  commodity:
+    default: "corn"
+    description: Commodity to check upcoming USDA report relevance for.
+  lookahead_days:
+    default: 7
+    description: How many days ahead to check for scheduled report releases.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A scheduling heads-up only — not the report data itself or trading advice.

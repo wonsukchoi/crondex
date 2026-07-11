@@ -1,0 +1,35 @@
+id: crop-insurance-deadline-reminder
+version: 1
+name: Crop Insurance Deadline Reminder
+description: >
+  Tracks key crop insurance dates — sales closing date, acreage reporting
+  date, production reporting date — per crop/policy and warns before each
+  one passes. Use this if you've ever missed an acreage reporting date and
+  put coverage at risk over paperwork, not weather.
+category: agriculture
+tags: [agriculture, crop-insurance, deadline, compliance]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_ts; close(cmd);
+      days_left = (due_ts - today) / 86400;
+      if (days_left >= 0 && days_left <= warn) {
+        printf "DEADLINE: %s — %s due %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{insurance_deadlines_csv_path}}"
+variables:
+  insurance_deadlines_csv_path:
+    default: "./crop-insurance-deadlines.csv"
+    description: "Path to a CSV with columns: crop_or_policy,deadline_type,deadline_date (YYYY-MM-DD). deadline_type examples: sales closing, acreage reporting, production reporting."
+  warn_days_before:
+    default: 14
+    description: Days before each deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Deadline dates vary by county/crop/insurance provider — pull the actual dates from your policy or RMA before filling in the CSV.

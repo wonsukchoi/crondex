@@ -1,0 +1,37 @@
+id: soil-moisture-sensor-threshold-alert
+version: 1
+name: Soil Moisture Sensor Threshold Alert
+description: >
+  Reads current soil moisture sensor readings per field/zone and alerts
+  when any zone drops below a dry threshold or rises above a saturated
+  threshold. Use this if you have in-field moisture probes or telemetry
+  and want an automatic alert instead of checking the dashboard yourself
+  every day.
+category: agriculture
+tags: [agriculture, soil-moisture, sensors, irrigation]
+schedule: "*/30 6-20 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v dry="{{dry_threshold_pct}}" -v wet="{{saturated_threshold_pct}}" '
+    NR==1 {next}
+    {
+      if ($2+0 < dry+0) {
+        printf "DRY: zone %s at %.1f%% moisture (below %s%%)\n", $1, $2, dry;
+      } else if ($2+0 > wet+0) {
+        printf "SATURATED: zone %s at %.1f%% moisture (above %s%%)\n", $1, $2, wet;
+      }
+    }
+  ' "{{sensor_readings_csv_path}}"
+variables:
+  sensor_readings_csv_path:
+    default: "./soil-moisture-readings.csv"
+    description: "Path to a CSV with columns: zone_id,moisture_pct — whatever your sensor system's latest export looks like."
+  dry_threshold_pct:
+    default: 25
+    description: Moisture percentage below which a zone is flagged as too dry.
+  saturated_threshold_pct:
+    default: 80
+    description: Moisture percentage above which a zone is flagged as saturated (risk of runoff/root rot).
+compatible_agents: [generic, claude, codex]
+notes: Reads a live sensor export, unlike irrigation-schedule-check's rainfall-based estimate — point this at your actual probe/telemetry system's CSV output.

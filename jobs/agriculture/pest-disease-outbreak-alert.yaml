@@ -1,0 +1,35 @@
+id: pest-disease-outbreak-alert
+version: 1
+name: Pest/Disease Outbreak Alert
+description: >
+  Checks regional pest and crop disease reports (extension service
+  bulletins, degree-day pest models, or similar) for elevated risk near
+  your fields and alerts you before an infestation gets out of hand. Use
+  this if you've ever spotted an outbreak in your own field a week after
+  neighboring farms already knew it was coming.
+category: agriculture
+tags: [agriculture, pest, disease, crop-health, alert]
+schedule: "0 7 * * 1-5"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check for current pest and disease pressure reports relevant to
+  {{crop}} near {{region}} (state/county extension bulletins, pest degree-day
+  models, or general agricultural news for the area — use whatever sources
+  are reachable).
+  1. Report any pest or disease named as an active or emerging concern for
+     {{crop}} in or near {{region}} right now.
+  2. For each one, give a one-line severity read (watch / moderate risk /
+     act now) and the standard scouting or treatment window if mentioned
+     in the source.
+  3. If nothing notable is being reported, say so plainly — don't invent a
+     concern to fill the report.
+variables:
+  crop:
+    default: "corn"
+    description: Crop to check pest/disease pressure for.
+  region:
+    default: "central Iowa"
+    description: Region (county/state) to check reports for.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A monitoring aid, not a diagnosis — confirm any suspected outbreak in your own field with a scout or extension agent before treating.

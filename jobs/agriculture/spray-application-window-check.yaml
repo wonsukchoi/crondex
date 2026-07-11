@@ -1,0 +1,49 @@
+id: spray-application-window-check
+version: 1
+name: Spray Application Window Check
+description: >
+  Checks wind speed and rain-free window in the forecast to tell you
+  whether conditions are safe for pesticide, herbicide, or fertilizer
+  spraying today. Use this if you've ever sprayed on a day that turned out
+  too windy and dealt with drift complaints or wasted product.
+category: agriculture
+tags: [agriculture, spray, pesticide, weather, application]
+schedule: "0 5 * * *"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  curl -s "https://api.open-meteo.com/v1/forecast?latitude={{latitude}}&longitude={{longitude}}&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph" |
+  grep -o '"wind_speed_10m":\[[^]]*\]\|"precipitation_probability":\[[^]]*\]' |
+  head -c 2000
+prompt: |
+  Fetch today's hourly forecast for latitude {{latitude}}, longitude
+  {{longitude}} (use any weather API available), covering wind speed,
+  precipitation chance, and temperature.
+  1. Flag any hour where wind speed exceeds {{max_wind_mph}} mph — unsafe
+     for spraying due to drift risk.
+  2. Flag any hour where rain is likely to fall within
+     {{rain_free_hours_needed}} hours after application, which can wash
+     product off before it's absorbed.
+  3. Note any temperature inversion risk (very calm wind + clear night)
+     that can carry drift long distances even at low wind speeds.
+  4. Recommend the best spray window today, or "no safe window today" with
+     the reason.
+script_note: >
+  `command` dumps raw hourly wind speed and rain probability arrays with no
+  threshold check — you'd still have to read the numbers yourself. `prompt`
+  applies the wind/rain/inversion thresholds and gives a go/no-go window.
+variables:
+  latitude:
+    default: "40.0"
+    description: Latitude of the field.
+  longitude:
+    default: "-95.0"
+    description: Longitude of the field.
+  max_wind_mph:
+    default: 10
+    description: Wind speed (mph) above which spraying is considered unsafe due to drift.
+  rain_free_hours_needed:
+    default: 4
+    description: Hours of rain-free window needed after application for the product to take effect.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: General drift-safety guidance only — always follow the specific product label's wind, temperature, and buffer-zone requirements, which can be stricter than these defaults.

@@ -1,0 +1,34 @@
+id: drought-monitor-alert
+version: 1
+name: Drought Monitor Severity Alert
+description: >
+  Checks the current U.S. Drought Monitor (or equivalent regional drought
+  index) category for your county/region and alerts you when it worsens,
+  so long-term water and planting decisions aren't made on stale
+  information. Use this if you've ever found out your county moved into
+  "extreme drought" weeks after it happened.
+category: agriculture
+tags: [agriculture, drought, weather, water, alert]
+schedule: "0 8 * * 2"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Check the current U.S. Drought Monitor category (or equivalent regional
+  drought index) for {{county_or_region}} (use the Drought Monitor website
+  or any reachable source with current data).
+  1. Report the current drought category (e.g. D0 Abnormally Dry through D4
+     Exceptional Drought) and how long the region has been at that level or
+     worse.
+  2. Compare to last week if that data is available, and flag if severity
+     increased.
+  3. If the region is currently at or above {{alert_category}}, call that
+     out clearly as an alert; otherwise just report the status.
+variables:
+  county_or_region:
+    default: "Story County, Iowa"
+    description: County/region to check drought severity for.
+  alert_category:
+    default: "D2 (Severe Drought)"
+    description: Drought Monitor category threshold that should trigger an explicit alert.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A regional index, not a field-level measurement — combine with your own soil moisture readings for planting/irrigation decisions.

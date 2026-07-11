@@ -1,0 +1,30 @@
+id: retail-inventory-reorder-alert
+version: 1
+name: Pro-Shop/Supplement Inventory Reorder Alert
+description: >
+  Checks pro-shop and supplement stock levels against a reorder point per
+  item and flags what needs restocking. Use this if a best-selling
+  protein powder or pair of gloves has ever sat out of stock for weeks
+  because nobody was watching shelf counts until a member asked for it.
+category: fitness
+tags: [fitness, retail, inventory, supplements, pro-shop]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      qty = $2 + 0;
+      reorder_point = $3 + 0;
+      if (qty <= reorder_point) {
+        printf "REORDER: %s — %d on hand, reorder point %d\n", $1, qty, reorder_point;
+      }
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./pro-shop-inventory.csv"
+    description: "Path to a CSV with columns: item_name,quantity_on_hand,reorder_point."
+compatible_agents: [generic, claude, codex]
+notes: Set the reorder point per item high enough to cover your typical supplier lead time, not just "when it hits zero."

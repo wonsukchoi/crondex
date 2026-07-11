@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 725,
+  "count": 738,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2305,6 +2305,33 @@
       "path": "jobs/healthcare/claims-denial-resubmission-check.yaml"
     },
     {
+      "id": "class-attendance-trend-report",
+      "version": 1,
+      "name": "Class Attendance Trend Report",
+      "description": "Pulls week-over-week attendance per class and drafts a short summary of which classes are trending up, flat, or declining. Use this if you've ever made a gut-feel call to cut or promote a class without actually looking at whether attendance was trending down for a month or just had one off week.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "classes",
+        "attendance",
+        "trends",
+        "reporting"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/fitness/class-attendance-trend-report.yaml"
+    },
+    {
       "id": "class-utilization-check",
       "version": 1,
       "name": "Class Utilization Check",
@@ -2664,6 +2691,32 @@
         "generic"
       ],
       "path": "jobs/restaurant/comp-void-anomaly-tracker.yaml"
+    },
+    {
+      "id": "competition-registration-deadline-check",
+      "version": 1,
+      "name": "Competition/Event Registration Deadline Check",
+      "description": "Tracks upcoming registration deadlines for competitions, races, or in-house events (powerlifting meets, charity 5Ks, member challenges) and warns before the window closes. Use this if a members' event has ever missed its registration cutoff because the deadline lived on one person's calendar instead of somewhere the whole team could see it.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "events",
+        "competitions",
+        "deadlines",
+        "marketing"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/competition-registration-deadline-check.yaml"
     },
     {
       "id": "competitor-ad-creative-watch",
@@ -7769,6 +7822,32 @@
       "path": "jobs/childcare/incident-report-followup-tracking.yaml"
     },
     {
+      "id": "injury-incident-report-followup-check",
+      "version": 1,
+      "name": "Injury/Incident Report Follow-up Check",
+      "description": "Checks logged injury or incident reports for ones still open past a follow-up window, whether that's a member wellness check-in, an insurance filing, or a facility fix. Use this if an incident has ever been logged the day it happened and then never actually closed out or followed up on.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "safety",
+        "incidents",
+        "compliance",
+        "liability"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/injury-incident-report-followup-check.yaml"
+    },
+    {
       "id": "inspection-deadline-reminder",
       "version": 1,
       "name": "Inspection Deadline Reminder",
@@ -9716,6 +9795,58 @@
       "path": "jobs/personal/medication-refill-reminder.yaml"
     },
     {
+      "id": "member-attendance-dropoff-check",
+      "version": 1,
+      "name": "Member Attendance Drop-off Check",
+      "description": "Compares each active member's visit count over a recent window against their prior baseline and flags anyone whose attendance has quietly fallen off a cliff. Use this if a member has ever cancelled out of the blue when a steep drop in check-ins weeks earlier would've been the moment to reach out.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "retention",
+        "churn",
+        "attendance",
+        "members"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/member-attendance-dropoff-check.yaml"
+    },
+    {
+      "id": "membership-freeze-hold-expiry-check",
+      "version": 1,
+      "name": "Membership Freeze/Hold Expiry Check",
+      "description": "Checks paused or frozen memberships against their scheduled resume date and flags the ones ending soon, so billing and access resume as expected instead of surprising the member. Use this if a member has ever been charged full price the moment their freeze ended with zero warning, or kept frozen past when they meant to come back.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "membership",
+        "freeze",
+        "billing",
+        "members"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/membership-freeze-hold-expiry-check.yaml"
+    },
+    {
       "id": "membership-tier-fulfillment-check",
       "version": 1,
       "name": "Membership Tier Fulfillment Check",
@@ -10257,6 +10388,32 @@
       "path": "jobs/hr/new-hire-paperwork-check.yaml"
     },
     {
+      "id": "new-member-onboarding-checkin",
+      "version": 1,
+      "name": "New Member Onboarding Check-in",
+      "description": "Looks at members who joined in the last 30 days and drafts a personalized check-in for anyone who hasn't come back after their first visit or completed an intro session, since the first month is when most cancellations get decided. Use this if a new member has ever signed up, come in once, and quietly never returned without anyone reaching out during that critical early window.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "onboarding",
+        "retention",
+        "members",
+        "new-member"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/fitness/new-member-onboarding-checkin.yaml"
+    },
+    {
       "id": "new-restaurant-roundup",
       "version": 1,
       "name": "New Restaurant Roundup",
@@ -10437,6 +10594,32 @@
         "codex"
       ],
       "path": "jobs/growth/nps-trend-tracker.yaml"
+    },
+    {
+      "id": "nutrition-checkin-reminder",
+      "version": 1,
+      "name": "Nutrition/Meal-Plan Check-in Reminder",
+      "description": "Reviews clients on an active nutrition or meal-plan coaching track and drafts a personalized check-in message for anyone who hasn't logged progress or heard from their coach recently. Use this if a client has ever paid for ongoing nutrition coaching and gone silent for weeks with nobody reaching out to see how the plan was actually going.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "nutrition",
+        "coaching",
+        "clients",
+        "retention"
+      ],
+      "schedule": "0 9 * * 3",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/fitness/nutrition-checkin-reminder.yaml"
     },
     {
       "id": "occupancy-forecast-variance-check",
@@ -13262,6 +13445,32 @@
       "path": "jobs/hiring/reference-check-overdue-reminder.yaml"
     },
     {
+      "id": "referral-followup-reminder",
+      "version": 1,
+      "name": "Referral Program Follow-up Reminder",
+      "description": "Flags member referrals that haven't been followed up on within a set number of days, whether that's contacting the referred lead or crediting the referring member. Use this if a member has ever referred a friend, never heard anything back, and quietly stopped bothering to refer anyone else again.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "referrals",
+        "membership",
+        "sales",
+        "retention"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/referral-followup-reminder.yaml"
+    },
+    {
       "id": "referral-followup-tracker",
       "version": 1,
       "name": "Referral Follow-Up Tracker",
@@ -13638,6 +13847,32 @@
         "generic"
       ],
       "path": "jobs/restaurant/reservation-noshow-deposit-check.yaml"
+    },
+    {
+      "id": "retail-inventory-reorder-alert",
+      "version": 1,
+      "name": "Pro-Shop/Supplement Inventory Reorder Alert",
+      "description": "Checks pro-shop and supplement stock levels against a reorder point per item and flags what needs restocking. Use this if a best-selling protein powder or pair of gloves has ever sat out of stock for weeks because nobody was watching shelf counts until a member asked for it.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "retail",
+        "inventory",
+        "supplements",
+        "pro-shop"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/retail-inventory-reorder-alert.yaml"
     },
     {
       "id": "retail-product-low-stock-check",
@@ -14168,6 +14403,32 @@
       "path": "jobs/manufacturing/safety-certification-expiry-check.yaml"
     },
     {
+      "id": "safety-equipment-inspection-check",
+      "version": 1,
+      "name": "Safety Equipment Inspection Check",
+      "description": "Checks safety equipment (AEDs, fire extinguishers, first-aid kits) against their required inspection or expiry dates and flags anything overdue. Use this if an AED battery or first-aid kit has ever quietly expired without anyone noticing until an emergency made it obvious — distinct from the daily cleaning log, this tracks periodic safety-compliance inspections rather than day-to-day tidiness tasks.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "safety",
+        "compliance",
+        "equipment",
+        "inspection"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/safety-equipment-inspection-check.yaml"
+    },
+    {
       "id": "safety-inspection-due-reminder",
       "version": 1,
       "name": "Health & Safety Inspection Due Reminder",
@@ -14547,6 +14808,32 @@
         "generic"
       ],
       "path": "jobs/telecom/service-ticket-churn-risk-review.yaml"
+    },
+    {
+      "id": "session-no-show-pattern-tracker",
+      "version": 1,
+      "name": "Session No-Show Pattern Tracker",
+      "description": "Counts no-shows and late cancellations per member over a rolling window and flags anyone crossing a repeat-offender threshold, whether it's personal-training sessions or booked classes. Use this if a member has ever quietly racked up a dozen no-show bookings that blocked other members from that same slot, without anyone tallying the pattern.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "no-show",
+        "cancellations",
+        "bookings",
+        "members"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/session-no-show-pattern-tracker.yaml"
     },
     {
       "id": "settlement-payment-schedule-tracker",
@@ -15313,6 +15600,31 @@
         "codex"
       ],
       "path": "jobs/healthcare/staff-cme-credit-tracking.yaml"
+    },
+    {
+      "id": "staff-shift-coverage-gap-check",
+      "version": 1,
+      "name": "Staff Shift Coverage Gap Check",
+      "description": "Compares the published shift schedule against the minimum staffing level required per shift (front desk, trainers on the floor, class instructors) and flags any shift left under-covered. Use this if the front desk has ever been left unstaffed during open hours because a shift-swap request fell through and nobody caught the resulting gap.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "staffing",
+        "scheduling",
+        "operations"
+      ],
+      "schedule": "0 16 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/staff-shift-coverage-gap-check.yaml"
     },
     {
       "id": "staging-prod-config-diff",
@@ -16760,6 +17072,32 @@
         "codex"
       ],
       "path": "jobs/legal/trademark-renewal-reminder.yaml"
+    },
+    {
+      "id": "trainer-certification-expiry-check",
+      "version": 1,
+      "name": "Trainer Certification Expiry Check",
+      "description": "Checks trainer and instructor certifications (personal training cert, CPR/AED, group fitness credentials) against their expiry dates and warns before any lapse. Use this if a trainer has ever kept training clients on an expired certification because nobody was tracking renewal dates across the whole staff roster.",
+      "category": "fitness",
+      "tags": [
+        "fitness",
+        "staff",
+        "certification",
+        "compliance",
+        "trainers"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/fitness/trainer-certification-expiry-check.yaml"
     },
     {
       "id": "trainer-session-package-expiry-check",

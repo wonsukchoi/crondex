@@ -1,0 +1,38 @@
+id: safety-equipment-inspection-check
+version: 1
+name: Safety Equipment Inspection Check
+description: >
+  Checks safety equipment (AEDs, fire extinguishers, first-aid kits) against
+  their required inspection or expiry dates and flags anything overdue.
+  Use this if an AED battery or first-aid kit has ever quietly expired
+  without anyone noticing until an emergency made it obvious — distinct
+  from the daily cleaning log, this tracks periodic safety-compliance
+  inspections rather than day-to-day tidiness tasks.
+category: fitness
+tags: [fitness, safety, compliance, equipment, inspection]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "OVERDUE" : "DUE SOON";
+        printf "%s: %s — inspection/expiry %s (%d days)\n", status, $1, $2, diff_days;
+      }
+    }
+  ' "{{safety_equipment_csv_path}}"
+variables:
+  safety_equipment_csv_path:
+    default: "./safety-equipment.csv"
+    description: "Path to a CSV with columns: equipment_name,next_inspection_or_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before a safety inspection or expiry date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: An overdue AED pad/battery or expired first-aid supply is a life-safety gap, not a paperwork one — treat an OVERDUE result as same-day priority.

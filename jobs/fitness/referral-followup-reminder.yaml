@@ -1,0 +1,36 @@
+id: referral-followup-reminder
+version: 1
+name: Referral Program Follow-up Reminder
+description: >
+  Flags member referrals that haven't been followed up on within a set
+  number of days, whether that's contacting the referred lead or crediting
+  the referring member. Use this if a member has ever referred a friend,
+  never heard anything back, and quietly stopped bothering to refer anyone
+  else again.
+category: fitness
+tags: [fitness, referrals, membership, sales, retention]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{stale_after_days}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline referred_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - referred_epoch) / 86400;
+      if (age_days >= days) {
+        printf "STALE REFERRAL: %s referred %s on %s — %d days with no follow-up\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./member-referrals.csv"
+    description: "Path to a CSV with columns: referring_member,referred_name,referred_date (YYYY-MM-DD),status (pending/contacted/converted/declined)."
+  stale_after_days:
+    default: 3
+    description: How many days a referral can sit in "pending" status before it's flagged as needing follow-up.
+compatible_agents: [generic, claude, codex]
+notes: A fast follow-up on both ends (thanking the referring member, contacting the referred lead) is what makes a referral program actually compound instead of fizzling out.

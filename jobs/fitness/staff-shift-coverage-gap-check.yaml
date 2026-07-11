@@ -1,0 +1,40 @@
+id: staff-shift-coverage-gap-check
+version: 1
+name: Staff Shift Coverage Gap Check
+description: >
+  Compares the published shift schedule against the minimum staffing
+  level required per shift (front desk, trainers on the floor, class
+  instructors) and flags any shift left under-covered. Use this if the
+  front desk has ever been left unstaffed during open hours because a
+  shift-swap request fell through and nobody caught the resulting gap.
+category: fitness
+tags: [fitness, staffing, scheduling, operations]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_staff="{{min_staff_per_shift}}" '
+    NR==1 {next}
+    {
+      key = $1 "|" $2;
+      count[key] += 1;
+      shiftdate[key] = $1;
+      shiftname[key] = $2;
+    }
+    END {
+      for (k in count) {
+        if (count[k] < min_staff) {
+          printf "UNDERSTAFFED: %s (%s) — %d scheduled, need %d\n", shiftdate[k], shiftname[k], count[k], min_staff;
+        }
+      }
+    }
+  ' "{{shift_schedule_csv_path}}"
+variables:
+  shift_schedule_csv_path:
+    default: "./shift-schedule.csv"
+    description: "Path to a CSV with columns: shift_date (YYYY-MM-DD),shift_name,staff_name — one row per staff member assigned to a shift."
+  min_staff_per_shift:
+    default: 2
+    description: Minimum number of staff required to cover a single shift before it's flagged as understaffed.
+compatible_agents: [generic, claude, codex]
+notes: Regenerate the shift schedule CSV export whenever a shift swap or call-out happens so this check reflects the current plan, not the original one.

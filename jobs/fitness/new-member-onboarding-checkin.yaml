@@ -1,0 +1,33 @@
+id: new-member-onboarding-checkin
+version: 1
+name: New Member Onboarding Check-in
+description: >
+  Looks at members who joined in the last 30 days and drafts a personalized
+  check-in for anyone who hasn't come back after their first visit or
+  completed an intro session, since the first month is when most
+  cancellations get decided. Use this if a new member has ever signed up,
+  come in once, and quietly never returned without anyone reaching out
+  during that critical early window.
+category: fitness
+tags: [fitness, onboarding, retention, members, new-member]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the new member list at {{new_members_csv_path}} (columns:
+  member_name, join_date, visit_count, intro_session_completed). For each
+  member who joined within the last {{onboarding_window_days}} days and
+  either has a visit_count of 0/1 after their first week or hasn't
+  completed their intro session, draft a short, friendly, non-pushy
+  check-in message encouraging their next visit or offering to help
+  schedule the intro session. Group by how many days since joining, most
+  urgent (longest silence relative to join date) first.
+variables:
+  new_members_csv_path:
+    default: "./new-members.csv"
+    description: "Path to a CSV with columns: member_name,join_date (YYYY-MM-DD),visit_count,intro_session_completed (yes/no)."
+  onboarding_window_days:
+    default: 30
+    description: How many days after joining a member is still considered "new" and eligible for onboarding check-ins.
+compatible_agents: [claude, codex, generic]
+notes: The first 30 days is where most membership churn decisions actually get made — a personal nudge here is worth more than a win-back campaign months later.

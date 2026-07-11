@@ -1,0 +1,38 @@
+id: session-no-show-pattern-tracker
+version: 1
+name: Session No-Show Pattern Tracker
+description: >
+  Counts no-shows and late cancellations per member over a rolling window
+  and flags anyone crossing a repeat-offender threshold, whether it's
+  personal-training sessions or booked classes. Use this if a member has
+  ever quietly racked up a dozen no-show bookings that blocked other
+  members from that same slot, without anyone tallying the pattern.
+category: fitness
+tags: [fitness, no-show, cancellations, bookings, members]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_count="{{min_noshow_count}}" '
+    NR==1 {next}
+    {
+      count[$1] += 1;
+      last[$1] = $2;
+    }
+    END {
+      for (name in count) {
+        if (count[name] >= min_count) {
+          printf "REPEAT NO-SHOW: %s — %d no-show/late-cancel bookings in window, most recent %s\n", name, count[name], last[name];
+        }
+      }
+    }
+  ' "{{noshow_log_csv_path}}"
+variables:
+  noshow_log_csv_path:
+    default: "./no-show-log.csv"
+    description: "Path to a CSV with columns: member_name,booking_date (YYYY-MM-DD), pre-filtered to the rolling window you care about (e.g. last 60 days)."
+  min_noshow_count:
+    default: 3
+    description: Minimum number of no-shows/late cancellations in the window before a member is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Pre-filter the CSV to your rolling window before each run (e.g. a saved report export) — this job doesn't do date-range filtering itself, just the counting and threshold check.

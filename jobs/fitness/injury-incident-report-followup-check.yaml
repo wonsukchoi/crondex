@@ -1,0 +1,36 @@
+id: injury-incident-report-followup-check
+version: 1
+name: Injury/Incident Report Follow-up Check
+description: >
+  Checks logged injury or incident reports for ones still open past a
+  follow-up window, whether that's a member wellness check-in, an
+  insurance filing, or a facility fix. Use this if an incident has ever
+  been logged the day it happened and then never actually closed out or
+  followed up on.
+category: fitness
+tags: [fitness, safety, incidents, compliance, liability]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{followup_days}}" '
+    NR==1 {next}
+    $4 != "closed" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline incident_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - incident_epoch) / 86400;
+      if (age_days >= days) {
+        printf "OPEN INCIDENT: %s on %s (%s) — open %d days, status: %s\n", $1, $2, $3, age_days, $4;
+      }
+    }
+  ' "{{incidents_csv_path}}"
+variables:
+  incidents_csv_path:
+    default: "./incident-reports.csv"
+    description: "Path to a CSV with columns: person_name,incident_date (YYYY-MM-DD),description,status (open/pending/closed)."
+  followup_days:
+    default: 2
+    description: How many days an incident report can stay open before it's flagged as needing follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Injury and incident reports often carry legal/insurance weight — keep the underlying log itself in whatever system of record your insurer or legal counsel expects, this job just watches for ones going stale.

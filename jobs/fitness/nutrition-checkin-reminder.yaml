@@ -1,0 +1,31 @@
+id: nutrition-checkin-reminder
+version: 1
+name: Nutrition/Meal-Plan Check-in Reminder
+description: >
+  Reviews clients on an active nutrition or meal-plan coaching track and
+  drafts a personalized check-in message for anyone who hasn't logged
+  progress or heard from their coach recently. Use this if a client has
+  ever paid for ongoing nutrition coaching and gone silent for weeks
+  with nobody reaching out to see how the plan was actually going.
+category: fitness
+tags: [fitness, nutrition, coaching, clients, retention]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the nutrition coaching client list at {{clients_csv_path}} (columns:
+  client_name, coach_name, last_checkin_date, plan_goal). For any client
+  whose last_checkin_date is more than {{stale_after_days}} days ago,
+  draft a short, warm, specific check-in message referencing their stated
+  goal — not a generic "just checking in" template. Group the drafts by
+  coach so each coach can review and send their own client's messages
+  personally, and note the days since last check-in next to each name.
+variables:
+  clients_csv_path:
+    default: "./nutrition-clients.csv"
+    description: "Path to a CSV with columns: client_name,coach_name,last_checkin_date (YYYY-MM-DD),plan_goal."
+  stale_after_days:
+    default: 10
+    description: How many days without a logged check-in before a client is flagged as due for outreach.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only by design — messages should go out from the assigned coach in their own voice, not as an automated blast from "the gym."

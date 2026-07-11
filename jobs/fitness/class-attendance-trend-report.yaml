@@ -1,0 +1,52 @@
+id: class-attendance-trend-report
+version: 1
+name: Class Attendance Trend Report
+description: >
+  Pulls week-over-week attendance per class and drafts a short summary of
+  which classes are trending up, flat, or declining. Use this if you've
+  ever made a gut-feel call to cut or promote a class without actually
+  looking at whether attendance was trending down for a month or just
+  had one off week.
+category: fitness
+tags: [fitness, classes, attendance, trends, reporting]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      key = $1;
+      n[key] += 1;
+      sum[key] += $3;
+      order[key] = order[key] " " $3;
+      if (n[key] == 1) first[key] = $3; else last_val[key] = $3;
+    }
+    END {
+      for (k in n) {
+        avg = sum[k] / n[k];
+        trend = (last_val[k] > first[k]) ? "UP" : (last_val[k] < first[k]) ? "DOWN" : "FLAT";
+        printf "%s — avg %.1f attendees/week over %d weeks, trend: %s (first %d, latest %d)\n", k, avg, n[k], trend, first[k], last_val[k];
+      }
+    }
+  ' "{{weekly_attendance_csv_path}}"
+prompt: >
+  Read the weekly class attendance CSV at {{weekly_attendance_csv_path}}
+  (columns: class_name, week_start_date, attendee_count). For each class,
+  identify the attendance trend over the available weeks, call out which
+  classes are consistently growing, consistently declining, or unstable
+  (e.g. one bad week vs. a genuine multi-week slide), and suggest which
+  ones are worth a schedule change, a marketing push, or a second time
+  slot. Write it as a short, plain-language weekly note, not a table dump.
+script_note: >
+  The shell command computes a raw per-class average and a first-vs-latest
+  trend direction with zero tokens. The LLM pass adds the judgment a
+  script can't: telling a genuine multi-week slide apart from one noisy
+  week, and turning the numbers into a specific recommendation (add a
+  slot, drop it, promote it) instead of just a trend label.
+variables:
+  weekly_attendance_csv_path:
+    default: "./weekly-class-attendance.csv"
+    description: "Path to a CSV with columns: class_name,week_start_date,attendee_count, one row per class per week, ordered oldest to newest."
+compatible_agents: [claude, codex, generic]
+notes: Works best with at least 4-6 weeks of history — a single week of data will report a "trend" that's really just noise.

@@ -1,0 +1,36 @@
+id: competition-registration-deadline-check
+version: 1
+name: Competition/Event Registration Deadline Check
+description: >
+  Tracks upcoming registration deadlines for competitions, races, or
+  in-house events (powerlifting meets, charity 5Ks, member challenges)
+  and warns before the window closes. Use this if a members' event has
+  ever missed its registration cutoff because the deadline lived on one
+  person's calendar instead of somewhere the whole team could see it.
+category: fitness
+tags: [fitness, events, competitions, deadlines, marketing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days && diff_days >= 0) {
+        printf "DEADLINE APPROACHING: %s — registration closes %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{events_csv_path}}"
+variables:
+  events_csv_path:
+    default: "./competitions-events.csv"
+    description: "Path to a CSV with columns: event_name,registration_deadline (YYYY-MM-DD)."
+  warn_days_before:
+    default: 10
+    description: How many days before a registration deadline to start warning, leaving time for a last-call announcement to members.
+compatible_agents: [generic, claude, codex]
+notes: A deadline flag here is a good trigger for a last-call email or in-gym signage push, not just an internal note.

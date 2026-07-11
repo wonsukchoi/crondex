@@ -1,0 +1,40 @@
+id: member-attendance-dropoff-check
+version: 1
+name: Member Attendance Drop-off Check
+description: >
+  Compares each active member's visit count over a recent window against
+  their prior baseline and flags anyone whose attendance has quietly
+  fallen off a cliff. Use this if a member has ever cancelled out of the
+  blue when a steep drop in check-ins weeks earlier would've been the
+  moment to reach out.
+category: fitness
+tags: [fitness, retention, churn, attendance, members]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v drop_pct="{{dropoff_pct_threshold}}" '
+    NR==1 {next}
+    {
+      baseline = $2 + 0;
+      recent = $3 + 0;
+      if (baseline >= {{min_baseline_visits}}) {
+        pct_change = ((baseline - recent) / baseline) * 100;
+        if (pct_change >= drop_pct) {
+          printf "ATTENDANCE DROP: %s — %d visits/mo baseline, %d visits/mo recent (%.0f%% down)\n", $1, baseline, recent, pct_change;
+        }
+      }
+    }
+  ' "{{attendance_csv_path}}"
+variables:
+  attendance_csv_path:
+    default: "./member-attendance.csv"
+    description: "Path to a CSV with columns: member_name,baseline_visits_per_month,recent_visits_per_month."
+  dropoff_pct_threshold:
+    default: 50
+    description: Minimum percentage drop from baseline to recent visits before flagging a member as at churn risk.
+  min_baseline_visits:
+    default: 4
+    description: Minimum baseline monthly visits required before a member is considered for drop-off scoring, to avoid flagging already-rare visitors.
+compatible_agents: [generic, claude, codex]
+notes: A flag here means "reach out and check in," not "cancel their membership" — a personal note or call at this point is far cheaper than winning a lapsed member back later.

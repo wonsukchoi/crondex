@@ -1,0 +1,42 @@
+id: yield-farming-apy-comparison
+version: 1
+name: Yield Farming APY Comparison
+description: >
+  Checks current APY across a shortlist of DeFi pools/vaults for a given
+  asset and reports which one is currently paying best, so you're not
+  leaving yield on the table in a pool that quietly dropped its rate. Use
+  this if you've ever parked funds in a farm and never checked whether a
+  better rate showed up elsewhere.
+category: crypto
+tags: [crypto, defi, yield, apy, comparison]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look up the current APY for {{asset_symbol}} across these pools/vaults:
+  {{pools_list}} (via each protocol's app or an aggregator like DefiLlama
+  Yields).
+  1. List each pool with its current APY, and note whether it's a stable
+     reward rate or one that includes volatile token emissions.
+  2. Highlight the current best rate, and flag if your current pool
+     ({{current_pool}}) is now meaningfully behind the best available
+     rate (more than {{gap_threshold_pct}} percentage points).
+  3. Briefly note anything relevant beyond raw APY — lock-up periods,
+     protocol age/audit status, or TVL — that would matter before moving
+     funds.
+  Do not move or restake any funds — this is a comparison only.
+variables:
+  asset_symbol:
+    default: "USDC"
+    description: Asset to compare yield rates for.
+  pools_list:
+    default: "Aave, Compound, a Curve stable pool"
+    description: Comma-separated list of pools/vaults/protocols to compare.
+  current_pool:
+    default: "the pool you're currently in"
+    description: Which pool your funds are currently in, for the comparison baseline.
+  gap_threshold_pct:
+    default: 2
+    description: APY gap in percentage points versus the best available rate that's worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never moves or restakes funds. Higher APY often means higher risk (newer protocol, emissions-driven rate); factor that in, don't chase the top number blindly.

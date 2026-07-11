@@ -1,0 +1,39 @@
+id: cold-wallet-firmware-update-check
+version: 1
+name: Cold Wallet Firmware Update Check
+description: >
+  Checks the manufacturer's published firmware version for a hardware
+  wallet model against your last-known version and flags when an update
+  is available. Use this if you've ever kept a hardware wallet plugged
+  in only rarely and had no idea whether its firmware was months out of
+  date and missing a security fix.
+category: crypto
+tags: [crypto, hardware-wallet, firmware, security]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  latest=$(curl -s "{{firmware_version_api_url}}" |
+    grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4);
+  if [ -z "$latest" ]; then
+    echo "Could not fetch latest firmware version — check firmware_version_api_url.";
+  else
+    echo "Latest published firmware for {{device_model}}: $latest";
+    if [ "$latest" != "{{known_current_version}}" ]; then
+      echo "UPDATE AVAILABLE: latest ($latest) differs from your recorded version ({{known_current_version}}) — update via the manufacturer's official app only.";
+    else
+      echo "Up to date: matches recorded version {{known_current_version}}.";
+    fi
+  fi
+variables:
+  device_model:
+    default: "your hardware wallet model"
+    description: Hardware wallet model name (e.g. "Ledger Nano X", "Trezor Model One").
+  firmware_version_api_url:
+    default: "https://example.com/firmware/latest.json"
+    description: Manufacturer's official API/page returning the latest firmware version (varies by vendor — check their developer docs).
+  known_current_version:
+    default: "0.0.0"
+    description: The firmware version you last confirmed was installed on the device — update this manually after each real update.
+compatible_agents: [generic, claude, codex]
+notes: Read-only version check only — never installs firmware or communicates with the physical device. Only ever install firmware through the manufacturer's official desktop/mobile app, never a link from this job's output or any email.

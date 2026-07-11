@@ -104,7 +104,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-685 jobs across 48 categories:
+698 jobs across 48 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -114,7 +114,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `creator` | 20 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 7 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 19 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |

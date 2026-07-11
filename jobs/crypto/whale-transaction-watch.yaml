@@ -1,0 +1,43 @@
+id: whale-transaction-watch
+version: 1
+name: Whale Transaction Watch
+description: >
+  Checks a tracked wallet address for outgoing or incoming transactions
+  above a size threshold since the last check, and summarizes them. Use
+  this if you follow a "whale" wallet, project treasury, or exchange
+  hot wallet and want a heads-up when it moves a large amount instead of
+  refreshing a block explorer all day.
+category: crypto
+tags: [crypto, whale, wallet, monitoring, blockchain]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look up recent transactions for wallet {{wallet_address}} on
+  {{chain_name}} (via a block explorer API or explorer site) from the
+  last {{lookback_minutes}} minutes.
+  1. List any transaction where the value moved is at or above
+     {{min_value_native}} {{native_unit}} (or the equivalent for a token
+     transfer), including direction (in/out), counterparty address, and
+     approximate USD value if easily available.
+  2. If any single transaction is unusually large relative to this
+     wallet's typical activity, call that out explicitly.
+  3. If nothing crossed the threshold in the window, say so in one line.
+variables:
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Wallet address to watch for large transactions.
+  chain_name:
+    default: "Ethereum"
+    description: Chain the wallet lives on (e.g. "Ethereum", "Solana", "Arbitrum").
+  min_value_native:
+    default: 100
+    description: Minimum transaction size (in the chain's native unit) that counts as "whale-sized."
+  native_unit:
+    default: "ETH"
+    description: Native unit for min_value_native, for display only.
+  lookback_minutes:
+    default: 15
+    description: How far back to check for new transactions — should roughly match the schedule interval.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only lookup — no wallet access or signing involved. Some block explorers rate-limit free API keys; space out the schedule if you hit limits.

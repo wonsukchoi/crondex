@@ -1,0 +1,37 @@
+id: airdrop-claim-deadline-tracker
+version: 1
+name: Airdrop Claim Deadline Tracker
+description: >
+  Checks whether a wallet is eligible for a tracked project's airdrop and
+  warns before the claim window closes. Use this if you've ever found out
+  about an airdrop you qualified for only after the claim deadline had
+  already passed.
+category: crypto
+tags: [crypto, airdrop, claim, deadline]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check whether wallet {{wallet_address}} is eligible for the
+  {{project_name}} airdrop (via the project's official claim site or
+  eligibility checker) and, if so, look up the claim deadline.
+  1. Report eligibility status and, if eligible, the claimable amount.
+  2. If a claim deadline exists, report how many days remain — flag as
+     urgent if fewer than {{urgent_days_threshold}} days remain.
+  3. Only reference the project's official site/domain — flag and refuse
+     to use any third-party "checker" site that asks for a wallet
+     connection or signature, since fake airdrop-checker sites are a
+     common phishing vector.
+  4. If not eligible or no airdrop is currently live, say so in one line.
+variables:
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Wallet address to check eligibility for.
+  project_name:
+    default: "the project you're tracking"
+    description: Name of the project running the airdrop.
+  urgent_days_threshold:
+    default: 3
+    description: Days remaining before the claim deadline that counts as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only eligibility lookup only — never connects a wallet, signs a message, or claims anything. Airdrop-checker phishing sites are common; only check via a project's official, verified domain.

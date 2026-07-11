@@ -1,0 +1,36 @@
+id: dao-governance-vote-deadline-reminder
+version: 1
+name: DAO Governance Vote Deadline Reminder
+description: >
+  Checks a DAO's active governance proposals for ones you haven't voted
+  on yet and warns before voting closes. Use this if you hold governance
+  tokens and have ever missed a vote you actually cared about because the
+  window closed while you weren't looking.
+category: crypto
+tags: [crypto, dao, governance, voting]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check active governance proposals for {{dao_name}} (via Snapshot,
+  Tally, or the DAO's own governance forum/app) and cross-reference
+  against voting record for {{wallet_address}}.
+  1. List any active proposal that {{wallet_address}} has not yet voted
+     on, with a one-line summary of what it's about.
+  2. For each, report how much time remains until voting closes — flag as
+     urgent if less than {{urgent_hours_threshold}} hours remain.
+  3. Do not cast a vote — this is a reminder only, the decision is yours.
+  4. If there are no active proposals or you've voted on everything open,
+     say so in one line.
+variables:
+  dao_name:
+    default: "the DAO you're tracking"
+    description: Name of the DAO whose governance to check.
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Wallet address holding governance tokens/voting power to check the voting record against.
+  urgent_hours_threshold:
+    default: 24
+    description: Hours remaining before voting closes that counts as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — never signs or submits a vote on your behalf. Distinct from smart-contract-upgrade-watch, which tracks code/admin changes on a specific contract rather than open governance proposals across a DAO.

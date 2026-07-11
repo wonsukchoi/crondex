@@ -1,0 +1,41 @@
+id: bridge-transaction-stuck-monitor
+version: 1
+name: Bridge Transaction Stuck/Failed Monitor
+description: >
+  Checks whether a cross-chain bridge transfer has completed on the
+  destination chain within an expected time window, and flags it if it's
+  stuck or failed. Use this if you've ever bridged funds and had no idea
+  whether to keep waiting or start troubleshooting.
+category: crypto
+tags: [crypto, bridge, cross-chain, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the status of bridge transaction {{source_tx_hash}} sent via
+  {{bridge_name}} from {{source_chain}} to {{destination_chain}} (via the
+  bridge's own status/tracking page or API — most bridges provide one).
+  1. Report the current status: pending, completed, or failed/stuck.
+  2. If it's been pending longer than {{expected_minutes}} minutes (the
+     bridge's normal expected completion time), flag it as delayed and
+     note what to check next (bridge status page, support channel,
+     whether funds are recoverable).
+  3. If completed, report the destination transaction hash/confirmation.
+variables:
+  source_tx_hash:
+    default: "0x0000000000000000000000000000000000000000000000000000000000000000"
+    description: Transaction hash of the bridge deposit on the source chain.
+  bridge_name:
+    default: "the bridge protocol name"
+    description: Name of the bridge used (e.g. "Across", "Stargate", "official chain bridge").
+  source_chain:
+    default: "Ethereum"
+    description: Chain the transfer originated from.
+  destination_chain:
+    default: "Arbitrum"
+    description: Chain the transfer is headed to.
+  expected_minutes:
+    default: 30
+    description: Normal expected completion time in minutes for this bridge — used to judge if it's delayed.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only status lookup — never resends or retries a bridge transaction. If genuinely stuck, resolving it usually requires the bridge's own support process, not a script.

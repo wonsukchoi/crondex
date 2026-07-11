@@ -1,0 +1,36 @@
+id: exchange-proof-of-reserves-check
+version: 1
+name: Exchange Proof-of-Reserves Check
+description: >
+  Checks whether a centralized exchange's published proof-of-reserves
+  attestation is current and whether its reported reserve ratio still
+  covers customer liabilities. Use this if you keep meaningful funds on
+  an exchange and want an early nudge if its published backing looks
+  stale or thin, rather than finding out during a run.
+category: crypto
+tags: [crypto, exchange, proof-of-reserves, solvency]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{exchange_name}}'s most recent published proof-of-reserves
+  report or attestation (via their official transparency page or a
+  reputable proof-of-reserves tracker).
+  1. Report the date of the most recent attestation — flag as stale if
+     older than {{staleness_days_threshold}} days.
+  2. Report the published reserve ratio (assets vs. liabilities) if
+     available, and flag if it's below 100%.
+  3. Note the attestation methodology if stated (e.g. Merkle-tree
+     self-custody proof vs. third-party auditor letter) since these vary
+     a lot in rigor.
+  4. If no proof-of-reserves data is published at all, say so plainly —
+     that absence is itself worth knowing.
+variables:
+  exchange_name:
+    default: "the exchange you're tracking"
+    description: Name of the centralized exchange to check.
+  staleness_days_threshold:
+    default: 45
+    description: Days since the last attestation that counts as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — a published proof-of-reserves report is a data point, not a guarantee of solvency (it typically doesn't cover liabilities/off-balance-sheet risk). Don't treat a clean report as full assurance.

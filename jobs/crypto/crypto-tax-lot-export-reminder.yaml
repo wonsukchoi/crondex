@@ -1,0 +1,36 @@
+id: crypto-tax-lot-export-reminder
+version: 1
+name: Crypto Tax-Lot Cost-Basis Export Reminder
+description: >
+  Reminds you on a recurring cadence to export transaction/cost-basis data
+  from exchanges and wallets into your tax tracking tool, so records don't
+  fall behind and become a scramble at filing time. Use this if you've
+  ever had to reconstruct a year of trades from memory in April.
+category: crypto
+tags: [crypto, tax, cost-basis, recordkeeping]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  echo "Reminder: export transaction/cost-basis history for the period since your last export.";
+  echo "Sources to check: {{sources_list}}";
+  echo "Export destination/tool: {{tax_tool_name}}";
+  if [ -f "{{last_export_date_file}}" ]; then
+    echo "Last recorded export date: $(cat "{{last_export_date_file}}")";
+  else
+    echo "No prior export date on record — this looks like the first run.";
+  fi;
+  mkdir -p "$(dirname "{{last_export_date_file}}")" 2>/dev/null;
+  date +%Y-%m-%d > "{{last_export_date_file}}"
+variables:
+  sources_list:
+    default: "Coinbase, Kraken, MetaMask wallet"
+    description: Comma-separated list of exchanges/wallets to pull transaction history from.
+  tax_tool_name:
+    default: "your crypto tax software (e.g. Koinly, CoinTracker)"
+    description: Name of the tool or spreadsheet where exported data gets consolidated.
+  last_export_date_file:
+    default: "$HOME/.crondex/crypto-tax-lot-export-reminder/last-export.txt"
+    description: Where to persist the date of the last reminder run, purely for display continuity.
+compatible_agents: [generic, claude, codex]
+notes: This is a reminder/checklist only — it does not connect to any exchange, pull real transaction data, or file anything. Actual export still requires logging into each source manually or via its own export tool.

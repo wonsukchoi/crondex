@@ -1,0 +1,36 @@
+id: exchange-withdrawal-confirmation-check
+version: 1
+name: Exchange Withdrawal Confirmation Check
+description: >
+  Checks whether a withdrawal sent from an exchange to a destination
+  address has actually confirmed on-chain, so a stuck or delayed
+  withdrawal doesn't go unnoticed. Use this if you've ever sent a
+  withdrawal, closed the tab, and only found out days later it never
+  arrived.
+category: crypto
+tags: [crypto, exchange, withdrawal, blockchain]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  data=$(curl -s -X POST "{{rpc_endpoint}}" -H "Content-Type: application/json" \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getTransactionReceipt\",\"params\":[\"{{tx_hash}}\"],\"id\":1}");
+  if printf '%s' "$data" | grep -q '"result":null'; then
+    echo "PENDING: transaction {{tx_hash}} not yet confirmed.";
+  elif printf '%s' "$data" | grep -q '"status":"0x1"'; then
+    confirmations_block=$(printf '%s' "$data" | grep -o '"blockNumber":"0x[0-9a-fA-F]*"' | grep -o '0x[0-9a-fA-F]*');
+    echo "CONFIRMED: transaction {{tx_hash}} succeeded at block $confirmations_block.";
+  elif printf '%s' "$data" | grep -q '"status":"0x0"'; then
+    echo "FAILED: transaction {{tx_hash}} was mined but reverted — check the destination and amount.";
+  else
+    echo "Could not determine status — check tx_hash and rpc_endpoint.";
+  fi
+variables:
+  rpc_endpoint:
+    default: "https://eth.llamarpc.com"
+    description: JSON-RPC endpoint for the chain the withdrawal was sent on.
+  tx_hash:
+    default: "0x0000000000000000000000000000000000000000000000000000000000000000"
+    description: Transaction hash of the withdrawal to check.
+compatible_agents: [generic, claude, codex]
+notes: Read-only RPC lookup only — never initiates or resends a withdrawal. Stop scheduling once the transaction confirms or you'll poll a finished job forever; a future version could auto-detect and stop.

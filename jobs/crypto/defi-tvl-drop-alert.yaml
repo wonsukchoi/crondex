@@ -1,0 +1,48 @@
+id: defi-tvl-drop-alert
+version: 1
+name: DeFi Protocol TVL Drop Alert
+description: >
+  Checks a DeFi protocol's total value locked (TVL) via a public API and
+  alerts when it drops sharply over a short window — often an early sign
+  of a bank run, exploit, or loss of confidence. Use this if you've ever
+  wanted a warning before a protocol you have funds in got worse, not
+  after.
+category: crypto
+tags: [crypto, defi, tvl, monitoring]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  data=$(curl -s "https://api.llama.fi/protocol/{{protocol_slug}}");
+  tvl=$(printf '%s' "$data" | grep -o '"tvl":[0-9.]*' | tail -1 | cut -d: -f2);
+  if [ -z "$tvl" ]; then
+    echo "Could not fetch TVL — check protocol_slug against DefiLlama.";
+  else
+    echo "Current TVL for {{protocol_slug}}: \$$tvl";
+    if [ -f "{{state_file}}" ]; then
+      prev=$(cat "{{state_file}}" 2>/dev/null || echo "");
+      if [ -n "$prev" ]; then
+        awk -v p="$prev" -v c="$tvl" -v drop="{{drop_pct_threshold}}" 'BEGIN{
+          if (p+0 > 0) {
+            change = ((c-p)/p)*100;
+            printf "Change since last check: %.2f%%\n", change;
+            if (change <= -(drop+0)) print "TVL DROP ALERT: down " -change "% since last check";
+          }
+        }';
+      fi
+    fi
+    mkdir -p "$(dirname "{{state_file}}")" 2>/dev/null;
+    echo "$tvl" > "{{state_file}}";
+  fi
+variables:
+  protocol_slug:
+    default: "aave"
+    description: DefiLlama protocol slug (see defillama.com/protocols for exact slugs).
+  drop_pct_threshold:
+    default: 10
+    description: Percentage drop since the last check that triggers an alert.
+  state_file:
+    default: "$HOME/.crondex/defi-tvl-drop-alert/{{protocol_slug}}.txt"
+    description: Where to persist the last-seen TVL between runs, for computing the change.
+compatible_agents: [generic, claude, codex]
+notes: Uses DefiLlama's free public API — no key required. A dropping TVL isn't always a red flag (it can just be a token price move), so treat this as a prompt to look closer, not a verdict.

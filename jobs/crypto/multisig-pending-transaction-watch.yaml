@@ -1,0 +1,36 @@
+id: multisig-pending-transaction-watch
+version: 1
+name: Multisig Pending Transaction Watch
+description: >
+  Checks a multisig wallet (e.g. Gnosis Safe) for transactions awaiting
+  additional signatures and flags ones that have been pending too long.
+  Use this if you've ever had a transaction stuck for days because a
+  co-signer forgot it was waiting on them.
+category: crypto
+tags: [crypto, multisig, wallet, signatures]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check multisig wallet {{multisig_address}} on {{chain_name}} (via the
+  Safe app/API or equivalent multisig interface) for transactions
+  currently awaiting signatures.
+  1. List each pending transaction: what it does (in plain language if
+     possible from the decoded data), how many signatures it has versus
+     the threshold required, and how long it's been pending.
+  2. Flag any transaction pending longer than {{stale_hours_threshold}}
+     hours as needing follow-up with the remaining signers.
+  3. Do not sign or execute anything — this is a status check only.
+  4. If nothing is pending, say so in one line.
+variables:
+  multisig_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Multisig wallet address to check.
+  chain_name:
+    default: "Ethereum"
+    description: Chain the multisig lives on.
+  stale_hours_threshold:
+    default: 48
+    description: Hours a transaction can sit pending before it's flagged as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — never signs or executes a transaction. Particularly useful for treasury/team multisigs where signers are in different timezones and things can quietly stall.

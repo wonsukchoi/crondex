@@ -1,0 +1,37 @@
+id: staking-reward-claim-reminder
+version: 1
+name: Staking Reward Claim Reminder
+description: >
+  Reminds you to check and claim accumulated staking rewards for a
+  tracked position on a set cadence, and flags if unclaimed rewards have
+  built up past a threshold. Use this if you've ever left staking rewards
+  sitting unclaimed for months because there was no prompt to go check.
+category: crypto
+tags: [crypto, staking, rewards, defi]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current unclaimed/pending staking rewards for
+  {{wallet_or_position}} staked via {{protocol_or_validator}} (via the
+  protocol's app, a staking dashboard, or on-chain query).
+  1. Report the current unclaimed reward amount and its approximate USD
+     value.
+  2. If it's at or above {{claim_threshold_value}}, flag it as worth
+     claiming soon — note any claim gas cost or lock-up conditions that
+     matter for the decision.
+  3. If unclaimed rewards have been building for a while, mention roughly
+     how long, if that's discoverable.
+  Do not claim or execute anything — this is a reminder only.
+variables:
+  wallet_or_position:
+    default: "your wallet address or staking position ID"
+    description: Wallet address or staking position identifier to check.
+  protocol_or_validator:
+    default: "the staking protocol or validator name"
+    description: Name of the staking protocol, chain, or validator (e.g. "Lido", "Ethereum solo validator", "Cosmos Hub").
+  claim_threshold_value:
+    default: "50 USD"
+    description: Unclaimed reward value at or above which to flag as worth claiming.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never claims or signs anything on your behalf. Claiming costs gas on most chains, so weigh that against the reward amount before acting on the reminder.

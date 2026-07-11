@@ -1,0 +1,42 @@
+id: sponsor-deliverable-fulfillment-tracker
+version: 1
+name: Sponsor Deliverable Fulfillment Tracker
+description: >
+  Reviews what each event sponsor was promised (logo placement, booth
+  space, stage mentions, attendee list, social posts) against what's
+  actually been delivered, and flags gaps before the sponsor notices. Use
+  this if a sponsor has ever emailed asking where their logo was, and you
+  didn't have a good answer.
+category: events
+tags: [events, sponsors, deliverables, planning]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the sponsor deliverables tracker at {{sponsor_deliverables_source}}
+  for the event happening on {{event_date}}.
+  1. For each sponsor, compare their contracted deliverables (from their
+     tier) against what's marked complete.
+  2. Flag any sponsor with an incomplete deliverable that has a deadline
+     within {{warn_days}} days, or that logically must happen before the
+     event (e.g. print materials, signage) and isn't done yet.
+  3. For top-tier sponsors specifically, call out anything at risk even if
+     it's not the most urgent by date — they're the highest-visibility risk.
+  4. Summarize as a short list: sponsor name, missing deliverable, why it
+     matters, and who owns fixing it if that's listed in the tracker.
+variables:
+  sponsor_deliverables_source:
+    default: "sponsor-deliverables.csv"
+    description: Path or connector for the sponsor deliverables tracker (columns like sponsor_name, tier, deliverable, due_date, status, owner).
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event, for judging what deliverables logically need to land before then.
+  warn_days:
+    default: 10
+    description: Days before a deliverable's due date to start flagging it.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No script mode: deciding which incomplete items are actually urgent
+  depends on judgment about sponsor tier, deliverable type, and lead time
+  (e.g. signage needs a print lead time a social post doesn't) that a
+  generic shell comparison can't capture well.

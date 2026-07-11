@@ -1,0 +1,36 @@
+id: av-equipment-rental-return-reminder
+version: 1
+name: AV/Equipment Rental Return Reminder
+description: >
+  Warns you before rented AV gear, tables, tents, or other equipment is due
+  back, so it doesn't rack up late fees sitting in a storage room after the
+  event. Use this if a rental company has ever charged you extra days
+  because nobody remembered to schedule the pickup.
+category: events
+tags: [events, equipment, rentals, logistics]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  warn={{warn_days}};
+  awk -F, -v today="$today" -v warn="$warn" '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) {
+        if (days_left < 0) print "OVERDUE: " $1 " return was due " (-days_left) " day(s) ago (" $2 ") — return ASAP to avoid late fees";
+        else print "DUE SOON: " $1 " must be returned in " days_left " day(s) (" $2 ")";
+      }
+    }
+  ' {{rental_returns_csv}}
+variables:
+  rental_returns_csv:
+    default: "event-rental-returns.csv"
+    description: "CSV with header row, columns: item_description,return_due_date(YYYY-MM-DD),rental_company."
+  warn_days:
+    default: 3
+    description: Days before (or after) the return due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Keep event-rental-returns.csv updated with every rented item's due date — one row per rental agreement or pickup batch.

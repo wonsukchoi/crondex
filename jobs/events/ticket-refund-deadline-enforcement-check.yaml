@@ -1,0 +1,38 @@
+id: ticket-refund-deadline-enforcement-check
+version: 1
+name: Ticket Refund/Cancellation Deadline Enforcement Check
+description: >
+  Reviews pending refund or cancellation requests and flags any that have
+  passed your stated refund window, so policy gets applied consistently
+  instead of case-by-case under pressure. Use this if you've ever
+  approved a late refund because it was easier than checking the date,
+  then had to explain why someone else's later request got denied.
+category: events
+tags: [events, ticketing, refunds, policy]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  cutoff_ts=$(( event_ts - ({{refund_window_days}} * 86400) ));
+  awk -F, -v cutoff="$cutoff_ts" '
+    NR>1 && $3=="pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline req_ts; close(cmd);
+      if (req_ts > cutoff) print "PAST WINDOW: " $1 " requested refund on " $2 " — after the refund cutoff, deny or escalate per policy";
+      else print "WITHIN WINDOW: " $1 " requested refund on " $2 " — eligible under policy";
+    }
+  ' "{{refund_requests_csv}}"
+variables:
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event (YYYY-MM-DD), used to calculate the refund cutoff.
+  refund_window_days:
+    default: 14
+    description: Days before the event after which refund requests are no longer eligible under policy.
+  refund_requests_csv:
+    default: "event-refund-requests.csv"
+    description: "CSV with header row, columns: requester_name,request_date(YYYY-MM-DD),status(pending/approved/denied)."
+compatible_agents: [generic, claude, codex]
+notes: This flags policy status only — it doesn't auto-approve or auto-deny anything, and exceptions (illness, emergencies) still need a human call.

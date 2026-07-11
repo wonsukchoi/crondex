@@ -1,0 +1,36 @@
+id: volunteer-shift-confirmation-reminder
+version: 1
+name: Volunteer/Staff Shift Confirmation Reminder
+description: >
+  Flags individually assigned event shifts that a staffer or volunteer
+  hasn't confirmed yet, as their shift date gets close. Use this if a
+  shift has ever gone unstaffed on the day because the person assigned to
+  it never actually confirmed they'd show up, and nobody checked until
+  they didn't.
+category: events
+tags: [events, staffing, volunteers, shifts, confirmation]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  warn={{warn_days}};
+  awk -F, -v today="$today" -v warn="$warn" '
+    NR>1 && $4 != "confirmed" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline shift_ts; close(cmd);
+      days_left = int((shift_ts - today) / 86400);
+      if (days_left <= warn) {
+        print "UNCONFIRMED SHIFT: " $1 " assigned " $3 " on " $2 " (" days_left " day(s) out) — chase confirmation";
+      }
+    }
+  ' "{{shift_assignments_csv}}"
+variables:
+  shift_assignments_csv:
+    default: "event-shift-assignments.csv"
+    description: "CSV with header row, columns: person_name,shift_date(YYYY-MM-DD),shift_role,status(confirmed/unconfirmed)."
+  warn_days:
+    default: 5
+    description: Days before a shift date to start flagging it as unconfirmed.
+compatible_agents: [generic, claude, codex]
+notes: Complements the overall staffing-shortfall headcount check — this flags specific unconfirmed people/shifts by name, not just an aggregate total.

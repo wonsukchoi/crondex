@@ -1,0 +1,29 @@
+id: load-in-load-out-schedule-reminder
+version: 1
+name: Load-In/Load-Out Schedule Reminder
+description: >
+  Sends a reminder of that day's load-in or load-out schedule so vendors
+  and crew show up in the right order instead of everyone's truck trying
+  to use the same loading dock at once. Use this if a load-in has ever
+  turned into a parking-lot standoff because nobody circulated the
+  schedule the day before.
+category: events
+tags: [events, logistics, load-in, day-of]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  match=$(awk -F, -v today="$today" 'NR>1 && $1==today {print}' "{{load_schedule_csv_path}}");
+  if [ -z "$match" ]; then
+    echo "No load-in/load-out entries scheduled for today ($today).";
+  else
+    echo "TODAY'S LOAD SCHEDULE ($today):";
+    echo "$match" | awk -F, '{printf "%s: %s (%s) at %s\n", $2, $3, $4, $5}';
+  fi
+variables:
+  load_schedule_csv_path:
+    default: "./event-load-schedule.csv"
+    description: "Path to a CSV with header row, columns: date(YYYY-MM-DD),time,vendor_or_crew,type(load-in/load-out),dock_or_entrance."
+compatible_agents: [generic, claude, codex]
+notes: Circulate this to the venue's loading dock contact too — a schedule only the event team has doesn't prevent the parking-lot standoff.

@@ -1,0 +1,44 @@
+id: ticket-sales-pace-check
+version: 1
+name: Event Ticket Sales Pace Check
+description: >
+  Compares tickets sold so far against a target sales curve for how close
+  the event is, and flags it if sales are running behind pace. Use this if
+  a ticketed event has ever ended up under-sold because nobody noticed
+  sales were lagging until it was too late to push a promotion.
+category: events
+tags: [events, ticketing, sales, planning]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  days_left=$(( (event_ts - today) / 86400 ));
+  sold="{{tickets_sold}}";
+  capacity="{{ticket_capacity}}";
+  on_sale_days="{{on_sale_days_total}}";
+  days_elapsed=$(( on_sale_days - days_left ));
+  if [ "$days_elapsed" -lt 0 ]; then days_elapsed=0; fi;
+  expected_pct=$(awk -v e="$days_elapsed" -v t="$on_sale_days" 'BEGIN{ if (t>0) printf "%.0f", (e/t)*100; else print "0" }');
+  actual_pct=$(awk -v s="$sold" -v c="$capacity" 'BEGIN{ if (c>0) printf "%.0f", (s/c)*100; else print "0" }');
+  if [ "$actual_pct" -lt "$expected_pct" ]; then
+    echo "BEHIND PACE: $sold of $capacity sold (${actual_pct}%), expected ~${expected_pct}% at this point in the on-sale window";
+  else
+    echo "ON PACE: $sold of $capacity sold (${actual_pct}%), expected ~${expected_pct}%";
+  fi
+variables:
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event (YYYY-MM-DD).
+  tickets_sold:
+    default: 0
+    description: Tickets sold so far (pull this from your ticketing platform before each run, or wire in an API call).
+  ticket_capacity:
+    default: 200
+    description: Total tickets available for the event.
+  on_sale_days_total:
+    default: 60
+    description: Total number of days tickets are on sale, from launch to event date.
+compatible_agents: [generic, claude, codex]
+notes: Uses a straight-line sales-pace assumption (evenly spread over the on-sale window), which undercounts the usual early/late sales bump — treat "behind pace" as a nudge to check in, not a hard alarm.

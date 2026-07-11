@@ -1,0 +1,39 @@
+id: catering-headcount-finalization-reminder
+version: 1
+name: Catering Headcount Finalization Reminder
+description: >
+  Warns you before the caterer's final-guaranteed-headcount deadline
+  passes, since most caterers lock in (and bill for) that number and won't
+  take changes after. Use this if you've ever paid for meals nobody ate,
+  or run short, because the final count deadline slipped by unnoticed.
+category: events
+tags: [events, catering, deadlines, planning]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{final_count_due_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{final_count_due_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "PAST DEADLINE: final headcount for {{caterer_name}} was due on {{final_count_due_date}} — confirm whether late changes are still possible";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then
+    echo "DEADLINE APPROACHING: final headcount for {{caterer_name}} is due in $days_left day(s) ({{final_count_due_date}}) — current best estimate is {{current_headcount_estimate}}";
+  else
+    echo "OK: final headcount for {{caterer_name}} due in $days_left days, no action needed yet";
+  fi
+variables:
+  caterer_name:
+    default: "the caterer"
+    description: Name of the catering vendor, for the output message.
+  final_count_due_date:
+    default: "2026-12-01"
+    description: Date the guaranteed final headcount is contractually due (YYYY-MM-DD).
+  warn_days:
+    default: 5
+    description: Days before the deadline to start warning.
+  current_headcount_estimate:
+    default: 100
+    description: Your current best-guess headcount, so the warning message shows what number you're about to lock in.
+compatible_agents: [generic, claude, codex]
+notes: Most catering contracts bill for the guaranteed count even if fewer people show — double-check your contract's overage/underage terms before finalizing.

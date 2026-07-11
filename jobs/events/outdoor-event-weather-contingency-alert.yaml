@@ -1,0 +1,65 @@
+id: outdoor-event-weather-contingency-alert
+version: 1
+name: Outdoor Event Weather Contingency Alert
+description: >
+  Checks the forecast for an upcoming outdoor event against your
+  go/no-go thresholds (rain chance, wind, heat) and flags it when the
+  contingency plan should start getting activated. Use this if an outdoor
+  event has ever been caught flat-footed by a forecast that everyone
+  privately worried about but nobody officially acted on.
+category: events
+tags: [events, outdoor, weather, contingency]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  resp=$(curl -s "https://api.open-meteo.com/v1/forecast?latitude={{venue_latitude}}&longitude={{venue_longitude}}&daily=precipitation_probability_max,windspeed_10m_max,temperature_2m_max&timezone=auto&start_date={{event_date}}&end_date={{event_date}}");
+  rain=$(echo "$resp" | grep -o '"precipitation_probability_max":\[[0-9.]*' | grep -o '[0-9.]*$');
+  wind=$(echo "$resp" | grep -o '"windspeed_10m_max":\[[0-9.]*' | grep -o '[0-9.]*$');
+  temp=$(echo "$resp" | grep -o '"temperature_2m_max":\[[0-9.]*' | grep -o '[0-9.]*$');
+  if [ -z "$rain" ]; then echo "ERROR: no forecast available yet for {{event_date}} (forecasts typically only cover ~16 days out)"; exit 0; fi;
+  flagged=0;
+  if awk "BEGIN{exit !($rain >= {{rain_pct_threshold}})}"; then echo "WEATHER RISK: ${rain}% rain chance on {{event_date}} (threshold {{rain_pct_threshold}}%)"; flagged=1; fi;
+  if awk "BEGIN{exit !($wind >= {{wind_kph_threshold}})}"; then echo "WEATHER RISK: ${wind} km/h max wind on {{event_date}} (threshold {{wind_kph_threshold}} km/h)"; flagged=1; fi;
+  if awk "BEGIN{exit !($temp >= {{heat_c_threshold}})}"; then echo "WEATHER RISK: ${temp}C forecast high on {{event_date}} (threshold {{heat_c_threshold}}C)"; flagged=1; fi;
+  if [ "$flagged" -eq 0 ]; then echo "OK: forecast for {{event_date}} within thresholds (rain ${rain}%, wind ${wind}km/h, high ${temp}C)"; fi
+prompt: |
+  Check the weather forecast for the outdoor event at coordinates
+  ({{venue_latitude}}, {{venue_longitude}}) on {{event_date}}, using the
+  Open-Meteo API or another forecast source.
+  1. Compare rain chance, max wind, and max temperature against the
+     thresholds: rain {{rain_pct_threshold}}%, wind {{wind_kph_threshold}}
+     km/h, heat {{heat_c_threshold}}C.
+  2. If any threshold is crossed, explain the practical risk (e.g. "high
+     wind risk for tents/signage", "heat risk for an all-day outdoor crowd")
+     and recommend which contingency step to trigger (move indoors, delay
+     start, add shade/water stations, etc.) based on what's actually
+     forecast, not just a generic warning.
+  3. If no forecast is available yet (event is more than ~16 days out),
+     say so and suggest when to check again.
+script_note: >
+  `command` fetches the raw forecast and does threshold math only, zero
+  tokens. `prompt` additionally interprets which specific contingency
+  action makes sense for the type of risk (wind vs. heat vs. rain call for
+  different responses), which a script can't judge.
+variables:
+  venue_latitude:
+    default: "40.7128"
+    description: Venue latitude for the forecast lookup.
+  venue_longitude:
+    default: "-74.0060"
+    description: Venue longitude for the forecast lookup.
+  event_date:
+    default: "2026-08-15"
+    description: Date of the outdoor event (YYYY-MM-DD).
+  rain_pct_threshold:
+    default: 50
+    description: Rain probability percent that triggers a contingency warning.
+  wind_kph_threshold:
+    default: 40
+    description: Max wind speed (km/h) that triggers a contingency warning (tents/signage/stages are often rated for a specific max wind).
+  heat_c_threshold:
+    default: 33
+    description: Max forecast temperature (Celsius) that triggers a heat-risk warning.
+compatible_agents: [generic, claude, codex]
+notes: Uses the free Open-Meteo API (no key required); forecasts beyond ~16 days out will return no data, so this only becomes actionable as the event gets close.

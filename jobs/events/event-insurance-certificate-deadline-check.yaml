@@ -1,0 +1,36 @@
+id: event-insurance-certificate-deadline-check
+version: 1
+name: Event Insurance Certificate Deadline Check
+description: >
+  Warns you before the deadline to submit a certificate of insurance (COI)
+  to a venue, city, or permit office passes. Use this if an event has ever
+  nearly been cancelled or fined because the venue never got the insurance
+  paperwork it required.
+category: events
+tags: [events, insurance, compliance, deadlines]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{coi_due_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{coi_due_date}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "PAST DEADLINE: certificate of insurance for {{recipient_name}} was due {{coi_due_date}} — confirm with them directly, this may already be blocking event approval";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then
+    echo "ACTION NEEDED: certificate of insurance for {{recipient_name}} is due in $days_left day(s) ({{coi_due_date}}) — contact your insurance broker if it isn't requested yet";
+  else
+    echo "OK: certificate of insurance for {{recipient_name}} due in $days_left days";
+  fi
+variables:
+  recipient_name:
+    default: "the venue"
+    description: Who requires the certificate of insurance (venue, city permit office, etc.), for the output message.
+  coi_due_date:
+    default: "2026-11-01"
+    description: Date the certificate of insurance must be submitted by (YYYY-MM-DD).
+  warn_days:
+    default: 10
+    description: Days before the deadline to start warning — COIs often take a broker several business days to issue.
+compatible_agents: [generic, claude, codex]
+notes: Requesting a COI from your insurance broker isn't instant — some brokers take 3-5 business days, so set warn_days with that lead time in mind.

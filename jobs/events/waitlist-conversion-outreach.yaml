@@ -1,0 +1,45 @@
+id: waitlist-conversion-outreach
+version: 1
+name: Waitlist-to-Confirmed Conversion Outreach
+description: >
+  Drafts outreach to people on an event waitlist when spots open up from
+  cancellations, so seats don't sit empty while people who wanted in never
+  find out. Use this if an event has ever had a waitlist and empty seats
+  at the same time because nobody got around to reaching out.
+category: events
+tags: [events, waitlist, outreach, registration]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{waitlist_source}} for the event on {{event_date}} and compare
+  the number of open spots (capacity minus confirmed attendees) against
+  the waitlist.
+  1. If there are open spots, pick the next {{spots_to_offer}} people on
+     the waitlist in order (first-come or priority order if the source
+     marks one).
+  2. Draft a short, friendly email or message to each offering their spot,
+     with a response deadline of {{response_deadline_hours}} hours before
+     it's offered to the next person. Save as drafts — do not send.
+  3. If there are no open spots, report that and stop.
+  4. Summarize: how many spots opened, who was offered, and the response
+     deadline for each.
+variables:
+  waitlist_source:
+    default: "event-waitlist.csv"
+    description: Path or connector holding the waitlist and current confirmed/capacity counts.
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event.
+  spots_to_offer:
+    default: 3
+    description: Maximum number of newly-open spots to offer in a single run.
+  response_deadline_hours:
+    default: 24
+    description: How many hours a waitlisted person has to respond before the spot moves to the next person.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only by design — never auto-sends. Sends real outreach to real
+  people once approved, so review drafts before releasing them. No script
+  mode: picking recipients in priority order and writing a personable
+  invite is a judgment/drafting task, not a scriptable comparison.

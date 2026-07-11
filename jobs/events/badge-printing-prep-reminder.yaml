@@ -1,0 +1,41 @@
+id: badge-printing-prep-reminder
+version: 1
+name: Badge/Registration Printing Prep Reminder
+description: >
+  Warns you before the cutoff to send the final attendee list to badge
+  printing or your registration desk, so nobody's stuck hand-writing name
+  tags the morning of the event. Use this if a badge printer has ever
+  needed the list "by end of day" and you found out that morning.
+category: events
+tags: [events, registration, badges, deadlines]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  cutoff_ts=$(date -d "{{print_cutoff_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{print_cutoff_date}}" +%s);
+  days_left=$(( (cutoff_ts - today) / 86400 ));
+  registered=$(wc -l < "{{registration_list_csv_path}}");
+  registered=$((registered - 1));
+  if [ "$days_left" -lt 0 ]; then
+    echo "PAST CUTOFF: badge list for {{event_name}} was due to the printer on {{print_cutoff_date}} — confirm the list already went out";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then
+    echo "SEND LIST NOW: $registered registered attendees, badge cutoff for {{event_name}} is in $days_left day(s) ({{print_cutoff_date}})";
+  else
+    echo "OK: $registered registered so far, badge cutoff in $days_left days";
+  fi
+variables:
+  event_name:
+    default: "your event"
+    description: Name of the event, for the output message.
+  registration_list_csv_path:
+    default: "./event-registrations.csv"
+    description: Path to the current registration list CSV (one header row plus one row per registrant).
+  print_cutoff_date:
+    default: "2026-11-28"
+    description: Date the final list must be sent to the printer or registration desk (YYYY-MM-DD).
+  warn_days:
+    default: 3
+    description: Days before the cutoff to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Late walk-up registrants after the print cutoff will need blank/handwritten badges — budget a few blanks even after the main batch prints.

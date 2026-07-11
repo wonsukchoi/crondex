@@ -1,0 +1,38 @@
+id: venue-capacity-compliance-check
+version: 1
+name: Venue Capacity / Fire-Code Compliance Check
+description: >
+  Compares confirmed attendee count against the venue's legal occupancy
+  limit and flags it before you're over. Use this if you've ever added
+  "just a few more" invitees without checking whether the room's fire-code
+  capacity could actually hold them.
+category: events
+tags: [events, venue, safety, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  confirmed=$(wc -l < "{{confirmed_list_csv_path}}");
+  confirmed=$((confirmed - 1));
+  limit="{{legal_occupancy_limit}}";
+  buffer_pct="{{safety_buffer_pct}}";
+  safe_limit=$(awk -v l="$limit" -v b="$buffer_pct" 'BEGIN{printf "%.0f", l * (100-b) / 100}');
+  if [ "$confirmed" -gt "$limit" ]; then
+    echo "OVER LEGAL LIMIT: $confirmed confirmed exceeds occupancy limit of $limit — reduce headcount or upgrade the venue permit";
+  elif [ "$confirmed" -gt "$safe_limit" ]; then
+    echo "APPROACHING LIMIT: $confirmed confirmed is within ${safety_buffer_pct}% of the $limit occupancy limit ($safe_limit safe threshold)";
+  else
+    echo "OK: $confirmed confirmed, well under the $limit occupancy limit";
+  fi
+variables:
+  confirmed_list_csv_path:
+    default: "./event-confirmed-attendees.csv"
+    description: Path to a CSV of confirmed attendees (one header row plus one row per confirmed guest, staff, and vendor on-site).
+  legal_occupancy_limit:
+    default: 150
+    description: The venue's posted/permitted legal occupancy limit (get this from the venue contract or fire marshal certificate, not a guess).
+  safety_buffer_pct:
+    default: 10
+    description: Percent below the legal limit to start an early warning, before you're actually over.
+compatible_agents: [generic, claude, codex]
+notes: Confirmed count should include staff, vendors, and crew on-site, not just ticketed/RSVP'd guests — occupancy limits count everyone in the room.

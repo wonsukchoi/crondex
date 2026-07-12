@@ -1,0 +1,37 @@
+id: overlock-notice-followup-check
+version: 1
+name: Overlock Notice Followup Check
+description: >
+  Looks at units that staff have overlocked (added a second lock to) for
+  nonpayment and flags any where the required followup notice letting the
+  tenant know about the overlock hasn't actually been sent yet. Use this if
+  you want to make sure overlocked tenants are told promptly, instead of a
+  unit sitting overlocked with no notice on file until someone shows up
+  confused at the gate.
+category: self-storage
+tags: [self-storage, overlock, delinquency, notice]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, overlock_date, notice_sent_at from overlocked_units where notice_sent_at is null and overlock_date <= current_date - interval '{{notice_deadline_days}} days' order by overlock_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  notice_deadline_days:
+    default: 1
+    description: >
+      How many days after a unit is overlocked the tenant notice is supposed
+      to go out; units past this without a recorded notice get flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only tracker of a process gap: it does not send the notice, remove
+  an overlock, or contact the tenant itself. Assumes an `overlocked_units`
+  table with `overlock_date` and a `notice_sent_at` timestamp populated
+  whenever the facility's actual notice workflow (letter, email, text,
+  physical tag on the door) completes — if your notice process isn't
+  logged into that column today, this job will simply flag everything.
+  Required notice timing and format vary by state and lease terms, so
+  confirm your facility's actual legal requirement rather than relying
+  solely on the default.

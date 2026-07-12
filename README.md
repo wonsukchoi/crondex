@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1075 jobs across 55 categories:
+1095 jobs across 56 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -157,6 +157,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `retail` | 21 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 18 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
+| `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 20 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |

@@ -1,0 +1,31 @@
+id: security-camera-outage-check
+version: 1
+name: Security Camera Outage Check
+description: >
+  Checks the facility's security camera heartbeat or status logs for any
+  camera that has stopped reporting in, and flags it as offline. Use this
+  if you want to know about a gap in security camera coverage right away
+  instead of finding out only after an incident, when it's too late to fix
+  the blind spot.
+category: self-storage
+tags: [self-storage, security, cameras, facility-monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select camera_id, location, last_heartbeat_at from cameras where last_heartbeat_at < now() - interval '{{offline_threshold_minutes}} minutes' order by last_heartbeat_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility monitoring database.
+  offline_threshold_minutes:
+    default: "10"
+    description: How many minutes without a heartbeat before a camera is considered offline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `cameras` table with `camera_id`, `location`, and
+  `last_heartbeat_at` columns, populated by whatever camera/NVR system the
+  facility uses — adjust the query or swap in a call to that system's API
+  if it doesn't write to this database directly. Read-only informational
+  check; it flags outages so staff can dispatch a technician, it does not
+  attempt to reset or repair the camera itself.

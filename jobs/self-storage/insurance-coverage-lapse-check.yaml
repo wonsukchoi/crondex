@@ -1,0 +1,36 @@
+id: insurance-coverage-lapse-check
+version: 1
+name: Insurance Coverage Lapse Check
+description: >
+  Looks at every active storage unit rental and flags tenants whose required
+  goods-protection or insurance policy has expired, been canceled, or was
+  never set up in the first place. Use this if your facility requires
+  tenants to carry coverage on their stored belongings as a condition of
+  the lease and you want to catch gaps before a claim (or an audit) exposes
+  them.
+category: self-storage
+tags: [self-storage, insurance, compliance, lease-requirement]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select t.unit_number, t.tenant_name, p.policy_status, p.expiration_date from tenants t left join insurance_policies p on p.tenant_id = t.id where t.lease_active = true and (p.policy_status is null or p.policy_status <> 'active' or p.expiration_date < current_date + interval '{{lookahead_days}} days') order by p.expiration_date asc nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lookahead_days:
+    default: 0
+    description: >
+      How many days ahead of the actual expiration date to start flagging a
+      policy, so staff can reach out before coverage actually lapses rather
+      than only after.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: it only reports gaps, it does not cancel a lease, bill a
+  tenant, or enroll anyone in a policy automatically. Assumes a `tenants`
+  table with `lease_active`, and an `insurance_policies` table keyed by
+  `tenant_id` with `policy_status` and `expiration_date` — adjust the join
+  and column names to your actual schema, including if your facility
+  auto-enrolls tenants in a house protection plan billed alongside rent
+  rather than tracking third-party policies.

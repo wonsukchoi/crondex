@@ -1,0 +1,35 @@
+id: move-out-inspection-backlog-check
+version: 1
+name: Move-Out Inspection Backlog Check
+description: >
+  Looks at units tenants have recently reported as moved out of and flags
+  the ones still waiting on a final walkthrough to confirm the unit's
+  condition and settle any deposit. Use this if you want to catch a
+  growing backlog of unfinished move-out inspections before it turns into
+  disputed deposit refunds or a unit re-rented without anyone checking it
+  was actually empty and undamaged.
+category: self-storage
+tags: [self-storage, move-out, inspection, deposit]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, move_out_reported_at, inspection_completed_at from move_outs where inspection_completed_at is null and move_out_reported_at <= current_date - interval '{{backlog_threshold_days}} days' order by move_out_reported_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  backlog_threshold_days:
+    default: 2
+    description: >
+      How many days a reported move-out can go without a completed
+      inspection before it counts as backlog worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: it flags backlog, it does not perform the inspection, release
+  a deposit, or mark a unit vacant/ready-to-rent on its own. Assumes a
+  `move_outs` table with `move_out_reported_at` and an
+  `inspection_completed_at` timestamp filled in once staff log the final
+  walkthrough — if inspections aren't tracked in a separate timestamp
+  today, point this at wherever that status actually lives (a unit-status
+  field, a task-management table, etc).

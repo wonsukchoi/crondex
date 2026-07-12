@@ -1,0 +1,33 @@
+id: autopay-failed-payment-check
+version: 1
+name: Autopay Failed Payment Check
+description: >
+  Looks at recurring rent autopay charges for storage units and flags
+  tenants whose most recent charge failed. Use this if you want to catch
+  and resolve a declined card or failed bank draft while there's still time
+  for a retry or a quick call, before the account slides into late fees or
+  an overlock for nonpayment.
+category: self-storage
+tags: [self-storage, autopay, billing, delinquency]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, charge_attempted_at, failure_reason, retry_count from autopay_charges where status = 'failed' and retry_count < {{max_retries}} order by charge_attempted_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  max_retries:
+    default: 3
+    description: >
+      Number of automatic retry attempts allowed before a failed charge is
+      considered to need manual staff followup instead of another retry.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: it surfaces failed charges, it does not retry the charge,
+  contact the tenant, or apply a late fee or overlock itself. Assumes an
+  `autopay_charges` table with `status`, `failure_reason`, and
+  `retry_count` columns tied to a unit/tenant — adjust to match whatever
+  payment processor or property-management system actually records your
+  autopay attempts, since field names vary widely between providers.

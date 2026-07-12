@@ -1,0 +1,38 @@
+id: delinquent-account-lien-timeline-check
+version: 1
+name: Delinquent Account Lien Timeline Check
+description: >
+  Looks at every past-due storage unit account and compares how many days
+  it's been late against the notice and waiting periods your state requires
+  before a lien can be filed on the unit's contents. Use this if you want an
+  early warning when an overdue account is approaching (or has crossed) a
+  legal deadline, instead of finding out only when a customer calls angry.
+category: self-storage
+tags: [self-storage, delinquency, lien-law, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select t.unit_number, t.tenant_name, a.days_past_due, s.notice_required_days, s.lien_eligible_days, (s.lien_eligible_days - a.days_past_due) as days_until_lien_eligible from delinquent_accounts a join tenants t on t.id = a.tenant_id join state_lien_rules s on s.state = t.facility_state where a.days_past_due >= (s.notice_required_days - {{warning_window_days}}) order by days_until_lien_eligible asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  warning_window_days:
+    default: 7
+    description: >
+      How many days before an account first becomes eligible for a required
+      notice or lien filing to start flagging it, so staff have lead time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a read-only tracker, nothing more: it does not send any notice,
+  file any lien, or take any legal action on its own. It assumes a
+  `delinquent_accounts` table with `tenant_id` and `days_past_due`, a
+  `tenants` table with `facility_state`, and a `state_lien_rules` table
+  mapping each state to its own `notice_required_days` and
+  `lien_eligible_days` — you must populate and keep that rules table
+  current yourself, since lien-law timelines and required steps vary by
+  state and change over time. Treat every flagged account as a prompt to
+  have a human confirm the actual statutory requirements for that state
+  and handle notice/lien filing through proper legal channels; this job
+  is not a substitute for legal advice or compliance review.

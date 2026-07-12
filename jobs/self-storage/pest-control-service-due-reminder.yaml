@@ -1,0 +1,29 @@
+id: pest-control-service-due-reminder
+version: 1
+name: Pest Control Service Due Reminder
+description: >
+  Reminds facility staff when the next scheduled pest-control service visit
+  under the facility's service contract is coming up. Use this if pest
+  control visits have ever been missed or scheduled late because nobody was
+  tracking the contract's service schedule.
+category: self-storage
+tags: [self-storage, pest-control, maintenance, facility-operations]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select facility_id, vendor_name, next_service_date, contract_reference from pest_control_contracts where next_service_date <= current_date + interval '{{lead_days}} days' order by next_service_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility operations/contracts database.
+  lead_days:
+    default: "5"
+    description: How many days before the next scheduled service visit to start reminding staff.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `pest_control_contracts` table with `facility_id`,
+  `vendor_name`, `next_service_date`, and `contract_reference` columns,
+  where `next_service_date` is updated after each completed visit —
+  adjust the query to your schema. Read-only reminder; it does not book
+  the appointment with the vendor or update the contract itself.

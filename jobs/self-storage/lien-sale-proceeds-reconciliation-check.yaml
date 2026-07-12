@@ -1,0 +1,36 @@
+id: lien-sale-proceeds-reconciliation-check
+version: 1
+name: Lien Sale Proceeds Reconciliation Check
+description: >
+  After a delinquent unit's contents have been sold at a lien auction,
+  compares the recorded sale proceeds against the amount that was actually
+  owed on the account, and flags any case where the sale brought in more
+  than what was owed. Use this if your facility runs lien sales on
+  delinquent units and needs to catch cases where a leftover "surplus"
+  amount is owed back to the former tenant, since most states require that
+  surplus to be refunded.
+category: self-storage
+tags: [self-storage, lien-sale, delinquent-accounts, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, former_tenant_name, amount_owed, sale_proceeds, (sale_proceeds - amount_owed) as surplus_amount from lien_sales where sale_date >= current_date - interval '{{lookback_days}} days' and sale_proceeds > amount_owed and refund_issued = false order by sale_date desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lookback_days:
+    default: "30"
+    description: How many days back to check completed lien sales for unreconciled surplus proceeds.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `lien_sales` table with `unit_number`, `former_tenant_name`,
+  `amount_owed`, `sale_proceeds`, `sale_date`, and `refund_issued` columns —
+  adjust the query to your schema. This is a read-only reconciliation
+  check only: it compares recorded numbers and flags rows where sale
+  proceeds exceeded the amount owed, which many states' lien-sale laws
+  require to be refunded to the former tenant as surplus. It does not
+  itself calculate the legally correct refund amount, issue any payment,
+  or mark the reconciliation as complete — a human must verify the figures
+  against your state's lien-sale requirements and process the refund.

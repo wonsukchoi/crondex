@@ -1,0 +1,33 @@
+id: humidity-sensor-battery-check
+version: 1
+name: Humidity Sensor Battery Check
+description: >
+  Checks the battery level reported by each climate-control unit's
+  humidity and temperature sensor and lists any sensor running low, before
+  it stops reporting altogether. Use this if your facility has
+  climate-controlled units with battery-powered environmental sensors and
+  you want to know about a dying battery before you lose visibility into
+  that unit's conditions.
+category: self-storage
+tags: [self-storage, climate-control, sensors, maintenance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, sensor_id, battery_percent, last_reported_at from climate_sensors where battery_percent < {{low_battery_threshold}} order by battery_percent asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  low_battery_threshold:
+    default: "20"
+    description: Battery percentage below which a sensor is flagged as low.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `climate_sensors` table with `unit_number`, `sensor_id`,
+  `battery_percent`, and `last_reported_at` columns — adjust the query to
+  your schema. Read-only: it only lists sensors with low battery, it does
+  not replace batteries or reconfigure any devices. If a sensor's
+  `last_reported_at` is old, its battery may already be dead rather than
+  just low, so consider pairing this with a separate check for stale
+  sensor reports.

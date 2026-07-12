@@ -1,0 +1,30 @@
+id: unit-size-waitlist-aging-check
+version: 1
+name: Unit Size Waitlist Aging Check
+description: >
+  Checks the waitlist for people wanting a specific storage unit size and
+  flags anyone who has been waiting longer than expected without a matching
+  unit opening up. Use this if you keep a waitlist for popular unit sizes
+  and want to catch people who are stuck waiting too long, so staff can
+  follow up or offer them a different size instead of losing the customer.
+category: self-storage
+tags: [self-storage, waitlist, unit-availability, customer-follow-up]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_name, customer_phone, requested_unit_size, date_added from unit_waitlist where status = 'waiting' and date_added <= current_date - interval '{{max_wait_days}} days' order by date_added asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  max_wait_days:
+    default: "21"
+    description: Number of days a waitlist entry can sit unmatched before it is flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `unit_waitlist` table with `customer_name`, `customer_phone`,
+  `requested_unit_size`, `date_added`, and `status` columns — adjust the
+  query to your schema. Read-only: it only surfaces long-waiting entries,
+  it does not remove anyone from the waitlist, assign a unit, or contact
+  the customer itself.

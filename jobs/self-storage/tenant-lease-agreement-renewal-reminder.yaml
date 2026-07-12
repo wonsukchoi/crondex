@@ -1,0 +1,32 @@
+id: tenant-lease-agreement-renewal-reminder
+version: 1
+name: Tenant Lease Agreement Renewal Reminder
+description: >
+  Looks through fixed-term storage unit rental agreements and lists the ones
+  due to renew or expire within the next several days, so staff can reach out
+  before a tenant's contract lapses. Use this if your facility uses
+  fixed-term lease agreements (not simple month-to-month rentals) and has
+  ever had a tenant's agreement quietly expire without anyone following up.
+category: self-storage
+tags: [self-storage, leasing, renewals, tenant-communication]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, tenant_email, lease_end_date from unit_leases where lease_end_date between current_date and current_date + interval '{{lookahead_days}} days' and status = 'active' order by lease_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lookahead_days:
+    default: "14"
+    description: How many days ahead of the lease end date to start flagging renewals.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `unit_leases` table with `unit_number`, `tenant_name`,
+  `tenant_email`, `lease_end_date`, and `status` columns — adjust the query
+  to your schema. This job only applies to facilities that use fixed-term
+  rental agreements; if every unit is month-to-month there is no fixed end
+  date to track and this job will not find anything useful. Read-only:
+  it only lists upcoming renewals, it does not send reminders or renew
+  anything itself.

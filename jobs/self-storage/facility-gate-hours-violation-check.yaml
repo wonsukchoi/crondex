@@ -1,0 +1,35 @@
+id: facility-gate-hours-violation-check
+version: 1
+name: Facility Gate Hours Violation Check
+description: >
+  Scans the gate access log for entries where someone used their access
+  code outside the facility's posted access hours, and lists those
+  after-hours attempts. Use this if your facility has set gate hours (like
+  6am-10pm) and you want to catch anyone getting onto the property outside
+  those hours, whether that's a tenant testing the limits or something more
+  concerning worth a security review.
+category: self-storage
+tags: [self-storage, gate-access, security, after-hours]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select tenant_name, unit_number, access_code, access_time from gate_access_log where access_time::time not between '{{gate_open_time}}' and '{{gate_close_time}}' and access_time >= current_date - interval '1 day' order by access_time desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  gate_open_time:
+    default: "06:00"
+    description: Start of the facility's posted gate access hours, 24-hour time.
+  gate_close_time:
+    default: "22:00"
+    description: End of the facility's posted gate access hours, 24-hour time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `gate_access_log` table with `tenant_name`, `unit_number`,
+  `access_code`, and `access_time` columns, and that gate hours don't
+  cross midnight (adjust the query if yours do) — adjust to your schema.
+  Read-only and informational: it only flags after-hours access events for
+  a human to review, it does not disable access codes or alert anyone on
+  its own.

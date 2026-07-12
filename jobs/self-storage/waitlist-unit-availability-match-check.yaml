@@ -1,0 +1,32 @@
+id: waitlist-unit-availability-match-check
+version: 1
+name: Waitlist Unit Availability Match Check
+description: >
+  Compares the self-storage facility's unit waitlist against units that were
+  just vacated, and flags any waitlisted prospect whose requested size or
+  type now has a match. Use this if prospects who asked to be notified about
+  a specific unit size sometimes miss out because staff advertised the unit
+  publicly before checking the waitlist first.
+category: self-storage
+tags: [self-storage, waitlist, unit-availability, leasing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select w.prospect_name, w.desired_unit_type, w.desired_unit_size, u.unit_number, u.unit_type, u.unit_size, u.vacated_at from waitlist w join units u on u.unit_type = w.desired_unit_type and u.unit_size = w.desired_unit_size where u.status = 'vacant' and u.vacated_at >= now() - interval '{{lookback_hours}} hours' and w.status = 'active' order by w.created_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lookback_hours:
+    default: "24"
+    description: How many hours back to look for newly vacated units when matching against the waitlist.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `waitlist` table with `prospect_name`, `desired_unit_type`,
+  `desired_unit_size`, `status`, and `created_at` columns, and a `units`
+  table with `unit_number`, `unit_type`, `unit_size`, `status`, and
+  `vacated_at` columns — adjust the query to your schema. This is a
+  read-only match check; it does not contact the prospect or reserve the
+  unit, it only surfaces matches so staff can offer the unit before it goes
+  up for general advertising.

@@ -1,0 +1,42 @@
+id: unit-auction-listing-deadline-reminder
+version: 1
+name: Unit Auction Listing Deadline Reminder
+description: >
+  Checks units that are scheduled for a lien auction and reminds staff of
+  the deadline to publish the legally-required public notice before the
+  auction date. Use this if you want to make sure the notice always goes
+  out on time, since missing that deadline can force you to reschedule
+  (or cancel) the whole auction.
+category: self-storage
+tags: [self-storage, auction, lien-sale, compliance, reminders]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, scheduled_auction_date, notice_posted_date, (scheduled_auction_date - interval '{{notice_lead_days}} days') as notice_deadline from scheduled_auctions where notice_posted_date is null and scheduled_auction_date <= (current_date + interval '{{notice_lead_days}} days' + interval '{{lookahead_days}} days') order by scheduled_auction_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  notice_lead_days:
+    default: 14
+    description: >
+      Minimum number of days the public notice must be posted before the
+      auction date, per the facility's governing state statute.
+  lookahead_days:
+    default: 5
+    description: >
+      Extra buffer, in days, past the notice deadline itself to keep
+      flagging an unposted notice so it doesn't silently drop off the list.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder tool only: it does not post any public notice, place
+  any advertisement, or run or execute an auction itself — it just tells
+  staff when the clock is running out. Assumes a `scheduled_auctions`
+  table with `unit_number`, `tenant_name`, `scheduled_auction_date`, and
+  a nullable `notice_posted_date` that your team updates once the notice
+  is actually published. Required notice format, publication method (e.g.
+  newspaper vs. online), and lead time all vary by state, so confirm the
+  exact statutory requirements for your facility's state before relying
+  on the `notice_lead_days` default; this job does not verify legal
+  compliance on its own.

@@ -1,0 +1,28 @@
+id: vacant-unit-marketing-listing-check
+version: 1
+name: Vacant Unit Marketing Listing Check
+description: >
+  Compares currently vacant, rent-ready units against what's actually posted
+  on the facility's online listing or marketing site, and flags units that
+  are ready to rent but aren't listed yet. Use this if empty units have ever
+  sat unrented longer than they should because someone forgot to add them to
+  the website after they were cleaned and made ready.
+category: self-storage
+tags: [self-storage, marketing, vacancy, online-listing]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, unit_type, unit_size, rent_ready_at from units where status = 'vacant' and rent_ready = true and unit_number not in (select unit_number from online_listings where listing_status = 'active');"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `units` table with `unit_number`, `unit_type`, `unit_size`,
+  `status`, `rent_ready`, and `rent_ready_at` columns, and an
+  `online_listings` table with `unit_number` and `listing_status` synced
+  from the facility's marketing/listing site — adjust the query to your
+  schema. Read-only check; it does not create or publish the listing
+  itself, it only surfaces units staff still need to list.

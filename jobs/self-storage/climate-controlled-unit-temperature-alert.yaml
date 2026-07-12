@@ -1,0 +1,43 @@
+id: climate-controlled-unit-temperature-alert
+version: 1
+name: Climate-Controlled Unit Temperature Alert
+description: >
+  Checks the latest temperature and humidity sensor readings from
+  climate-controlled units against the facility's target range and flags
+  any unit that's drifted outside it. Use this if you offer climate
+  control as a paid feature and want to catch an HVAC or sensor problem
+  before it damages a tenant's stored goods, not after they complain.
+category: self-storage
+tags: [self-storage, climate-control, facility-maintenance, sensors]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, reading_time, temperature_f, humidity_pct from climate_sensor_readings where reading_time >= (now() - interval '{{lookback_minutes}} minutes') and (temperature_f < {{min_temperature_f}} or temperature_f > {{max_temperature_f}} or humidity_pct > {{max_humidity_pct}}) order by reading_time desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility's sensor/monitoring database.
+  lookback_minutes:
+    default: 30
+    description: How far back to look for new sensor readings each run.
+  min_temperature_f:
+    default: 55
+    description: Lowest acceptable temperature, in Fahrenheit, for a climate-controlled unit.
+  max_temperature_f:
+    default: 85
+    description: Highest acceptable temperature, in Fahrenheit, for a climate-controlled unit.
+  max_humidity_pct:
+    default: 60
+    description: Highest acceptable relative humidity percentage for a climate-controlled unit.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only monitoring check: it does not adjust any thermostat or HVAC
+  setting, it only surfaces out-of-range readings so maintenance staff can
+  investigate. Assumes a `climate_sensor_readings` table with
+  `unit_number`, `reading_time`, `temperature_f`, and `humidity_pct`
+  populated by whatever sensor/IoT platform the facility uses — adjust
+  column names and units (e.g. Celsius) to match your actual system.
+  Treat a missing or stale reading (no rows in the lookback window) as
+  its own signal worth checking, since a dead sensor won't show up as an
+  out-of-range value here.

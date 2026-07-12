@@ -1,0 +1,32 @@
+id: rate-increase-notice-compliance-check
+version: 1
+name: Rate Increase Notice Compliance Check
+description: >
+  Checks upcoming tenant rate increases against the required advance-notice
+  period from the tenant's state and lease, and flags any increase where
+  the notice hasn't gone out with enough lead time. Use this if you want an
+  early warning before a rate increase becomes legally unenforceable, or
+  triggers a complaint, because the required notice period wasn't met.
+category: self-storage
+tags: [self-storage, rate-increase, compliance, tenant-notice]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select tenant_id, unit_number, state, effective_date, required_notice_days, notice_sent_at from rate_increases where notice_sent_at is null or (effective_date - notice_sent_at) < (required_notice_days || ' days')::interval order by effective_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility billing/leasing database.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance check only: it flags a possible shortfall between a
+  rate increase's effective date and its notice-sent date against the
+  `required_notice_days` on file, it does not send the notice itself, does
+  not change or delay the rate increase, and is not a substitute for legal
+  review. Assumes a `rate_increases` table with `tenant_id`, `unit_number`,
+  `state`, `effective_date`, `required_notice_days`, and `notice_sent_at`
+  columns, where `required_notice_days` is populated per the tenant's
+  state/lease requirements — adjust the query to your schema and confirm
+  the notice-period values are accurate for each jurisdiction before
+  relying on this check.

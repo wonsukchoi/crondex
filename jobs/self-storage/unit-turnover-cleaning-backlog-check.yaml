@@ -1,0 +1,35 @@
+id: unit-turnover-cleaning-backlog-check
+version: 1
+name: Unit Turnover Cleaning Backlog Check
+description: >
+  Looks at units that were recently vacated and flags any that haven't
+  been cleaned and marked ready-to-rent within your target turnaround
+  time. Use this if empty units sometimes sit unrentable longer than they
+  should because cleaning fell through the cracks, and you want a backlog
+  list instead of finding out from a lost sale.
+category: self-storage
+tags: [self-storage, unit-turnover, cleaning, occupancy]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, vacated_date, (current_date - vacated_date) as days_vacant from units where occupancy_status = 'vacated' and ready_to_rent = false and vacated_date <= (current_date - interval '{{target_turnaround_days}} days') order by vacated_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  target_turnaround_days:
+    default: 2
+    description: >
+      How many days a unit is allowed to sit vacated before it should be
+      cleaned and marked ready-to-rent; units past this get flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only backlog report: it does not clean any unit or change any
+  status itself, it only lists units past their target turnaround so
+  staff can prioritize cleaning. Assumes a `units` table with
+  `unit_number`, `occupancy_status` (including a `vacated` value),
+  `vacated_date`, and a boolean `ready_to_rent` flag that your team (or
+  cleaning-crew app) sets once a unit passes inspection — adjust field
+  names to match your actual property-management or turnover-tracking
+  system.

@@ -1,0 +1,34 @@
+id: facility-occupancy-rate-check
+version: 1
+name: Facility Occupancy Rate Check
+description: >
+  Breaks down current occupancy by unit size or type and flags any size
+  category running well below your target occupancy rate. Use this if you
+  want to catch a mismatch early, like one unit size sitting mostly empty
+  while another size is completely sold out, so you can adjust pricing,
+  promotions, or a conversion project instead of just watching overall
+  occupancy look "fine" while it hides that imbalance.
+category: self-storage
+tags: [self-storage, occupancy, unit-mix, performance]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_size, count(*) filter (where status = 'occupied') as occupied, count(*) as total, round(100.0 * count(*) filter (where status = 'occupied') / nullif(count(*), 0), 1) as occupancy_pct from units group by unit_size having round(100.0 * count(*) filter (where status = 'occupied') / nullif(count(*), 0), 1) < {{target_occupancy_pct}} order by occupancy_pct asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  target_occupancy_pct:
+    default: 90
+    description: >
+      The occupancy percentage a unit size is expected to hit; sizes
+      falling below this get flagged as underperforming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reporting job: it does not change pricing, move units between
+  size categories, or launch any promotion itself. Assumes a `units` table
+  with a `unit_size` (or type) column and a `status` column whose values
+  include `occupied` — adjust the status value and grouping column to
+  match your actual schema, especially if you track unit type (climate
+  controlled, drive-up, etc) separately from raw square footage.

@@ -1,0 +1,36 @@
+id: gate-access-code-deactivation-check
+version: 1
+name: Gate Access Code Deactivation Check
+description: >
+  Compares the list of active gate and keypad access codes against the
+  current tenant roster, and flags any code that's still active for a
+  tenant who has already moved out or been locked out for nonpayment. Use
+  this if you're worried someone who shouldn't have facility access
+  anymore still does, since a forgotten active code is a security gap.
+category: self-storage
+tags: [self-storage, gate-access, security, offboarding]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select g.access_code, g.tenant_id, t.tenant_name, t.status, t.status_changed_date from gate_access_codes g join tenants t on t.id = g.tenant_id where g.is_active = true and t.status in ('moved-out', 'locked-out-nonpayment') and t.status_changed_date <= (current_date - interval '{{grace_period_days}} days') order by t.status_changed_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management and gate-access database.
+  grace_period_days:
+    default: 1
+    description: >
+      How many days to allow after a tenant's status changes to
+      moved-out or locked-out before flagging their still-active code,
+      so same-day status updates aren't flagged as false positives.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check that does not itself deactivate any access code or
+  touch the gate/keypad system — it only reports codes that should
+  probably be turned off so staff can do it through the access-control
+  system. Assumes a `gate_access_codes` table linking each code to a
+  `tenant_id` with an `is_active` flag, and a `tenants` table with a
+  `status` field that includes values like `moved-out` and
+  `locked-out-nonpayment` plus a `status_changed_date` — adjust the
+  status values and join to match your actual gate-access vendor's schema.

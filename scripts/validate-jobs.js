@@ -24,6 +24,7 @@ const ajv = new Ajv({ allErrors: true });
 const validate = ajv.compile(schema);
 
 let failed = 0;
+const idLocations = new Map();
 for (const file of walk(JOBS_DIR)) {
   const doc = yaml.load(readFileSync(file, "utf8"));
   const rel = relative(ROOT, file);
@@ -37,6 +38,15 @@ for (const file of walk(JOBS_DIR)) {
   const scheduleCheck = isValidSchedule(doc.schedule);
   if (!scheduleCheck.valid) {
     console.error(`${rel}: schedule "${doc.schedule}" is not a valid cron expression — ${scheduleCheck.error}`);
+    failed++;
+  }
+  if (!idLocations.has(doc.id)) idLocations.set(doc.id, []);
+  idLocations.get(doc.id).push(rel);
+}
+
+for (const [id, files] of idLocations) {
+  if (files.length > 1) {
+    console.error(`duplicate id "${id}" used by: ${files.join(", ")}`);
     failed++;
   }
 }

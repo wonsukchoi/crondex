@@ -1,0 +1,33 @@
+id: marketing-automation-workflow-error-check
+version: 1
+name: Marketing Automation Workflow Error Check
+description: >
+  Checks the marketing automation platform's workflow and journey
+  execution logs for failed steps and stuck contacts, then flags any
+  workflow whose error rate is rising. Use this if an automated nurture
+  or onboarding journey has ever silently broken and stopped moving
+  contacts along because nobody was watching the execution logs.
+category: marketing
+tags: [marketing, marketing-automation, workflows, errors]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select workflow_name, count(*) filter (where status = 'error') as error_count, count(*) as total_runs, round(100.0 * count(*) filter (where status = 'error') / nullif(count(*), 0), 1) as error_rate_pct from workflow_execution_log where executed_at > now() - interval '{{lookback_hours}} hours' group by workflow_name having round(100.0 * count(*) filter (where status = 'error') / nullif(count(*), 0), 1) > {{error_rate_threshold_pct}} order by error_rate_pct desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or warehouse holding marketing automation workflow execution logs.
+  lookback_hours:
+    default: 24
+    description: Window of workflow execution history to evaluate.
+  error_rate_threshold_pct:
+    default: 5
+    description: Error rate percentage that triggers a flag for a workflow.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `workflow_execution_log` table with `workflow_name`,
+  `status`, and `executed_at` columns, typically synced from a marketing
+  automation platform (e.g. HubSpot, Marketo, Pardot) into a warehouse.
+  Read-only query; a flag means a workflow needs a human to check its
+  steps and any contacts currently stuck in it.

@@ -1,0 +1,63 @@
+id: lead-magnet-conversion-rate-check
+version: 1
+name: Lead Magnet Conversion Rate Check
+description: >
+  Compares how many visitors to a gated content offer's landing page
+  (an ebook, whitepaper, or template) actually submit the form to
+  download it, against a baseline conversion rate, and flags a
+  meaningful drop. Use this if a lead magnet that used to convert well
+  has quietly stopped pulling its weight and nobody would notice until
+  the pipeline dried up.
+category: marketing
+tags: [lead-generation, content-marketing, conversion-rate]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select
+    visits,
+    downloads,
+    round(downloads::numeric / nullif(visits, 0) * 100, 2) as conversion_rate_pct
+  from (
+    select
+      count(*) filter (where event_type = 'page_view') as visits,
+      count(*) filter (where event_type = 'form_submit') as downloads
+    from lead_magnet_events
+    where offer_id = '{{offer_id}}'
+      and event_time >= now() - interval '{{lookback_days}} days'
+  ) t;
+  " | awk -v baseline="{{baseline_conversion_rate_pct}}" -v drop="{{drop_threshold_pct}}" '
+  {
+    rate = $NF;
+    gsub(/[^0-9.]/, "", rate);
+    if (rate == "") next;
+    diff = baseline - rate;
+    if (diff >= drop) {
+      print "WARNING: conversion rate " rate "% is down " diff " points from baseline " baseline "%: " $0;
+    } else {
+      print "OK: conversion rate " rate "% (baseline " baseline "%): " $0;
+    }
+  }'
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the analytics database holding lead magnet events.
+  offer_id:
+    default: "2024-q3-whitepaper"
+    description: Identifier of the gated content offer to check.
+  lookback_days:
+    default: 7
+    description: How many days of visit/download events to aggregate for the current rate.
+  baseline_conversion_rate_pct:
+    default: 25
+    description: The expected/historical visit-to-download conversion rate, as a percentage.
+  drop_threshold_pct:
+    default: 8
+    description: Flag if the current conversion rate falls this many percentage points below the baseline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `lead_magnet_events` table with `offer_id`, `event_type`
+  ('page_view' or 'form_submit'), and `event_time` columns — adjust the
+  query to match your analytics or CDP schema. Read-only; does not
+  change any campaign or landing page settings.

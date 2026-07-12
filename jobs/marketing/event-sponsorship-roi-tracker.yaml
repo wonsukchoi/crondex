@@ -1,0 +1,59 @@
+id: event-sponsorship-roi-tracker
+version: 1
+name: Event Sponsorship ROI Tracker
+description: >
+  Checks a trade-show or conference sponsorship's cost against the leads
+  and pipeline value it has generated so far, and flags sponsorships
+  trending toward poor return well before the renewal decision is due.
+  Use this if you've ever renewed a booth or sponsorship out of habit
+  and only later realized it barely paid for itself.
+category: marketing
+tags: [events, sponsorship, roi]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -A -F',' -c "
+  select
+    e.sponsorship_cost,
+    count(l.id) as leads_generated,
+    coalesce(sum(o.amount), 0) as pipeline_value
+  from events e
+  left join leads l on l.source_event_id = e.event_id
+  left join opportunities o on o.source_event_id = e.event_id
+  where e.event_id = '{{event_id}}'
+  group by e.sponsorship_cost;
+  " | awk -F',' -v min_ratio="{{min_pipeline_to_cost_ratio}}" -v renewal_days="{{days_until_renewal_decision}}" '
+  {
+    cost=$1; leads=$2; pipeline=$3;
+    if (cost == 0) { print "No sponsorship cost recorded -- check event record."; exit 0; }
+    ratio = pipeline / cost;
+    cost_per_lead = (leads > 0) ? cost / leads : 0;
+    print "Cost=" cost ", leads=" leads ", pipeline=" pipeline ", pipeline-to-cost ratio=" ratio ", cost-per-lead=" cost_per_lead ", renewal decision in " renewal_days " days.";
+    if (ratio < min_ratio) {
+      print "WARNING: pipeline-to-cost ratio " ratio " is below minimum " min_ratio " -- reconsider renewal.";
+    } else {
+      print "OK: pipeline-to-cost ratio " ratio " meets minimum " min_ratio ".";
+    }
+  }'
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding event, lead, and opportunity records.
+  event_id:
+    default: "trade-show-2024-fall"
+    description: Identifier of the sponsored event to evaluate.
+  min_pipeline_to_cost_ratio:
+    default: 3
+    description: Minimum acceptable ratio of generated pipeline value to sponsorship cost.
+  days_until_renewal_decision:
+    default: 30
+    description: How many days out the renewal decision is, included in the report for context.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes `events`, `leads`, and `opportunities` tables where leads and
+  opportunities are tagged with a `source_event_id` linking them back to
+  the sponsored event — adjust joins to match your CRM's attribution
+  model. Read-only; pipeline value reflects whatever stage your CRM
+  currently has recorded, so treat early-cycle numbers as a trend
+  signal rather than a final verdict.

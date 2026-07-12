@@ -1,0 +1,44 @@
+id: paid-social-audience-overlap-check
+version: 1
+name: Paid Social Audience Overlap Check
+description: >
+  Checks the audience targeting across your active paid social ad sets
+  or campaigns for significant overlap, which means two of your own ads
+  are competing against each other in the same auction and driving your
+  own costs up. Use this if your cost-per-result has crept up without a
+  clear reason and you suspect your campaigns are cannibalizing each
+  other's reach.
+category: marketing
+tags: [paid-social, audience-targeting, ad-spend]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Using the ad account "{{ad_account_id}}" on {{ad_platform}}, list the
+  active ad sets or campaigns and their audience targeting definitions
+  (age, location, interests, custom/lookalike audience IDs, placements).
+  Identify pairs of active ad sets whose targeting overlaps by roughly
+  {{overlap_threshold_pct}} percent or more of estimated reach, since
+  those pairs are likely bidding against each other in the same auction.
+  For each overlapping pair, report the ad set names, an estimate of the
+  overlap percentage if the platform's audience-overlap tool provides
+  one, and a suggested fix (narrow one audience, exclude the other's
+  custom audience, or consolidate into one ad set). Only produce a
+  report — do not pause, edit, or change any campaign or ad set.
+variables:
+  ad_account_id:
+    default: "act_1234567890"
+    description: The ad platform account ID whose active ad sets/campaigns should be checked for targeting overlap.
+  ad_platform:
+    default: "Meta Ads"
+    description: Which paid social platform to check (e.g. Meta Ads, LinkedIn Ads, TikTok Ads).
+  overlap_threshold_pct:
+    default: 30
+    description: Flag ad set pairs whose estimated audience overlap is at or above this percentage.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — reports overlapping ad sets for a human to resolve, it
+  never pauses or edits campaigns itself. Requires an agent with access
+  to the ad platform's API or UI (e.g. Meta's Audience Overlap tool);
+  exact overlap percentages depend on what the platform's own reporting
+  exposes, so treat the output as directional rather than exact.

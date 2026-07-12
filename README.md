@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1181 jobs across 57 categories:
+1193 jobs across 57 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -144,7 +144,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `legal` | 20 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
-| `marketing` | 20 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
+| `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |

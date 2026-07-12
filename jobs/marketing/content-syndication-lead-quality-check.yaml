@@ -1,0 +1,66 @@
+id: content-syndication-lead-quality-check
+version: 1
+name: Content Syndication Lead Quality Check
+description: >
+  Checks the leads a content-syndication vendor delivered this period
+  against your contract's promised volume and basic quality bar
+  (required fields filled in, job title and industry matching your
+  target list), and flags a shortfall. Use this if you've ever paid a
+  vendor for a batch of leads and only found out weeks later that half
+  of them were incomplete or outside your target market.
+category: marketing
+tags: [content-syndication, lead-quality, vendor-management]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -A -F',' -c "
+  select
+    count(*) as total_leads,
+    count(*) filter (
+      where email is not null and job_title is not null and company is not null
+    ) as complete_leads,
+    count(*) filter (
+      where industry = '{{target_industry}}'
+        and job_title ilike '%{{target_title_keyword}}%'
+    ) as matching_leads
+  from syndication_leads
+  where vendor_id = '{{vendor_id}}'
+    and delivered_at >= now() - interval '{{lookback_days}} days';
+  " | awk -F',' -v contracted="{{contracted_volume}}" -v min_complete_pct="{{min_complete_pct}}" -v min_match_pct="{{min_match_pct}}" '
+  {
+    total=$1; complete=$2; matching=$3;
+    if (total == 0) { print "NO LEADS delivered in period -- check vendor feed."; exit 0; }
+    complete_pct = complete / total * 100;
+    match_pct = matching / total * 100;
+    print "Delivered " total " of " contracted " contracted leads; " complete_pct "% complete, " match_pct "% matching target industry/title.";
+    if (total < contracted) print "SHORTFALL: volume " total " below contracted " contracted;
+    if (complete_pct < min_complete_pct) print "SHORTFALL: completeness " complete_pct "% below minimum " min_complete_pct "%";
+    if (match_pct < min_match_pct) print "SHORTFALL: target match rate " match_pct "% below minimum " min_match_pct "%";
+  }'
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database where delivered syndication leads land.
+  vendor_id:
+    default: "syndication-vendor-a"
+    description: Identifier of the content-syndication vendor to evaluate.
+  lookback_days:
+    default: 30
+    description: How many days of delivered leads to evaluate as one delivery period.
+  contracted_volume:
+    default: 200
+    description: Number of leads the vendor is contracted to deliver over the lookback period.
+  min_complete_pct:
+    default: 90
+    description: Minimum percentage of leads that must have email, job title, and company filled in.
+  min_match_pct:
+    default: 60
+    description: Minimum percentage of leads that must match the target industry and title keyword.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `syndication_leads` table with `vendor_id`, `delivered_at`,
+  `email`, `job_title`, `company`, and `industry` columns — adjust to
+  match how your CRM or MAP tags vendor-delivered leads. Read-only;
+  intended to surface shortfalls before a renewal or invoice dispute,
+  not to reject leads automatically.

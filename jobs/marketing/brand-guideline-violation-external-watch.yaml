@@ -1,0 +1,46 @@
+id: brand-guideline-violation-external-watch
+version: 1
+name: Brand Guideline Violation External Watch
+description: >
+  Reviews external sites where your brand shows up — partner pages,
+  reseller listings, press mentions, directory profiles — for outdated
+  logos, wrong colors, or misused brand names that violate your current
+  brand guidelines. Use this if you've ever discovered months later that
+  a partner was still using your old logo or a mangled version of your
+  name on their public site.
+category: marketing
+tags: [branding, brand-guidelines, partner-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Visit each URL in {{watch_urls}} and inspect how the brand named
+  "{{brand_name}}" is being displayed. Compare what you see against the
+  current brand guidelines summarized here: {{brand_guideline_summary}}.
+  Flag anything that looks like a violation: an outdated logo version, an
+  incorrect logo color or aspect ratio, a misspelled or altered company
+  name, an expired or unauthorized use of a discontinued product name, or
+  brand assets used in a way that implies an endorsement that doesn't
+  exist. For each flagged page, report the URL, a plain description of
+  the violation, and a suggested next step (e.g. "email partner to
+  request updated logo file"). Do not contact anyone directly — only
+  produce a report for a human to act on.
+variables:
+  watch_urls:
+    default: "https://example.com/partners/reseller-a, https://example.com/press/mention-b"
+    description: Comma-separated list of external URLs (partner sites, reseller pages, press mentions) to check for brand usage.
+  brand_name:
+    default: "Acme Corp"
+    description: The brand or company name to look for and validate on external pages.
+  brand_guideline_summary:
+    default: "Current logo is the 2024 wordmark in navy (#1A2B4C); no gradient or drop-shadow versions; company name is always 'Acme Corp', never 'Acme Corporation' or 'ACME'."
+    description: A short plain-language summary of the brand guidelines to check external usage against.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — this job only inspects public external pages and produces a
+  report; it never edits, emails, or contacts anyone on your behalf. It
+  is distinct from an internal deliverable-review job because it watches
+  how third parties (partners, resellers, press) display your brand, not
+  your own team's output. Requires an agent capable of fetching and
+  visually or textually inspecting web pages; accuracy depends on the
+  quality of {{brand_guideline_summary}} you provide.

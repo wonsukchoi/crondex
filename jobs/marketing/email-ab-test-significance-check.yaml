@@ -1,0 +1,63 @@
+id: email-ab-test-significance-check
+version: 1
+name: Email A/B Test Significance Check
+description: >
+  Checks a running email subject-line or content A/B test's sample size
+  and results against the math needed for statistical significance, and
+  flags whether the test has reached a confident winner or has been
+  running too long without one. Use this if your team has ever called
+  an email test "the winner" after a few hundred sends when the gap was
+  actually just noise.
+category: marketing
+tags: [email-marketing, ab-testing, statistics]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -A -F',' -c "
+  select sent_a, opens_a, sent_b, opens_b, started_at::date
+  from email_ab_tests
+  where test_id = '{{test_id}}';
+  " | awk -F',' -v conf="{{confidence_z_score}}" -v max_days="{{max_days_running}}" -v min_n="{{min_sample_size}}" '
+  {
+    na=$1; xa=$2; nb=$3; xb=$4; started=$5;
+    if (na < min_n || nb < min_n) {
+      print "TOO EARLY: sample sizes (a=" na ", b=" nb ") below minimum " min_n "; keep running.";
+      exit 0;
+    }
+    pa = xa / na; pb = xb / nb;
+    p_pool = (xa + xb) / (na + nb);
+    se = sqrt(p_pool * (1 - p_pool) * (1/na + 1/nb));
+    if (se == 0) { print "NO VARIANCE: cannot compute significance from this data."; exit 0; }
+    z = (pa - pb) / se;
+    az = z < 0 ? -z : z;
+    if (az >= conf) {
+      winner = (pa > pb) ? "A" : "B";
+      print "SIGNIFICANT: variant " winner " wins (z=" az ", rate_a=" pa ", rate_b=" pb "), started " started;
+    } else {
+      print "NOT YET SIGNIFICANT: z=" az " below required " conf ", rate_a=" pa ", rate_b=" pb ", started " started " -- check {{max_days_running}}-day cutoff separately.";
+    }
+  }'
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the email platform's reporting database.
+  test_id:
+    default: "subject-line-test-042"
+    description: Identifier of the A/B test to evaluate.
+  confidence_z_score:
+    default: 1.96
+    description: Z-score threshold to call significant (1.96 is roughly 95% confidence).
+  min_sample_size:
+    default: 1000
+    description: Minimum sends per variant before evaluating significance at all.
+  max_days_running:
+    default: 14
+    description: Flag a test as stale if it has run this many days without reaching significance.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `email_ab_tests` table with per-test send/open counts for
+  two variants (`sent_a`, `opens_a`, `sent_b`, `opens_b`) and a
+  `started_at` timestamp — adjust the query for click-based or
+  conversion-based tests, or your ESP's schema. Uses a standard
+  two-proportion z-test; read-only, does not stop or resolve the test.

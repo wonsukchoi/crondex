@@ -1,0 +1,30 @@
+id: influencer-campaign-deliverable-tracker
+version: 1
+name: Influencer Campaign Deliverable Tracker
+description: >
+  Checks influencer and creator partnership contracts for deliverables
+  (posts, stories, mentions) that are past their agreed due date and not
+  yet marked fulfilled. Use this if you've ever paid an influencer up
+  front and then had to chase them down weeks later because nobody was
+  tracking whether the agreed content actually went out.
+category: marketing
+tags: [marketing, influencer, creator-partnerships, deliverables]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select influencer_name, deliverable_type, due_date, status from campaign_deliverables where status != 'fulfilled' and due_date < now() - interval '{{grace_period_days}} days' order by due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database tracking influencer campaign deliverables.
+  grace_period_days:
+    default: 1
+    description: Number of days past the due date to allow before flagging a deliverable as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `campaign_deliverables` table with `influencer_name`,
+  `deliverable_type`, `due_date`, and `status` columns, typically
+  populated from a spreadsheet, influencer marketing platform, or CRM.
+  Read-only query; a flagged row means someone should follow up with the
+  creator, not that payment should be withheld automatically.

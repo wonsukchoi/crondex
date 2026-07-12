@@ -1,0 +1,28 @@
+id: social-media-posting-cadence-gap-check
+version: 1
+name: Social Media Posting Cadence Gap Check
+description: >
+  Checks the social media content calendar for gaps where no post is
+  scheduled within the expected posting cadence for a channel. Use this
+  if a social account has ever gone quiet for days because nobody noticed
+  the scheduling queue ran dry.
+category: marketing
+tags: [marketing, social-media, content-calendar, cadence]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select channel, max(scheduled_at) as last_scheduled_post, now() - max(scheduled_at) as gap from scheduled_posts where scheduled_at > now() group by channel having now() - max(scheduled_at) > interval '{{max_gap_hours}} hours' or max(scheduled_at) is null;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database backing the social media scheduling tool.
+  max_gap_hours:
+    default: 48
+    description: Maximum hours allowed between now and the next scheduled post before a channel is flagged as having a gap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `scheduled_posts` table with `channel` and `scheduled_at`
+  columns, typically synced from a social media scheduling tool (e.g.
+  Buffer, Hootsuite, Sprout Social) into a warehouse. Read-only query;
+  checks future-scheduled posts, not past posting history.

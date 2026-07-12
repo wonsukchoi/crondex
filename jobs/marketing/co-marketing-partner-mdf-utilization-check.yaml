@@ -1,0 +1,33 @@
+id: co-marketing-partner-mdf-utilization-check
+version: 1
+name: Co-Marketing Partner MDF Utilization Check
+description: >
+  Checks each co-marketing or channel partner's market development fund
+  (MDF) usage against their allocated budget and claim deadline, and
+  flags partners at risk of losing unused funds. Use this if a partner
+  has ever forfeited MDF money because nobody noticed the claim window
+  was closing on a mostly-unused allocation.
+category: marketing
+tags: [marketing, partnerships, mdf, channel-marketing, budget]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select partner_name, allocated_amount, claimed_amount, claim_deadline, round(100.0 * claimed_amount / nullif(allocated_amount, 0), 1) as utilization_pct from partner_mdf_allocations where claim_deadline <= now() + interval '{{deadline_warning_days}} days' and claimed_amount < allocated_amount * ({{utilization_threshold_pct}}::numeric / 100) order by claim_deadline asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or warehouse tracking partner MDF allocations and claims.
+  deadline_warning_days:
+    default: 30
+    description: Number of days before a claim deadline to start warning about unused funds.
+  utilization_threshold_pct:
+    default: 50
+    description: Utilization percentage below which a partner nearing its deadline is flagged as at risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `partner_mdf_allocations` table with `partner_name`,
+  `allocated_amount`, `claimed_amount`, and `claim_deadline` columns,
+  typically synced from a partner relationship management (PRM) tool or
+  spreadsheet. Read-only query; a flag means someone should reach out to
+  the partner to submit remaining claims before the funds expire.

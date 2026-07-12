@@ -1,0 +1,30 @@
+id: marketing-qualified-account-engagement-check
+version: 1
+name: Marketing Qualified Account Engagement Check
+description: >
+  Checks the engagement scores of target accounts in an account-based
+  marketing (ABM) program and flags any account whose score is trending
+  down over the recent window. Use this if you run ABM and want to catch
+  a target account going quiet before it goes fully cold, instead of
+  finding out at the next quarterly business review.
+category: marketing
+tags: [marketing, abm, account-engagement, target-accounts]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_name, engagement_score, previous_engagement_score, last_activity_at from target_accounts where engagement_score < previous_engagement_score - {{decline_threshold}} order by (previous_engagement_score - engagement_score) desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that stores target-account engagement scores.
+  decline_threshold:
+    default: 10
+    description: Minimum point drop in engagement score (current vs. previous period) that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `target_accounts` table with `account_name`,
+  `engagement_score`, `previous_engagement_score`, and `last_activity_at`
+  columns, typically synced from an ABM platform or CRM into a warehouse.
+  Read-only query; distinct from lead-level MQL volume tracking since this
+  looks at account-level engagement trend, not individual lead counts.

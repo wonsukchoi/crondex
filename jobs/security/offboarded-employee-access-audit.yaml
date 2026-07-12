@@ -11,13 +11,16 @@ category: security
 tags: [offboarding, access-review, iam, hr-integration]
 schedule: "0 7 * * *"
 timezone: "UTC"
-runner: shell
-command: >
-  hr_system_cli list-terminated --since-days "{{lookback_days}}" --json > /tmp/terminated.json &&
-  access_mgmt_cli list-active-grants --json |
-  jq --slurpfile terminated /tmp/terminated.json '
-    . as $grants | $terminated[0] as $term |
-    $grants[] | select(.user as $u | $term | map(.email) | index($u) != null)'
+runner: agent-prompt
+prompt: >
+  Pull the list of employees terminated in the last {{lookback_days}} days
+  from {{hr_system}} (name and email/username). Separately, pull the list of
+  currently active access grants across the org's systems and apps (SSO/IAM
+  provider, key vendor-specific tools as needed). Cross-reference by
+  email/username and flag any active grant belonging to someone on the
+  terminated list. Report each hit with the person, the system/app, and the
+  grant type, grouped by how long ago they were terminated (longest first —
+  those are the highest-risk gaps).
 variables:
   lookback_days:
     default: "180"
@@ -27,8 +30,8 @@ variables:
     description: HR system providing the employee roster and termination dates (e.g. workday, bamboohr).
 compatible_agents: [generic, claude, codex]
 notes: >
-  Assumes an HR system export of terminated employees and an access-management
-  export of active grants keyed by the same email/username; adjust field
-  names to match your actual systems. This job only flags leftover access for
-  a human to revoke — it does not deactivate accounts or remove any
-  permissions itself.
+  Needs an agent since pulling from a specific HR system and a specific
+  access-management/IAM tool, then reconciling them, is too
+  connector-specific for one generic script. This job only flags leftover
+  access for a human to revoke — it does not deactivate accounts or remove
+  any permissions itself.

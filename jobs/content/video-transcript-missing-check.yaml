@@ -11,9 +11,16 @@ category: content
 tags: [content, seo, accessibility, video, transcript]
 schedule: "0 7 * * 6"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-video-transcript-check --sitemap "{{sitemap_url}}" --video-selector "{{video_css_selector}}" --transcript-selector "{{transcript_css_selector}}"
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} and check each published page for an
+  embedded video (elements matching {{video_css_selector}} or an
+  equivalent embed you recognize). For each page with video, look for a
+  linked transcript or a captions/subtitles track (matching
+  {{transcript_css_selector}} or an equivalent you recognize). Flag pages
+  with video but no transcript/captions found. Note that a
+  third-party-hosted video may carry captions the fetch can't see, so call
+  that caveat out in the report rather than treating flags as certain.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -26,8 +33,7 @@ variables:
     description: CSS selector identifying a linked transcript block or a captions track associated with the video.
 compatible_agents: [generic, claude, codex]
 notes: >
-  Read-only: fetches and parses publicly reachable pages, makes no edits.
-  Assumes a `crondex-video-transcript-check` CLI (or equivalent HTML
-  scraper) is installed; a video hosted on a third-party player may carry
-  captions the crawler can't see, so treat flags as a prompt to confirm
-  manually rather than a certainty.
+  Read-only: fetches publicly reachable pages, makes no edits. Needs an
+  agent since detecting video embeds and their transcript/captions across
+  differently templated pages and third-party players is a judgment call,
+  not a fixed selector match every site will satisfy identically.

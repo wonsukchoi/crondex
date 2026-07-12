@@ -11,9 +11,16 @@ category: content
 tags: [content, seo, translation, localization, staleness]
 schedule: "0 6 1 * *"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-translation-staleness --sitemap "{{sitemap_url}}" --source-locale "{{source_locale}}" --target-locales "{{target_locales}}" --max-staleness-days "{{max_staleness_days}}"
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} and use its hreflang annotations (or
+  URL-pattern locale prefixes if no hreflang is present) to pair each
+  {{source_locale}}-locale page with its counterparts in these target
+  locales: {{target_locales}} (comma-separated). For each pair, compare
+  last-updated dates (sitemap `lastmod`, or page metadata if `lastmod` is
+  missing) and flag any translation lagging more than {{max_staleness_days}}
+  days behind its source page. Report flagged pairs grouped by locale, most
+  stale first.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -30,6 +37,6 @@ variables:
 compatible_agents: [generic, claude, codex]
 notes: >
   Read-only: reads publicly reachable pages and their last-updated metadata
-  (or hreflang mapping), makes no edits. Assumes a `crondex-translation-staleness`
-  CLI (or equivalent script) is installed and that pages expose a reliable
-  last-updated date, e.g. via sitemap `lastmod` or page metadata.
+  (or hreflang mapping), makes no edits. Needs an agent since pairing
+  translated URLs with their source page (via hreflang, path convention, or
+  page content) varies too much across sites for one fixed script.

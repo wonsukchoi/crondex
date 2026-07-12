@@ -11,9 +11,15 @@ category: content
 tags: [content, seo, e-e-a-t, author-byline]
 schedule: "0 6 * * 5"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-byline-check --sitemap "{{sitemap_url}}" --byline-selector "{{byline_css_selector}}" --content-paths "{{content_paths}}"
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} and list published page URLs whose
+  path contains any of these fragments: {{content_paths}} (comma-separated).
+  For each, fetch the page and check for a visible author byline — an
+  author name near element(s) matching the CSS selector {{byline_css_selector}},
+  or an equivalent visible "By <name>" credit if the selector doesn't match
+  the site's actual markup. Report the list of pages missing a byline,
+  grouped by content section, most recently published first.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -26,7 +32,7 @@ variables:
     description: Comma-separated URL path fragments identifying which sections count as "content" pages that require a byline.
 compatible_agents: [generic, claude, codex]
 notes: >
-  Read-only: fetches and parses publicly reachable pages, makes no edits.
-  Assumes a `crondex-byline-check` CLI (or equivalent HTML scraper) is
-  installed and that the site marks up bylines consistently enough for a CSS
-  selector to find them; adjust the selector to match your template.
+  Read-only: fetches and reads publicly reachable pages, makes no edits.
+  Needs an agent since checking for a byline reliably across differently
+  templated pages is a judgment call, not a fixed selector match every
+  site will satisfy identically.

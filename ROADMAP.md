@@ -68,7 +68,14 @@ in one pass has worked well and scales better than one job at a time.
   noticeably slow.
 - **`smoke-test` coverage**: local-only by design (network-dependent
   job defaults would make CI flaky). Fine as-is; don't try to force it
-  into CI without solving that flakiness first.
+  into CI without solving that flakiness first. But it needs to actually
+  get *run* — 0.39.1 found that ~123 jobs added across 0.35.0-0.39.0 sat
+  unsmoke-tested and 7 of them invoked entirely fictional CLI tools an
+  authoring agent invented (e.g. `crondex-byline-check`) that don't exist
+  anywhere, so the job was unrunnable as written despite passing schema
+  validation and shellcheck cleanly. When batching new shell/hybrid jobs
+  across parallel agents, run `npm run smoke-test` once at the end of the
+  batch, before commit — not just validate/lint/dedupe.
 
 ## 3. Speculative / not yet justified
 

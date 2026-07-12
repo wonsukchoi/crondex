@@ -11,9 +11,15 @@ category: content
 tags: [content, seo, structured-data, schema-markup]
 schedule: "0 6 * * 2"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-schema-lint --sitemap "{{sitemap_url}}" --types "{{expected_schema_types}}" --format json
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} and, for a representative sample of
+  published pages, extract any embedded JSON-LD structured data. Check each
+  page's schema.org @type(s) against this expected list:
+  {{expected_schema_types}} (comma-separated) — flag pages missing an
+  expected type entirely, pages whose JSON-LD has a syntax/parse error, and
+  any use of a deprecated schema.org type. Report findings grouped by issue
+  type (missing, invalid, deprecated), with the page URL for each.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -23,9 +29,9 @@ variables:
     description: Comma-separated schema.org @type values that pages are expected to carry, used to flag pages missing them.
 compatible_agents: [generic, claude, codex]
 notes: >
-  Read-only: crawls publicly reachable pages and validates embedded JSON-LD
-  against schema.org requirements, makes no edits. Assumes a `crondex-schema-lint`
-  CLI (or equivalent structured-data validator) is installed and reachable;
-  swap in Google's Rich Results Test API or the Schema.org validator if
-  preferred. Distinct from seo-meta-check, which covers title/meta
-  description tags rather than JSON-LD schema.
+  Read-only: fetches publicly reachable pages and reads embedded JSON-LD,
+  makes no edits. Needs an agent to parse and judge arbitrary JSON-LD
+  structures against schema.org requirements; swap in Google's Rich Results
+  Test API or the Schema.org validator as a data source if preferred.
+  Distinct from seo-meta-check, which covers title/meta description tags
+  rather than JSON-LD schema.

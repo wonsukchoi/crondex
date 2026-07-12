@@ -11,9 +11,16 @@ category: content
 tags: [content, seo, internal-links, orphan-pages]
 schedule: "0 5 * * 4"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-link-graph --sitemap "{{sitemap_url}}" --start-url "{{crawl_start_url}}" --max-depth "{{max_crawl_depth}}" --report orphans
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} to get the master list of published
+  pages. Starting from {{crawl_start_url}}, crawl internal links up to
+  {{max_crawl_depth}} levels deep, recording which sitemap pages get linked
+  to from somewhere in the crawl. Report sitemap pages that were never
+  reached by any internal link during the crawl — these are orphaned pages
+  nothing else on the site points to. Note that a flagged page may still be
+  reachable via search or a link from outside the crawl start point, so call
+  that caveat out in the report.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -27,7 +34,6 @@ variables:
 compatible_agents: [generic, claude, codex]
 notes: >
   Read-only: crawls publicly reachable pages to build a link graph, makes no
-  edits. Assumes a `crondex-link-graph` CLI (or equivalent crawler) is
-  installed; a page can still be "reachable" via search or a direct link
-  from outside the crawl start point even if flagged here, so confirm before
-  assuming a page is truly unlinked.
+  edits. Needs an agent since walking a real site's link structure and
+  cross-referencing it against the sitemap isn't a fixed-shape task a
+  generic script can do without knowing the site's structure ahead of time.

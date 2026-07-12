@@ -11,9 +11,14 @@ category: content
 tags: [content, seo, thin-content, word-count]
 schedule: "0 7 * * 3"
 timezone: "UTC"
-runner: shell
-command: >
-  crondex-word-count --sitemap "{{sitemap_url}}" --min-words "{{min_word_count}}" --exclude-paths "{{exclude_paths}}"
+runner: agent-prompt
+prompt: >
+  Fetch the sitemap at {{sitemap_url}} and list published pages, skipping
+  any whose URL path contains a fragment from {{exclude_paths}}
+  (comma-separated). For each remaining page, fetch it, extract the visible
+  body text (excluding nav/footer/boilerplate), and count words. Flag pages
+  below {{min_word_count}} words as likely thin content. Report flagged
+  pages sorted by word count ascending.
 variables:
   sitemap_url:
     default: "https://example.com/sitemap.xml"
@@ -26,7 +31,8 @@ variables:
     description: Comma-separated URL path fragments to skip (e.g. tag/category archive pages that are expected to be short).
 compatible_agents: [generic, claude, codex]
 notes: >
-  Read-only: crawls publicly reachable pages and counts visible body text,
-  makes no edits. Assumes a `crondex-word-count` CLI (or equivalent crawler)
-  is installed; word count is a blunt proxy for depth, so treat flags as a
-  prompt to review the page rather than a guaranteed problem.
+  Read-only: fetches publicly reachable pages and counts visible body text,
+  makes no edits. Needs an agent to separate body text from boilerplate
+  reliably across differently templated pages. Word count is a blunt proxy
+  for depth, so treat flags as a prompt to review the page rather than a
+  guaranteed problem.

@@ -11,7 +11,7 @@ schedule: "0 9 1 * *"
 timezone: "UTC"
 runner: shell
 command: >
-  psql "{{database_url}}" -t -c "select name, email, last_donation_at from donors where last_donation_at < now() - interval '{{lapsed_months}} months' and last_donation_at > now() - interval '{{lapsed_months}} months' - interval '90 days';"
+  psql "{{database_url}}" -t -c "select name, email, last_donation_at from donors where last_donation_at < now() - interval '{{lapsed_months}} months' and last_donation_at > now() - interval '{{lapsed_months}} months' - interval '{{reflag_window_days}} days';"
 variables:
   database_url:
     default: "postgres://user:pass@host:5432/db"
@@ -19,8 +19,12 @@ variables:
   lapsed_months:
     default: 12
     description: Months since last donation before a donor counts as lapsing.
+  reflag_window_days:
+    default: 90
+    description: Extra days past the lapsed_months mark during which a donor still shows up, so the same donor isn't reported every run indefinitely.
 compatible_agents: [generic, claude, codex]
 notes: >
-  Assumes a `donors` table with `last_donation_at` — the 90-day window
-  after the lapsed_months mark keeps this from re-flagging the same donor
-  every run indefinitely.
+  Assumes a `donors` table with `last_donation_at` — the `reflag_window_days`
+  window after the lapsed_months mark keeps this from re-flagging the same
+  donor every run indefinitely. This is read-only — it only reports names and
+  emails, it doesn't contact anyone.

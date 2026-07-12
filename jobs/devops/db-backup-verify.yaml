@@ -11,13 +11,13 @@ schedule: "0 5 * * *"
 timezone: "UTC"
 runner: shell
 command: >
-  dump={{dump_path}}; scratch_db={{scratch_db_name}};
+  dump={{dump_path}}; scratch_db={{scratch_db_name}}; checkpoint_table={{checkpoint_table}};
   [ -f "$dump" ] || { echo "ERROR: $dump not found"; exit 1; };
   command -v pg_restore >/dev/null 2>&1 || { echo "ERROR: pg_restore not installed"; exit 1; };
   dropdb --if-exists "$scratch_db" 2>/dev/null;
   createdb "$scratch_db" || { echo "ERROR: could not create scratch db $scratch_db"; exit 1; };
   pg_restore -d "$scratch_db" "$dump" >/dev/null 2>&1;
-  count=$(psql -d "$scratch_db" -tAc "SELECT count(*) FROM {{checkpoint_table}}" 2>/dev/null);
+  count=$(psql -d "$scratch_db" -tAc "SELECT count(*) FROM $checkpoint_table" 2>/dev/null);
   dropdb --if-exists "$scratch_db" 2>/dev/null;
   if [ -z "$count" ]; then echo "FAILED: restore or query failed on $dump"; exit 1;
   else echo "OK: restored $dump, $checkpoint_table has $count rows"; fi

@@ -11,12 +11,15 @@ schedule: "0 8 * * *"
 timezone: "UTC"
 runner: shell
 command: >
-  rate=$(curl -s "https://api.exchangerate.host/latest?base={{from_currency}}&symbols={{to_currency}}" | grep -o '"{{to_currency}}":[0-9.]*' | cut -d: -f2);
+  rate=$(curl -s "{{api_base_url}}?base={{from_currency}}&symbols={{to_currency}}" | grep -o '"{{to_currency}}":[0-9.]*' | cut -d: -f2);
   if [ -z "$rate" ]; then echo "ERROR: could not fetch rate for {{from_currency}}/{{to_currency}}"; exit 1; fi;
   if awk "BEGIN{exit !($rate {{comparison}} {{target_rate}})}"; then
     echo "ALERT: {{from_currency}}/{{to_currency}} is $rate ({{comparison}} {{target_rate}})";
   else echo "OK: {{from_currency}}/{{to_currency}} is $rate"; fi
 variables:
+  api_base_url:
+    default: "https://api.exchangerate.host/latest"
+    description: Base URL of the FX rate API endpoint to query.
   from_currency:
     default: "USD"
     description: Base currency code.

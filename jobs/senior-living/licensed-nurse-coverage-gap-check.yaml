@@ -1,0 +1,38 @@
+id: licensed-nurse-coverage-gap-check
+version: 1
+name: Licensed Nurse Coverage Gap Check
+description: >
+  Checks the published shift schedule for any shift where no state-required
+  licensed nurse is scheduled to be on-site, and flags those gap shifts.
+  Use this if a staffing gap has ever slipped through because the schedule
+  was built around general staffing levels without separately confirming
+  licensed-nurse coverage on every shift.
+category: senior-living
+tags: [senior-living, staffing, licensed-nurse, coverage, regulatory-compliance]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select shift_date, shift_start, shift_end from shifts where shift_date between current_date and current_date + {{lookahead_days}} and shift_id not in (select shift_id from shift_staff ss join staff s on s.staff_id = ss.staff_id where s.role = '{{required_role}}') order by shift_date, shift_start;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the staff scheduling database.
+  lookahead_days:
+    default: 7
+    description: How many days of upcoming published schedule to check for coverage gaps.
+  required_role:
+    default: "licensed_nurse"
+    description: >
+      The staff role value in the scheduling system that represents a
+      state-required licensed nurse (e.g. RN or LPN, depending on facility
+      licensing category).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `shifts` table, a `shift_staff` join table linking shifts to
+  assigned staff, and a `staff` table with a `role` column identifying
+  licensed nurses. Required coverage rules vary by state and facility
+  license type, so confirm `required_role` and the coverage window match
+  local regulation before relying on this. This job only reads the
+  published schedule and flags gaps for a human scheduler to fill; it does
+  not itself assign staff or contact anyone.

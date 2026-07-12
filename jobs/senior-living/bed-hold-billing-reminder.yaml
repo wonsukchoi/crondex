@@ -1,0 +1,36 @@
+id: bed-hold-billing-reminder
+version: 1
+name: Bed Hold Billing Reminder
+description: >
+  Checks active bed-hold records for residents who are temporarily away
+  (for example, on a hospital stay) and flags any hold that's missing a
+  billing entry or is getting close to the maximum allowed bed-hold days.
+  Use this if a room has ever been released too early, or a bed-hold
+  stretch went unbilled, because nobody was watching the clock on it.
+category: senior-living
+tags: [senior-living, bed-hold, billing, resident-care]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, start_date, (current_date - start_date) as days_held, billed_flag from bed_holds where end_date is null and ((current_date - start_date) >= ({{max_bed_hold_days}} - {{reminder_window_days}}) or billed_flag = false) order by days_held desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding bed-hold and billing records.
+  max_bed_hold_days:
+    default: 15
+    description: >
+      Maximum number of days a bed can be held before the room is at risk
+      of being released — set this to whatever your state/payer allows.
+  reminder_window_days:
+    default: 3
+    description: How many days before hitting the max bed-hold limit to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `bed_holds` table with `resident_id`, `start_date`, `end_date`,
+  and `billed_flag` columns — adjust the query to your facility's actual
+  billing system schema. This is a read-only reminder: it only surfaces
+  which bed holds need billing attention or are approaching the hold
+  limit, it does not itself submit a bill, release a room, or contact
+  anyone.

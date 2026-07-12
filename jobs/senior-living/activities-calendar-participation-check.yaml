@@ -1,0 +1,36 @@
+id: activities-calendar-participation-check
+version: 1
+name: Activities Calendar Participation Check
+description: >
+  Reviews resident activity and engagement sign-in logs over a recent
+  period and flags residents whose participation has been unusually low,
+  a common early signal of social isolation or a broader decline in
+  wellbeing. Use this if you want activities and care staff to notice a
+  quietly withdrawing resident before it shows up as a bigger problem.
+category: senior-living
+tags: [senior-living, activities, engagement, social-isolation, wellbeing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_name, count(*) as activities_attended from activity_attendance a join residents r on r.resident_id = a.resident_id where a.attendance_date >= current_date - {{lookback_days}} group by resident_name having count(*) < {{min_participation_count}} order by activities_attended asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the resident activities/engagement database.
+  lookback_days:
+    default: 14
+    description: Number of trailing days of activity attendance logs to review.
+  min_participation_count:
+    default: 2
+    description: >
+      Minimum number of logged activity check-ins within the lookback
+      window below which a resident is flagged as low-participation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `activity_attendance` table with `resident_id` and
+  `attendance_date` rows logged by activities staff at each session
+  check-in, and a `residents` table with `resident_name`. Low counts can
+  also reflect illness, offsite appointments, or a resident who prefers
+  solo time, so this is only a flag-for-human-review signal, not a
+  diagnosis, and it does not contact anyone or change any care plan.

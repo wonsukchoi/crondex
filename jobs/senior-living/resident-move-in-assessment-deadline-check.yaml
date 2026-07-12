@@ -1,0 +1,38 @@
+id: resident-move-in-assessment-deadline-check
+version: 1
+name: Resident Move-In Assessment Deadline Check
+description: >
+  Checks newly admitted residents against the regulatory deadline for
+  completing their initial intake and care-needs assessment, and flags
+  anyone approaching or past that deadline. Use this if a resident has ever
+  gone days into their stay without a completed care plan because the
+  admissions paperwork clock wasn't being watched.
+category: senior-living
+tags: [senior-living, admissions, compliance, care-assessment, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_name, move_in_date, current_date - move_in_date as days_since_move_in from residents where assessment_completed_date is null and current_date - move_in_date >= {{assessment_deadline_days}} - {{warning_window_days}} order by days_since_move_in desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the resident admissions/care-management database.
+  assessment_deadline_days:
+    default: 14
+    description: >
+      Number of days after move-in by which the initial intake and
+      care-needs assessment must be completed, per applicable state
+      regulation.
+  warning_window_days:
+    default: 3
+    description: >
+      Number of days before the hard deadline to start flagging a resident
+      as "approaching due" rather than waiting until it's overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `residents` table with `move_in_date` and
+  `assessment_completed_date` columns, the latter set by care staff once
+  the assessment is finished and filed. This job only reads admissions
+  records and flags residents for human follow-up; it does not itself
+  complete, sign off on, or file any assessment.

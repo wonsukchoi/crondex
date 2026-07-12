@@ -1,0 +1,36 @@
+id: resident-care-conference-scheduling-reminder
+version: 1
+name: Resident Care Conference Scheduling Reminder
+description: >
+  Checks resident records for anyone whose next required care-conference
+  meeting with their family or responsible party is coming due soon or is
+  already overdue, based on the last conference date on file. Use this if
+  care conferences have ever slipped past their required review window
+  because nobody was tracking the date across every resident.
+category: senior-living
+tags: [senior-living, care-conference, family-communication, resident-care]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_name, last_care_conference_date, (last_care_conference_date + interval '{{cadence_days}} days') as next_conference_due from residents where (last_care_conference_date + interval '{{cadence_days}} days') <= current_date + interval '{{lookahead_days}} days' order by next_conference_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility's resident-records database.
+  cadence_days:
+    default: 90
+    description: >
+      How many days are allowed between care conferences before the next
+      one is due — adjust to your facility's required review cadence.
+  lookahead_days:
+    default: 14
+    description: How many days ahead of the due date to start flagging it for scheduling.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `residents` table with `resident_name` and
+  `last_care_conference_date` columns — adjust the query to your facility's
+  actual schema (e.g. a separate `care_conferences` history table). This is
+  a read-only reminder: it only surfaces who is due for a conference, it
+  does not itself schedule the meeting, notify the family, or contact
+  anyone — a staff member still has to act on the list.

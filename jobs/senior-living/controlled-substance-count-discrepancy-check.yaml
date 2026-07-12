@@ -1,0 +1,32 @@
+id: controlled-substance-count-discrepancy-check
+version: 1
+name: Controlled Substance Count Discrepancy Check
+description: >
+  Compares the expected running count of controlled substances on the
+  medication cart against the actual count that staff logged, and flags any
+  mismatch. Use this if you want an early warning when a controlled-substance
+  count doesn't add up, before it turns into a bigger compliance problem.
+category: senior-living
+tags: [senior-living, controlled-substance, medication-cart, compliance]
+schedule: "0 7 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, drug_name, count_date, expected_count, actual_count from controlled_substance_counts where expected_count <> actual_count and count_date >= current_date - interval '{{lookback_days}} days' order by count_date desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding controlled-substance count logs.
+  lookback_days:
+    default: 1
+    description: How many days of count logs to check on each run.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `controlled_substance_counts` table with `resident_id`,
+  `drug_name`, `count_date`, `expected_count`, and `actual_count` columns —
+  adjust the query to your facility's actual e-MAR or med-cart log schema.
+  This job is strictly read-only: it only flags a mismatch between numbers
+  already logged by staff for a nurse or pharmacist to investigate. It does
+  not dispense, administer, or record any medication itself, and any
+  discrepancy it flags should be treated as urgent and reviewed by a
+  licensed staff member right away.

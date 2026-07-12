@@ -1,0 +1,31 @@
+id: housekeeping-room-turnover-checklist-check
+version: 1
+name: Housekeeping Room Turnover Checklist Check
+description: >
+  Checks the room-turnover checklist, cleaning, safety check, and restocking,
+  for completion after a resident moves out, and flags any turnover that
+  isn't finished yet. Use this if you want to stop a room from being marked
+  ready for a new resident before housekeeping has actually completed every
+  step.
+category: senior-living
+tags: [housekeeping, room-turnover, facilities, checklist]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select room_id, vacated_date, cleaning_complete, safety_check_complete, restocking_complete from room_turnovers where room_status = 'pending' and vacated_date <= current_date - interval '{{stale_after_days}} days' and (cleaning_complete = false or safety_check_complete = false or restocking_complete = false);"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facilities/housekeeping database.
+  stale_after_days:
+    default: 1
+    description: How many days after a resident vacates before an unfinished turnover is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `room_turnovers` table with `room_id`, `vacated_date`,
+  `room_status`, and boolean `cleaning_complete`, `safety_check_complete`, and
+  `restocking_complete` columns — adjust the query to match your facilities
+  system's schema. Read-only: this only flags incomplete turnovers for
+  housekeeping staff to finish, it does not mark a room ready or reassign
+  anyone.

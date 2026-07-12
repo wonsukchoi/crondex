@@ -1,0 +1,33 @@
+id: memory-care-wander-alarm-test-reminder
+version: 1
+name: Memory Care Wander Alarm Test Reminder
+description: >
+  Reminds memory-care unit staff that the required periodic functional test
+  of the wander-management door alarm system is due, based on the last
+  recorded test date. Use this if you've ever discovered during an actual
+  exit-seeking event that the door alarm wasn't actually working because
+  routine testing quietly lapsed.
+category: senior-living
+tags: [senior-living, memory-care, safety, wander-management, alarm-testing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_name, last_test_date, current_date - last_test_date as days_since_test from wander_alarm_systems where current_date - last_test_date >= {{test_interval_days}} order by days_since_test desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility maintenance/compliance database.
+  test_interval_days:
+    default: 7
+    description: >
+      Maximum number of days allowed between required functional tests of a
+      wander-management door alarm before it is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `wander_alarm_systems` table with `unit_name` and
+  `last_test_date` columns, updated by staff each time a test is logged.
+  This job only reads test-log data and produces a reminder list for human
+  staff to act on; it does not itself run the alarm test, silence any
+  alarm, or notify anyone, so a maintenance log update after each real test
+  is required to keep the flagged list accurate.

@@ -1,0 +1,36 @@
+id: medication-administration-record-gap-check
+version: 1
+name: Medication Administration Record Gap Check
+description: >
+  Scans the medication administration record (MAR) log for scheduled doses
+  that have no matching administration entry logged, which usually means a
+  dose was missed or a caregiver forgot to document giving it. Use this if
+  you want a daily heads-up on gaps before they turn into a missed-dose
+  incident or a compliance finding during survey.
+category: senior-living
+tags: [senior-living, medication, mar, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select r.resident_id, s.medication_name, s.scheduled_time from mar_schedule s join residents r on r.id = s.resident_id left join mar_entries e on e.schedule_id = s.id and e.scheduled_date = current_date - interval '{{lookback_days}} days' where e.id is null and s.scheduled_time < now() - interval '{{grace_period_hours}} hours' and s.scheduled_date >= current_date - interval '{{lookback_days}} days' order by s.scheduled_time asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding the MAR schedule and administration entries.
+  lookback_days:
+    default: "1"
+    description: How many days back to scan for scheduled doses missing a logged administration entry.
+  grace_period_hours:
+    default: "2"
+    description: How many hours past the scheduled time to wait before flagging a missing entry, to allow for normal documentation lag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `mar_schedule` table (resident_id, medication_name,
+  scheduled_time, scheduled_date) and a `mar_entries` table
+  (schedule_id, scheduled_date) recording each logged administration —
+  adjust the query to your care-management system's actual schema. This
+  is a read-only flag-for-human-review check: it never marks a dose as
+  given, changes the schedule, or administers anything itself. Every
+  flagged gap needs a nurse or med-tech to confirm whether the dose was
+  actually missed or just undocumented.

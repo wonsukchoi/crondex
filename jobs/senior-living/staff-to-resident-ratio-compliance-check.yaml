@@ -1,0 +1,36 @@
+id: staff-to-resident-ratio-compliance-check
+version: 1
+name: Staff-to-Resident Ratio Compliance Check
+description: >
+  Compares the number of staff scheduled for each shift against the
+  resident census for that unit and flags any shift falling below the
+  regulatory-minimum staff-to-resident ratio. Use this if you want to
+  catch understaffed shifts before they happen instead of finding out
+  after a bad shift already occurred.
+category: senior-living
+tags: [senior-living, staffing, ratio, compliance]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sh.unit_id, sh.shift_date, sh.shift_name, sh.scheduled_staff_count, c.resident_count, round(c.resident_count::numeric / nullif(sh.scheduled_staff_count, 0), 2) as residents_per_staff from shifts sh join unit_census c on c.unit_id = sh.unit_id and c.census_date = sh.shift_date where sh.shift_date = current_date + interval '{{days_ahead}} days' and (c.resident_count::numeric / nullif(sh.scheduled_staff_count, 0)) > {{max_residents_per_staff}} order by residents_per_staff desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding shift schedules and unit census counts.
+  max_residents_per_staff:
+    default: "8"
+    description: The maximum residents-per-staff-member ratio allowed before a shift is flagged (set to your state's regulatory minimum staffing ratio).
+  days_ahead:
+    default: "1"
+    description: How many days ahead of today to check the schedule, so understaffed shifts can still be fixed before they start.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `shifts` table (unit_id, shift_date, shift_name,
+  scheduled_staff_count) and a `unit_census` table (unit_id, census_date,
+  resident_count) — adjust the query to your scheduling system's actual
+  schema, and set `max_residents_per_staff` to whatever ratio your state
+  or facility license requires (ratios vary by state and by unit type,
+  e.g. memory care vs. assisted living). This is a read-only
+  flag-for-human-review check: it does not itself change the schedule,
+  call in staff, or assign anyone to a shift.

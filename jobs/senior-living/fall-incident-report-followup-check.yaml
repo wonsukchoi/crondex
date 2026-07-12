@@ -1,0 +1,31 @@
+id: fall-incident-report-followup-check
+version: 1
+name: Fall Incident Report Follow-Up Check
+description: >
+  Checks logged fall incidents for ones that are still missing the
+  required root-cause analysis or follow-up documentation, and flags
+  those incomplete reports. Use this if you want to make sure every fall
+  gets properly investigated and closed out instead of quietly sitting
+  unfinished in the log.
+category: senior-living
+tags: [senior-living, falls, incident-report, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select incident_id, resident_id, incident_date, root_cause_notes, followup_completed_at from fall_incidents where incident_date <= current_date - interval '{{grace_period_days}} days' and (root_cause_notes is null or trim(root_cause_notes) = '' or followup_completed_at is null) order by incident_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding logged fall incidents.
+  grace_period_days:
+    default: "2"
+    description: How many days to give staff to complete root-cause and follow-up documentation before an incident is flagged as incomplete.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `fall_incidents` table with `incident_id`, `resident_id`,
+  `incident_date`, `root_cause_notes`, and `followup_completed_at`
+  columns — adjust the query to your incident-tracking system's actual
+  schema. This is a read-only flag-for-human-review check: it only
+  surfaces which fall reports are still missing documentation, it does
+  not itself complete the root-cause analysis or close out the incident.

@@ -1,0 +1,28 @@
+id: medicaid-recertification-deadline-check
+version: 1
+name: Medicaid Recertification Deadline Check
+description: >
+  Checks residents whose care is covered by Medicaid for eligibility
+  recertification deadlines coming up soon. Use this if you want to make sure
+  the recertification paperwork gets filed in time so a resident's coverage
+  never lapses because a deadline was missed.
+category: senior-living
+tags: [medicaid, recertification, compliance, billing]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, resident_name, recertification_due_date from medicaid_residents where recertification_due_date <= current_date + interval '{{lookahead_days}} days' order by recertification_due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the resident/billing database.
+  lookahead_days:
+    default: 45
+    description: How many days ahead of the deadline to start flagging a resident.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `medicaid_residents` table with `resident_id`, `resident_name`, and
+  `recertification_due_date` columns — adjust the query to match your state's
+  Medicaid tracking schema. Read-only: this only flags upcoming deadlines for
+  staff to file paperwork against, it does not submit anything itself.

@@ -1,0 +1,35 @@
+id: emergency-preparedness-drill-reminder
+version: 1
+name: Emergency Preparedness Drill Reminder
+description: >
+  Checks the facility's drill log for each shift and flags when the next
+  required fire or emergency-evacuation drill is coming due or is already
+  overdue, based on the required drill cadence. Use this if a required
+  drill has ever been missed or run late because nobody was tracking the
+  schedule across every shift.
+category: senior-living
+tags: [senior-living, emergency-preparedness, fire-drill, safety]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select shift, last_drill_date, (last_drill_date + interval '{{drill_cadence_days}} days') as next_drill_due from emergency_drills where (last_drill_date + interval '{{drill_cadence_days}} days') <= current_date + interval '{{lookahead_days}} days' order by next_drill_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding the emergency-drill log.
+  drill_cadence_days:
+    default: 90
+    description: >
+      Maximum number of days allowed between required drills for a given
+      shift — set this to your facility's actual regulatory requirement.
+  lookahead_days:
+    default: 14
+    description: How many days ahead of the due date to start flagging a drill for scheduling.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `emergency_drills` table with `shift` and `last_drill_date`
+  columns, one row per shift — adjust the query to your facility's actual
+  drill-log schema. This is a read-only reminder: it only surfaces which
+  shifts are due for a drill, it does not itself schedule the drill,
+  update staffing, or notify anyone.

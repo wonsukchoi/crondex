@@ -1,0 +1,31 @@
+id: family-communication-log-staleness-check
+version: 1
+name: Family Communication Log Staleness Check
+description: >
+  Checks each resident's family-communication log for the date of the last
+  logged contact and flags residents whose family hasn't been contacted in
+  a while. Use this if you want a regular nudge to reach out proactively to
+  families before they end up calling in worried because nobody has
+  updated them in weeks.
+category: senior-living
+tags: [senior-living, family-communication, resident-care]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, resident_name, max(contact_date) as last_contact_date, current_date - max(contact_date) as days_since_contact from family_communication_log group by resident_id, resident_name having current_date - max(contact_date) >= {{staleness_threshold_days}} order by days_since_contact desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding the family communication log.
+  staleness_threshold_days:
+    default: "14"
+    description: Number of days since the last logged family contact before a resident is flagged as due for outreach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `family_communication_log` table with `resident_id`,
+  `resident_name`, and `contact_date` columns, one row per logged
+  contact — adjust the query to your system's actual schema. This is a
+  read-only flag-for-human-review check: it only surfaces which
+  residents' families are overdue for contact, it does not itself call,
+  email, or message any family member.

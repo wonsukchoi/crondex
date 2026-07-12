@@ -1,0 +1,33 @@
+id: care-plan-review-due-reminder
+version: 1
+name: Care Plan Review Due Reminder
+description: >
+  Checks each resident's individualized care plan against its required
+  periodic review interval and flags any resident whose review is due or
+  overdue. Use this if you want to catch care plans that are about to lapse
+  before they become an overdue-review finding during a state survey.
+category: senior-living
+tags: [senior-living, care-plan, compliance, resident-care]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, resident_name, last_review_date, last_review_date + interval '{{review_interval_days}} days' as next_review_due from care_plans where last_review_date + interval '{{review_interval_days}} days' <= current_date + interval '{{advance_notice_days}} days' order by next_review_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding resident care plan records.
+  review_interval_days:
+    default: "90"
+    description: Number of days between required care plan reviews (adjust to match your facility's regulatory requirement).
+  advance_notice_days:
+    default: "7"
+    description: How many days before a review is actually due to start flagging it, so staff have time to schedule it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `care_plans` table with `resident_id`, `resident_name`, and
+  `last_review_date` columns — adjust the query to your care-management
+  system's actual schema and to whatever review cadence your state or
+  payer requires. This is a read-only flag-for-human-review check: it
+  only surfaces which residents are coming due, it does not itself
+  update the care plan, complete the review, or notify anyone.

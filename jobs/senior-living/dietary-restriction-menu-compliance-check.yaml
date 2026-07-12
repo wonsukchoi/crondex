@@ -1,0 +1,50 @@
+id: dietary-restriction-menu-compliance-check
+version: 1
+name: Dietary Restriction Menu Compliance Check
+description: >
+  Compares the planned meal-service menu against each resident's logged
+  dietary restrictions and allergies, and flags any resident whose planned
+  meal appears to conflict with their file before it goes out to the dining
+  room. Use this if a resident has ever been served a dish that clashed
+  with a documented allergy or diet order because the kitchen menu and the
+  care file were never cross-checked.
+category: senior-living
+tags: [senior-living, dietary, allergies, food-safety, menu-planning]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select r.resident_name, r.dietary_restrictions, m.menu_item, m.meal_date from residents r join planned_menu m on m.resident_id = r.resident_id where m.meal_date = current_date + {{lookahead_days}};"
+script_note: >
+  The query pulls the raw pairing of each resident's on-file restrictions
+  against tomorrow's planned menu item for free, but matching an item like
+  "shrimp fried rice" against a restriction category like "shellfish
+  allergy" or "low-sodium diet" needs judgment an agent applies to the
+  query output rather than a fixed script rule.
+prompt: >
+  Review the resident dietary-restriction and planned-menu pairs below and
+  flag any pairing where the menu item plausibly conflicts with the
+  resident's stated restriction or allergy (e.g. a shellfish item against a
+  shellfish allergy, a high-sodium dish against a low-sodium order). List
+  each flagged resident, the conflicting menu item, and the restriction it
+  conflicts with, so kitchen and care staff can review before service.
+
+  Data:
+  {{query_output}}
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the resident care and dining-service database.
+  lookahead_days:
+    default: 1
+    description: >
+      How many days ahead of today to pull the planned menu for, so
+      mismatches can be caught before the meal is prepared.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `residents` table with a `dietary_restrictions` free-text or
+  tagged field, and a `planned_menu` table with `resident_id`, `menu_item`,
+  and `meal_date` columns from the dining-service system. This job only
+  flags potential conflicts for a human (kitchen or care staff) to confirm
+  before the meal is served; it does not itself alter the menu or notify
+  anyone.

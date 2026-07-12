@@ -1,0 +1,29 @@
+id: staff-certification-cpr-first-aid-expiry-check
+version: 1
+name: Staff CPR/First-Aid Certification Expiry Check
+description: >
+  Checks direct-care staff CPR and first-aid certifications for ones expiring
+  soon and flags the staff members who would fall out of compliance. Use this
+  if you want to catch a lapsed CPR or first-aid card before a shift is
+  staffed by someone who isn't currently certified.
+category: senior-living
+tags: [staffing, certification, cpr, first-aid, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select staff_id, staff_name, certification_type, expiration_date from staff_certifications where certification_type in ('cpr','first-aid') and expiration_date <= current_date + interval '{{lookahead_days}} days' order by expiration_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the staff credentialing database.
+  lookahead_days:
+    default: 30
+    description: How many days ahead of expiration to start flagging a certification.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `staff_certifications` table with `staff_id`, `staff_name`,
+  `certification_type`, and `expiration_date` columns, distinct from any
+  general professional-license-expiry table — adjust the query to match your
+  HR system's schema. Read-only: this only flags staff for a scheduler or HR
+  reviewer to renew and does not change any staffing assignment itself.

@@ -1,0 +1,32 @@
+id: resident-elopement-risk-reassessment-reminder
+version: 1
+name: Resident Elopement Risk Reassessment Reminder
+description: >
+  Reminds staff when a resident's elopement or wandering-risk assessment is
+  coming due for its required periodic reassessment. Use this if you want to
+  make sure no resident's wandering-risk status goes stale between scheduled
+  reviews, especially after a change in condition.
+category: senior-living
+tags: [elopement, wandering-risk, safety, resident-care, reassessment]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, resident_name, last_elopement_assessment_date, last_elopement_assessment_date + interval '{{reassessment_interval_days}} days' as next_due from resident_care_assessments where last_elopement_assessment_date + interval '{{reassessment_interval_days}} days' <= current_date + interval '{{lookahead_days}} days' order by next_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the resident care/assessments database.
+  reassessment_interval_days:
+    default: 90
+    description: How often an elopement/wandering-risk assessment must be redone, in days.
+  lookahead_days:
+    default: 7
+    description: How many days before a reassessment is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `resident_care_assessments` table with `resident_id`,
+  `resident_name`, and `last_elopement_assessment_date` columns — adjust the
+  query and interval to match your facility's care-plan policy and EHR
+  schema. Read-only: this only reminds staff that a reassessment is due, it
+  does not perform the assessment or alter any care plan itself.

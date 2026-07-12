@@ -1,0 +1,47 @@
+id: resident-weight-loss-trend-check
+version: 1
+name: Resident Weight Loss Trend Check
+description: >
+  Compares each resident's earliest and latest logged weight within a
+  recent time window and flags anyone whose unintended weight loss crosses
+  a set percentage, a common early clinical warning sign in this
+  population. Use this if you want a standing check that a slow, easy-to-miss
+  weight decline gets surfaced before it becomes a bigger health issue.
+category: senior-living
+tags: [senior-living, weight-loss, resident-care, clinical-warning]
+schedule: "0 6 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  with w as (
+    select resident_id,
+           first_value(weight) over (partition by resident_id order by recorded_at) as first_weight,
+           last_value(weight) over (partition by resident_id order by recorded_at rows between unbounded preceding and unbounded following) as latest_weight
+    from weight_logs
+    where recorded_at >= current_date - interval '{{window_days}} days'
+  )
+  select distinct resident_id, first_weight, latest_weight,
+         round(100.0 * (first_weight - latest_weight) / nullif(first_weight,0), 1) as percent_loss
+  from w
+  where round(100.0 * (first_weight - latest_weight) / nullif(first_weight,0), 1) >= {{threshold_percent}}
+  order by percent_loss desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding resident weight logs.
+  window_days:
+    default: 30
+    description: How many days of weight history to compare the earliest and latest reading over.
+  threshold_percent:
+    default: 5
+    description: >
+      Percentage of body weight lost within the window that should trigger
+      a flag — a common clinical rule of thumb is 5% in 30 days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `weight_logs` table with `resident_id`, `weight`, and
+  `recorded_at` columns — adjust the query to your facility's actual
+  charting schema. This is a read-only trend check: it only flags which
+  residents show a concerning weight-loss pattern for a nurse or dietitian
+  to review, it does not itself change a care plan or contact anyone.

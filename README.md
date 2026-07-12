@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1055 jobs across 54 categories:
+1075 jobs across 55 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -117,6 +117,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `childcare` | 20 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `coworking` | 20 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 20 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |

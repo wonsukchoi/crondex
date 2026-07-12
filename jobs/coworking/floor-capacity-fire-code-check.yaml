@@ -1,0 +1,35 @@
+id: floor-capacity-fire-code-check
+version: 1
+name: Floor Capacity Fire Code Check
+description: >
+  Checks each day's peak headcount, taken from check-in or badge-swipe
+  data, against the space's fire-code-rated occupancy limit, and flags any
+  day that came close to or went over that limit. Use this if you want an
+  early warning that a floor or space is trending toward an occupancy
+  problem before it becomes a real safety or code-violation issue.
+category: coworking
+tags: [coworking, fire-code, occupancy, safety, facilities]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select check_date, floor_id, peak_headcount, {{occupancy_limit}} as occupancy_limit from daily_floor_headcount where peak_headcount >= {{occupancy_limit}} * {{warning_ratio}} order by peak_headcount desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that stores daily peak headcount by floor.
+  occupancy_limit:
+    default: "150"
+    description: The fire-code-rated maximum occupancy for the floor or space being checked.
+  warning_ratio:
+    default: "0.9"
+    description: Fraction of the occupancy limit (e.g. 0.9 = 90%) at which a day gets flagged as a near-miss.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `daily_floor_headcount` table with `check_date`, `floor_id`, and
+  `peak_headcount` columns derived from check-in or badge-swipe events —
+  adjust the query to your access-control schema. This is a safety-adjacent
+  but purely read-only, informational check: it does not enforce, restrict,
+  or cap entry in any way, and it does not itself verify the accuracy of
+  the underlying badge data. It only flags days worth a facilities or
+  safety-team review against your actual fire-code occupancy certificate.

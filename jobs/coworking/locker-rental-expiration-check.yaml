@@ -1,0 +1,33 @@
+id: locker-rental-expiration-check
+version: 1
+name: Locker Rental Expiration Check
+description: >
+  Checks member locker rentals for ones expiring soon or already expired
+  without a renewal on file, so staff can plan to clear out contents and
+  reassign the locker instead of finding an abandoned one months later. Use
+  this if you want a standing list of lockers that need a renewal reminder
+  or a clear-out.
+category: coworking
+tags: [coworking, lockers, amenities, renewals]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select locker_id, member_id, member_name, rental_end_date from locker_rentals where rental_end_date <= now() + interval '{{lookahead_days}} days' and renewed_at is null order by rental_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's amenities/facilities database.
+  lookahead_days:
+    default: "7"
+    description: >
+      How many days ahead of the rental end date to flag a locker as
+      expiring soon (also catches already-expired lockers, since those
+      dates are further in the past than the window's start).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `locker_rentals` table with `locker_id`, `member_id`,
+  `member_name`, `rental_end_date`, and `renewed_at` columns — adjust the
+  query to your facilities schema. Read-only and informational; it does not
+  clear out lockers or cancel rentals itself, it only surfaces which ones
+  need staff attention.

@@ -1,0 +1,40 @@
+id: wifi-bandwidth-utilization-alert
+version: 1
+name: Wifi Bandwidth Utilization Alert
+description: >
+  Checks how much of your network's total bandwidth capacity is being used
+  during peak hours and flags when usage is trending toward saturation.
+  Use this if members have ever started complaining about slow wifi before
+  anyone on staff noticed the network was creeping toward its limit.
+category: coworking
+tags: [coworking, wifi, bandwidth, network]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s -u "{{router_api_user}}:{{router_api_pass}}" "{{router_api_url}}/bandwidth/current" | awk -F',' -v cap="{{total_bandwidth_mbps}}" -v pct="{{warning_threshold_pct}}" '{ if (($1 / cap) * 100 >= pct) print "WARNING: current usage " $1 "Mbps is " (($1/cap)*100) "% of " cap "Mbps capacity"; }'
+variables:
+  router_api_url:
+    default: "http://router.local/api"
+    description: Base URL for the network device or router's monitoring API.
+  router_api_user:
+    default: "admin"
+    description: Username for authenticating to the router/monitoring API.
+  router_api_pass:
+    default: "changeme"
+    description: Password or token for authenticating to the router/monitoring API.
+  total_bandwidth_mbps:
+    default: "1000"
+    description: Total contracted or available bandwidth in Mbps.
+  warning_threshold_pct:
+    default: "80"
+    description: Percentage of total bandwidth at which usage should be flagged as trending toward saturation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a router or network monitoring appliance that exposes a simple
+  current-usage endpoint returning a numeric Mbps value as the first
+  comma-separated field — replace the `curl`/`awk` pipeline with your
+  provider's actual API format (e.g. Ubiquiti, Meraki, pfSense). Read-only
+  and best run only during business/peak hours if your provider charges for
+  API calls; credentials should be stored as secrets, not committed as
+  real defaults.

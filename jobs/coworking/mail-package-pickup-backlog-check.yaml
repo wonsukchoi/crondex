@@ -1,0 +1,29 @@
+id: mail-package-pickup-backlog-check
+version: 1
+name: Mail and Package Pickup Backlog Check
+description: >
+  Checks the mail and package log for member mail or deliveries that have
+  been sitting uncollected at the front desk past a set number of days.
+  Use this if you want a simple reminder list so staff can nudge members
+  before the mail room shelf turns into permanent overflow.
+category: coworking
+tags: [coworking, mail, packages, community-management]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select log_id, member_id, member_name, item_type, received_at from mail_package_log where collected_at is null and received_at <= now() - interval '{{stale_after_days}} days' order by received_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's front-desk/mail-log database.
+  stale_after_days:
+    default: "5"
+    description: Number of days an item can sit uncollected before it's flagged for a reminder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `mail_package_log` table with `log_id`, `member_id`,
+  `member_name`, `item_type`, `received_at`, and `collected_at` columns —
+  adjust the query to your front-desk logging system. Read-only and
+  informational: it produces a nudge list, it does not send the reminder
+  itself.

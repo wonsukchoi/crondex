@@ -1,0 +1,33 @@
+id: hot-desk-overbooking-check
+version: 1
+name: Hot Desk Overbooking Check
+description: >
+  Checks how many hot-desk (shared, first-come, unassigned seating)
+  reservations exist for each upcoming day against the total number of
+  hot desks available, and flags any day where reservations exceed
+  capacity. Use this if you want a warning before an oversold day leaves
+  members showing up with nowhere to sit.
+category: coworking
+tags: [coworking, hot-desk, capacity, overbooking]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select reservation_date, count(*) as reservations, {{hot_desk_capacity}} as capacity from hot_desk_reservations where reservation_date between current_date and current_date + interval '{{lookahead_days}} days' group by reservation_date having count(*) > {{hot_desk_capacity}} order by reservation_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's booking database.
+  hot_desk_capacity:
+    default: "20"
+    description: Total number of hot desks available at this location on a given day.
+  lookahead_days:
+    default: "14"
+    description: How many days ahead to check for overbooked hot-desk days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `hot_desk_reservations` table with `reservation_date` (one row
+  per reserved seat) — adjust to your booking system's schema, and note
+  that `hot_desk_capacity` must be kept in sync with the location's real
+  desk count for the flag to be meaningful. Read-only: it does not cancel
+  or move any reservation, it only reports oversold days.

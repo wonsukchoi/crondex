@@ -1,0 +1,31 @@
+id: guest-registration-compliance-check
+version: 1
+name: Guest Registration Compliance Check
+description: >
+  Checks visitor and guest sign-in logs for entries missing a required
+  field — no NDA acknowledgment, no host name, or no check-out time logged
+  — so gaps in building-security compliance get caught instead of sitting
+  unnoticed in the log. Use this if you want a daily list of incomplete
+  guest registrations to fix or follow up on.
+category: coworking
+tags: [coworking, guest-registration, security, compliance, front-desk]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select guest_id, guest_name, host_name, check_in_at, check_out_at, nda_acknowledged from guest_registrations where check_in_at >= now() - interval '{{lookback_days}} days' and (nda_acknowledged is not true or host_name is null or check_out_at is null) order by check_in_at desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that stores visitor/guest sign-in logs.
+  lookback_days:
+    default: "1"
+    description: How many days back to scan for incomplete guest registrations.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `guest_registrations` table with `guest_id`, `guest_name`,
+  `host_name`, `check_in_at`, `check_out_at`, and `nda_acknowledged` columns
+  — adjust the query to your front-desk or visitor-management schema. This
+  is a read-only report; it does not fix or complete any registration
+  itself, it only flags gaps for the front desk or security team to close
+  as part of a compliance review.

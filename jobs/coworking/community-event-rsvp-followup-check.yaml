@@ -1,0 +1,36 @@
+id: community-event-rsvp-followup-check
+version: 1
+name: Community Event RSVP Followup Check
+description: >
+  Checks upcoming community events — workshops, socials, networking nights —
+  for RSVP counts that are running well below the turnout you were hoping
+  for, so low-interest events get flagged while there's still time to
+  promote them. Use this if you want a heads-up a few days out on which
+  events need an extra push instead of finding out at the door that nobody
+  signed up.
+category: coworking
+tags: [coworking, events, rsvp, community]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select event_id, event_name, event_date, rsvp_count, target_rsvp_count from community_events where event_date between now() and now() + interval '{{lookahead_days}} days' and rsvp_count < (target_rsvp_count * {{shortfall_ratio}}) order by event_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's events database.
+  lookahead_days:
+    default: "7"
+    description: How many days ahead to look for upcoming events.
+  shortfall_ratio:
+    default: "0.5"
+    description: >
+      Fraction of the target RSVP count below which an event is flagged as
+      under-booked, e.g. 0.5 means "less than half the target."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `community_events` table with `event_id`, `event_name`,
+  `event_date`, `rsvp_count`, and `target_rsvp_count` columns — adjust the
+  query to your events schema. Read-only and informational; it does not send
+  promotional emails or update event listings itself, it only surfaces which
+  events need a push.

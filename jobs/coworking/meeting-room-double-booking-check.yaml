@@ -1,0 +1,28 @@
+id: meeting-room-double-booking-check
+version: 1
+name: Meeting Room Double-Booking Check
+description: >
+  Scans meeting and conference room reservations for two bookings on the
+  same room with overlapping times. Use this if a team has ever walked into
+  a meeting room mid-call because someone else's booking overlapped theirs
+  and nobody caught it beforehand.
+category: coworking
+tags: [coworking, meeting-room, booking, scheduling]
+schedule: "0 7,13 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select a.room_id, a.booking_id, a.start_time, a.end_time, b.booking_id as conflicting_booking_id, b.start_time as conflicting_start, b.end_time as conflicting_end from room_bookings a join room_bookings b on a.room_id = b.room_id and a.booking_id < b.booking_id and a.start_time < b.end_time and b.start_time < a.end_time where a.start_time >= current_date and a.start_time < current_date + interval '{{lookahead_days}} days' order by a.room_id, a.start_time;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the room-booking database.
+  lookahead_days:
+    default: "7"
+    description: How many days ahead to check for overlapping room bookings.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `room_bookings` table with `room_id`, `booking_id`, `start_time`, and
+  `end_time` columns. Read-only check — it surfaces conflicts so staff can
+  rebook one party before the awkward walk-in collision, it doesn't cancel or
+  move any booking itself.

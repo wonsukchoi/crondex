@@ -1,0 +1,30 @@
+id: community-manager-checklist-completion-check
+version: 1
+name: Community Manager Checklist Completion Check
+description: >
+  Checks whether the daily opening or closing checklist — unlocking doors,
+  restocking supplies, checking AV equipment, closing up at night — was
+  actually completed and logged by staff, and flags any day it wasn't. Use
+  this if you want to catch a missed opening or closing routine before a
+  member shows up to a locked door or a broken projector nobody reset.
+category: coworking
+tags: [coworking, operations, checklist, staff]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select checklist_date, shift_type, staff_name, completed_at from daily_checklists where checklist_date >= current_date - interval '{{lookback_days}} days' and completed_at is null order by checklist_date desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's operations database.
+  lookback_days:
+    default: "3"
+    description: How many days back to check for missing checklist completions.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `daily_checklists` table with `checklist_date`, `shift_type`
+  (e.g. opening/closing), `staff_name`, and `completed_at` columns, populated
+  by whatever app or form staff use to log the checklist — adjust the query
+  to your schema. Read-only and informational; it does not remind staff or
+  mark checklists complete itself, it only surfaces gaps in the log.

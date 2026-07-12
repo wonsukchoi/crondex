@@ -1,0 +1,34 @@
+id: printer-supply-level-check
+version: 1
+name: Printer Supply Level Check
+description: >
+  Checks the toner and paper levels reported by shared print stations against
+  a low-supply threshold, so members don't hit a mid-print "out of paper" or
+  "toner low" wall with no one around to fix it. Use this if you want a
+  heads-up on which print stations need restocking before it becomes a
+  member complaint.
+category: coworking
+tags: [coworking, printers, supplies, facilities]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select station_id, location, toner_percent, paper_percent, last_reading_at from print_station_supplies where toner_percent < {{low_toner_threshold_percent}} or paper_percent < {{low_paper_threshold_percent}} order by toner_percent asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that stores print station supply readings.
+  low_toner_threshold_percent:
+    default: "15"
+    description: Toner level, as a percent, at or below which a station is flagged.
+  low_paper_threshold_percent:
+    default: "10"
+    description: Paper level, as a percent, at or below which a station is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `print_station_supplies` table with `station_id`, `location`,
+  `toner_percent`, `paper_percent`, and `last_reading_at` columns, populated
+  by whatever printer-monitoring agent or SNMP poller feeds your setup —
+  adjust the query to match your schema. This is a read-only report; it does
+  not reorder supplies or restock anything itself, it only flags what a
+  facilities or community team member should check on.

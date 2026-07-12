@@ -1,0 +1,29 @@
+id: key-fob-access-deactivation-check
+version: 1
+name: Key Fob Access Deactivation Check
+description: >
+  Compares the list of currently active key-fob or access-badge records
+  against the current membership roster, and flags any fob that is still
+  active for a member who has already cancelled or left. Use this if you
+  want to catch a security gap where someone who no longer pays for
+  membership can still badge into the space.
+category: coworking
+tags: [coworking, security, access-control, member-offboarding]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select f.fob_id, f.member_id, m.member_name, m.membership_status, f.last_used_at from access_fobs f join members m on m.member_id = f.member_id where f.is_active = true and m.membership_status in ('cancelled', 'expired') order by f.last_used_at desc nulls last;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership and access-control database.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `access_fobs` table (`fob_id`, `member_id`, `is_active`,
+  `last_used_at`) and a `members` table (`member_id`, `member_name`,
+  `membership_status`) — adjust to your access-control system's schema.
+  This is a read-only security audit: it only flags fobs that appear to be
+  a gap, it does not deactivate, revoke, or otherwise change any physical
+  access record itself — a human (or a separate, deliberately-scoped job)
+  must confirm and act on each flagged fob.

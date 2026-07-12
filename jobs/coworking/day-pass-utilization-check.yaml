@@ -1,0 +1,35 @@
+id: day-pass-utilization-check
+version: 1
+name: Day Pass Utilization Check
+description: >
+  Compares how many day passes have been sold or checked in against your
+  total walk-in capacity for each day, and flags any day that's running near
+  or over that limit. Use this if a day has ever filled up on drop-ins
+  without anyone noticing until members started complaining there was
+  nowhere to sit.
+category: coworking
+tags: [coworking, day-pass, capacity, utilization]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select visit_date, count(*) as passes_used, {{total_capacity}} as capacity from day_passes where visit_date >= current_date and visit_date < current_date + interval '{{lookahead_days}} days' group by visit_date having count(*) >= {{total_capacity}} * {{warning_threshold_pct}} / 100.0 order by visit_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's booking database.
+  total_capacity:
+    default: "50"
+    description: Total walk-in/day-pass capacity for the space on a given day.
+  warning_threshold_pct:
+    default: "85"
+    description: Percentage of capacity at which a day should be flagged as running near or over capacity.
+  lookahead_days:
+    default: "7"
+    description: How many days ahead to check for near-capacity days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `day_passes` table with one row per sold or checked-in day pass and a
+  `visit_date` column. This is a read-only, informational check — it doesn't stop
+  sales, it just gives staff advance warning so they can plan for turning away
+  walk-ins or opening overflow space.

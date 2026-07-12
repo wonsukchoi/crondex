@@ -1,0 +1,31 @@
+id: conference-room-av-equipment-fault-check
+version: 1
+name: Conference Room AV Equipment Fault Check
+description: >
+  Checks logged equipment fault reports for meeting and conference rooms —
+  broken screens, dead mics, unresponsive video bars — and flags any that
+  have sat unresolved past a threshold, so a room doesn't stay bookable
+  while it's actually unusable. Use this if you want to catch rooms staff
+  should mark unbookable until IT or facilities fixes them.
+category: coworking
+tags: [coworking, meeting-rooms, av-equipment, facilities, maintenance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select room_id, room_name, issue_description, reported_at from av_equipment_faults where resolved_at is null and reported_at <= now() - interval '{{unresolved_hours_threshold}} hours' order by reported_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that stores AV/equipment fault reports.
+  unresolved_hours_threshold:
+    default: "24"
+    description: How many hours a fault can stay unresolved before it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `av_equipment_faults` table with `room_id`, `room_name`,
+  `issue_description`, `reported_at`, and `resolved_at` (nullable) columns —
+  adjust the query to your ticketing or facilities schema. This is a
+  read-only report; it does not block bookings or update room availability
+  itself, it only flags rooms that facilities or community staff should
+  consider marking unbookable until repaired.

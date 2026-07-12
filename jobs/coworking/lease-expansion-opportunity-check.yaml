@@ -1,0 +1,32 @@
+id: lease-expansion-opportunity-check
+version: 1
+name: Lease Expansion Opportunity Check
+description: >
+  Checks members and teams whose current desk usage is at or near the
+  capacity of their contracted plan, so the ones outgrowing their space show
+  up as candidates for a bigger plan before they go looking at a competitor.
+  Use this if you want a regular list of upsell conversations to have with
+  members who are close to maxing out their seats.
+category: coworking
+tags: [coworking, membership, upsell, capacity]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, account_name, plan_name, contracted_seats, current_desk_usage from member_accounts where current_desk_usage >= (contracted_seats * {{utilization_threshold}}) order by current_desk_usage desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership database.
+  utilization_threshold:
+    default: "0.9"
+    description: >
+      Fraction of contracted seats at which an account is flagged as an
+      expansion candidate, e.g. 0.9 means "using 90% or more of their plan."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_accounts` table with `account_id`, `account_name`,
+  `plan_name`, `contracted_seats`, and `current_desk_usage` columns — adjust
+  the query to your membership schema. Read-only and informational; it does
+  not send upsell emails or change any plan itself, it only surfaces which
+  accounts are worth a conversation.

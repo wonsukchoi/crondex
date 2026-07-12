@@ -1,0 +1,39 @@
+id: membership-plan-downgrade-risk-check
+version: 1
+name: Membership Plan Downgrade Risk Check
+description: >
+  Looks at how often members are checking in and how many desk hours
+  they're actually using compared to what their membership plan tier
+  includes, then flags anyone using well below what they're paying for.
+  Use this if a member has ever cancelled out of nowhere when a steady drop
+  in check-ins for weeks beforehand would have been the moment to reach out.
+category: coworking
+tags: [coworking, membership, churn-risk, utilization]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull each active member's check-in count and desk-hours used over the
+  past {{lookback_days}} days from the coworking management system, and
+  compare that against what their current membership plan tier includes
+  (e.g. unlimited, 10-day pack, dedicated desk). Flag any member whose usage
+  is at or below {{underuse_threshold_pct}}% of what their plan entitles
+  them to as a downgrade or churn risk. For each flagged member, note their
+  plan tier, recent usage trend, and a short guess at why (e.g. seasonal
+  slowdown, switched to remote work, dissatisfaction) if the data suggests
+  one. Prioritize members on higher-cost plans first since they represent
+  the biggest revenue risk.
+variables:
+  lookback_days:
+    default: "30"
+    description: How many days of check-in and usage history to review per member.
+  underuse_threshold_pct:
+    default: "40"
+    description: Usage percentage of plan entitlement below which a member is flagged as at-risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes access to a coworking management platform's check-in and billing
+  data (e.g. Nexudus, OfficeRnD, Cobot) with per-member plan tier and usage
+  history. This is informational and judgment-based — usage patterns hint at
+  risk, they don't confirm it, so treat flagged members as candidates for a
+  human check-in conversation, not an automatic downgrade.

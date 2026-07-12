@@ -1,0 +1,30 @@
+id: dedicated-desk-vacancy-check
+version: 1
+name: Dedicated Desk Vacancy Check
+description: >
+  Checks dedicated-desk assignments for desks that are being paid for but
+  are unassigned to any member, or assigned but showing no recent check-ins.
+  Use this if you've ever discovered a dedicated desk sitting empty for
+  weeks that nobody flagged as a gap in revenue or a member who quietly
+  stopped coming in.
+category: coworking
+tags: [coworking, dedicated-desk, vacancy, revenue]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select desk_id, member_id, last_checked_in from dedicated_desks where status = 'paid' and (member_id is null or last_checked_in < current_date - interval '{{stale_checkin_days}} days') order by desk_id asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the desk-assignment database.
+  stale_checkin_days:
+    default: "14"
+    description: Number of days without a check-in after which an assigned dedicated desk is flagged as possibly unused.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `dedicated_desks` table with `desk_id`, `member_id`, `status`
+  (paid/unpaid), and `last_checked_in` columns — adjust to your management
+  platform's schema. Read-only and informational: an unassigned paid desk is
+  a straightforward revenue leak, but a stale check-in on an assigned desk
+  just means it's worth a friendly follow-up, not necessarily a problem.

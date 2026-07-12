@@ -1,0 +1,30 @@
+id: member-invoice-failed-payment-check
+version: 1
+name: Member Invoice Failed Payment Check
+description: >
+  Checks recurring membership dues and autopay charges for ones that failed
+  to go through, so a lapsed card or expired payment method doesn't silently
+  turn into a member losing access. Use this if you want a daily heads-up on
+  who needs a payment retry or a manual follow-up before their membership
+  status is affected.
+category: coworking
+tags: [coworking, billing, membership, failed-payment]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, invoice_id, amount_due, failure_reason, last_attempt_at from member_invoices where status = 'failed' and last_attempt_at >= now() - interval '{{lookback_days}} days' order by last_attempt_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/billing database.
+  lookback_days:
+    default: "7"
+    description: How many days back to look for failed payment attempts.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_invoices` table with `member_id`, `member_name`,
+  `invoice_id`, `amount_due`, `status`, `failure_reason`, and
+  `last_attempt_at` columns — adjust the query to your billing schema. This
+  is a read-only report; it does not retry charges, suspend access, or
+  notify members itself, it only surfaces who needs attention.

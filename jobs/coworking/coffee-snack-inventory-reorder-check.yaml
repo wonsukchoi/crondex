@@ -1,0 +1,27 @@
+id: coffee-snack-inventory-reorder-check
+version: 1
+name: Coffee & Snack Inventory Reorder Check
+description: >
+  Checks pantry and kitchen consumables — coffee, snacks, cups, and other
+  member-facing supplies — against a reorder threshold, so the community
+  team finds out before the coffee runs out rather than from an annoyed
+  member. Use this if you want a standing reminder of what to reorder before
+  shelves go empty.
+category: coworking
+tags: [coworking, pantry, inventory, reorder, amenities]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select item_name, quantity_on_hand, reorder_threshold, unit from pantry_inventory where quantity_on_hand <= reorder_threshold order by quantity_on_hand asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that tracks pantry/kitchen inventory.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `pantry_inventory` table with `item_name`, `quantity_on_hand`,
+  `reorder_threshold`, and `unit` columns, with `reorder_threshold` set
+  per-item to whatever level should trigger a reorder — adjust the query to
+  your schema. This is a read-only report; it does not place any reorder
+  itself, it only flags what the community or ops team should restock.

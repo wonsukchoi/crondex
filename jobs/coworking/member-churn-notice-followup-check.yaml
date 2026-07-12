@@ -1,0 +1,31 @@
+id: member-churn-notice-followup-check
+version: 1
+name: Member Churn Notice Followup Check
+description: >
+  Checks membership cancellation notices logged in the last period for ones
+  that haven't had a retention or exit-interview conversation yet, so a
+  member who's already decided to leave doesn't also leave without anyone
+  finding out why. Use this if you want to make sure every cancellation gets
+  a follow-up call or email before the notice period runs out.
+category: coworking
+tags: [coworking, churn, retention, exit-interview]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select cancellation_id, member_id, member_name, notice_date, effective_date from cancellation_notices where notice_date >= now() - interval '{{lookback_days}} days' and followup_completed_at is null order by notice_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership database.
+  lookback_days:
+    default: "14"
+    description: How many days back to look for cancellation notices.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `cancellation_notices` table with `cancellation_id`, `member_id`,
+  `member_name`, `notice_date`, `effective_date`, and
+  `followup_completed_at` columns — adjust the query to your schema.
+  Read-only and informational; it does not reach out to members or update
+  the cancellation record itself, it only surfaces who still needs a
+  retention conversation.

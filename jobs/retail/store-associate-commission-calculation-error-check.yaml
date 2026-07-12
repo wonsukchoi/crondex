@@ -1,0 +1,35 @@
+id: store-associate-commission-calculation-error-check
+version: 1
+name: Store Associate Commission Calculation Error Check
+description: >
+  Compares calculated sales-associate commission payouts against the
+  underlying sales transactions they're supposed to be based on, and flags
+  any associate whose payout doesn't match what the commission rate and
+  sales total say it should be. Use this if you pay commission on sales and
+  want to catch calculation errors before payroll runs instead of after
+  associates notice a short (or suspiciously large) check.
+category: retail
+tags: [commission, payroll, sales, data-integrity]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select c.associate_id, c.pay_period, c.calculated_commission, round(sum(t.sale_amount) * {{commission_rate}}, 2) as expected_commission from commission_payouts c join sales_transactions t on t.associate_id = c.associate_id and t.pay_period = c.pay_period group by c.associate_id, c.pay_period, c.calculated_commission having abs(c.calculated_commission - round(sum(t.sale_amount) * {{commission_rate}}, 2)) > {{tolerance_amount}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding commission payout and sales transaction records.
+  commission_rate:
+    default: "0.03"
+    description: Standard commission rate applied to sales totals, expressed as a decimal (e.g. 0.03 for 3%).
+  tolerance_amount:
+    default: "0.50"
+    description: Dollar amount of discrepancy allowed between calculated and expected commission before a row is flagged, to absorb rounding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `commission_payouts` table with `associate_id`, `pay_period`, and
+  `calculated_commission`, plus a `sales_transactions` table with
+  `associate_id`, `pay_period`, and `sale_amount` columns. This is a flat
+  single-rate model; stores with tiered or product-specific commission rates
+  will need to adjust the query accordingly. Read-only query, run before
+  payroll finalizes each pay period.

@@ -1,0 +1,30 @@
+id: price-match-guarantee-request-tracker
+version: 1
+name: Price Match Guarantee Request Tracker
+description: >
+  Checks logged price-match-guarantee requests against how long the policy
+  allows for them to be resolved, and flags any request still sitting open
+  past that window. Use this if customers submit price-match requests and
+  you want to make sure none are quietly going stale and souring a customer
+  who is waiting on a refund or adjustment.
+category: retail
+tags: [price-match, customer-service, policy-compliance]
+schedule: "0 14 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select request_id, store_id, customer_id, submitted_at, status from price_match_requests where status not in ('approved', 'denied', 'closed') and submitted_at < now() - interval '{{processing_window_hours}} hours';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding price-match-guarantee requests.
+  processing_window_hours:
+    default: "48"
+    description: Hours the price-match policy allows for a request to be resolved before it is considered overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `price_match_requests` table with `request_id`, `store_id`,
+  `customer_id`, `submitted_at`, and `status` columns, where open statuses
+  (e.g. "pending", "reviewing") are anything other than approved, denied,
+  or closed. Read-only query; adjust the status list to match your
+  workflow's terminology.

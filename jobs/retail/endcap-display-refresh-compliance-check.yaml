@@ -1,0 +1,33 @@
+id: endcap-display-refresh-compliance-check
+version: 1
+name: Endcap Display Refresh Compliance Check
+description: >
+  Compares each promotional endcap or feature display against the
+  merchandising calendar's required refresh schedule and flags any display
+  that is overdue for its next reset. Use this if you run rotating
+  promotional displays on a calendar cadence and want to catch a store that
+  never took down last month's promo, rather than waiting for a store visit
+  to notice it.
+category: retail
+tags: [endcap, merchandising-calendar, promotions, visual-merchandising]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select store_id, display_id, current_theme, last_refreshed_date, next_refresh_due_date from endcap_displays where next_refresh_due_date < current_date - interval '{{grace_period_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding endcap display state and the merchandising calendar's due dates.
+  grace_period_days:
+    default: "0"
+    description: Extra days past the calendar's due date allowed before a display is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `endcap_displays` table with `store_id`, `display_id`,
+  `current_theme`, `last_refreshed_date`, and `next_refresh_due_date`
+  columns, where `next_refresh_due_date` comes from the merchandising
+  calendar. Read-only query. This checks the promotional refresh cadence
+  specifically; it does not check whether the display matches the required
+  layout (see planogram-compliance-audit-check) or general visual standards
+  (see visual-merchandising-compliance-check).

@@ -1,0 +1,31 @@
+id: fitting-room-shrink-pattern-check
+version: 1
+name: Fitting Room Shrink Pattern Check
+description: >
+  Compares how many items were checked into fitting rooms against how many
+  were checked back out and actually returned to the sales floor, and flags
+  stores or days with an unusual gap between the two counts. Use this if you
+  suspect fitting rooms are a soft spot for theft and want an early signal
+  before it shows up as a loss during the next physical inventory count.
+category: retail
+tags: [fitting-room, loss-prevention, shrink, theft]
+schedule: "0 23 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select store_id, session_date, items_checked_in, items_checked_out, (items_checked_in - items_checked_out) as unreturned_items from fitting_room_sessions where session_date = current_date - interval '1 day' and (items_checked_in - items_checked_out) > {{max_unreturned_items}} order by unreturned_items desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding fitting-room check-in and check-out counts.
+  max_unreturned_items:
+    default: "2"
+    description: Number of items a store may fail to check back out in a day before that day is flagged as unusual.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `fitting_room_sessions` table, one row per store per day, with
+  `store_id`, `session_date`, `items_checked_in`, and `items_checked_out`
+  columns fed by a fitting-room attendant app or RFID gate. Read-only query;
+  a flagged gap is a signal worth investigating with security footage, not
+  proof of theft on its own, since legitimate causes (an item left in a
+  room, a miscount) also produce a gap.

@@ -1,0 +1,39 @@
+id: store-climate-control-compliance-check
+version: 1
+name: Store Climate Control Compliance Check
+description: >
+  Checks the temperature and humidity readings logged by in-store sensors
+  against the safe ranges required for climate-sensitive merchandise like
+  cosmetics, chocolate, or supplements. Use this if your store carries goods
+  that spoil, melt, or degrade outside a specific temperature/humidity band
+  and you want to catch an HVAC problem before it ruins inventory.
+category: retail
+tags: [retail, store-ops, climate-control, sensors, compliance]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select store_id, sensor_id, reading_type, reading_value, recorded_at from climate_sensor_readings where recorded_at > now() - interval '1 hour' and ((reading_type = 'temperature' and (reading_value < {{min_temp_f}} or reading_value > {{max_temp_f}})) or (reading_type = 'humidity' and (reading_value < {{min_humidity_pct}} or reading_value > {{max_humidity_pct}}))) order by recorded_at desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding climate sensor readings.
+  min_temp_f:
+    default: "60"
+    description: Minimum acceptable temperature in Fahrenheit for climate-sensitive storage areas.
+  max_temp_f:
+    default: "80"
+    description: Maximum acceptable temperature in Fahrenheit for climate-sensitive storage areas.
+  min_humidity_pct:
+    default: "30"
+    description: Minimum acceptable relative humidity percentage.
+  max_humidity_pct:
+    default: "60"
+    description: Maximum acceptable relative humidity percentage.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `climate_sensor_readings` table with `store_id`, `sensor_id`,
+  `reading_type` (temperature or humidity), `reading_value`, and
+  `recorded_at` columns, populated by an in-store IoT sensor feed — adjust
+  the query to your schema. Read-only: it only reports out-of-range
+  readings and takes no corrective action.

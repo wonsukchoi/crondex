@@ -1,0 +1,32 @@
+id: supplier-compliance-chargeback-tracker
+version: 1
+name: Supplier Compliance Chargeback Tracker
+description: >
+  Checks chargebacks issued to suppliers for compliance violations, such as
+  late shipments, mislabeling, or bad packaging, and flags the ones still
+  waiting on a dispute or resolution past a set number of days. Use this if
+  chargebacks tend to sit open indefinitely and you want a nudge before a
+  supplier relationship or your own books are affected by an unresolved
+  claim.
+category: retail
+tags: [retail, supplier, chargeback, compliance, vendor-management]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select chargeback_id, supplier_id, violation_type, amount, issued_date, status from supplier_chargebacks where status in ('pending', 'disputed') and issued_date <= current_date - interval '{{aging_threshold_days}} days' order by issued_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding supplier chargeback records.
+  aging_threshold_days:
+    default: "21"
+    description: Number of days a chargeback can remain pending or disputed before it's flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `supplier_chargebacks` table with `chargeback_id`,
+  `supplier_id`, `violation_type` (e.g. late-shipment, mislabeling,
+  packaging), `amount`, `issued_date`, and `status` columns — adjust the
+  query to your schema. Read-only: it surfaces aging, unresolved
+  chargebacks for follow-up and does not change any chargeback status or
+  issue new ones.

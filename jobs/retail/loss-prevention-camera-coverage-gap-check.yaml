@@ -1,0 +1,51 @@
+id: loss-prevention-camera-coverage-gap-check
+version: 1
+name: Loss Prevention Camera Coverage Gap Check
+description: >
+  Reviews the store's security camera layout together with recent theft or
+  loss incident locations to judge whether any area is a recurring blind
+  spot that the current camera placement doesn't cover well. Use this if
+  incidents keep happening in the same aisle or corner and you want a
+  reasoned second opinion on whether the camera coverage map needs
+  updating, not just a raw list of camera positions.
+category: retail
+tags: [retail, loss-prevention, security, cameras, coverage]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  You are reviewing loss-prevention camera coverage for store
+  {{store_id}}. Fetch the current camera layout/coverage map from
+  {{camera_layout_url}} and the list of loss-prevention incidents
+  (theft, unexplained shrink, suspicious activity) reported in the last
+  {{lookback_days}} days from {{incident_log_url}}. Cross-reference
+  incident locations against the camera coverage zones. Identify any
+  areas that are (a) outside all camera fields of view, (b) only covered
+  at a poor angle or distance for identification, or (c) the site of
+  multiple recent incidents despite existing coverage. Produce a
+  prioritized list of coverage gaps, each with the store area/aisle
+  name, why it's flagged, and a one-line recommendation (e.g. reposition
+  camera, add a new unit, adjust angle). If no meaningful gaps are found,
+  say so explicitly rather than inventing issues.
+variables:
+  store_id:
+    default: "store-0001"
+    description: Identifier of the store whose camera coverage is being reviewed.
+  camera_layout_url:
+    default: "https://example.com/api/stores/store-0001/camera-layout"
+    description: API endpoint or file location returning the current camera positions and coverage zones for the store.
+  incident_log_url:
+    default: "https://example.com/api/stores/store-0001/lp-incidents"
+    description: API endpoint or file location returning recent loss-prevention incident reports with locations.
+  lookback_days:
+    default: "90"
+    description: How many days of incident history to consider when judging whether a location is a recurring blind spot.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the camera layout and incident feeds are read-only reference
+  data (a floor plan/coverage map and an incident log) — this job only
+  produces a recommendation report and never changes camera hardware or
+  settings. Judging coverage against a physical layout and incident
+  history requires reasoning an agent-prompt handles better than a fixed
+  script; swap the placeholder URLs for your actual security or
+  facilities systems.

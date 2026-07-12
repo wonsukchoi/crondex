@@ -1,0 +1,37 @@
+id: self-checkout-error-rate-check
+version: 1
+name: Self-Checkout Error Rate Check
+description: >
+  Checks self-checkout lane transaction logs for how often a transaction
+  needs an error override or an attendant to step in, and flags any lane or
+  time period where that rate climbs above a normal threshold. Use this if
+  you want to catch a malfunctioning scale, a scanner going out of
+  calibration, or a confusing prompt flow before it slows down every
+  customer at that lane.
+category: retail
+tags: [retail, self-checkout, pos, error-rate, store-ops]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select lane_id, count(*) as total_transactions, sum(case when required_attendant_override then 1 else 0 end) as override_count, round(100.0 * sum(case when required_attendant_override then 1 else 0 end) / count(*), 2) as override_rate_pct from self_checkout_transactions where transaction_time > now() - interval '{{lookback_hours}} hours' group by lane_id having count(*) >= {{min_transactions}} and (100.0 * sum(case when required_attendant_override then 1 else 0 end) / count(*)) >= {{error_rate_threshold_pct}} order by override_rate_pct desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding self-checkout transaction logs.
+  lookback_hours:
+    default: "4"
+    description: How many hours of self-checkout transaction history to evaluate per run.
+  min_transactions:
+    default: "20"
+    description: Minimum number of transactions a lane must have processed in the window before its error rate is evaluated, so low traffic doesn't produce a misleading percentage.
+  error_rate_threshold_pct:
+    default: "15"
+    description: Percentage of transactions requiring an attendant override or error correction that triggers a flag for that lane.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `self_checkout_transactions` table with `lane_id`,
+  `transaction_time`, and a `required_attendant_override` boolean flag
+  (set true for weight discrepancies, item-not-scanning errors, age
+  verification holds, etc.) — adjust the query to your schema. Read-only;
+  it only reports lanes/periods worth a maintenance or staffing look.

@@ -1,0 +1,30 @@
+id: curbside-pickup-wait-time-check
+version: 1
+name: Curbside Pickup Wait Time Check
+description: >
+  Measures the time between a customer checking in for curbside pickup and
+  an associate delivering the order to their car, then flags orders or days
+  that blew past the store's service-level target. Use this if you promise
+  customers a fast curbside experience and want to catch slow days before
+  they show up in complaints or reviews.
+category: retail
+tags: [curbside, fulfillment, customer-experience, service-level]
+schedule: "0 21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select order_id, store_id, checkin_time, delivered_time, extract(epoch from (delivered_time - checkin_time))/60 as wait_minutes from curbside_orders where delivered_time is not null and checkin_time >= now() - interval '1 day' and extract(epoch from (delivered_time - checkin_time))/60 > {{target_wait_minutes}} order by wait_minutes desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding curbside order check-in and delivery timestamps.
+  target_wait_minutes:
+    default: "10"
+    description: Maximum minutes allowed between customer check-in and order delivery before a curbside order is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `curbside_orders` table with `order_id`, `store_id`, `checkin_time`,
+  and `delivered_time` columns populated by the curbside/BOPIS app or POS
+  integration. Read-only query; does not modify order records. Distinct from
+  the BOPIS fulfillment-lag job, which measures order-to-ready time rather
+  than check-in-to-car-delivery time.

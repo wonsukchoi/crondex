@@ -1,0 +1,32 @@
+id: bopis-order-fulfillment-lag-check
+version: 1
+name: BOPIS Order Fulfillment Lag Check
+description: >
+  Checks buy-online-pickup-in-store orders for how long it took staff to mark
+  them ready for pickup after the order was placed, and flags any that took
+  longer than the promised pickup window. Use this if you advertise a
+  "ready in an hour" (or similar) pickup promise and want to know when the
+  store is falling behind before a customer shows up to an order that isn't
+  ready.
+category: retail
+tags: [bopis, fulfillment, online-orders, service-level]
+schedule: "0 22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select order_id, store_id, placed_time, ready_time, extract(epoch from (ready_time - placed_time))/60 as fulfillment_minutes from bopis_orders where placed_time >= now() - interval '1 day' and (ready_time is null or extract(epoch from (ready_time - placed_time))/60 > {{promised_window_minutes}}) order by placed_time asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding BOPIS order placement and ready-for-pickup timestamps.
+  promised_window_minutes:
+    default: "60"
+    description: Minutes promised to customers between placing a BOPIS order and it being marked ready for pickup.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `bopis_orders` table with `order_id`, `store_id`, `placed_time`,
+  and `ready_time` (nullable until fulfilled) columns from the e-commerce or
+  order-management system. Read-only query. Orders with a null `ready_time`
+  after the window are still-unfulfilled orders and are flagged alongside
+  the late ones. Distinct from the curbside wait-time job, which measures
+  the later car-delivery leg, not order-to-ready time.

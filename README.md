@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1193 jobs across 57 categories:
+1205 jobs across 57 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -154,7 +154,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
-| `retail` | 21 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
+| `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 20 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |

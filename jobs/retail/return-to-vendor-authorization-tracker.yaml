@@ -1,0 +1,32 @@
+id: return-to-vendor-authorization-tracker
+version: 1
+name: Return-to-Vendor Authorization Tracker
+description: >
+  Checks return-to-vendor requests for defective or excess stock against
+  each vendor's promised authorization turnaround time, and flags any
+  request still waiting on a return authorization number past that
+  window. Use this if vendors are slow to approve returns and you want to
+  know which requests to chase down before the stock sits in a back room
+  indefinitely.
+category: retail
+tags: [retail, "rtv", vendor-management, returns, inventory]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select rtv.rtv_id, rtv.vendor_id, rtv.sku, rtv.reason, rtv.requested_date, v.standard_turnaround_days from rtv_requests rtv join vendors v on v.vendor_id = rtv.vendor_id where rtv.authorization_status = 'awaiting_authorization' and rtv.requested_date <= current_date - (coalesce(v.standard_turnaround_days, {{default_turnaround_days}}) * interval '1 day') order by rtv.requested_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding return-to-vendor requests and vendor terms.
+  default_turnaround_days:
+    default: "10"
+    description: Fallback authorization turnaround time in days to use when a vendor has no specific standard_turnaround_days set.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `rtv_requests` table with `rtv_id`, `vendor_id`, `sku`,
+  `reason`, `requested_date`, and `authorization_status` columns, plus a
+  `vendors` table with a `standard_turnaround_days` column for
+  vendor-specific authorization SLAs — adjust the query to your schema.
+  Read-only: it flags requests worth following up on and does not
+  request or grant authorizations itself.

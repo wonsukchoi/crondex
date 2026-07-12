@@ -1,0 +1,37 @@
+id: cashier-drawer-overage-shortage-pattern-check
+version: 1
+name: Cashier Drawer Overage/Shortage Pattern Check
+description: >
+  Looks at each cashier's till over/short amounts across their last several
+  shifts to spot a recurring pattern of consistently coming up short or
+  consistently over, rather than one-off counting mistakes. Use this if you
+  want to catch a slow drip of cash loss or a training gap tied to one
+  specific employee, instead of only reviewing a single day's totals.
+category: retail
+tags: [retail, loss-prevention, cash-handling, cashier, till]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select cashier_id, count(*) as shifts, avg(over_short_amount) as avg_over_short, sum(case when over_short_amount < 0 then 1 else 0 end) as shortage_shifts from till_reconciliations where shift_date > current_date - interval '{{lookback_days}} days' group by cashier_id having count(*) >= {{min_shifts}} and abs(avg(over_short_amount)) >= {{flag_threshold}} order by avg(over_short_amount) asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding per-shift till reconciliation records.
+  lookback_days:
+    default: "30"
+    description: How many days of shift history to include when looking for a pattern.
+  min_shifts:
+    default: "5"
+    description: Minimum number of shifts a cashier must have worked in the lookback window before being evaluated, so one bad day isn't mistaken for a trend.
+  flag_threshold:
+    default: "5.00"
+    description: Average absolute over/short dollar amount per shift that triggers a flag for that cashier.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `till_reconciliations` table with one row per cashier per
+  shift, including `cashier_id`, `shift_date`, and `over_short_amount`
+  (negative for shortages, positive for overages) — adjust the query to
+  your schema. Distinct from a single-day store-level deposit check: this
+  looks for a per-cashier trend over time. Read-only; a flag here means
+  "worth a manager conversation," not proof of wrongdoing.

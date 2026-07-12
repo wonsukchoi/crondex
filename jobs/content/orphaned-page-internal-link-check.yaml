@@ -1,0 +1,33 @@
+id: orphaned-page-internal-link-check
+version: 1
+name: Orphaned Page Internal Link Check
+description: >
+  Crawls the site's internal link graph and flags published pages that have
+  zero inbound internal links, meaning nothing else on the site points to
+  them. Use this if you want to catch pages that visitors and search engine
+  crawlers can only reach by knowing the exact URL, since orphaned pages
+  rarely get discovered or ranked.
+category: content
+tags: [content, seo, internal-links, orphan-pages]
+schedule: "0 5 * * 4"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-link-graph --sitemap "{{sitemap_url}}" --start-url "{{crawl_start_url}}" --max-depth "{{max_crawl_depth}}" --report orphans
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used as the master list of published pages to check for inbound links.
+  crawl_start_url:
+    default: "https://example.com/"
+    description: URL the crawler starts from when walking internal links to build the link graph.
+  max_crawl_depth:
+    default: "6"
+    description: Maximum link-following depth from the start URL before the crawl stops.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: crawls publicly reachable pages to build a link graph, makes no
+  edits. Assumes a `crondex-link-graph` CLI (or equivalent crawler) is
+  installed; a page can still be "reachable" via search or a direct link
+  from outside the crawl start point even if flagged here, so confirm before
+  assuming a page is truly unlinked.

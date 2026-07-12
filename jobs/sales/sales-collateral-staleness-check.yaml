@@ -1,0 +1,47 @@
+id: sales-collateral-staleness-check
+version: 1
+name: Sales Collateral Staleness Check
+description: >
+  Checks which version of sales decks, one-pagers, and battlecards reps are
+  actually attaching to outbound emails or logging on CRM activity, and flags
+  reps still sending a deprecated or outdated version. Use this if marketing
+  ships a new deck or pricing sheet and you want to know who never switched
+  over to it.
+category: sales
+tags: [sales, collateral, enablement, crm]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select owner_id, count(*) as attachments_sent, max(sent_at) as last_sent from crm_activity where activity_type = 'email' and attachment_name ~* '{{deprecated_collateral_pattern}}' and sent_at > now() - interval '{{lookback_days}} days' group by owner_id order by attachments_sent desc;"
+script_note: >
+  The query gives raw counts of reps still attaching filenames that match
+  the deprecated-collateral pattern, but it can't tell you which reps need a
+  gentle nudge versus a manager escalation, or draft that outreach — that
+  synthesis is left to the agent pass.
+prompt: |
+  Run the attached query against the CRM activity log to find reps who sent
+  outbound emails with deprecated sales collateral attached (filenames
+  matching {{deprecated_collateral_pattern}}) in the last {{lookback_days}}
+  days. For each rep, summarize how many times they used the stale version
+  and how recently, then draft a short, friendly Slack message reminding
+  them where to find the current version at {{current_collateral_url}}.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM activity database.
+  deprecated_collateral_pattern:
+    default: "v[1-2]_deck|pricing_2023"
+    description: Regex matched against attachment filenames to identify outdated collateral.
+  lookback_days:
+    default: "14"
+    description: How many days of outbound email/CRM activity to scan.
+  current_collateral_url:
+    default: "https://drive.example.com/sales/current-deck"
+    description: Link to the current approved collateral, included in the nudge message.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `crm_activity` table with `owner_id`, `activity_type`,
+  `attachment_name`, and `sent_at` columns logged by your CRM's email-sync
+  integration — adjust the query to your schema. Read-only: it only reads
+  activity history and drafts a message, it never sends anything itself.

@@ -1,0 +1,35 @@
+id: trash-recycling-pickup-reminder
+version: 1
+name: Trash & Recycling Pickup Reminder
+description: >
+  Reminds you the evening before your scheduled trash or recycling pickup day
+  so the bins actually make it to the curb. Use this if you've ever missed a
+  pickup because the day snuck up on you and the bins sat full for another
+  week.
+category: personal
+tags: [trash, recycling, household, reminder]
+schedule: "0 19 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today_dow=$(date +%u);
+  tomorrow_dow=$(( (today_dow % 7) + 1 ));
+  if echo "{{pickup_days_of_week}}" | grep -qw "$tomorrow_dow"; then
+    echo "Pickup tomorrow — put out: {{bin_types}}";
+  else
+    echo "No pickup tomorrow.";
+  fi
+variables:
+  pickup_days_of_week:
+    default: "2 5"
+    description: >
+      Space-separated ISO weekdays (1=Mon .. 7=Sun) when trash/recycling is
+      collected, matched against tomorrow's weekday.
+  bin_types:
+    default: "trash, recycling"
+    description: Which bins to mention in the reminder text.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Pickup days must be kept in sync manually with your municipal or hauler
+  schedule — this job has no external data source and does not detect
+  holiday shifts. Read-only reminder, sends nothing on its own.

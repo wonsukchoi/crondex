@@ -1,0 +1,34 @@
+id: meeting-free-day-protection-check
+version: 1
+name: Meeting-Free Day Protection Check
+description: >
+  Scans a designated no-meeting day (like "no-meeting Wednesdays") on your
+  calendar export for any meetings that got booked on it anyway and flags
+  the violation. Use this if you've set a protected focus day but keep
+  finding it quietly filled with meetings nobody double-checked against
+  the rule.
+category: productivity
+tags: [calendar, focus-day, meeting-hygiene]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg day "{{protected_weekday}}" '
+    .events[]
+    | select((.start | fromdateiso8601 | strftime("%A")) == $day)
+    | select(.attendees_count > 1 or (.type // "meeting") == "meeting")
+    | "\(.start)\t\(.title)\t\(.organizer // "unknown")"
+  ' "{{calendar_export_path}}"
+variables:
+  protected_weekday:
+    default: "Wednesday"
+    description: Full weekday name (e.g. Wednesday) designated as the no-meeting day.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, `attendees_count`, and `organizer` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot (no calendar API
+  writes). Assumes events include an ISO 8601 `start` timestamp; adjust
+  the jq filter if your export uses a different schema or if all-day
+  events need to be excluded separately.

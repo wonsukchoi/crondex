@@ -1,0 +1,29 @@
+id: pre-employment-background-check-tracker
+version: 1
+name: Pre-Employment Background Check Tracker
+description: >
+  Checks pending new-hire background checks against their scheduled start
+  date and flags any that won't clear in time. Use this if you've ever had a
+  new hire show up on day one before their background check actually came
+  back clean.
+category: hr
+tags: [hr, onboarding, background-check, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select candidate_id, candidate_name, start_date, check_status, ordered_at from background_checks where check_status not in ('cleared', 'failed') and start_date <= current_date + interval '{{warning_days}} days' order by start_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the HR/onboarding database.
+  warning_days:
+    default: "5"
+    description: How many days before a scheduled start date to start flagging an unresolved check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `background_checks` table with `candidate_id`, `candidate_name`,
+  `start_date`, `check_status`, and `ordered_at` columns, typically synced
+  from a background-check vendor (e.g. Checkr, Sterling) into HRIS —
+  adjust the query to your schema. Read-only: it only reports pending
+  checks, it never changes a start date or check status itself.

@@ -1,0 +1,31 @@
+id: endpoint-disk-encryption-compliance-check
+version: 1
+name: Endpoint Disk Encryption Compliance Check
+description: >
+  Checks the laptop and endpoint device inventory for machines whose disk
+  encryption (e.g. FileVault or BitLocker) is missing or disabled, then
+  flags every non-compliant device. Use this if you want to catch
+  unencrypted laptops before one gets lost or stolen and turns into a data
+  breach and compliance incident.
+category: security
+tags: [endpoint, disk-encryption, device-compliance, data-loss-prevention]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  mdm_cli list-devices --json |
+  jq '.[] | select(.diskEncryptionStatus != "{{required_encryption_status}}") |
+    {deviceName, owner, os, diskEncryptionStatus}'
+variables:
+  required_encryption_status:
+    default: "enabled"
+    description: The disk-encryption status value that counts as compliant in your MDM export.
+  mdm_platform:
+    default: "jamf"
+    description: MDM/endpoint-management platform to query (e.g. jamf, intune, kandji).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an MDM or endpoint-management export with a per-device encryption
+  status field; adjust the field name and values to match your platform's
+  schema. This job only flags non-compliant devices for follow-up — it does
+  not enable encryption or push any configuration itself.

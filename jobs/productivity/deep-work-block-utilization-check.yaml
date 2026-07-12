@@ -1,0 +1,35 @@
+id: deep-work-block-utilization-check
+version: 1
+name: Deep Work Block Utilization Check
+description: >
+  Checks scheduled deep-work or focus blocks on your calendar export for
+  ones that got overbooked with other meetings, and flags the intrusion.
+  Use this if you block time for focused work but other invites keep
+  sneaking in on top of it without anyone noticing until the day arrives.
+category: productivity
+tags: [calendar, focus-block, deep-work]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg label "{{focus_block_label}}" '
+    .events as $all
+    | [$all[] | select(.title | test($label; "i"))] as $blocks
+    | $blocks[]
+    | . as $b
+    | ($all[] | select(.title != $b.title)
+        | select(.start < $b.end and .end > $b.start)) as $conflict
+    | "\($b.start)\t\($b.title)\tintruded by: \($conflict.title)"
+  ' "{{calendar_export_path}}"
+variables:
+  focus_block_label:
+    default: "Focus Block"
+    description: Title substring (case-insensitive) used to identify deep-work/focus blocks on the calendar.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `end`, and `title` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. Overlap detection is
+  a simple interval comparison, so back-to-back events that merely touch
+  at the boundary are not flagged as intrusions — only true overlaps are.

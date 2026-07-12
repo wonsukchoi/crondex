@@ -1,0 +1,31 @@
+id: reading-inbox-processing-reminder
+version: 1
+name: Reading Inbox Processing Reminder
+description: >
+  Reminds you to process your "read later" or saved-articles queue before
+  it piles up into an unmanageable backlog. Use this if you save articles
+  with good intentions but the list only ever grows and never shrinks.
+category: productivity
+tags: [reading-list, saved-articles, backlog]
+schedule: "0 18 * * 0"
+timezone: "UTC"
+runner: shell
+command: >
+  count=$(jq 'length' "{{reading_list_path}}" 2>/dev/null || echo 0);
+  if [ "$count" -ge "{{backlog_threshold}}" ]; then
+    echo "Reading queue backlog: $count saved items (threshold {{backlog_threshold}}) — time to process some."
+  else
+    echo "Reading queue is manageable: $count saved items."
+  fi
+variables:
+  reading_list_path:
+    default: "/data/reading-list.json"
+    description: Path to a JSON export of the saved-articles/read-later queue (a JSON array of items).
+  backlog_threshold:
+    default: "25"
+    description: Number of saved items at or above which the queue is flagged as an unmanageable backlog.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a saved-articles export snapshot; does not
+  archive, delete, or reorder any items. Point `reading_list_path` at
+  whatever your read-later tool (e.g. Pocket, Instapaper) exports.

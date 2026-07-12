@@ -1,0 +1,32 @@
+id: grocery-staples-restock-reminder
+version: 1
+name: Grocery Staples Restock Reminder
+description: >
+  Checks a tracked list of household grocery staples against their typical
+  consumption pace and flags the ones likely to run out soon. Use this if you
+  keep running out of everyday basics like coffee, toilet paper, or dish soap
+  because nobody notices until the last one is gone.
+category: personal
+tags: [groceries, staples, restock, household]
+schedule: "0 8 * * 6"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  awk -F',' -v days="{{lookahead_days}}" 'NR>1 {
+    remaining_days = ($3 > 0) ? ($2 / $3) : 999;
+    if (remaining_days <= days) print $1", est. "remaining_days" days left"
+  }' "{{staples_csv_path}}"
+variables:
+  staples_csv_path:
+    default: "~/personal/grocery_staples.csv"
+    description: >
+      Path to a CSV with columns: item, quantity_on_hand, avg_daily_use.
+      One row per tracked staple.
+  lookahead_days:
+    default: "3"
+    description: How many days of remaining supply should trigger a restock flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually or app-exported CSV of staples with a rough daily-use
+  rate; consumption estimates are approximate, not exact inventory counts.
+  Read-only check — does not place any orders.

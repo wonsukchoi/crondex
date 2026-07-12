@@ -1,0 +1,29 @@
+id: deal-slippage-quarter-end-check
+version: 1
+name: Deal Slippage Quarter-End Check
+description: >
+  Checks open deals whose close date has been pushed more than once across a
+  quarter boundary, and flags these chronically-slipping deals for manager
+  review. Use this if you want to catch deals that quietly keep getting
+  pushed "to next quarter" before they eat into another forecast.
+category: sales
+tags: [sales, forecast, pipeline, deal-slippage]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select id, name, owner_id, close_date_pushed_count, original_close_date, close_date from deals where stage not in ('closed_won', 'closed_lost') and close_date_pushed_count >= {{min_push_count}} and date_trunc('quarter', original_close_date) <> date_trunc('quarter', close_date) order by close_date_pushed_count desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  min_push_count:
+    default: "2"
+    description: Minimum number of times a deal's close date must have been pushed to be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deals` table with `stage`, `owner_id`, `original_close_date`,
+  `close_date`, and a `close_date_pushed_count` counter incremented by a
+  CRM trigger or ETL job whenever `close_date` changes — adjust the query
+  to however your CRM tracks close-date history. Read-only: it only
+  surfaces deals for manager review, it never modifies stage or dates.

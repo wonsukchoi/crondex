@@ -1,0 +1,32 @@
+id: annual-physical-checkup-reminder
+version: 1
+name: Annual Physical Checkup Reminder
+description: >
+  Reminds you when it has been about a year since your last annual physical
+  or wellness checkup so it doesn't quietly fall off the calendar. Use this
+  if preventive checkups tend to slip a year or two because there's no
+  urgent symptom forcing the appointment.
+category: personal
+tags: [health, checkup, wellness, reminder]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last=$(date -d "{{last_checkup_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_checkup_date}}" +%s);
+  now=$(date +%s);
+  days_since=$(( (now - last) / 86400 ));
+  if [ "$days_since" -ge "{{reminder_threshold_days}}" ]; then
+    echo "It has been $days_since days since your last physical ({{last_checkup_date}}) — time to schedule the next one.";
+  fi
+variables:
+  last_checkup_date:
+    default: "2025-07-01"
+    description: Date of your most recent annual physical/wellness checkup (YYYY-MM-DD).
+  reminder_threshold_days:
+    default: "350"
+    description: Number of days since the last checkup that should trigger a reminder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes last_checkup_date is updated manually after each visit; no
+  connection to a provider portal or medical records system. Read-only
+  reminder, contains no medical advice.

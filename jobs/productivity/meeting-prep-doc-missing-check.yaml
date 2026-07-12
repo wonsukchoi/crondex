@@ -1,0 +1,33 @@
+id: meeting-prep-doc-missing-check
+version: 1
+name: Meeting Prep Doc Missing Check
+description: >
+  Checks upcoming meetings on your calendar export for ones lacking a
+  linked agenda or prep doc, and flags them so organizers can add one.
+  Use this if meetings routinely start without anyone having written down
+  what they're actually for.
+category: productivity
+tags: [calendar, meeting-prep, agenda]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg window "{{lookahead_hours}}" --arg now "$(date -u +%Y-%m-%dT%H:%M:%S)" '
+    .events[]
+    | select(.start > $now)
+    | select((.description // "" | test("http")) or .doc_url != null | not)
+    | "\(.start)\t\(.title)\t\(.organizer // "unknown")"
+  ' "{{calendar_export_path}}"
+variables:
+  lookahead_hours:
+    default: "48"
+    description: How many hours ahead to look for upcoming meetings when checking for a missing prep doc.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, `organizer`, `description`, and optional `doc_url` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. A meeting counts as
+  having a prep doc if `doc_url` is set or the description contains a
+  link — adjust the detection logic if your invites store links
+  differently.

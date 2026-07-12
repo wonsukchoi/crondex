@@ -1,0 +1,34 @@
+id: offboarded-employee-access-audit
+version: 1
+name: Offboarded Employee Access Audit
+description: >
+  Compares active access grants across systems and apps against the current
+  HR employee roster, then flags any access still active for someone who
+  has already left the company. Use this if you want a safety net catching
+  leftover accounts after offboarding, separate from routine key rotation —
+  this is specifically about access nobody remembered to remove.
+category: security
+tags: [offboarding, access-review, iam, hr-integration]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  hr_system_cli list-terminated --since-days "{{lookback_days}}" --json > /tmp/terminated.json &&
+  access_mgmt_cli list-active-grants --json |
+  jq --slurpfile terminated /tmp/terminated.json '
+    . as $grants | $terminated[0] as $term |
+    $grants[] | select(.user as $u | $term | map(.email) | index($u) != null)'
+variables:
+  lookback_days:
+    default: "180"
+    description: How far back to look for terminated employees when cross-checking active access grants.
+  hr_system:
+    default: "workday"
+    description: HR system providing the employee roster and termination dates (e.g. workday, bamboohr).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an HR system export of terminated employees and an access-management
+  export of active grants keyed by the same email/username; adjust field
+  names to match your actual systems. This job only flags leftover access for
+  a human to revoke — it does not deactivate accounts or remove any
+  permissions itself.

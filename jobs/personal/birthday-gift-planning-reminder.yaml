@@ -1,0 +1,35 @@
+id: birthday-gift-planning-reminder
+version: 1
+name: Birthday Gift Planning Reminder
+description: >
+  Checks a tracked list of upcoming birthdays and reminds you far enough
+  ahead to plan or order a gift before the date arrives. Use this if you've
+  ever realized a birthday was two days away with no gift lined up and had
+  to scramble.
+category: personal
+tags: [birthdays, gifts, reminder, planning]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%j);
+  lead="{{lead_time_days}}";
+  awk -F',' -v today="$today" -v lead="$lead" 'NR>1 {
+    cmd = "date -d \"1970-" $2 "\" +%j 2>/dev/null || date -j -f \"%m-%d\" \"" $2 "\" +%j";
+    cmd | getline doy; close(cmd);
+    diff = doy - today;
+    if (diff >= 0 && diff <= lead) print $1" turns "$3" in "diff" day(s) — plan a gift."
+  }' "{{birthdays_csv_path}}"
+variables:
+  birthdays_csv_path:
+    default: "~/personal/birthdays.csv"
+    description: >
+      Path to a CSV with columns: name, birthday_mm_dd, upcoming_age. One row
+      per person tracked.
+  lead_time_days:
+    default: "14"
+    description: How many days ahead of a birthday to start reminding about gift planning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained birthdays CSV; does not read from any
+  calendar or contacts API. Read-only reminder, does not order anything.

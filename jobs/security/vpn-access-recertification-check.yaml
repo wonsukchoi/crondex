@@ -1,0 +1,32 @@
+id: vpn-access-recertification-check
+version: 1
+name: VPN Access Recertification Check
+description: >
+  Compares every active VPN access grant against the date it was last
+  reviewed or recertified, then flags any grant that has gone past the
+  periodic review window. Use this if you want to make sure someone
+  regularly double-checks who still needs VPN access, instead of grants
+  silently living on forever once approved.
+category: security
+tags: [vpn, access-review, recertification, remote-access]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  vpn_admin_cli list-grants --json |
+  jq --arg cutoff "$(date -d "-{{recert_period_days}} days" +%Y-%m-%d)" '
+    .[] | select(.lastRecertifiedAt < $cutoff) |
+    {user, grantedGroup, lastRecertifiedAt}'
+variables:
+  recert_period_days:
+    default: "90"
+    description: Number of days a VPN grant may go between reviews before it's flagged overdue.
+  vpn_admin_endpoint:
+    default: "https://vpn-admin.internal/api"
+    description: Base URL or CLI target for the VPN access-management system.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the VPN admin tooling records a per-grant "last recertified" or
+  "last reviewed" timestamp; adjust the field name and query to match your
+  actual VPN or NAC platform's export format. This job only reports overdue
+  reviews for a human to act on — it does not revoke or modify any VPN access.

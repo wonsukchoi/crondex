@@ -1,0 +1,35 @@
+id: vehicle-registration-renewal-reminder
+version: 1
+name: Personal Vehicle Registration Renewal Reminder
+description: >
+  Reminds you of an upcoming registration renewal deadline for your personal
+  car so plates and tags don't lapse. Use this if you've ever gotten a late
+  fee, or worse a ticket, because the registration sticker expired before you
+  got around to renewing it.
+category: personal
+tags: [vehicle, registration, renewal, reminder]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  due=$(date -d "{{registration_due_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{registration_due_date}}" +%s);
+  days_left=$(( (due - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "Vehicle registration for {{vehicle_label}} due in $days_left day(s) on {{registration_due_date}}.";
+  fi
+variables:
+  vehicle_label:
+    default: "personal car"
+    description: Short label for the vehicle (e.g. make/model or plate) shown in the reminder.
+  registration_due_date:
+    default: "2026-10-15"
+    description: Registration renewal deadline for this personal vehicle (YYYY-MM-DD).
+  lead_time_days:
+    default: "30"
+    description: How many days before the deadline to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  For a personal vehicle only — see the `fleet` category for company-owned
+  vehicle registration tracking. Date is entered manually and has no DMV API
+  connection; read-only reminder.

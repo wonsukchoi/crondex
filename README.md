@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1095 jobs across 56 categories:
+1137 jobs across 56 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -116,18 +116,18 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 20 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
-| `content` | 13 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 20 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 20 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 26 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 19 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
+| `education` | 20 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 20 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 24 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 19 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `fleet` | 20 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 20 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
@@ -135,28 +135,28 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hiring` | 20 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 20 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 20 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
-| `hr` | 19 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `hr` | 20 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 20 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 20 | Personal learning — certs, courses, flashcards, reading. |
-| `legal` | 19 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `legal` | 20 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 20 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
-| `personal` | 9 | Daily life reminders — bills, habits, meals, screen time. |
+| `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 20 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
-| `productivity` | 9 | Work habits — inbox, standups, focus, meetings, reports. |
+| `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 21 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
-| `sales` | 18 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 14 | Security posture — keys, certs, access, scans, firewalls. |
+| `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `security` | 20 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
@@ -166,7 +166,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `travel` | 20 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 20 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 20 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
-| `warehousing` | 19 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
+| `warehousing` | 20 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->
 
 ---

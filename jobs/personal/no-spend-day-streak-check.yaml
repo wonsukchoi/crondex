@@ -1,0 +1,38 @@
+id: no-spend-day-streak-check
+version: 1
+name: No-Spend Day Streak Check
+description: >
+  Checks a logged no-spend-day challenge and reports your current streak,
+  flagging it clearly if the streak just broke. Use this if you're running
+  a personal no-spend challenge and want a quick daily read on how you're
+  doing without digging through the log yourself.
+category: personal
+tags: [no-spend, streak, personal-finance, habit-tracking]
+schedule: "0 20 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  awk -F',' -v target_streak="{{target_streak_days}}" '
+    NR>1 { entries[NR]=$2 }
+    END {
+      streak=0;
+      for (i=NR; i>1; i--) {
+        if (entries[i]=="yes") streak++;
+        else break
+      }
+      if (streak==0) print "Streak broken. Start a new no-spend streak today.";
+      else print "Current no-spend streak: "streak" day(s) (target: "target_streak")"
+    }' "{{no_spend_log_csv_path}}"
+variables:
+  no_spend_log_csv_path:
+    default: "~/personal/no_spend_log.csv"
+    description: >
+      Path to a CSV with columns date, no_spend (yes/no), one row per day
+      logged in the challenge.
+  target_streak_days:
+    default: "30"
+    description: The streak length goal to reference in the report.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually updated daily log of yes/no no-spend entries; read-only
+  check, does not read bank or card transaction data directly.

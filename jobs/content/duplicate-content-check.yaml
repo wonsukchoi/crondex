@@ -1,0 +1,37 @@
+id: duplicate-content-check
+version: 1
+name: Duplicate Content Check
+description: >
+  Fetches text from published pages and compares them pairwise to find
+  near-duplicate or highly-similar content living at different URLs, a common
+  cause of search engines splitting ranking signal across pages instead of
+  boosting one. Use this if you maintain templated pages, syndicated posts,
+  or multiple landing pages and want to catch cannibalization before it
+  quietly drags down rankings.
+category: content
+tags: [content, seo, duplicate-content, cannibalization]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Fetch the list of published page URLs from {{sitemap_url}}. Retrieve the
+  visible body text for each page (skip nav/footer boilerplate). Compare
+  pages pairwise and compute a similarity score for each pair. Flag any pair
+  scoring at or above {{similarity_threshold}} as likely near-duplicate or
+  cannibalizing content. For each flagged pair, report both URLs, the
+  similarity score, and a one-line guess at which page should be canonical
+  (e.g. more backlinks, more traffic, more recently updated) versus which
+  should be merged, redirected, or rewritten to target a different intent.
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap (or page-list export) used to enumerate published pages to compare.
+  similarity_threshold:
+    default: "0.85"
+    description: Text-similarity score (0-1) at or above which a pair is flagged as near-duplicate.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: fetches and compares publicly reachable page text, makes no
+  edits. Requires an agent because "how similar is too similar" and "which
+  page should win" both need judgment a plain script can't reliably make.
+  Assumes the sitemap or page-list is reasonably complete and up to date.

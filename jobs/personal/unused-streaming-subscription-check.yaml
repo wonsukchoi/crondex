@@ -1,0 +1,35 @@
+id: unused-streaming-subscription-check
+version: 1
+name: Unused Streaming Subscription Check
+description: >
+  Compares your personal streaming and app subscriptions against actual
+  usage logs and flags any you haven't touched in a while as cancellation
+  candidates. Use this if you suspect you're paying for a few apps you
+  forgot you even have.
+category: personal
+tags: [subscriptions, streaming, cost-savings, personal-finance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v idle_days="{{idle_days_threshold}}" 'NR>1 {
+    cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s";
+    cmd | getline last_used; close(cmd);
+    days_idle = int((today - last_used) / 86400);
+    if (days_idle >= idle_days) print $1", unused for "days_idle" days, $"$3"/mo"
+  }' "{{subscriptions_csv_path}}"
+variables:
+  subscriptions_csv_path:
+    default: "~/personal/streaming_subscriptions.csv"
+    description: >
+      Path to a CSV with columns: service_name, last_used_date, monthly_cost.
+      One row per tracked subscription.
+  idle_days_threshold:
+    default: "45"
+    description: Days without use that should flag a subscription as a cancellation candidate.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained or exported usage log per subscription; does
+  not connect to any streaming provider's account. Read-only check — flags
+  candidates only, does not cancel anything.

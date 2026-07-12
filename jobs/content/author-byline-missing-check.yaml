@@ -1,0 +1,32 @@
+id: author-byline-missing-check
+version: 1
+name: Author Byline Missing Check
+description: >
+  Scans published content pages for a visible author byline (name and, where
+  expected, an author bio link) and flags pages where one is missing. Use
+  this if you publish articles or guides and want to catch missing author
+  attribution, since named authorship is a trust signal search engines and
+  readers both look for.
+category: content
+tags: [content, seo, e-e-a-t, author-byline]
+schedule: "0 6 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-byline-check --sitemap "{{sitemap_url}}" --byline-selector "{{byline_css_selector}}" --content-paths "{{content_paths}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate published pages to check for an author byline.
+  byline_css_selector:
+    default: ".article-byline .author-name"
+    description: CSS selector identifying the author-byline element on a rendered page.
+  content_paths:
+    default: "/blog/,/guides/"
+    description: Comma-separated URL path fragments identifying which sections count as "content" pages that require a byline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: fetches and parses publicly reachable pages, makes no edits.
+  Assumes a `crondex-byline-check` CLI (or equivalent HTML scraper) is
+  installed and that the site marks up bylines consistently enough for a CSS
+  selector to find them; adjust the selector to match your template.

@@ -1,0 +1,33 @@
+id: video-transcript-missing-check
+version: 1
+name: Video Transcript Missing Check
+description: >
+  Scans pages containing embedded video for a linked transcript or a
+  captions/subtitles track, and flags videos where neither is found. Use
+  this if you publish video content and want to catch accessibility gaps
+  and missed opportunities for search engines to index the video's spoken
+  content as text.
+category: content
+tags: [content, seo, accessibility, video, transcript]
+schedule: "0 7 * * 6"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-video-transcript-check --sitemap "{{sitemap_url}}" --video-selector "{{video_css_selector}}" --transcript-selector "{{transcript_css_selector}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate published pages to scan for embedded video.
+  video_css_selector:
+    default: "video, iframe[src*='youtube'], iframe[src*='vimeo']"
+    description: CSS selector identifying embedded video players on a rendered page.
+  transcript_css_selector:
+    default: ".video-transcript, track[kind='captions']"
+    description: CSS selector identifying a linked transcript block or a captions track associated with the video.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: fetches and parses publicly reachable pages, makes no edits.
+  Assumes a `crondex-video-transcript-check` CLI (or equivalent HTML
+  scraper) is installed; a video hosted on a third-party player may carry
+  captions the crawler can't see, so treat flags as a prompt to confirm
+  manually rather than a certainty.

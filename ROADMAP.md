@@ -4,9 +4,13 @@ Where crondex stands and what's worth working on next. Not a promise
 schedule — just the priority order to work through when picking up a
 session with no other ask in mind.
 
-## Where things stand (as of 0.19.0)
+## Where things stand (as of 0.39.0)
 
-- **Catalog**: 309 jobs across 44 categories, all at 6+ jobs deep.
+- **Catalog**: 1137 jobs across 56 categories, all at 20+ jobs deep.
+  Verify against `catalog.json` counts directly before trusting this
+  number in a future session — it drifted out of date once already
+  (0.39.0 found 10 categories still below 20 despite an earlier note
+  here claiming "all categories at 20+").
 - **CLI**: `list`, `categories`, `show`, `add`, `recommend`, `init`,
   `update` (with diff + `--dry-run`), `deploy` (7 targets: crontab,
   github-actions, systemd, docker, k8s-cronjob, eventbridge,

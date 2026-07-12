@@ -1,0 +1,29 @@
+id: email-response-time-check
+version: 1
+name: Email Response Time Check
+description: >
+  Checks inbox threads awaiting your reply for ones that have sat past a
+  response-time threshold, so you catch them before they go cold. Use
+  this if important threads have ever slipped your mind for so long that
+  replying started to feel awkward.
+category: productivity
+tags: [inbox, email, response-time]
+schedule: "0 9,15 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Search my inbox for threads where the last message is from someone else
+  (not me) and I have not replied within {{response_threshold_hours}}
+  hours. For each match, list the sender, subject, and how long it has
+  been waiting, sorted oldest-first. Do not draft or send replies —
+  just report the list so I can triage it myself.
+variables:
+  response_threshold_hours:
+    default: "24"
+    description: Number of hours a thread can wait for a reply before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only inbox scan — no drafts are created and no messages are sent.
+  Relies on the connected mail provider's search/thread APIs; accuracy
+  depends on the provider correctly identifying the last message sender
+  per thread.

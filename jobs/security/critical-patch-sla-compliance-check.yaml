@@ -1,0 +1,32 @@
+id: critical-patch-sla-compliance-check
+version: 1
+name: Critical Patch SLA Compliance Check
+description: >
+  Checks patch-management records for critical and high-severity
+  vulnerabilities that have gone past the organization's patch SLA window,
+  then flags every system that is still unpatched. Use this if you want to
+  make sure "critical" vulnerabilities actually get fixed on schedule
+  instead of aging quietly on a dashboard nobody revisits.
+category: security
+tags: [patch-management, vulnerability-management, sla, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  patch_mgmt_cli list-open-vulns --severity critical,high --json |
+  jq --arg cutoff "$(date -d "-{{patch_sla_days}} days" +%Y-%m-%d)" '
+    .[] | select(.discoveredAt < $cutoff) |
+    {hostname, cve, severity, discoveredAt}'
+variables:
+  patch_sla_days:
+    default: "7"
+    description: Number of days allowed to remediate a critical or high-severity vulnerability before it's flagged as overdue.
+  patch_mgmt_platform:
+    default: "tenable"
+    description: Patch/vulnerability management platform to query (e.g. tenable, qualys, crowdstrike).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a vulnerability/patch-management export with per-finding severity
+  and discovery-date fields; adjust field names and severity values to match
+  your scanner's schema. This job only reports systems past SLA for a human
+  to remediate — it does not install patches or change any system itself.

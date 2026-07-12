@@ -1,0 +1,32 @@
+id: privileged-account-inactivity-check
+version: 1
+name: Privileged Account Inactivity Check
+description: >
+  Scans admin, root, and other privileged accounts across identity or directory
+  systems for ones that haven't logged in for a long stretch of time, then
+  flags those dormant accounts as a standing risk. Use this if you want to
+  catch forgotten admin access before an attacker finds it first, since an
+  unused privileged account is a bigger target than an unused regular one.
+category: security
+tags: [privileged-access, dormant-accounts, iam, identity]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  okta_client list-users --filter "role eq \"admin\"" --json |
+  jq --arg cutoff "$(date -d "-{{inactivity_days}} days" +%Y-%m-%d)" '
+    .[] | select(.lastLogin < $cutoff) |
+    {login, lastLogin, role}'
+variables:
+  inactivity_days:
+    default: "45"
+    description: Number of days without a login before a privileged account is considered dormant.
+  identity_provider:
+    default: "okta"
+    description: Identity provider or directory system to query (e.g. okta, azure-ad, ldap).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a CLI or API client for your identity provider that can list users
+  by role/group and their last-login timestamp; swap the query for your
+  provider's actual tool. This job only flags dormant privileged accounts for
+  human review — it does not disable, suspend, or revoke any access itself.

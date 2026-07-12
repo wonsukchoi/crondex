@@ -1,0 +1,30 @@
+id: bus-driver-certification-expiry-check
+version: 1
+name: Bus Driver Certification Expiry Check
+description: >
+  Checks school bus driver certifications and CDL endorsements (distinct
+  from classroom teacher certifications) for ones expiring soon, and flags
+  them. Use this if you want advance warning before a bus driver's
+  certification lapses and routes have to be reshuffled last-minute.
+category: education
+tags: [education, transportation, bus-driver, certification]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select driver_id, driver_name, certification_type, expiry_date from bus_driver_certifications where expiry_date <= current_date + interval '{{warning_days}} days' order by expiry_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the transportation/HR database.
+  warning_days:
+    default: "45"
+    description: How many days before expiry to start flagging a bus driver's certification.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `bus_driver_certifications` table with `driver_id`,
+  `driver_name`, `certification_type` (e.g. CDL, school bus endorsement,
+  medical card), and `expiry_date`, typically maintained by the
+  transportation department separately from classroom staff records —
+  adjust the query to your schema. Read-only: it only reports upcoming
+  expirations, it never renews or revokes anything itself.

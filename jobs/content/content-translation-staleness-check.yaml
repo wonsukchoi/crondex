@@ -1,0 +1,35 @@
+id: content-translation-staleness-check
+version: 1
+name: Content Translation Staleness Check
+description: >
+  Compares each translated page's last-updated date against its
+  source-language version and flags translations that have fallen behind by
+  more than a set number of days. Use this if you publish content in
+  multiple languages and want to catch translations that quietly went stale
+  after the source page was revised.
+category: content
+tags: [content, seo, translation, localization, staleness]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-translation-staleness --sitemap "{{sitemap_url}}" --source-locale "{{source_locale}}" --target-locales "{{target_locales}}" --max-staleness-days "{{max_staleness_days}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap (or hreflang-aware page index) used to pair translated URLs with their source-language counterpart.
+  source_locale:
+    default: "en"
+    description: Locale code treated as the source of truth that translations are compared against.
+  target_locales:
+    default: "es,fr,de,ja"
+    description: Comma-separated locale codes to check for staleness relative to the source locale.
+  max_staleness_days:
+    default: "60"
+    description: Number of days a translation may lag behind its source page's last-updated date before it is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: reads publicly reachable pages and their last-updated metadata
+  (or hreflang mapping), makes no edits. Assumes a `crondex-translation-staleness`
+  CLI (or equivalent script) is installed and that pages expose a reliable
+  last-updated date, e.g. via sitemap `lastmod` or page metadata.

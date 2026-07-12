@@ -1,0 +1,31 @@
+id: delegated-task-followup-check
+version: 1
+name: Delegated Task Follow-up Check
+description: >
+  Checks tasks you delegated to someone else for ones with no status
+  update in a while, and flags them for a check-in. Use this if things
+  you've handed off tend to go quiet and you only find out they stalled
+  when a deadline is already close.
+category: productivity
+tags: [tasks, delegation, follow-up]
+schedule: "0 9 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg cutoff "$(date -u -d "-{{stale_days}} days" +%Y-%m-%d 2>/dev/null || date -u -v-{{stale_days}}d +%Y-%m-%d)" '
+    .tasks[]
+    | select(.status != "done" and .delegated_to != null and .last_updated < $cutoff)
+    | "\(.last_updated)\t\(.delegated_to)\t\(.id)\t\(.title)"
+  ' "{{task_export_path}}" | sort
+variables:
+  stale_days:
+    default: "5"
+    description: Number of days without a status update before a delegated task is flagged for a check-in.
+  task_export_path:
+    default: "/data/tasks-export.json"
+    description: Path to a JSON export of the task tracker containing a `tasks` array with `id`, `title`, `status`, `delegated_to`, and `last_updated` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a task tracker export snapshot. Distinct from
+  task-overdue-aging-check: this flags stale delegated work by last-update
+  recency regardless of due date, not tasks past their deadline.

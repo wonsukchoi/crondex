@@ -1,0 +1,31 @@
+id: pallet-jack-battery-charge-check
+version: 1
+name: Pallet Jack Battery Charge Check
+description: >
+  Checks electric pallet jack and other material-handling equipment battery
+  charge levels against a minimum threshold, and flags units that need
+  charging before the next shift. Use this if a pallet jack has ever died
+  mid-shift because nobody caught its battery running low overnight.
+category: warehousing
+tags: [warehousing, mhe, battery, pallet-jack]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_id, unit_type, battery_charge_pct, last_charged_at from mhe_battery_status where unit_type = 'pallet_jack' and battery_charge_pct < {{min_charge_pct}} order by battery_charge_pct asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the warehouse MHE telemetry database.
+  min_charge_pct:
+    default: "40"
+    description: Minimum battery charge percentage required before the next shift; units below this are flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `mhe_battery_status` table with `unit_id`, `unit_type`,
+  `battery_charge_pct`, and `last_charged_at`, typically fed by telemetry
+  from smart chargers or onboard battery-management systems — adjust the
+  query to your schema. Distinct from forklift-inspection-check (a safety
+  inspection) and mhe-preventive-maintenance-check (scheduled maintenance
+  broadly); this is purely charge-state monitoring. Read-only: it only
+  flags low-charge units, it never triggers charging itself.

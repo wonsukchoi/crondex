@@ -1,0 +1,29 @@
+id: subpoena-response-deadline-tracker
+version: 1
+name: Subpoena Response Deadline Tracker
+description: >
+  Checks received subpoenas and other third-party legal document requests
+  against their response deadline, and flags ones approaching that deadline.
+  Use this if you want a safety net for incoming subpoenas specifically,
+  separate from active-litigation court dates already covered elsewhere.
+category: legal
+tags: [legal, subpoena, compliance, deadlines]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select request_id, requesting_party, received_date, response_deadline, status from subpoena_requests where status <> 'responded' and response_deadline <= current_date + interval '{{warning_days}} days' order by response_deadline asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the legal matter-management database.
+  warning_days:
+    default: "10"
+    description: How many days before the response deadline to start flagging an open subpoena.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `subpoena_requests` table with `request_id`, `requesting_party`,
+  `received_date`, `response_deadline`, and `status` columns, typically
+  logged in a legal matter-management or e-discovery system as subpoenas
+  come in — adjust the query to your schema. Read-only: it only surfaces
+  deadlines for review, it never drafts or files a response itself.

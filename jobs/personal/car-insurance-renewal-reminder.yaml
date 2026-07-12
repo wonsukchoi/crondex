@@ -1,0 +1,31 @@
+id: car-insurance-renewal-reminder
+version: 1
+name: Car Insurance Renewal Reminder
+description: >
+  Reminds you of an upcoming personal auto insurance renewal date with enough
+  lead time to shop rates before it auto-renews. Use this if you've ever let
+  a policy renew at a higher rate simply because you forgot to compare quotes
+  in time.
+category: personal
+tags: [insurance, auto, renewal, reminder]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  renewal=$(date -d "{{renewal_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{renewal_date}}" +%s);
+  days_left=$(( (renewal - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "Auto insurance policy renews in $days_left day(s) on {{renewal_date}} — time to shop rates.";
+  fi
+variables:
+  renewal_date:
+    default: "2026-09-01"
+    description: Next personal auto insurance policy renewal date (YYYY-MM-DD).
+  lead_time_days:
+    default: "21"
+    description: How many days before renewal to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes renewal_date is updated manually each policy term; this job has no
+  connection to an insurer's account or API. Read-only reminder only.

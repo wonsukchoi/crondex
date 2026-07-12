@@ -1,0 +1,30 @@
+id: task-overdue-aging-check
+version: 1
+name: Task Overdue Aging Check
+description: >
+  Checks your task/todo tracker for tasks past their due date and buckets
+  them by how many days overdue they are. Use this if overdue tasks tend
+  to pile up unnoticed until a stakeholder asks why something still isn't
+  done.
+category: productivity
+tags: [tasks, todo, overdue, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg today "$(date -u +%Y-%m-%d)" '
+    .tasks[]
+    | select(.status != "done" and .due_date != null and .due_date < $today)
+    | . as $t
+    | (($today | strptime("%Y-%m-%d") | mktime) - ($t.due_date | strptime("%Y-%m-%d") | mktime)) / 86400 | floor as $days
+    | "\($days)d overdue\t\($t.id)\t\($t.title)\t\($t.assignee // "unassigned")"
+  ' "{{task_export_path}}" | sort -rn
+variables:
+  task_export_path:
+    default: "/data/tasks-export.json"
+    description: Path to a JSON export of the task tracker containing a `tasks` array with `id`, `title`, `status`, `due_date`, and `assignee` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a task tracker export snapshot. Assumes
+  `due_date` is an ISO `YYYY-MM-DD` string and `status` uses "done" for
+  completed tasks — adjust the jq filter to match your tracker's schema.

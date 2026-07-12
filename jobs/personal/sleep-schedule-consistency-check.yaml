@@ -1,0 +1,41 @@
+id: sleep-schedule-consistency-check
+version: 1
+name: Sleep Schedule Consistency Check
+description: >
+  Reviews logged bedtime and wake-time data for the past week and flags a
+  week with unusually high variance in sleep timing. Use this if you suspect
+  your sleep schedule has been drifting all over the place but haven't
+  actually looked at the numbers.
+category: personal
+tags: [sleep, health, habit-tracking, consistency]
+schedule: "0 8 * * 0"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  tail -n "{{lookback_days}}" "{{sleep_log_csv_path}}"
+script_note: >
+  The tail command gives raw bedtime/wake-time rows for the lookback window
+  for free, but computing variance and deciding whether it's "high enough"
+  to flag benefits from an LLM pass rather than a fixed statistical cutoff.
+prompt: |
+  You are given the last {{lookback_days}} days of a sleep log (CSV rows of
+  date, bedtime, wake_time) read from {{sleep_log_csv_path}}. Calculate the
+  approximate variance in bedtime and wake time across the period. If the
+  spread is unusually high (e.g. bedtimes swinging by more than
+  {{variance_threshold_minutes}} minutes across the week), flag it and name
+  the specific outlier days. Otherwise report that the schedule looks
+  consistent. Keep the summary short.
+variables:
+  sleep_log_csv_path:
+    default: "~/personal/sleep_log.csv"
+    description: Path to a CSV log with columns date, bedtime, wake_time.
+  lookback_days:
+    default: "7"
+    description: How many most recent days of sleep log rows to analyze.
+  variance_threshold_minutes:
+    default: "90"
+    description: Swing in bedtime/wake time (in minutes) considered high variance.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually or app-exported sleep log CSV; no connection to a
+  wearable or sleep-tracking API. Read-only analysis, not medical advice.

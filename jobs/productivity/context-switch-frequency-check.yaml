@@ -1,0 +1,35 @@
+id: context-switch-frequency-check
+version: 1
+name: Context Switch Frequency Check
+description: >
+  Checks your calendar export for days with an unusually high number of
+  back-to-back meetings across different topics or teams, and flags heavy
+  context-switching days. Use this if certain days leave you feeling
+  scattered and you want early warning before they're fully booked.
+category: productivity
+tags: [calendar, context-switching, meeting-load]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson threshold {{switch_threshold}} '
+    .events
+    | sort_by(.start)
+    | group_by(.start[0:10])[]
+    | . as $day
+    | ($day | map(.category // .title) | unique | length) as $distinct_topics
+    | select(($day | length) >= 4 and $distinct_topics >= $threshold)
+    | "\($day[0].start[0:10])\tmeetings: \($day | length)\tdistinct topics: \($distinct_topics)"
+  ' "{{calendar_export_path}}"
+variables:
+  switch_threshold:
+    default: "4"
+    description: Minimum number of distinct meeting topics/teams in a day before it's flagged as high context-switching.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, and optional `category` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. "Distinct topics" is
+  approximated from a `category` field if present, falling back to raw
+  event titles, so tag events with a `category` for more accurate grouping.

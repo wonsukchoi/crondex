@@ -1,0 +1,27 @@
+id: weekly-priorities-planning-reminder
+version: 1
+name: Weekly Priorities Planning Reminder
+description: >
+  Sends a Monday-morning reminder to set the week's top 3 priorities
+  before the week gets away from you. Use this if you've noticed weeks
+  slipping by reactively, with no clear sense of what actually mattered
+  most until Friday.
+category: productivity
+tags: [planning, priorities, weekly-reminder]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  It's Monday morning. Prompt me to name my top {{priority_count}}
+  priorities for this week. Ask me directly what they are, and once I
+  answer, restate them back concisely as a short checklist so I have a
+  clear reference point for the week. Do not create any calendar events
+  or tasks — this is just a planning prompt and confirmation.
+variables:
+  priority_count:
+    default: "3"
+    description: Number of top priorities to ask for each week.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely conversational — no external system reads or writes. Intended
+  as a lightweight weekly planning nudge, not a task-tracker integration.

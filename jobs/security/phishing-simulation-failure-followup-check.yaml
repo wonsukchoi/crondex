@@ -1,0 +1,33 @@
+id: phishing-simulation-failure-followup-check
+version: 1
+name: Phishing Simulation Failure Follow-Up Check
+description: >
+  Looks at the results of a phishing-simulation campaign for users who
+  clicked the link or submitted credentials, then flags anyone who hasn't
+  yet completed the required follow-up security training. Use this if past
+  campaigns have found people who failed the test but training assignments
+  quietly fell through the cracks afterward.
+category: security
+tags: [phishing-simulation, security-awareness, training-compliance]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  phishing_platform_cli list-results --campaign "{{campaign_id}}" --outcome failed --json |
+  jq --arg cutoff "$(date -d "-{{training_grace_days}} days" +%Y-%m-%d)" '
+    .[] | select(.trainingCompletedAt == null or .failedAt < $cutoff) |
+    {user, failedAt, trainingCompletedAt}'
+variables:
+  campaign_id:
+    default: "latest"
+    description: Identifier of the phishing simulation campaign to check, or "latest" for the most recent run.
+  training_grace_days:
+    default: "14"
+    description: Number of days a user is given to complete follow-up training after failing before being flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a phishing-simulation platform (e.g. KnowBe4, Proofpoint) whose API
+  or export exposes per-user outcome and training-completion timestamps;
+  adjust the query to your platform's field names. This job only flags
+  outstanding follow-up training for a human to chase — it does not enroll
+  or complete training on anyone's behalf.

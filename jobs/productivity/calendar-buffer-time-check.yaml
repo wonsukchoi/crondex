@@ -1,0 +1,39 @@
+id: calendar-buffer-time-check
+version: 1
+name: Calendar Buffer Time Check
+description: >
+  Checks your calendar export for back-to-back meetings with zero buffer
+  time between them, and flags days that are packed too tight. Use this
+  if you routinely walk out of one call straight into another with no
+  time to think, take notes, or just breathe.
+category: productivity
+tags: [calendar, buffer-time, meeting-load]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson min_buffer {{min_buffer_minutes}} '
+    .events
+    | sort_by(.start)
+    | . as $sorted
+    | range(0; ($sorted | length) - 1) as $i
+    | ($sorted[$i]) as $a
+    | ($sorted[$i+1]) as $b
+    | (($b.start | fromdateiso8601) - ($a.end | fromdateiso8601)) / 60 as $gap_min
+    | select($gap_min < $min_buffer)
+    | "\($a.end)\t\($a.title)\t-> \($b.title)\tgap: \($gap_min | floor)min"
+  ' "{{calendar_export_path}}"
+variables:
+  min_buffer_minutes:
+    default: "10"
+    description: Minimum minutes required between two meetings before the gap is considered a real buffer.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `end`, and `title` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. Only compares
+  chronologically adjacent events per the sorted list, so it will not
+  catch overlapping double-bookings — see
+  meeting-free-day-protection-check or existing conflict-check jobs for
+  overlap detection.

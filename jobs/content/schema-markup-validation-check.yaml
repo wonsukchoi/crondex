@@ -1,0 +1,31 @@
+id: schema-markup-validation-check
+version: 1
+name: Schema Markup Validation Check
+description: >
+  Checks published pages' structured-data markup (JSON-LD/schema.org) for
+  syntax errors, missing required fields, and deprecated types, separate
+  from meta tags like title and description. Use this if you rely on rich
+  results (star ratings, FAQ snippets, breadcrumbs, product info) in search
+  and want to know before Google silently stops showing them.
+category: content
+tags: [content, seo, structured-data, schema-markup]
+schedule: "0 6 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-schema-lint --sitemap "{{sitemap_url}}" --types "{{expected_schema_types}}" --format json
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate published pages to scan for structured data.
+  expected_schema_types:
+    default: "Article,BreadcrumbList,FAQPage"
+    description: Comma-separated schema.org @type values that pages are expected to carry, used to flag pages missing them.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: crawls publicly reachable pages and validates embedded JSON-LD
+  against schema.org requirements, makes no edits. Assumes a `crondex-schema-lint`
+  CLI (or equivalent structured-data validator) is installed and reachable;
+  swap in Google's Rich Results Test API or the Schema.org validator if
+  preferred. Distinct from seo-meta-check, which covers title/meta
+  description tags rather than JSON-LD schema.

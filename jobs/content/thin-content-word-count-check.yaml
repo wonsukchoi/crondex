@@ -1,0 +1,32 @@
+id: thin-content-word-count-check
+version: 1
+name: Thin Content Word Count Check
+description: >
+  Crawls published pages and counts body-text words, flagging any page below
+  a minimum word-count threshold as likely "thin content" that may not fully
+  answer a searcher's question. Use this if you publish a mix of long and
+  short pages and want an early warning before search engines deprioritize
+  the short ones for looking under-developed.
+category: content
+tags: [content, seo, thin-content, word-count]
+schedule: "0 7 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  crondex-word-count --sitemap "{{sitemap_url}}" --min-words "{{min_word_count}}" --exclude-paths "{{exclude_paths}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate published pages to check.
+  min_word_count:
+    default: "300"
+    description: Minimum body-text word count a page must reach before it is flagged as thin.
+  exclude_paths:
+    default: "/tag/,/category/"
+    description: Comma-separated URL path fragments to skip (e.g. tag/category archive pages that are expected to be short).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only: crawls publicly reachable pages and counts visible body text,
+  makes no edits. Assumes a `crondex-word-count` CLI (or equivalent crawler)
+  is installed; word count is a blunt proxy for depth, so treat flags as a
+  prompt to review the page rather than a guaranteed problem.

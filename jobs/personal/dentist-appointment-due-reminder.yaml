@@ -1,0 +1,32 @@
+id: dentist-appointment-due-reminder
+version: 1
+name: Dentist Appointment Due Reminder
+description: >
+  Reminds you when it has been roughly six months since your last dental
+  cleaning so you can book the next one before it's overdue. Use this if
+  cleanings tend to slip past the recommended interval because there's
+  nothing urgent nudging you to call the office.
+category: personal
+tags: [dental, health, checkup, reminder]
+schedule: "0 8 1,15 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last=$(date -d "{{last_cleaning_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_cleaning_date}}" +%s);
+  now=$(date +%s);
+  days_since=$(( (now - last) / 86400 ));
+  if [ "$days_since" -ge "{{reminder_threshold_days}}" ]; then
+    echo "It has been $days_since days since your last dental cleaning ({{last_cleaning_date}}) — time to schedule the next one.";
+  fi
+variables:
+  last_cleaning_date:
+    default: "2026-02-01"
+    description: Date of your most recent dental cleaning (YYYY-MM-DD).
+  reminder_threshold_days:
+    default: "180"
+    description: Number of days since the last cleaning that should trigger a reminder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes last_cleaning_date is updated manually after each visit; no
+  connection to a dental office scheduling system. Read-only reminder,
+  contains no medical or dental advice.

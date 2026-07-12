@@ -1,0 +1,36 @@
+id: personal-goal-progress-checkin
+version: 1
+name: Personal Goal Progress Check-in
+description: >
+  Periodically reviews a tracked list of personal goals or resolutions,
+  summarizes progress, and flags any goal with no recent movement. Use this
+  if you tend to set goals in January and lose track of where they stand by
+  spring.
+category: personal
+tags: [goals, resolutions, habit-tracking, checkin]
+schedule: "0 9 1,15 * *"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  cat "{{goals_log_path}}"
+script_note: >
+  The cat command surfaces the raw goal list and update history for free,
+  but summarizing overall progress and deciding which goals look stalled
+  needs a judgment pass, not just a stale-date filter.
+prompt: |
+  Read the personal goals log at {{goals_log_path}} (a list of goals, each
+  with a target and a history of dated progress notes). For each goal,
+  summarize current progress in one line, and flag any goal with no update
+  in the last {{stale_threshold_days}} days as "no recent movement." End
+  with a short overall summary of how many goals are on track vs. stalled.
+variables:
+  goals_log_path:
+    default: "~/personal/goals_log.md"
+    description: Path to the file tracking personal goals and their dated progress notes.
+  stale_threshold_days:
+    default: "21"
+    description: Days without a progress update that should flag a goal as stalled.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained goals log (plain text or markdown); this job
+  only reads and summarizes it, it never edits the log itself.

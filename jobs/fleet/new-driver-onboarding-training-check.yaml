@@ -1,0 +1,30 @@
+id: new-driver-onboarding-training-check
+version: 1
+name: New Driver Onboarding Training Check
+description: >
+  Checks newly-hired drivers against required onboarding safety-training
+  completion before they're cleared to drive a company vehicle, and flags
+  anyone driving without it done. Use this if a new driver has ever been
+  handed keys before finishing the safety course that's supposed to come
+  first.
+category: fleet
+tags: [fleet, drivers, onboarding, safety-training]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select driver_id, driver_name, hire_date, training_status, vehicle_assigned_at from drivers where hire_date >= current_date - interval '{{onboarding_window_days}} days' and training_status <> 'completed' and vehicle_assigned_at is not null order by hire_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the fleet/driver management database.
+  onboarding_window_days:
+    default: "30"
+    description: How many days after hire date a driver is still considered "new" for this check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `drivers` table with `hire_date`, `training_status` (tracked by
+  your safety-training LMS or fleet management system), and
+  `vehicle_assigned_at` marking when a vehicle was assigned to the driver —
+  adjust the query to your schema. Read-only: it only flags at-risk
+  assignments, it never revokes vehicle access itself.

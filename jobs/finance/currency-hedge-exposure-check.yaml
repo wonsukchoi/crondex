@@ -1,0 +1,36 @@
+id: currency-hedge-exposure-check
+version: 1
+name: Currency Hedge Exposure Check
+description: >
+  Adds up open receivables and payables held in non-base currencies and
+  flags when total unhedged exposure in any currency crosses a risk
+  threshold. Use this if you invoice or pay in foreign currencies and want
+  a heads-up on when your exposure has grown large enough that a hedge (or
+  at least a conversation with treasury) is worth considering, rather than
+  just watching the exchange rate move.
+category: finance
+tags: [finance, foreign-exchange, hedging, risk-management]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select currency, sum(case when type = 'receivable' then amount else -amount end) as net_exposure_local, sum(case when type = 'receivable' then amount else -amount end) * fx_rate as net_exposure_base from open_fx_positions where currency <> '{{base_currency}}' group by currency, fx_rate having abs(sum(case when type = 'receivable' then amount else -amount end) * fx_rate) > {{exposure_threshold}} order by net_exposure_base desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the ledger database holding open FX positions.
+  base_currency:
+    default: "USD"
+    description: The company's reporting/base currency, excluded from exposure calculations.
+  exposure_threshold:
+    default: "50000"
+    description: Net unhedged exposure (in base-currency terms) that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `open_fx_positions` table (or view) combining open
+  receivables and payables with `currency`, `amount`, `type`, and a joined
+  or looked-up `fx_rate` to the base currency — adjust the query to your
+  schema. Read-only; distinct from a simple rate-move alert in that this
+  sizes actual exposure risk rather than just watching the exchange rate,
+  and crossing the threshold is a prompt to evaluate a hedge, not an
+  automatic trade.

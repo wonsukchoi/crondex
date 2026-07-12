@@ -1,0 +1,41 @@
+id: unclaimed-property-escheatment-check
+version: 1
+name: Unclaimed Property Escheatment Check
+description: >
+  Checks stale uncashed checks and unclaimed credit balances against how
+  long each owner's state gives you before the money must be reported and
+  remitted to the state (escheatment), and flags items approaching that
+  deadline. Use this if you've ever had old uncashed checks or credit
+  balances sit around long enough to become a compliance and penalty risk.
+category: finance
+tags: [finance, unclaimed-property, escheatment, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select p.owner_name, p.owner_state, p.property_type, p.amount, p.last_activity_date,
+         d.dormancy_period_months,
+         (p.last_activity_date + (d.dormancy_period_months || ' months')::interval)::date as escheat_deadline
+  from unclaimed_property p
+  join state_dormancy_periods d on d.state_code = p.owner_state and d.property_type = p.property_type
+  where p.status = 'unresolved'
+    and (p.last_activity_date + (d.dormancy_period_months || ' months')::interval)::date
+        <= current_date + interval '{{lookahead_days}} days'
+  order by escheat_deadline asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding uncashed checks and unclaimed credit balances.
+  lookahead_days:
+    default: 60
+    description: Flag items whose escheat deadline falls within this many days, so there's time to attempt owner outreach first.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `unclaimed_property` table (`owner_name`, `owner_state`,
+  `property_type`, `amount`, `last_activity_date`, `status`) and a
+  `state_dormancy_periods` reference table (`state_code`, `property_type`,
+  `dormancy_period_months`) that you keep updated per state rules, since
+  dormancy periods vary by property type and jurisdiction and change over
+  time. Read-only query; actually reporting/remitting to the state is a
+  separate, deliberate action this job does not take.

@@ -1,0 +1,37 @@
+id: credit-memo-aging-check
+version: 1
+name: Credit Memo Aging Check
+description: >
+  Checks issued credit memos and refunds that haven't yet been applied to
+  an invoice or paid out, and flags the ones that have been sitting open
+  longer than expected. Use this if outstanding credit memos have ever
+  piled up unnoticed, tying up money that should have gone back to a
+  customer or been netted against a bill.
+category: finance
+tags: [finance, credit-memo, accounts-receivable, aging]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select customer_name, credit_memo_number, amount, issued_date,
+         current_date - issued_date as days_outstanding
+  from credit_memos
+  where status in ('open', 'partially_applied')
+    and current_date - issued_date > {{aging_threshold_days}}
+  order by days_outstanding desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the accounts-receivable database holding credit memos.
+  aging_threshold_days:
+    default: 45
+    description: Flag credit memos still unapplied or unpaid after this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `credit_memos` table with `customer_name`, `credit_memo_number`,
+  `amount`, `issued_date`, and `status` (`open`, `partially_applied`,
+  `applied`, `paid`) — adjust to your AR schema. Long-aging credit memos
+  are either a customer-service follow-up waiting to happen or a sign the
+  application process is broken. Read-only, does not apply or void any
+  credit memo.

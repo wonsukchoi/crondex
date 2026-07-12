@@ -1,0 +1,33 @@
+id: bank-fee-anomaly-check
+version: 1
+name: Bank Fee Anomaly Check
+description: >
+  Compares this period's bank account fee line items against a rolling
+  historical baseline and flags fees that are new or unusually high. Use
+  this if your bank statements tend to accumulate small "wire fee" or
+  "maintenance fee" charges that quietly creep up and are worth disputing
+  before they become normal.
+category: finance
+tags: [finance, banking, fees, anomaly-detection]
+schedule: "0 8 3 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "with baseline as (select fee_type, avg(amount) as avg_amount, stddev(amount) as stddev_amount from bank_fees where posted_date < date_trunc('month', current_date) and posted_date >= date_trunc('month', current_date) - interval '{{baseline_months}} months' group by fee_type) select f.fee_type, f.amount, f.posted_date, b.avg_amount from bank_fees f join baseline b on b.fee_type = f.fee_type where f.posted_date >= date_trunc('month', current_date) and f.amount > b.avg_amount + ({{stddev_multiplier}} * coalesce(b.stddev_amount, 0)) order by f.amount desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the bank-transactions/ledger database.
+  baseline_months:
+    default: "12"
+    description: How many trailing months of fee history to build the baseline average from.
+  stddev_multiplier:
+    default: "2"
+    description: How many standard deviations above baseline a fee must exceed to be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `bank_fees` table with `fee_type`, `amount`, and `posted_date`
+  columns, typically parsed from a bank-statement feed or CSV import into
+  the ledger database — adjust the query to your schema. Read-only; a new
+  fee_type with no baseline history will not trigger this check on its own
+  first appearance, so also eyeball fee types you don't recognize.

@@ -1,0 +1,32 @@
+id: vendor-w9-missing-check
+version: 1
+name: Vendor W-9 Missing Check
+description: >
+  Checks vendors paid over the reportable threshold so far this year for a
+  W-9 (or equivalent tax form) on file, and flags any that are missing
+  one. Use this if you've ever scrambled in January to chase down tax forms
+  for 1099 filing because nobody confirmed the paperwork was collected
+  when the vendor first crossed the payment threshold.
+category: finance
+tags: [finance, vendors, tax-compliance, "1099", w9]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select v.vendor_id, v.vendor_name, sum(p.amount) as ytd_paid, v.tax_form_on_file from payments p join vendors v on v.vendor_id = p.vendor_id where p.paid_date >= date_trunc('year', current_date) group by v.vendor_id, v.vendor_name, v.tax_form_on_file having sum(p.amount) >= {{reportable_threshold}} and coalesce(v.tax_form_on_file, false) = false order by ytd_paid desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the accounts-payable/vendor database.
+  reportable_threshold:
+    default: "600"
+    description: Year-to-date payment total (in dollars) that triggers a W-9 requirement.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `payments` table (vendor_id, amount, paid_date) and a `vendors`
+  table with a boolean `tax_form_on_file` column tracking whether a W-9 or
+  equivalent form has been collected — adjust to your schema if the flag
+  lives in a document-management system instead. Read-only; distinct from
+  a payment-threshold tracker in that this checks form collection, not the
+  dollar amount itself, and existing before year-end 1099 filing catches
+  gaps while there's still time to request the form.

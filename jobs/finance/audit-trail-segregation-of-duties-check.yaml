@@ -1,0 +1,38 @@
+id: audit-trail-segregation-of-duties-check
+version: 1
+name: Audit Trail Segregation of Duties Check
+description: >
+  Scans financial transaction logs for cases where the same person both
+  created and approved a payment or journal entry, a classic internal
+  controls red flag since no second set of eyes ever saw it. Use this if
+  you need to be able to show an auditor that no one person can move money
+  or post entries entirely on their own.
+category: finance
+tags: [finance, internal-controls, segregation-of-duties, audit]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select transaction_id, transaction_type, amount, created_by, approved_by, created_at, approved_at
+  from financial_transactions
+  where approved_by is not null
+    and created_by = approved_by
+    and created_at >= current_date - interval '{{lookback_days}} days'
+  order by created_at desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding financial transaction and approval logs.
+  lookback_days:
+    default: 7
+    description: How many days back to scan for same-person create/approve matches.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `financial_transactions` table covering payments and journal
+  entries with `created_by` and `approved_by` user identifiers plus
+  timestamps — adjust to however your ERP or payment system logs
+  maker/checker actions. A hit here doesn't automatically mean fraud, but
+  it is a control gap worth reviewing and, for material amounts,
+  escalating. Read-only query; flags for review only, takes no action on
+  the transaction itself.

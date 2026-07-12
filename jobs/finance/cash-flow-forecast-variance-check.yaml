@@ -1,0 +1,37 @@
+id: cash-flow-forecast-variance-check
+version: 1
+name: Cash Flow Forecast Variance Check
+description: >
+  Compares actual cash inflows and outflows for the period against what
+  the cash-flow forecast projected, and flags the categories where the
+  gap is bigger than expected. Use this if your cash forecast has ever
+  quietly drifted from reality for weeks before anyone checked, leaving
+  no early warning of a coming cash crunch or windfall.
+category: finance
+tags: [finance, cash-flow, forecasting, variance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select category, period, forecast_amount, actual_amount,
+         (actual_amount - forecast_amount) as variance_amount,
+         round(100.0 * (actual_amount - forecast_amount) / nullif(abs(forecast_amount), 0), 1) as variance_pct
+  from cash_flow_forecast_actuals
+  where period = date_trunc('month', current_date)
+    and abs(actual_amount - forecast_amount) > abs(forecast_amount) * {{variance_pct_threshold}}
+  order by abs(actual_amount - forecast_amount) desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding the cash-flow forecast and actuals.
+  variance_pct_threshold:
+    default: 0.15
+    description: Fraction (0-1) variance from forecast that triggers a flag, e.g. 0.15 flags a 15% or greater gap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `cash_flow_forecast_actuals` table with `category` (e.g.
+  payroll, AR collections, AP disbursements), `period`, `forecast_amount`,
+  and `actual_amount`, refreshed as actuals close each month — adjust to
+  your FP&A model's grain (weekly vs. monthly). Read-only; it does not
+  update the forecast itself, just flags where reality and plan diverged.

@@ -1,0 +1,35 @@
+id: accrued-revenue-recognition-check
+version: 1
+name: Accrued Revenue Recognition Check
+description: >
+  Compares revenue recognized on the books for the period against cash
+  actually collected from customers, so you can see how big the gap between
+  "earned" and "collected" has gotten. Use this if you recognize revenue
+  before cash lands (subscriptions, milestone billing, long contracts) and
+  want to catch an accrual-timing problem before it snowballs into a
+  reconciliation headache at close.
+category: finance
+tags: [finance, revenue-recognition, accrual, accounting]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select period, recognized_revenue, cash_collected, (recognized_revenue - cash_collected) as gap from revenue_recognition where period >= (current_date - interval '{{lookback_months}} months')::date and abs(recognized_revenue - cash_collected) > {{gap_threshold}} order by period desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the accounting/ledger database.
+  lookback_months:
+    default: "6"
+    description: How many trailing months of periods to compare.
+  gap_threshold:
+    default: "5000"
+    description: Minimum dollar gap between recognized revenue and cash collected worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `revenue_recognition` table (or view) with `period`,
+  `recognized_revenue`, and `cash_collected` columns, typically built from
+  a join of the revenue schedule and the cash receipts ledger — adjust the
+  query to your schema. Read-only; a growing gap doesn't always mean an
+  error (deferred revenue is normal), but a gap that keeps widening month
+  over month is worth a controller's review.

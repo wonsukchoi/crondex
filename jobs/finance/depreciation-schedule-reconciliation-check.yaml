@@ -1,0 +1,33 @@
+id: depreciation-schedule-reconciliation-check
+version: 1
+name: Depreciation Schedule Reconciliation Check
+description: >
+  Compares the fixed-asset depreciation schedule's expected expense for the
+  period against what was actually recorded in the general ledger, and
+  flags any assets where the two don't match. Use this if fixed assets are
+  tracked in a separate schedule from the GL and you want to catch a
+  missed, duplicated, or miscalculated depreciation entry before it throws
+  off the close.
+category: finance
+tags: [finance, fixed-assets, depreciation, reconciliation, month-end-close]
+schedule: "0 6 28 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select s.asset_id, s.asset_name, s.scheduled_depreciation, coalesce(g.gl_depreciation, 0) as gl_depreciation, (s.scheduled_depreciation - coalesce(g.gl_depreciation, 0)) as variance from depreciation_schedule s left join gl_depreciation_entries g on g.asset_id = s.asset_id and g.period = s.period where s.period = date_trunc('month', current_date - interval '1 month')::date and abs(s.scheduled_depreciation - coalesce(g.gl_depreciation, 0)) > {{variance_threshold}} order by variance desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the fixed-asset and general-ledger database.
+  variance_threshold:
+    default: "50"
+    description: Dollar variance between scheduled and recorded depreciation worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `depreciation_schedule` table (asset_id, asset_name, period,
+  scheduled_depreciation) from the fixed-asset subledger and a
+  `gl_depreciation_entries` table (asset_id, period, gl_depreciation) from
+  the general ledger — adjust the query to your schema and chart of
+  accounts. Read-only; runs a few days before month-end close so a
+  mismatch can be corrected in the current period rather than carried
+  forward.

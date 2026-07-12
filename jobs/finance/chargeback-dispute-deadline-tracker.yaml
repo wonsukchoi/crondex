@@ -1,0 +1,30 @@
+id: chargeback-dispute-deadline-tracker
+version: 1
+name: Chargeback Dispute Deadline Tracker
+description: >
+  Checks open credit-card chargeback disputes against their bank- or
+  processor-set response deadline and flags the ones coming due soon. Use
+  this if you've ever missed a chargeback response window and lost a
+  dispute you could have won simply because nobody was tracking the clock.
+category: finance
+tags: [finance, chargebacks, disputes, payments]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select dispute_id, customer, amount, response_deadline, status from chargebacks where status = 'open' and response_deadline <= (current_date + interval '{{warning_days}} days')::date order by response_deadline asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the payments/chargebacks database.
+  warning_days:
+    default: "3"
+    description: How many days before the response deadline to start flagging a dispute.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `chargebacks` table with `dispute_id`, `customer`, `amount`,
+  `response_deadline`, and `status` columns, typically synced from your
+  payment processor's (Stripe, Adyen, etc.) dispute API into the ledger
+  database — adjust the query to your schema. Read-only; a flagged dispute
+  still needs a human to actually assemble and submit evidence before the
+  deadline.

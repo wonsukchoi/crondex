@@ -1,0 +1,39 @@
+id: sales-tax-nexus-threshold-check
+version: 1
+name: Sales Tax Nexus Threshold Check
+description: >
+  Adds up your cumulative sales revenue by state over the rolling period
+  each state uses, and flags any state getting close to its economic-nexus
+  threshold for requiring sales-tax registration. Use this if you sell
+  across state lines and don't want to find out you owe back taxes and
+  penalties because nobody noticed a state's revenue threshold was crossed.
+category: finance
+tags: [finance, sales-tax, nexus, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select s.state_code, s.rolling_revenue, n.threshold_amount,
+         round(100.0 * s.rolling_revenue / n.threshold_amount, 1) as pct_of_threshold
+  from state_sales_rollup s
+  join state_nexus_thresholds n on n.state_code = s.state_code
+  where s.rolling_revenue >= n.threshold_amount * {{warn_pct}}
+    and s.is_registered = false
+  order by pct_of_threshold desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding sales rollups and state nexus thresholds.
+  warn_pct:
+    default: 0.8
+    description: Fraction (0-1) of a state's threshold that triggers a warning, e.g. 0.8 flags states at 80% or more.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `state_sales_rollup` table (`state_code`, `rolling_revenue`,
+  `is_registered`) refreshed by your billing/tax pipeline on each state's
+  measurement window, and a `state_nexus_thresholds` reference table
+  (`state_code`, `threshold_amount`) you keep updated as states change
+  their rules. Some states also count transaction-count thresholds, not
+  just revenue — extend the query if that applies to you. Read-only,
+  does not file or register anything.

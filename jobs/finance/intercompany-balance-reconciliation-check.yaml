@@ -1,0 +1,42 @@
+id: intercompany-balance-reconciliation-check
+version: 1
+name: Intercompany Balance Reconciliation Check
+description: >
+  Compares the intercompany receivable/payable balance one legal entity's
+  books show for a related entity against what the counterparty entity's
+  books show is owed, and flags any pair where the two numbers don't match.
+  Use this if your company has more than one legal entity and closes have
+  ever been delayed because intercompany balances didn't tie out.
+category: finance
+tags: [finance, intercompany, reconciliation, close]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "
+  select a.entity_code as entity_a, b.entity_code as entity_b,
+         a.balance as entity_a_recorded_balance, b.balance as entity_b_recorded_balance,
+         abs(a.balance + b.balance) as mismatch_amount
+  from intercompany_balances a
+  join intercompany_balances b
+    on a.counterparty_entity_code = b.entity_code
+   and b.counterparty_entity_code = a.entity_code
+   and a.entity_code < b.entity_code
+  where abs(a.balance + b.balance) > {{mismatch_threshold}}
+  order by mismatch_amount desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the ledger database holding intercompany balances.
+  mismatch_threshold:
+    default: 100
+    description: Minimum absolute mismatch (in your base currency) worth flagging, to ignore rounding noise.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `intercompany_balances` table with one row per entity's view
+  of a bilateral relationship: `entity_code`, `counterparty_entity_code`,
+  and `balance` (positive if the entity is owed, negative if it owes) —
+  adjust to your chart of accounts. Two entities' balances for the same
+  pair should sum to roughly zero; anything else means a booking was
+  missed, duplicated, or recorded in the wrong period. Read-only query,
+  makes no changes to the ledger.

@@ -1,0 +1,32 @@
+id: subcontractor-nda-compliance-check
+version: 1
+name: Subcontractor NDA Compliance Check
+description: >
+  Checks NDAs and vendor agreements for freelancers and subcontractors
+  currently staffed on client work, and flags anyone whose agreement is
+  expiring soon or missing entirely. Use this if your agency leans on
+  freelancers or subcontractors for client projects and you've ever
+  discovered after the fact that someone was doing billable client work
+  without a signed NDA on file.
+category: agency
+tags: [agency, subcontractors, nda, compliance, vendor-agreements]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select s.subcontractor_id, s.full_name, s.currently_staffed_client, s.nda_expires_at from subcontractors s where s.currently_staffed_client is not null and (s.nda_expires_at is null or s.nda_expires_at <= now() + interval '{{expiry_warning_days}} days') order by s.nda_expires_at nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding subcontractor and vendor agreement records.
+  expiry_warning_days:
+    default: "30"
+    description: How many days ahead of NDA expiration to start flagging a subcontractor.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `subcontractors` table with `subcontractor_id`, `full_name`, a
+  `currently_staffed_client` column that is non-null only while someone is
+  actively assigned to client work, and a nullable `nda_expires_at` (null
+  meaning no NDA on file at all). Read-only and informational — this flags
+  compliance gaps for someone in legal/ops to chase down; it does not
+  generate or send any agreements itself.

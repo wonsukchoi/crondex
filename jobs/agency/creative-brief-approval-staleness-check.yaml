@@ -1,0 +1,31 @@
+id: creative-brief-approval-staleness-check
+version: 1
+name: Creative Brief Approval Staleness Check
+description: >
+  Checks creative briefs that are waiting on client sign-off and flags any
+  that have sat pending approval longer than a set number of days. Use this
+  if production work keeps getting delayed because a brief was quietly
+  waiting on a client signature for a week and nobody on the account team
+  noticed until the timeline was already blown.
+category: agency
+tags: [agency, creative-review, brief-approval, production-timeline]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select brief_id, client_name, project_name, submitted_for_approval_at from creative_briefs where status = 'pending_client_approval' and submitted_for_approval_at <= now() - interval '{{stale_after_days}} days' order by submitted_for_approval_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding creative brief records.
+  stale_after_days:
+    default: "3"
+    description: Number of days a brief can sit pending approval before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `creative_briefs` table with `brief_id`, `client_name`,
+  `project_name`, a `status` column that includes a
+  `'pending_client_approval'` value, and `submitted_for_approval_at`.
+  Read-only and informational — it surfaces stuck briefs so an account lead
+  can chase the sign-off; it does not send reminders or change any status
+  itself.

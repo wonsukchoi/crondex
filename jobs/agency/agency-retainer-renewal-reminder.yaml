@@ -1,0 +1,37 @@
+id: agency-retainer-renewal-reminder
+version: 1
+name: Agency Retainer Renewal Reminder
+description: >
+  Reminds account leads when it's time to start the renewal or
+  renegotiation conversation with a client, based on a lead time set before
+  the retainer contract's actual expiration date. Use this if your agency
+  has ever let a retainer lapse or gotten stuck renegotiating terms at the
+  last minute because nobody flagged that the conversation needed to start
+  weeks before the contract itself expired — this is deliberately earlier
+  and separate from a plain contract-expiration-date reminder; it's the
+  "open the conversation now" trigger, not the "the contract ends today"
+  alert.
+category: agency
+tags: [agency, retainer, renewal, account-management, client-billing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, client_name, account_lead_email, contract_end_date from retainer_contracts where contract_end_date - interval '{{renewal_conversation_lead_days}} days' <= now() and contract_end_date > now() order by contract_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding retainer contract records.
+  renewal_conversation_lead_days:
+    default: "60"
+    description: How many days before the contract's actual end date to prompt the account lead to start the renewal conversation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `retainer_contracts` table with `account_id`, `client_name`,
+  `account_lead_email`, and `contract_end_date`. This job intentionally
+  fires well ahead of the expiration date itself (controlled by
+  `renewal_conversation_lead_days`) so the account lead has time to
+  negotiate before the deadline, rather than duplicating a same-day
+  contract-expiration alert. Read-only and informational — it only lists
+  who to talk to and by when; it does not send the reminder itself or
+  modify contract records.

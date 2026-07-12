@@ -1,0 +1,24 @@
+id: sow-deliverable-deadline-reminder
+version: 1
+name: SOW Deliverable Deadline Reminder
+description: >
+  Looks ahead at deliverables listed in client statements of work (SOWs) and
+  flags the ones due soon so account and project staff don't miss a
+  contractual milestone. Use this if a deliverable date has ever slipped
+  past because it was buried in a signed SOW nobody checked back on.
+category: agency
+tags: [agency, sow, deliverables, deadlines]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, project, deliverable, due_date from sow_deliverables where due_date between current_date and current_date + interval '{{lookahead_days}} days' and status <> 'delivered' order by due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's project/SOW tracking database.
+  lookahead_days:
+    default: "5"
+    description: How many days ahead of the due date a deliverable should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `sow_deliverables` table with `client`, `project`, `deliverable`, `due_date`, and `status` columns, populated from your SOW/contract tracking tool (or a manual log if you don't have one) — adjust the query to match your schema. Read-only reminder; it does not mark anything delivered or notify anyone on its own, it only surfaces what's coming up.

@@ -1,0 +1,24 @@
+id: new-business-pipeline-stale-check
+version: 1
+name: New-Business Pipeline Stale Check
+description: >
+  Scans the agency's new-business/pitch pipeline for opportunities that
+  haven't had any logged activity in a set number of days and flags them
+  as stale. Use this if pitches quietly go cold because nobody circles
+  back to follow up before a prospect loses interest.
+category: agency
+tags: [agency, new-business, pipeline, pitch]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select opportunity_name, stage, owner, last_activity_at from new_business_opportunities where stage not in ('won', 'lost', 'declined') and last_activity_at < now() - interval '{{stale_days}} days' order by last_activity_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's new-business/CRM database.
+  stale_days:
+    default: "14"
+    description: Number of days with no logged activity before an open opportunity is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `new_business_opportunities` table with `opportunity_name`, `stage`, `owner`, and `last_activity_at` columns, tracking pitch/RFP-style opportunities distinct from the generic sales-pipeline schema used by the `sales` category — adjust the query to your schema. Read-only and informational; it doesn't send notifications or change any records.

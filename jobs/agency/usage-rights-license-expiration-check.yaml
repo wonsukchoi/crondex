@@ -1,0 +1,25 @@
+id: usage-rights-license-expiration-check
+version: 1
+name: Usage Rights & License Expiration Check
+description: >
+  Checks licensed creative assets — stock photos, video, music, or fonts
+  used in client work — for usage-rights terms nearing their expiration
+  date, and flags the ones that need renewal or replacement soon. Use
+  this if the agency has ever kept using a licensed asset in live client
+  work past its rights window without realizing it.
+category: agency
+tags: [agency, licensing, usage-rights, creative-assets]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select asset_name, asset_type, client_name, license_vendor, rights_expire_at from licensed_assets where rights_expire_at between now() and now() + interval '{{lookahead_days}} days' order by rights_expire_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's asset/license tracking database.
+  lookahead_days:
+    default: "30"
+    description: How many days ahead of expiration to start flagging a licensed asset as needing renewal or replacement.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `licensed_assets` table with `asset_name`, `asset_type`, `client_name`, `license_vendor`, and `rights_expire_at` columns covering stock photo/video/music/font licenses used in client deliverables — adjust the query to your schema. Read-only and informational; treat any hit as worth manual legal/rights review since continued use past expiration can be a licensing violation.

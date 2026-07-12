@@ -1,0 +1,31 @@
+id: media-buy-reconciliation-check
+version: 1
+name: Media Buy Reconciliation Check
+description: >
+  Compares the media spend an agency planned for a client against what the
+  ad platform or vendor actually billed, and flags any campaign where the
+  two don't line up. Use this if you've ever sent a client an invoice based
+  on the media plan and only later found out the platform charged a
+  different amount.
+category: agency
+tags: [agency, media-buying, reconciliation, billing]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, campaign, planned_spend, actual_billed_spend, round(abs(planned_spend - actual_billed_spend), 2) as variance from media_buys where abs(planned_spend - actual_billed_spend) > {{variance_threshold}} order by variance desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's media planning/billing database.
+  variance_threshold:
+    default: "50"
+    description: Dollar amount of discrepancy between planned and actual billed spend that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `media_buys` table with `client`, `campaign`, `planned_spend`
+  (from the media plan), and `actual_billed_spend` (from the platform's or
+  vendor's invoice/export) — adjust to match how your media plans and
+  platform billing exports are stored. This is a read-only reconciliation
+  check: it only flags discrepancies for someone to review before client
+  billing goes out, it does not itself adjust any invoice or billing record.

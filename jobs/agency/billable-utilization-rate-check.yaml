@@ -1,0 +1,25 @@
+id: billable-utilization-rate-check
+version: 1
+name: Billable Utilization Rate Check
+description: >
+  Calculates each staff member's billable-hours utilization rate (billable
+  hours divided by available hours) for the current period and flags anyone
+  trending below the agency's target percentage. Use this if you want an
+  early warning that a team member is under-booked before it shows up as a
+  revenue shortfall at month end.
+category: agency
+tags: [agency, utilization, staffing, billable-hours]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select staff_name, billable_hours, available_hours, round(100.0 * billable_hours / nullif(available_hours, 0), 1) as utilization_pct from staff_time_summary where period = current_date and round(100.0 * billable_hours / nullif(available_hours, 0), 1) < {{target_utilization_pct}} order by utilization_pct asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's time-tracking or resourcing database.
+  target_utilization_pct:
+    default: "75"
+    description: The minimum billable-utilization percentage staff are expected to hit; anyone below this is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `staff_time_summary` table (or view) with `staff_name`, `billable_hours`, `available_hours`, and a `period` column keyed to the reporting window — adapt the query if your PSA/time tool (Harvest, Deltek, Mavenlink) exposes utilization differently. Read-only; intended to inform resourcing conversations, not to trigger any automated action against staff.

@@ -1,0 +1,24 @@
+id: timesheet-submission-compliance-check
+version: 1
+name: Timesheet Submission Compliance Check
+description: >
+  Checks which staff have not submitted their timesheet for the prior
+  billing period and lists them out. Use this if your agency bills client
+  work off logged hours and a missing timesheet has ever meant revenue that
+  quietly never got invoiced.
+category: agency
+tags: [agency, timesheets, compliance, billing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select staff_name, staff_email from staff where staff_id not in (select staff_id from timesheets where period_end = date_trunc('week', current_date) - interval '{{grace_period_days}} days');"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's time-tracking/PSA database.
+  grace_period_days:
+    default: "7"
+    description: Number of days back from today that defines the prior billing period being checked for submission.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `staff` table with `staff_id`, `staff_name`, `staff_email`, and a `timesheets` table with `staff_id` and `period_end` — adjust to match your time-tracking tool's export or API (e.g. Harvest, BigTime, Deltek). Read-only; it only lists who's missing a submission, it does not send reminders or lock any records.

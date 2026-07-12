@@ -1,0 +1,26 @@
+id: creative-review-round-count-check
+version: 1
+name: Creative Review Round Count Check
+description: >
+  Counts how many rounds of revisions a creative deliverable has gone
+  through and compares it against the number of rounds allotted in the
+  client's statement of work, flagging projects that have hit or are about
+  to exceed the cap. Use this if unlimited-feeling "just one more round"
+  revision requests have ever eaten into a project's profitability without
+  anyone tracking it against the contract.
+category: agency
+tags: [agency, creative-review, revisions, sow]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select project_name, deliverable, revision_rounds_used, revision_rounds_allotted, (revision_rounds_allotted - revision_rounds_used) as rounds_remaining from creative_deliverables where (revision_rounds_allotted - revision_rounds_used) <= {{warning_rounds_remaining}} order by rounds_remaining asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's project-management or creative-workflow database.
+  warning_rounds_remaining:
+    default: "1"
+    description: Flag a deliverable when this many (or fewer) revision rounds remain before it hits its SOW cap.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `creative_deliverables` table with `project_name`, `deliverable`, `revision_rounds_used`, and `revision_rounds_allotted` columns — adjust to match your project-management tool's schema (e.g. a custom field in Asana, Monday, or a review-tracking tool like Filestage/ReviewStudio). Read-only; surfaces deliverables approaching the contracted revision cap so someone can decide whether to raise a change order, it does not block further review rounds itself.

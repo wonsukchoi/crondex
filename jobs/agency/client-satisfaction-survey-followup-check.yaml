@@ -1,0 +1,33 @@
+id: client-satisfaction-survey-followup-check
+version: 1
+name: Client Satisfaction Survey Follow-Up Check
+description: >
+  Looks through recent client satisfaction survey responses for scores below
+  a set threshold and lists which accounts got them, so someone can reach out
+  before a quiet complaint turns into a lost client. Use this if your agency
+  runs periodic client happiness surveys but nobody has a standing habit of
+  checking the low scores until a client is already upset in a status call.
+category: agency
+tags: [agency, client-success, satisfaction-survey, churn-risk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, respondent_email, score, submitted_at from client_survey_responses where submitted_at >= now() - interval '{{lookback_days}} days' and score <= {{low_score_threshold}} order by score asc, submitted_at desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding client survey responses.
+  lookback_days:
+    default: "7"
+    description: How many days back to check for new survey responses.
+  low_score_threshold:
+    default: "6"
+    description: Score at or below which a response is flagged (assumes a 0-10 scale).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `client_survey_responses` table with `account_id`,
+  `respondent_email`, `score` (0-10 scale, adjust `low_score_threshold` if
+  yours differs), and `submitted_at` columns. Read-only and informational —
+  it only surfaces accounts to follow up with; it does not send anything or
+  update CRM records itself.

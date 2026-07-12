@@ -1,0 +1,34 @@
+id: scope-creep-change-order-check
+version: 1
+name: Scope Creep / Change Order Check
+description: >
+  Compares logged work and time entries against the line items in a client's
+  original statement of work, and flags work that doesn't map to any SOW
+  line item and has no approved change order on file. Use this if your team
+  has ever done extra work for a client "as a favor" that was never
+  formally scoped, quoted, or billed.
+category: agency
+tags: [agency, scope-creep, change-orders, sow]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull work/time entries logged against client project "{{project_id}}" over
+  the last {{lookback_days}} days from the time-tracking system, along with
+  the line items defined in that project's statement of work (SOW) and any
+  approved change orders on file. Compare the logged work descriptions and
+  task categories against the SOW line items. Flag any logged work that does
+  not reasonably map to an existing SOW line item and has no matching
+  change order. For each flagged item, summarize what the work was, roughly
+  how many hours or dollars it represents, and whether it looks like scope
+  creep worth raising a change order for. Present results grouped by
+  project, most significant (by hours/value) first.
+variables:
+  project_id:
+    default: "all-active"
+    description: Which client project to check; use "all-active" to scan every currently active engagement.
+  lookback_days:
+    default: "30"
+    description: How many days of logged work/time entries to compare against the SOW.
+compatible_agents: [generic, claude, codex]
+notes: This requires an agent with read access to your time-tracking/PSA tool (for logged work) and your project/SOW documentation or contract-management system (for scope and change-order records) — matching "work description" to "SOW line item" is a judgment call, not a deterministic lookup, which is why this is agent-prompt rather than shell. Read-only/informational; it does not create change orders or bill the client, it only surfaces candidates for a human to review.

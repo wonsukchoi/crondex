@@ -107,10 +107,11 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1035 jobs across 53 categories:
+1055 jobs across 54 categories:
 
 | category | jobs | description |
 |---|---|---|
+| `agency` | 20 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 20 | Daycare compliance and ops — ratios, immunizations, tuition. |

@@ -1,0 +1,24 @@
+id: client-contract-renewal-reminder
+version: 1
+name: Client Contract Renewal Reminder
+description: >
+  Looks ahead at client contracts and retainer agreements and flags the ones
+  approaching their expiration or renewal date, well before they lapse. Use
+  this if a retainer has ever auto-expired or gone month-to-month by
+  accident because nobody started the renewal conversation early enough.
+category: agency
+tags: [agency, contracts, retainers, renewals]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, account_lead, contract_end_date from client_contracts where contract_end_date between current_date and current_date + interval '{{lookahead_days}} days' and status = 'active' order by contract_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's client/contract management database.
+  lookahead_days:
+    default: "60"
+    description: How many days ahead of the contract end date an account lead should be reminded, giving room to negotiate renewal.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `client_contracts` table with `client`, `account_lead`, `contract_end_date`, and `status` columns — adjust to your CRM or contract-management tool's schema. Read-only reminder; it does not renew, extend, or modify any contract, it only surfaces upcoming dates so the account lead can act.

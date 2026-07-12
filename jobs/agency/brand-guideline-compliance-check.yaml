@@ -1,0 +1,25 @@
+id: brand-guideline-compliance-check
+version: 1
+name: Brand Guideline Compliance Check
+description: >
+  Checks recently submitted client deliverables for a "brand-reviewed"
+  sign-off or checklist item, and flags any that are missing it before
+  they go out to the client. Use this if a deliverable has ever shipped
+  to a client without a proper brand-compliance check because it slipped
+  through in the rush to hit a deadline.
+category: agency
+tags: [agency, brand-compliance, creative-review, deliverables]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select deliverable_name, client_name, owner, submitted_at from deliverables where submitted_at > now() - interval '{{lookback_days}} days' and brand_reviewed = false order by submitted_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's project/deliverables tracking database.
+  lookback_days:
+    default: "2"
+    description: How many days back to check for recently submitted deliverables missing brand sign-off.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `deliverables` table with `deliverable_name`, `client_name`, `owner`, `submitted_at`, and a boolean `brand_reviewed` flag (or equivalent checklist item) — adjust the query to your schema and definition of "brand-reviewed." Read-only and informational; it flags gaps but does not block delivery or edit records.

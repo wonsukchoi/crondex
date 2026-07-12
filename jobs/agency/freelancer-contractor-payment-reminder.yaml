@@ -1,0 +1,24 @@
+id: freelancer-contractor-payment-reminder
+version: 1
+name: Freelancer/Contractor Payment Reminder
+description: >
+  Checks upcoming invoice due dates for freelancers and contractors the
+  agency hires for client work, and lists the ones coming due within a
+  set number of days. Use this if freelance talent has ever been paid
+  late because their invoice got buried among client-billing tasks.
+category: agency
+tags: [agency, finance, freelancers, contractors, payments]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select contractor_name, project_name, invoice_number, amount_due, due_date from freelancer_invoices where status = 'unpaid' and due_date between now() and now() + interval '{{lookahead_days}} days' order by due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's finance/accounts-payable database.
+  lookahead_days:
+    default: "3"
+    description: How many days ahead of the due date to start surfacing an unpaid invoice as upcoming.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `freelancer_invoices` table with `contractor_name`, `project_name`, `invoice_number`, `amount_due`, `due_date`, and `status` columns for agency-side payments owed to freelance talent, not client billing. Read-only and informational; it doesn't issue or schedule payments itself.

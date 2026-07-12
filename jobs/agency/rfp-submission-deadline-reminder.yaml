@@ -1,0 +1,24 @@
+id: rfp-submission-deadline-reminder
+version: 1
+name: RFP Submission Deadline Reminder
+description: >
+  Looks ahead at upcoming RFP (request for proposal) and pitch submission
+  deadlines and lists the ones due within a set number of days. Use this
+  if your new-business team has ever scrambled at the last minute, or
+  missed a submission window, because a deadline wasn't on anyone's radar.
+category: agency
+tags: [agency, new-business, rfp, deadlines]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select opportunity_name, client_name, owner, submission_deadline from rfp_submissions where submission_deadline between now() and now() + interval '{{lookahead_days}} days' order by submission_deadline asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's new-business/RFP tracking database.
+  lookahead_days:
+    default: "5"
+    description: How many days ahead of the deadline to start surfacing a submission as upcoming.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `rfp_submissions` table with `opportunity_name`, `client_name`, `owner`, and `submission_deadline` columns, tracking formal pitch/RFP submission dates distinct from the general activity tracked by `new-business-pipeline-stale-check`. Read-only and informational; it doesn't file or submit anything on its own.

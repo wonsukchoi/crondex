@@ -1,0 +1,25 @@
+id: retainer-hours-overage-check
+version: 1
+name: Retainer Hours Overage Check
+description: >
+  Compares each client's hours logged this month against the hours their
+  retainer contract allows, and flags any client who is close to or already
+  over that cap. Use this if you've ever billed a client for a flat monthly
+  fee and only discovered afterward that your team quietly worked far more
+  hours than the contract covers.
+category: agency
+tags: [agency, retainers, billing, hours]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, contracted_hours, hours_used_mtd, round(100.0 * hours_used_mtd / nullif(contracted_hours, 0), 1) as pct_used from client_retainers where round(100.0 * hours_used_mtd / nullif(contracted_hours, 0), 1) >= {{warning_threshold_pct}} order by pct_used desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's operations/billing database.
+  warning_threshold_pct:
+    default: "85"
+    description: Percentage of contracted monthly hours at which a client should be flagged as approaching or over cap.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `client_retainers` table with `client`, `contracted_hours`, and `hours_used_mtd` (hours logged so far in the current billing month) columns — adjust the query to match your time-tracking or PSA tool's schema (e.g. Harvest, Mavenlink, BigTime export). Read-only; this only surfaces overage risk, it does not adjust billing or send anything.

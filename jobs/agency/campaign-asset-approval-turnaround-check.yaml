@@ -1,0 +1,33 @@
+id: campaign-asset-approval-turnaround-check
+version: 1
+name: Campaign Asset Approval Turnaround Check
+description: >
+  Checks how long submitted creative assets (ads, graphics, videos) have
+  been sitting in "pending client approval" status and flags the ones that
+  have gone past a normal turnaround window. Use this if finished creative
+  work regularly stalls waiting on a client's yes/no and the account team
+  only finds out when the campaign launch date is already at risk.
+category: agency
+tags: [agency, asset-approval, creative-review, client-services]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select asset_id, client_name, asset_name, submitted_for_approval_at from campaign_assets where approval_status = 'pending_client_approval' and submitted_for_approval_at <= now() - interval '{{turnaround_threshold_days}} days' order by submitted_for_approval_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding campaign asset approval records.
+  turnaround_threshold_days:
+    default: "2"
+    description: Number of days an asset can sit in pending-approval status before it's flagged for a nudge.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `campaign_assets` table with `asset_id`, `client_name`,
+  `asset_name`, an `approval_status` column that includes a
+  `'pending_client_approval'` value, and `submitted_for_approval_at`. This is
+  distinct from the creative-brief-approval-staleness-check job: that one
+  covers the upfront brief sign-off before work starts, this one covers
+  finished assets awaiting final client approval. Read-only and
+  informational — it only lists assets worth nudging the client about; it
+  does not send anything itself.

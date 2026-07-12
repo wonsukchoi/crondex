@@ -1,0 +1,24 @@
+id: client-invoice-aging-check
+version: 1
+name: Client Invoice Aging Check
+description: >
+  Buckets outstanding client invoices by how many days overdue they are (30,
+  60, 90+ days) and flags the accounts that need a collections follow-up.
+  Use this if unpaid client invoices have ever quietly aged past 90 days
+  before anyone on the team noticed and picked up the phone.
+category: agency
+tags: [agency, invoicing, collections, accounts-receivable]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, invoice_number, amount_due, (current_date - due_date) as days_overdue, case when (current_date - due_date) >= 90 then '90+' when (current_date - due_date) >= 60 then '60-89' when (current_date - due_date) >= 30 then '30-59' else 'current' end as aging_bucket from client_invoices where status != 'paid' and (current_date - due_date) >= {{followup_threshold_days}} order by days_overdue desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's billing/accounting database.
+  followup_threshold_days:
+    default: "30"
+    description: Minimum number of days past due before an invoice is surfaced for collections follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `client_invoices` table with `client`, `invoice_number`, `amount_due`, `due_date`, and `status` columns — adjust to match your accounting system's schema (QuickBooks, Xero, or a PSA's billing export). Read-only reporting job; it does not send reminders or update invoice status itself.

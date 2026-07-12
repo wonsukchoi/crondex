@@ -1,0 +1,25 @@
+id: project-profitability-check
+version: 1
+name: Project Profitability Check
+description: >
+  Compares each active project's actual hours and cost logged so far
+  against its budgeted hours and cost, and flags the ones trending over
+  budget. Use this if a project has ever quietly eaten its margin because
+  nobody noticed logged hours creeping past what was budgeted until the
+  project was already closed out.
+category: agency
+tags: [agency, profitability, budgets, projects]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, project, budgeted_hours, actual_hours, round(100.0 * actual_hours / nullif(budgeted_hours, 0), 1) as pct_of_budget from projects where status = 'active' and round(100.0 * actual_hours / nullif(budgeted_hours, 0), 1) >= {{warning_threshold_pct}} order by pct_of_budget desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's project/PSA database.
+  warning_threshold_pct:
+    default: "80"
+    description: Percentage of budgeted hours at which an active project should be flagged as trending over budget.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `projects` table with `client`, `project`, `budgeted_hours`, `actual_hours`, and `status` columns, populated from your PSA or project-tracking tool — adjust the query to match your schema. Read-only; this only surfaces margin-erosion risk on active projects, it does not adjust budgets or billing. Distinct from retainer-hours-overage-check.yaml, which tracks monthly retainer caps rather than a project's total budget.

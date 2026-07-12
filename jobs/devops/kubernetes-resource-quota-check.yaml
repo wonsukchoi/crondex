@@ -1,0 +1,33 @@
+id: kubernetes-resource-quota-check
+version: 1
+name: Kubernetes Resource Quota Check
+description: >
+  Compares a Kubernetes namespace's actual CPU and memory requests against
+  its configured ResourceQuota and flags when usage is getting close to the
+  limit. Use this if a team has ever been blocked mid-deploy by a
+  "exceeded quota" error they didn't see coming.
+category: devops
+tags: [kubernetes, resource-quota, capacity, namespace]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  kubectl get resourcequota "{{quota_name}}" -n "{{namespace}}" -o json | jq -r --argjson threshold "{{usage_threshold_percent}}" '.status.hard as $hard | .status.used as $used | $used | to_entries[] | . as $e | ($hard[$e.key] // "0") as $limit | ($e.value | if test("^[0-9]+$") then tonumber else (sub("m$";"") | tonumber / 1000) end) as $u | ($limit | if test("^[0-9]+$") then tonumber else (sub("m$";"") | tonumber / 1000) end) as $l | if $l > 0 and (($u / $l) * 100) >= $threshold then "\(.key): \($u)/\($l) (\((($u/$l)*100)|floor)%)" else empty end'
+variables:
+  namespace:
+    default: "production"
+    description: Kubernetes namespace whose resource quota should be checked.
+  quota_name:
+    default: "compute-quota"
+    description: Name of the ResourceQuota object in that namespace.
+  usage_threshold_percent:
+    default: 85
+    description: Percentage of the quota limit at which a resource type should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `kubectl` configured with a context that has read access to the
+  target namespace, and `jq` for parsing. Read-only: only queries the
+  ResourceQuota object's `status.hard` and `status.used` fields, no cluster
+  changes are made. CPU values are parsed assuming either plain cores or
+  millicpu ("m") suffix; adjust the jq filter if your cluster reports
+  quota in a different unit.

@@ -1,0 +1,33 @@
+id: dns-propagation-check
+version: 1
+name: DNS Propagation Check
+description: >
+  Looks up a DNS record from several public resolvers around the internet
+  and flags it if they don't all agree on the same value, which usually
+  means the change is still propagating. Use this if you've ever made a
+  DNS change and needed to know whether it's safe to tell people "it's
+  live everywhere" yet, instead of guessing.
+category: devops
+tags: [dns, propagation, records, cutover]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  for resolver in {{resolvers}}; do echo "$resolver: $(dig +short @"$resolver" {{record_type}} {{hostname}} | sort | tr '\n' ',' )"; done | awk -F': ' '{print} {seen[$2]++} END {if (length(seen) > 1) print "MISMATCH: resolvers disagree on record value"}'
+variables:
+  hostname:
+    default: "www.example.com"
+    description: The DNS hostname to check.
+  record_type:
+    default: "A"
+    description: DNS record type to look up (A, AAAA, CNAME, TXT, etc.).
+  resolvers:
+    default: "8.8.8.8 1.1.1.1 9.9.9.9 208.67.222.222"
+    description: Space-separated list of public resolver IPs to compare answers across.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses `dig` against a handful of well-known public resolvers (Google,
+  Cloudflare, Quad9, OpenDNS) as a proxy for global propagation — it isn't
+  exhaustive, but disagreement among these is a strong signal propagation
+  isn't finished. Read-only: performs lookups only, never edits a DNS
+  record.

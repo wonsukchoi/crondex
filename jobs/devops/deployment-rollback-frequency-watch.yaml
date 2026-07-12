@@ -1,0 +1,35 @@
+id: deployment-rollback-frequency-watch
+version: 1
+name: Deployment Rollback Frequency Watch
+description: >
+  Checks deployment history for how often recent releases had to be rolled
+  back and flags it when that rate is climbing compared to the prior
+  window. Use this if release quality has ever quietly gotten worse
+  without anyone noticing until several bad deploys in a row.
+category: devops
+tags: [deployments, rollbacks, release-quality, ci-cd]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "with recent as (select count(*) filter (where status = 'rolled_back') as rollbacks, count(*) as total from deployments where deployed_at > now() - interval '{{recent_window_days}} days'), prior as (select count(*) filter (where status = 'rolled_back') as rollbacks, count(*) as total from deployments where deployed_at > now() - interval '{{recent_window_days}} days' * 2 and deployed_at <= now() - interval '{{recent_window_days}} days') select round(100.0 * recent.rollbacks / nullif(recent.total, 0), 1) as recent_rollback_pct, round(100.0 * prior.rollbacks / nullif(prior.total, 0), 1) as prior_rollback_pct from recent, prior where round(100.0 * recent.rollbacks / nullif(recent.total, 0), 1) >= {{rollback_rate_threshold_percent}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding deployment history.
+  recent_window_days:
+    default: 7
+    description: Size, in days, of the recent window compared against the equally-sized prior window.
+  rollback_rate_threshold_percent:
+    default: 15
+    description: Rollback rate percentage in the recent window at which it should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deployments` table with `status` (including a `rolled_back`
+  value), and `deployed_at` columns — adjust the query to your CI/CD
+  system's schema (e.g. an events table exported from GitHub Actions,
+  ArgoCD, or a custom deploy pipeline). Read-only: only aggregates
+  historical deploy status, triggers no rollback or deploy actions itself.
+  A rollback rate that's rising release over release is treated as a
+  release-quality warning signal worth investigating, even if no single
+  incident stands out.

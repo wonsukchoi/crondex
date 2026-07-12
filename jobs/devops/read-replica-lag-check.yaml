@@ -1,0 +1,30 @@
+id: read-replica-lag-check
+version: 1
+name: Read Replica Lag Check
+description: >
+  Checks how far behind a database read replica has fallen relative to its
+  primary and flags it when the lag exceeds an acceptable threshold. Use
+  this if anything reads from the replica (dashboards, reports, read-only
+  API traffic) and stale data would be confusing or wrong.
+category: devops
+tags: [database, replication, read-replica, lag]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{replica_database_url}}" -t -c "select case when pg_is_in_recovery() then extract(epoch from (now() - pg_last_xact_replay_timestamp())) else null end as lag_seconds;" | awk -v threshold="{{lag_threshold_seconds}}" '{gsub(/^[ \t]+|[ \t]+$/, ""); if ($0 != "" && $0+0 > threshold) print "Replica lag " $0 "s exceeds threshold " threshold "s"}'
+variables:
+  replica_database_url:
+    default: "postgres://user:pass@replica-host:5432/db"
+    description: Connection string for the read-replica database.
+  lag_threshold_seconds:
+    default: 60
+    description: Replication lag, in seconds, above which the replica should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Written for PostgreSQL streaming replication using
+  `pg_last_xact_replay_timestamp()`; adjust the query for MySQL (e.g.
+  `SHOW REPLICA STATUS` and `Seconds_Behind_Source`) or another engine.
+  Read-only: only queries replication status, makes no writes. Treat a
+  sustained high lag as stale-read risk for anything routed to the
+  replica, not just a performance nuisance.

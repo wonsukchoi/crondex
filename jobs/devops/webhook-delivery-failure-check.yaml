@@ -1,0 +1,35 @@
+id: webhook-delivery-failure-check
+version: 1
+name: Webhook Delivery Failure Check
+description: >
+  Checks recent outgoing webhook delivery logs for a spike in failed
+  deliveries and flags it so someone can investigate whether the
+  problem is on your side or the receiving endpoint's side. Use this if
+  downstream integrations depend on your webhooks arriving and silent
+  delivery failures have ever gone unnoticed for days.
+category: devops
+tags: [webhooks, delivery, reliability, integrations]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select endpoint_url, count(*) filter (where status = 'failed') as failed, count(*) as total, round(100.0 * count(*) filter (where status = 'failed') / nullif(count(*), 0), 1) as failure_pct from webhook_deliveries where created_at > now() - interval '{{lookback_hours}} hours' group by endpoint_url having round(100.0 * count(*) filter (where status = 'failed') / nullif(count(*), 0), 1) >= {{failure_rate_threshold_percent}} order by failure_pct desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding webhook delivery logs.
+  lookback_hours:
+    default: 1
+    description: How many hours of delivery history to evaluate on each run.
+  failure_rate_threshold_percent:
+    default: 20
+    description: Failure rate percentage per endpoint above which it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `webhook_deliveries` table with `endpoint_url`, `status`
+  (e.g. "delivered"/"failed"), and `created_at` columns — adjust the
+  query to your schema. Read-only: only aggregates delivery status,
+  makes no retries or changes. A rising per-endpoint failure rate
+  usually points to a downstream consumer outage or a breaking change
+  on your payload, so treat it as worth a look even before retries are
+  exhausted.

@@ -1,0 +1,34 @@
+id: database-migration-drift-check
+version: 1
+name: Database Migration Drift Check
+description: >
+  Compares the set of database migrations that have been applied in each
+  environment (e.g. staging vs. production) and flags any migration that's
+  present in one environment but missing from another. Use this if you've
+  ever had a bug show up only in production because a migration got applied
+  there but was never run in staging, or vice versa.
+category: devops
+tags: [database, migrations, drift, environments]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  comm -3 <(psql "{{staging_database_url}}" -t -A -c "select version from {{migrations_table}} order by version;" | sort) <(psql "{{production_database_url}}" -t -A -c "select version from {{migrations_table}} order by version;" | sort)
+variables:
+  staging_database_url:
+    default: "postgres://user:pass@staging-host:5432/db"
+    description: Connection string for the staging database.
+  production_database_url:
+    default: "postgres://user:pass@prod-host:5432/db"
+    description: Connection string for the production database.
+  migrations_table:
+    default: "schema_migrations"
+    description: Name of the table that tracks applied migration versions.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes both environments use a standard migration-tracking table with a
+  single `version` column (e.g. what Rails, Flyway, or golang-migrate
+  generate) — adjust the table/column name to your framework. Read-only:
+  only runs `select` queries, never applies or rolls back a migration.
+  Any output line means the two environments have diverged and should be
+  reconciled before the next deploy.

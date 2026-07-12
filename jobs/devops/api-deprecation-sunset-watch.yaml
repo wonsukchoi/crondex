@@ -1,0 +1,42 @@
+id: api-deprecation-sunset-watch
+version: 1
+name: API Deprecation Sunset Watch
+description: >
+  Checks a list of third-party APIs your service depends on against their
+  publicly announced deprecation or sunset dates, and flags any that are
+  coming up soon enough that you need to start migrating. Use this if
+  you've ever been blindsided by a vendor API shutting down a version you
+  were still relying on, with no time left to react.
+category: devops
+tags: [api, deprecation, third-party, dependencies]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the tracked API dependency list at {{tracked_apis_file}}. Each entry
+  lists an API name, the version or endpoint in use, and a URL to that
+  provider's deprecation/changelog/sunset-policy page. For each entry,
+  check the linked page (or well-known public sources if the link is
+  stale) for an announced deprecation or sunset date. Flag any API whose
+  sunset date falls within the next {{lead_time_days}} days, or that has
+  no announced date but shows clear deprecation warnings in its docs.
+  Summarize: API name, sunset date (or "deprecated, no date"), and a
+  one-line note on what depends on it internally, ordered by urgency.
+variables:
+  tracked_apis_file:
+    default: "./config/tracked-third-party-apis.yaml"
+    description: >
+      Path to a maintained file listing third-party APIs the service
+      depends on, along with links to each provider's deprecation policy
+      or changelog.
+  lead_time_days:
+    default: 90
+    description: How many days of advance notice counts as "upcoming" for a sunset date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires a `runner: agent-prompt` because deprecation/sunset information
+  lives on varied, vendor-specific pages that aren't scrapeable with one
+  generic script. Assumes a maintained YAML/JSON list of tracked APIs kept
+  up to date by the team; this job only reads that file and public pages
+  it links to, never modifies anything or calls the third-party APIs
+  themselves.

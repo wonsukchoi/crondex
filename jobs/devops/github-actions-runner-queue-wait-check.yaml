@@ -1,0 +1,38 @@
+id: github-actions-runner-queue-wait-check
+version: 1
+name: GitHub Actions Runner Queue Wait Check
+description: >
+  Checks how long recent GitHub Actions workflow runs sat queued waiting
+  for a runner before they actually started, and flags when that wait
+  time is trending up. Use this if CI feels slow to kick off even though
+  the builds themselves are fast, which usually means a runner capacity
+  problem rather than a build problem.
+category: devops
+tags: [github-actions, ci, runners, queue-time]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s -H "Authorization: Bearer {{github_token}}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/{{repo}}/actions/runs?per_page={{sample_size}}" | jq -r --argjson threshold "{{queue_wait_threshold_seconds}}" '.workflow_runs[] | select(.run_started_at != null) | ((.run_started_at | fromdateiso8601) - (.created_at | fromdateiso8601)) as $wait | select($wait >= $threshold) | "\(.name) #\(.run_number): queued \($wait)s before starting"'
+variables:
+  repo:
+    default: "owner/repo"
+    description: GitHub repository (owner/name) whose Actions runs should be checked.
+  github_token:
+    default: "ghp_xxx"
+    description: GitHub token with permission to read Actions run data for the repo.
+  sample_size:
+    default: 50
+    description: Number of most recent workflow runs to sample per run of this job.
+  queue_wait_threshold_seconds:
+    default: 120
+    description: Queue wait time, in seconds, above which a run should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses the GitHub REST API's workflow runs endpoint; `created_at` marks
+  when the run was queued and `run_started_at` marks when a runner
+  actually picked it up, so their difference is the queue wait, not
+  build duration. Read-only: only lists run metadata, makes no changes.
+  Distinct from ci-build-time-regression-watch, which tracks how long
+  builds take once running, not how long they wait beforehand for a
+  runner to become available.

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1157,
+  "count": 1169,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -797,6 +797,31 @@
       "path": "jobs/personal/annual-physical-checkup-reminder.yaml"
     },
     {
+      "id": "api-deprecation-sunset-watch",
+      "version": 1,
+      "name": "API Deprecation Sunset Watch",
+      "description": "Checks a list of third-party APIs your service depends on against their publicly announced deprecation or sunset dates, and flags any that are coming up soon enough that you need to start migrating. Use this if you've ever been blindsided by a vendor API shutting down a version you were still relying on, with no time left to react.",
+      "category": "devops",
+      "tags": [
+        "api",
+        "deprecation",
+        "third-party",
+        "dependencies"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/api-deprecation-sunset-watch.yaml"
+    },
+    {
       "id": "api-rate-limit-check",
       "version": 1,
       "name": "API Rate Limit Check",
@@ -1002,6 +1027,31 @@
         "codex"
       ],
       "path": "jobs/publishing/arc-review-copy-followup.yaml"
+    },
+    {
+      "id": "artifact-registry-storage-quota-check",
+      "version": 1,
+      "name": "Artifact Registry Storage Quota Check",
+      "description": "Checks how much storage your container or artifact registry is using against its quota and flags it when usage is getting close to the limit. Use this if you've ever had a build or push suddenly start failing because the registry silently filled up with old images nobody had cleaned out.",
+      "category": "devops",
+      "tags": [
+        "registry",
+        "storage",
+        "quota",
+        "containers"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/artifact-registry-storage-quota-check.yaml"
     },
     {
       "id": "ase-certification-expiry-check",
@@ -6772,6 +6822,56 @@
       "path": "jobs/legal/data-privacy-request-deadline-tracker.yaml"
     },
     {
+      "id": "database-connection-pool-exhaustion-check",
+      "version": 1,
+      "name": "Database Connection Pool Exhaustion Check",
+      "description": "Checks how many connections your database's connection pool is currently using compared to its configured maximum, and flags it when utilization is trending toward running out. Use this if you've ever had requests start timing out or erroring because the app ran out of database connections before anyone noticed the pool was nearly full.",
+      "category": "devops",
+      "tags": [
+        "database",
+        "connection-pool",
+        "capacity",
+        "postgres"
+      ],
+      "schedule": "*/10 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/database-connection-pool-exhaustion-check.yaml"
+    },
+    {
+      "id": "database-migration-drift-check",
+      "version": 1,
+      "name": "Database Migration Drift Check",
+      "description": "Compares the set of database migrations that have been applied in each environment (e.g. staging vs. production) and flags any migration that's present in one environment but missing from another. Use this if you've ever had a bug show up only in production because a migration got applied there but was never run in staging, or vice versa.",
+      "category": "devops",
+      "tags": [
+        "database",
+        "migrations",
+        "drift",
+        "environments"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/database-migration-drift-check.yaml"
+    },
+    {
       "id": "dau-mau-engagement-ratio-check",
       "version": 1,
       "name": "DAU/MAU Engagement Ratio Check",
@@ -7307,6 +7407,31 @@
       "path": "jobs/devops/dependency-audit.yaml"
     },
     {
+      "id": "deployment-rollback-frequency-watch",
+      "version": 1,
+      "name": "Deployment Rollback Frequency Watch",
+      "description": "Checks deployment history for how often recent releases had to be rolled back and flags it when that rate is climbing compared to the prior window. Use this if release quality has ever quietly gotten worse without anyone noticing until several bad deploys in a row.",
+      "category": "devops",
+      "tags": [
+        "deployments",
+        "rollbacks",
+        "release-quality",
+        "ci-cd"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/deployment-rollback-frequency-watch.yaml"
+    },
+    {
       "id": "destination-vaccination-requirement-check",
       "version": 1,
       "name": "Destination Vaccination/Health Requirement Check",
@@ -7507,6 +7632,31 @@
         "codex"
       ],
       "path": "jobs/investing/dividend-payment-tracker.yaml"
+    },
+    {
+      "id": "dns-propagation-check",
+      "version": 1,
+      "name": "DNS Propagation Check",
+      "description": "Looks up a DNS record from several public resolvers around the internet and flags it if they don't all agree on the same value, which usually means the change is still propagating. Use this if you've ever made a DNS change and needed to know whether it's safe to tell people \"it's live everywhere\" yet, instead of guessing.",
+      "category": "devops",
+      "tags": [
+        "dns",
+        "propagation",
+        "records",
+        "cutover"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/dns-propagation-check.yaml"
     },
     {
       "id": "dns-record-check",
@@ -11196,6 +11346,31 @@
       "path": "jobs/retail/gift-card-liability-reconciliation-check.yaml"
     },
     {
+      "id": "github-actions-runner-queue-wait-check",
+      "version": 1,
+      "name": "GitHub Actions Runner Queue Wait Check",
+      "description": "Checks how long recent GitHub Actions workflow runs sat queued waiting for a runner before they actually started, and flags when that wait time is trending up. Use this if CI feels slow to kick off even though the builds themselves are fast, which usually means a runner capacity problem rather than a build problem.",
+      "category": "devops",
+      "tags": [
+        "github-actions",
+        "ci",
+        "runners",
+        "queue-time"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/github-actions-runner-queue-wait-check.yaml"
+    },
+    {
       "id": "github-issue-triage",
       "version": 1,
       "name": "GitHub Issue Triage",
@@ -13402,6 +13577,31 @@
       "path": "jobs/support/knowledge-base-article-staleness-check.yaml"
     },
     {
+      "id": "kubernetes-resource-quota-check",
+      "version": 1,
+      "name": "Kubernetes Resource Quota Check",
+      "description": "Compares a Kubernetes namespace's actual CPU and memory requests against its configured ResourceQuota and flags when usage is getting close to the limit. Use this if a team has ever been blocked mid-deploy by a \"exceeded quota\" error they didn't see coming.",
+      "category": "devops",
+      "tags": [
+        "kubernetes",
+        "resource-quota",
+        "capacity",
+        "namespace"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/kubernetes-resource-quota-check.yaml"
+    },
+    {
       "id": "lab-result-followup-check",
       "version": 1,
       "name": "Lab Result Follow-Up Check",
@@ -14412,6 +14612,31 @@
         "codex"
       ],
       "path": "jobs/creator/livestream-schedule-reminder.yaml"
+    },
+    {
+      "id": "load-balancer-health-check-failure-watch",
+      "version": 1,
+      "name": "Load Balancer Health Check Failure Watch",
+      "description": "Checks how many backend targets behind your load balancer are currently failing their health checks and flags it when the unhealthy count rises above a threshold. Use this if you've ever found out about a bad backend only after users started reporting errors, instead of when the load balancer first started routing around it.",
+      "category": "devops",
+      "tags": [
+        "load-balancer",
+        "health-check",
+        "backend",
+        "availability"
+      ],
+      "schedule": "*/10 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/load-balancer-health-check-failure-watch.yaml"
     },
     {
       "id": "load-in-load-out-schedule-reminder",
@@ -21000,6 +21225,31 @@
       "path": "jobs/manufacturing/raw-material-shortage-risk-check.yaml"
     },
     {
+      "id": "read-replica-lag-check",
+      "version": 1,
+      "name": "Read Replica Lag Check",
+      "description": "Checks how far behind a database read replica has fallen relative to its primary and flags it when the lag exceeds an acceptable threshold. Use this if anything reads from the replica (dashboards, reports, read-only API traffic) and stale data would be confusing or wrong.",
+      "category": "devops",
+      "tags": [
+        "database",
+        "replication",
+        "read-replica",
+        "lag"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/read-replica-lag-check.yaml"
+    },
+    {
       "id": "reading-inbox-processing-reminder",
       "version": 1,
       "name": "Reading Inbox Processing Reminder",
@@ -26561,6 +26811,31 @@
       "path": "jobs/publishing/title-metadata-completeness-check.yaml"
     },
     {
+      "id": "tls-certificate-chain-validation-check",
+      "version": 1,
+      "name": "TLS Certificate Chain Validation Check",
+      "description": "Checks that a TLS endpoint serves a complete, trusted certificate chain from leaf to a trusted root, catching problems like a missing intermediate certificate that expiration-only checks won't see. Use this if a service has ever worked fine in one browser or client but failed TLS validation in another because the server wasn't sending the full chain.",
+      "category": "devops",
+      "tags": [
+        "tls",
+        "ssl",
+        "certificate-chain",
+        "trust-path"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/tls-certificate-chain-validation-check.yaml"
+    },
+    {
       "id": "tls-cipher-weak-check",
       "version": 1,
       "name": "Weak TLS Cipher/Protocol Check",
@@ -28973,6 +29248,31 @@
         "generic"
       ],
       "path": "jobs/agriculture/weather-frost-alert.yaml"
+    },
+    {
+      "id": "webhook-delivery-failure-check",
+      "version": 1,
+      "name": "Webhook Delivery Failure Check",
+      "description": "Checks recent outgoing webhook delivery logs for a spike in failed deliveries and flags it so someone can investigate whether the problem is on your side or the receiving endpoint's side. Use this if downstream integrations depend on your webhooks arriving and silent delivery failures have ever gone unnoticed for days.",
+      "category": "devops",
+      "tags": [
+        "webhooks",
+        "delivery",
+        "reliability",
+        "integrations"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/webhook-delivery-failure-check.yaml"
     },
     {
       "id": "webinar-attendance-reminder",

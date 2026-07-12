@@ -1,0 +1,36 @@
+id: tls-certificate-chain-validation-check
+version: 1
+name: TLS Certificate Chain Validation Check
+description: >
+  Checks that a TLS endpoint serves a complete, trusted certificate chain
+  from leaf to a trusted root, catching problems like a missing
+  intermediate certificate that expiration-only checks won't see. Use this
+  if a service has ever worked fine in one browser or client but failed
+  TLS validation in another because the server wasn't sending the full
+  chain.
+category: devops
+tags: [tls, ssl, certificate-chain, trust-path]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  echo | openssl s_client -connect "{{host}}:{{port}}" -servername "{{host}}" -showcerts 2>/dev/null | openssl verify -verbose -CAfile "{{ca_bundle_path}}" 2>&1; echo | openssl s_client -connect "{{host}}:{{port}}" -servername "{{host}}" 2>/dev/null | awk '/Certificate chain/,/---/'
+variables:
+  host:
+    default: "example.com"
+    description: Hostname of the TLS endpoint to check.
+  port:
+    default: 443
+    description: TCP port the TLS endpoint listens on.
+  ca_bundle_path:
+    default: "/etc/ssl/certs/ca-certificates.crt"
+    description: Path to the trusted CA bundle used to verify the chain against.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires the `openssl` CLI on the runner and a valid system CA bundle
+  path. Read-only: opens a TLS connection to inspect the certificate chain
+  presented by the server, makes no changes. Distinct from
+  ssl-cert-expiry-check, which only looks at the leaf certificate's
+  not-after date — this job instead flags an incomplete chain or a broken
+  trust path (e.g. missing intermediate) even when the leaf certificate
+  itself is far from expiring.

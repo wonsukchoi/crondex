@@ -1,0 +1,36 @@
+id: load-balancer-health-check-failure-watch
+version: 1
+name: Load Balancer Health Check Failure Watch
+description: >
+  Checks how many backend targets behind your load balancer are currently
+  failing their health checks and flags it when the unhealthy count rises
+  above a threshold. Use this if you've ever found out about a bad backend
+  only after users started reporting errors, instead of when the load
+  balancer first started routing around it.
+category: devops
+tags: [load-balancer, health-check, backend, availability]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 5 -H "Authorization: Bearer {{api_token}}" "{{lb_health_endpoint}}" | jq --argjson threshold {{unhealthy_threshold}} '[.targets[] | select(.health == "unhealthy")] as $unhealthy | {unhealthy_count: ($unhealthy | length), unhealthy_targets: [$unhealthy[].id]} | if .unhealthy_count >= $threshold then . else empty end'
+variables:
+  lb_health_endpoint:
+    default: "https://api.example.com/v1/load-balancers/my-lb/target-health"
+    description: >
+      URL of your load balancer provider's API endpoint that returns
+      per-target health status as JSON (e.g. an ELB, Cloud Load Balancing,
+      or NGINX Plus API endpoint).
+  api_token:
+    default: "your-api-token-here"
+    description: Bearer token used to authenticate against the load balancer API.
+  unhealthy_threshold:
+    default: 1
+    description: Minimum number of unhealthy targets that should trigger a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the load balancer API returns a JSON object with a `targets`
+  array where each entry has an `id` and a `health` field (values like
+  "healthy"/"unhealthy") — adjust the `jq` filter to match your provider's
+  actual response shape. Read-only: only queries health status, never
+  drains or re-registers a target.

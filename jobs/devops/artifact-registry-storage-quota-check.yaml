@@ -1,0 +1,38 @@
+id: artifact-registry-storage-quota-check
+version: 1
+name: Artifact Registry Storage Quota Check
+description: >
+  Checks how much storage your container or artifact registry is using
+  against its quota and flags it when usage is getting close to the limit.
+  Use this if you've ever had a build or push suddenly start failing
+  because the registry silently filled up with old images nobody had
+  cleaned out.
+category: devops
+tags: [registry, storage, quota, containers]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 5 -H "Authorization: Bearer {{api_token}}" "{{registry_usage_endpoint}}" | jq --argjson quota {{storage_quota_gb}} --argjson pct {{warn_threshold_percent}} '(.storage_used_bytes / 1073741824) as $used_gb | ($used_gb / $quota * 100) as $pct_used | {used_gb: $used_gb, quota_gb: $quota, percent_used: $pct_used} | if .percent_used >= $pct then . else empty end'
+variables:
+  registry_usage_endpoint:
+    default: "https://api.example.com/v1/repositories/my-org/usage"
+    description: >
+      URL of your registry provider's API endpoint that returns current
+      storage usage in bytes as JSON (e.g. a Docker Hub, GHCR, ECR, GAR,
+      or Artifactory usage endpoint).
+  api_token:
+    default: "your-api-token-here"
+    description: Bearer token used to authenticate against the registry API.
+  storage_quota_gb:
+    default: 100
+    description: Total storage quota allotted to the registry, in gigabytes.
+  warn_threshold_percent:
+    default: 80
+    description: Percentage of quota used at which to flag a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the registry API returns a JSON object with a
+  `storage_used_bytes` field — adjust the `jq` path to match your
+  provider's actual response schema. Read-only: only queries usage
+  statistics, never deletes images or tags.

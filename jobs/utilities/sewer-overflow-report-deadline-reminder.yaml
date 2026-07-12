@@ -1,0 +1,29 @@
+id: sewer-overflow-report-deadline-reminder
+version: 1
+name: Sewer Overflow Report Deadline Reminder
+description: >
+  Reminds compliance staff of the regulatory reporting deadline for a
+  sanitary sewer overflow (SSO) that has already been logged, since most
+  jurisdictions require a written report within a fixed number of hours
+  or days after the event. Use this if your utility has SSO events on
+  record and needs to make sure the required regulatory report actually
+  gets filed on time, not to detect overflows in the first place.
+category: utilities
+tags: [utilities, wastewater, sso, compliance, reporting-deadline]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select event_id, location, event_start_time, (event_start_time + interval '{{reporting_window_hours}} hours') as report_due_by from sso_events where report_filed = false and (event_start_time + interval '{{reporting_window_hours}} hours') <= current_timestamp + interval '{{lead_time_hours}} hours' order by report_due_by asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the wastewater compliance/incident database.
+  reporting_window_hours:
+    default: "24"
+    description: Hours after an SSO event by which the regulatory report must be filed (check your jurisdiction's rule).
+  lead_time_hours:
+    default: "4"
+    description: How many hours before the deadline to start flagging it as coming due.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `sso_events` table with `event_id`, `location`, `event_start_time`, and a `report_filed` flag set once the regulatory report is submitted — adjust to your incident-tracking schema and your regulator's actual reporting window. This is a deadline reminder for events already logged, not a leak or overflow detector, and it is read-only — it does not file the report itself.

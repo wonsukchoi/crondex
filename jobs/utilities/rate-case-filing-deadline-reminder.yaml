@@ -1,0 +1,37 @@
+id: rate-case-filing-deadline-reminder
+version: 1
+name: Rate Case Filing Deadline Reminder
+description: >
+  Checks the active rate case's docket calendar for upcoming deadlines —
+  testimony, discovery responses, briefs, filing dates — and reminds
+  regulatory and finance staff which ones are due soon. Use this if a rate
+  case filing has ever slipped or a discovery response nearly missed its
+  deadline because it was tracked only in someone's inbox.
+category: utilities
+tags: [utilities, regulatory, rate-case, public-utility-commission, deadlines]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Read the rate case docket calendar at {{docket_calendar_source}} for docket
+  {{docket_number}}. Identify every deadline (testimony filing, discovery
+  response, rebuttal, brief, hearing date, final order) falling within the
+  next {{lookahead_days}} days. For each, list the deadline type, due date,
+  responsible team, and days remaining, sorted soonest first. Flag anything
+  due within {{urgent_threshold_days}} days as urgent. If no deadlines fall
+  in the window, say so plainly — do not invent dates.
+variables:
+  docket_calendar_source:
+    default: "https://puc.example-state.gov/dockets/{{docket_number}}/calendar"
+    description: URL or path to the docket calendar/schedule for the active rate case.
+  docket_number:
+    default: "24-00000-EL"
+    description: The public utility commission docket number for the active rate case.
+  lookahead_days:
+    default: "21"
+    description: How many days ahead to scan for upcoming deadlines.
+  urgent_threshold_days:
+    default: "5"
+    description: Deadlines due within this many days are flagged as urgent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder job — it does not file anything with the commission or draft testimony. Docket calendar formats vary widely by state/commission, which is why this is agent-prompt rather than a scripted parse; point `docket_calendar_source` at whatever the utility's regulatory affairs team actually uses (commission e-filing portal, internal tracker export, etc.).

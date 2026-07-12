@@ -1,0 +1,27 @@
+id: pole-attachment-audit-reminder
+version: 1
+name: Pole Attachment Audit Reminder
+description: >
+  Reminds staff when it's time to run the periodic audit comparing
+  third-party attachments (telecom and cable lines) physically found on
+  utility-owned poles against what's on file in the billing records, and
+  surfaces poles whose last audit is overdue. Use this if your utility
+  leases pole space to telecom/cable companies and wants to catch
+  attachments that were never added to billing, so you're not leaving
+  attachment-fee revenue on the table or carrying unauthorized equipment.
+category: utilities
+tags: [pole-attachment, joint-use, billing-audit, telecom-lease]
+schedule: "0 6 1 1,4,7,10 *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select pole_id, district, last_audit_date, (last_audit_date + interval '1 month' * {{audit_cycle_months}}) as next_audit_due from poles where (last_audit_date is null or (last_audit_date + interval '1 month' * {{audit_cycle_months}}) <= current_date) order by last_audit_date asc nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the pole/joint-use asset database.
+  audit_cycle_months:
+    default: "12"
+    description: How often (in months) a physical field audit of pole attachments against billing records must be repeated.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `poles` table with `pole_id`, `district`, and `last_audit_date` columns; the actual field walk-down and comparison against the `pole_attachment_billing` records is a separate manual/GIS-assisted step this job only reminds you to schedule. Read-only and informational, no automatic billing changes are made.

@@ -1,0 +1,25 @@
+id: backflow-prevention-test-due-reminder
+version: 1
+name: Backflow Prevention Test Due Reminder
+description: >
+  Looks at commercial and industrial accounts with a backflow-prevention
+  device on file and flags the ones whose required annual test is coming up
+  or already overdue. Use this if your utility is responsible for tracking
+  backflow-test compliance and missed tests have ever turned into a
+  regulatory finding or a scramble to catch up before an audit.
+category: utilities
+tags: [utilities, water, backflow-prevention, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, device_serial, install_address, last_test_date, (last_test_date + interval '1 year') as test_due_date from backflow_devices where (last_test_date + interval '1 year') <= current_date + interval '{{lead_time_days}} days' order by test_due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the backflow-device / compliance-tracking database.
+  lead_time_days:
+    default: "30"
+    description: How many days before (or past) the one-year test anniversary to start flagging a device as due, giving account holders time to schedule a certified tester.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `backflow_devices` table with `account_id`, `device_serial`, `install_address`, and `last_test_date` columns, and a jurisdiction requiring annual testing — adjust the interval if your local code differs. Read-only reminder feed; it does not send notices to account holders or update compliance status itself.

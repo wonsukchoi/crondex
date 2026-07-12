@@ -1,0 +1,25 @@
+id: line-crew-safety-training-expiry-check
+version: 1
+name: Line Crew Safety Training Expiry Check
+description: >
+  Checks the safety certifications held by line crew and other field
+  workers, like arc-flash, confined-space entry, or CDL, and flags anyone
+  whose certification is expiring soon. Use this if you manage field
+  crews and want to know ahead of time who would be out of compliance to
+  work a job, instead of finding out the morning of a dispatch.
+category: utilities
+tags: [utilities, line-crew, safety-training, compliance, field-workers]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select employee_id, employee_name, certification_type, expiry_date from crew_certifications where expiry_date <= current_date + interval '{{lead_time_days}} days' order by expiry_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the HR/training records database.
+  lead_time_days:
+    default: "30"
+    description: How many days before expiry to start flagging a certification.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `crew_certifications` table with `employee_id`, `employee_name`, `certification_type` (e.g. arc-flash, confined-space, CDL), and `expiry_date` — adjust to your training-records system. Read-only and informational; it flags who needs recertification, it does not book or complete the training.

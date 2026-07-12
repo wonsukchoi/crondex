@@ -1,0 +1,29 @@
+id: leak-detection-survey-due-reminder
+version: 1
+name: Leak Detection Survey Due Reminder
+description: >
+  Checks each gas or water distribution main segment's scheduled
+  leak-detection survey date against the utility's required regulatory
+  survey cycle and lists which segments are coming due within a lookahead
+  window. Use this if your utility must periodically survey distribution
+  mains for leaks under state or federal pipeline-safety rules and wants
+  advance notice before a segment's survey lapses past its required cycle.
+category: utilities
+tags: [leak-detection, gas-distribution, water-distribution, pipeline-safety, survey]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select segment_id, main_type, district, last_survey_date, (last_survey_date + interval '1 month' * {{survey_cycle_months}}) as next_survey_due from distribution_main_segments where (last_survey_date + interval '1 month' * {{survey_cycle_months}}) <= current_date + interval '1 day' * {{lookahead_days}} order by next_survey_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the distribution main asset/survey database.
+  survey_cycle_months:
+    default: "63"
+    description: Maximum months allowed between leak-detection surveys for a segment under the applicable regulatory cycle (e.g. federal gas rules commonly allow up to 63 months; adjust to your jurisdiction and main type).
+  lookahead_days:
+    default: "30"
+    description: How many days ahead of the due date to start flagging a segment for survey scheduling.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `distribution_main_segments` table with `segment_id`, `main_type` (gas or water), `district`, and `last_survey_date` columns — adjust the cycle length per main type/jurisdiction since gas and water survey requirements differ. Read-only and informational; it does not dispatch crews or perform the survey itself.

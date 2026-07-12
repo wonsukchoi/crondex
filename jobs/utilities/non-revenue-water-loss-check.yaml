@@ -1,0 +1,26 @@
+id: non-revenue-water-loss-check
+version: 1
+name: Non-Revenue Water Loss Check
+description: >
+  Compares how much water a water utility pumped or produced against how
+  much it actually billed customers for, and flags days where the gap
+  (non-revenue water, often from leaks or meter error) crosses a set
+  percentage. Use this if you want an early warning on distribution-system
+  leaks or metering problems before they show up as a costly annual audit
+  finding.
+category: utilities
+tags: [utilities, water, non-revenue-water, leak-detection]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select production_date, volume_produced_gallons, volume_billed_gallons, round((1 - (volume_billed_gallons::numeric / nullif(volume_produced_gallons, 0))) * 100, 2) as loss_pct from water_production_daily where production_date = current_date - 1 and (1 - (volume_billed_gallons::numeric / nullif(volume_produced_gallons, 0))) * 100 > {{loss_threshold_pct}}::numeric;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the water production/billing database.
+  loss_threshold_pct:
+    default: "15"
+    description: Non-revenue water loss percentage above which a day is flagged for review (industry benchmarks commonly range 10-25% depending on system age).
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `water_production_daily` table with `production_date`, `volume_produced_gallons`, and `volume_billed_gallons` columns, aggregated from SCADA/production meters and billing exports — adjust to your system's schema and units. Read-only check; a sustained high-loss reading is a signal to schedule a physical leak survey, not proof of a specific leak location.

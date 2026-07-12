@@ -1,0 +1,24 @@
+id: outage-restoration-sla-check
+version: 1
+name: Outage Restoration SLA Check
+description: >
+  Looks through currently open power, water, or gas outage tickets and flags
+  any that are close to or past the restoration-time commitment the utility
+  promised customers or regulators. Use this if crews sometimes miss SLA
+  windows simply because nobody was watching the clock on open tickets.
+category: utilities
+tags: [utilities, outages, sla, restoration]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select ticket_id, outage_started_at, service_type, extract(epoch from (now() - outage_started_at))/3600 as hours_open from outage_tickets where status = 'open' and extract(epoch from (now() - outage_started_at))/3600 >= {{sla_warning_hours}}::numeric order by hours_open desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the outage-management database.
+  sla_warning_hours:
+    default: "20"
+    description: Hours since outage start at which a ticket is considered at risk of breaching the restoration SLA (set below your actual SLA commitment, e.g. 4 hours before a 24-hour commitment).
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `outage_tickets` table with `ticket_id`, `outage_started_at`, `service_type`, and `status` columns — adjust to your outage-management system's schema. Read-only check; it does not close tickets or dispatch crews, only surfaces ones at risk so a human or dispatcher can prioritize them.

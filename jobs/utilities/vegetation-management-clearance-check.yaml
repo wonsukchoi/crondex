@@ -1,0 +1,26 @@
+id: vegetation-management-clearance-check
+version: 1
+name: Vegetation Management Clearance Check
+description: >
+  Scans the vegetation-management tracking system for power line right-of-way
+  segments where tree/brush clearance has fallen below the required distance
+  or the last trim date is overdue for its cycle, and lists them ordered by
+  how overdue they are. Use this if a utility has ever had an outage or
+  wildfire ignition traced back to a tree limb nobody scheduled a trim crew
+  for in time.
+category: utilities
+tags: [utilities, electric, vegetation-management, wildfire-risk, right-of-way]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select segment_id, feeder_id, last_trim_date, min_clearance_ft, current_clearance_ft, (current_date - last_trim_date) as days_since_trim from vegetation_segments where current_clearance_ft < min_clearance_ft or (current_date - last_trim_date) > {{max_trim_cycle_days}} order by days_since_trim desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the vegetation-management/GIS database.
+  max_trim_cycle_days:
+    default: "1095"
+    description: Maximum days allowed between trims for a segment before it's considered overdue (default ~3 years).
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `vegetation_segments` table with `segment_id`, `feeder_id`, `last_trim_date`, `min_clearance_ft`, and `current_clearance_ft` columns tied to a GIS/asset-management system — adjust the query to your schema. Read-only reporting job; it does not dispatch trim crews or modify any records. Overdue or under-clearance segments are a leading contributor to wildfire ignitions and outages, so treat every hit as a priority for the vegetation-management team to schedule.

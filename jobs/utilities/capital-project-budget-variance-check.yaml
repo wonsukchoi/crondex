@@ -1,0 +1,25 @@
+id: capital-project-budget-variance-check
+version: 1
+name: Capital Project Budget Variance Check
+description: >
+  Checks utility infrastructure capital projects, like substation upgrades
+  or water main replacements, for spending that has drifted past their
+  approved budget by more than an allowed margin. Use this if you manage
+  capital works and want to catch a project running over budget before
+  it shows up as a surprise at the quarterly review.
+category: utilities
+tags: [utilities, capital-projects, budget, infrastructure]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select project_id, project_name, approved_budget, actual_spend_to_date, round(100.0 * (actual_spend_to_date - approved_budget) / nullif(approved_budget, 0), 2) as variance_pct from capital_projects where status = 'active' and round(100.0 * (actual_spend_to_date - approved_budget) / nullif(approved_budget, 0), 2) > {{variance_pct_threshold}} order by variance_pct desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the capital projects / finance database.
+  variance_pct_threshold:
+    default: "10"
+    description: Percentage over approved budget at which a project is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `capital_projects` table with `project_id`, `project_name`, `status`, `approved_budget`, and `actual_spend_to_date` columns — adjust to your capital-works tracking schema. Read-only and informational; it flags variance for review, it does not adjust budgets or halt spending.

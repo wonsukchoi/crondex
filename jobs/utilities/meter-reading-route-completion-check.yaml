@@ -1,0 +1,25 @@
+id: meter-reading-route-completion-check
+version: 1
+name: Meter Reading Route Completion Check
+description: >
+  Checks whether today's scheduled meter-reading routes were actually
+  completed by field crews or automated meter-reading equipment, versus
+  falling back to an estimated read. Use this if estimated bills (and the
+  customer complaints that follow) keep slipping through because a route
+  quietly went unfinished.
+category: utilities
+tags: [utilities, meter-reading, field-operations, billing]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select route_id, route_name, scheduled_date, meters_scheduled, meters_read, meters_estimated from meter_reading_routes where scheduled_date = current_date and meters_read < meters_scheduled * {{completion_threshold}}::numeric order by (meters_read::numeric / nullif(meters_scheduled, 0)) asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the meter-reading / billing database.
+  completion_threshold:
+    default: "1.0"
+    description: Minimum fraction (0-1) of scheduled meters that must be actually read (not estimated) for a route to count as complete; lower this if partial-completion routes are acceptable.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `meter_reading_routes` table with `route_id`, `route_name`, `scheduled_date`, `meters_scheduled`, `meters_read`, and `meters_estimated` columns — adjust to your AMI/meter-reading system's schema. Read-only informational check; it does not reschedule routes or trigger estimated billing itself.

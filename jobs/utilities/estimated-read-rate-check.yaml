@@ -1,0 +1,28 @@
+id: estimated-read-rate-check
+version: 1
+name: Estimated Read Rate Check
+description: >
+  Checks what percentage of a billing cycle's meter reads were estimated
+  rather than actually taken, and flags when that estimate rate climbs
+  above a set threshold. Use this if you're a utility and want an early
+  warning before a spike in estimated bills turns into a wave of billing
+  complaints and rework.
+category: utilities
+tags: [utilities, billing, meter-reads, data-quality]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select billing_cycle, count(*) filter (where read_type = 'estimated') as estimated_reads, count(*) as total_reads, round(100.0 * count(*) filter (where read_type = 'estimated') / nullif(count(*), 0), 2) as estimate_pct from meter_reads where billing_cycle = '{{billing_cycle}}' group by billing_cycle having round(100.0 * count(*) filter (where read_type = 'estimated') / nullif(count(*), 0), 2) > {{estimate_pct_threshold}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the billing/metering database.
+  billing_cycle:
+    default: "2026-06"
+    description: Billing cycle identifier (e.g. year-month) to check.
+  estimate_pct_threshold:
+    default: "10"
+    description: Estimate rate percentage above which the cycle is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `meter_reads` table with `billing_cycle`, `read_type` ('actual' or 'estimated'), and one row per meter read. Read-only and informational — a high estimate rate is a leading indicator of billing disputes, not proof of one, so route flagged cycles to the metering/field-read team for follow-up.

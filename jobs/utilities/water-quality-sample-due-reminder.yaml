@@ -1,0 +1,25 @@
+id: water-quality-sample-due-reminder
+version: 1
+name: Water Quality Sample Due Reminder
+description: >
+  Checks the regulatory sampling schedule for required water-quality tests
+  (such as bacteriological or lead & copper sampling) and reminds compliance
+  staff which sampling events are coming due soon. Use this if a water
+  utility has ever missed a required sampling window and had to explain the
+  gap to a regulator.
+category: utilities
+tags: [utilities, water, water-quality, compliance, sampling]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select sample_point_id, sample_type, last_sample_date, next_due_date, (next_due_date - current_date) as days_until_due from water_quality_sampling_schedule where next_due_date <= current_date + interval '{{lookahead_days}} days' order by next_due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the water-quality sampling schedule database.
+  lookahead_days:
+    default: "14"
+    description: How many days ahead to scan for sampling events coming due.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `water_quality_sampling_schedule` table with `sample_point_id`, `sample_type`, `last_sample_date`, and `next_due_date` columns driven by the applicable regulatory schedule (e.g. Safe Drinking Water Act sampling requirements) — adjust the query to your schema and jurisdiction's actual required intervals. Read-only reminder job; it does not collect samples, submit lab results, or file compliance reports itself.

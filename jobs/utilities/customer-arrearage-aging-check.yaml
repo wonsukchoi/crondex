@@ -1,0 +1,25 @@
+id: customer-arrearage-aging-check
+version: 1
+name: Customer Arrearage Aging Check
+description: >
+  Checks how far past due each customer account balance is (30/60/90+ days)
+  and flags accounts that have crossed the threshold where collection action
+  normally kicks in. Use this if a utility's collections team has ever been
+  surprised by how large an account's unpaid balance had grown before anyone
+  looked at it.
+category: utilities
+tags: [utilities, billing, arrearage, collections, accounts-receivable]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, balance_due, due_date, (current_date - due_date) as days_past_due from customer_accounts where balance_due > 0 and (current_date - due_date) >= {{collection_action_threshold_days}} order by days_past_due desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the customer billing/accounts-receivable database.
+  collection_action_threshold_days:
+    default: "30"
+    description: Minimum days past due for an account to be flagged as crossing the collection-action threshold.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `customer_accounts` table with `account_id`, `balance_due`, and `due_date` columns — adjust the query to your schema. Read-only reporting job; it does not itself send notices, apply late fees, or initiate disconnection. Many jurisdictions restrict collection actions for certain customer classes (medical hardship, seniors, active moratorium) — cross-check flagged accounts against those protections before any action is taken.

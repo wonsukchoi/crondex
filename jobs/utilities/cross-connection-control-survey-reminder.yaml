@@ -1,0 +1,32 @@
+id: cross-connection-control-survey-reminder
+version: 1
+name: Cross-Connection Control Survey Reminder
+description: >
+  Checks which commercial and industrial water customers are coming due for
+  their periodic cross-connection control survey — the site-hazard
+  assessment that determines what backflow risk a property poses and what
+  device protection it needs — and lists the ones due within a lookahead
+  window. Use this if your water utility is required to re-survey
+  commercial/industrial accounts on a regulatory cycle and needs a heads-up
+  before an account falls overdue; this is the hazard survey/assessment
+  itself, not the annual backflow-device test-and-certification reminder
+  (that's a separate, narrower job).
+category: utilities
+tags: [water-utility, cross-connection-control, backflow, compliance, survey]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_id, site_name, hazard_class, last_survey_date, (last_survey_date + interval '1 year' * {{survey_cycle_years}}) as next_survey_due from cross_connection_accounts where account_type in ('commercial','industrial') and (last_survey_date + interval '1 year' * {{survey_cycle_years}}) <= current_date + interval '1 day' * {{lookahead_days}} order by next_survey_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the utility's customer/cross-connection database.
+  survey_cycle_years:
+    default: "2"
+    description: How often a full cross-connection control survey must be redone, per your state/local regulatory cycle (commonly 1-3 years).
+  lookahead_days:
+    default: "30"
+    description: How many days ahead of the due date to start flagging an account for scheduling.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `cross_connection_accounts` table with `account_id`, `site_name`, `account_type`, `hazard_class`, and `last_survey_date` columns — adjust the query to your schema. Read-only and informational; it does not schedule or dispatch the survey itself, just flags which accounts need one queued up. This is distinct from a backflow-device annual test/certification reminder — that job tracks a different, device-level regulatory requirement.

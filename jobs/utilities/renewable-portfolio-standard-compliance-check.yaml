@@ -1,0 +1,26 @@
+id: renewable-portfolio-standard-compliance-check
+version: 1
+name: Renewable Portfolio Standard Compliance Check
+description: >
+  Compares this year's renewable energy procured or generated so far against
+  the pace needed to hit the utility's annual Renewable Portfolio Standard
+  (RPS) requirement, and flags whether the utility is on track or falling
+  behind. Use this if your utility has a regulatory renewable-energy target
+  to hit each year and wants an early warning before it's too late in the
+  year to buy more renewable energy credits or contract more generation.
+category: utilities
+tags: [rps, renewable-energy, regulatory-compliance, energy-procurement]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "with ytd as (select coalesce(sum(mwh),0) as procured_mwh from renewable_procurement where extract(year from delivery_date) = extract(year from current_date)) select procured_mwh, {{annual_target_mwh}} as annual_target_mwh, round(100.0 * procured_mwh / {{annual_target_mwh}}, 1) as pct_of_target, round(100.0 * extract(doy from current_date) / 365.0, 1) as pct_of_year_elapsed from ytd;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database tracking renewable energy procurement/generation.
+  annual_target_mwh:
+    default: "500000"
+    description: This year's required renewable MWh under the applicable RPS regulation for this utility/jurisdiction.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `renewable_procurement` table with `delivery_date` and `mwh` columns covering both owned generation and purchased renewable energy credits. Read-only and informational; compare the reported pct_of_target against pct_of_year_elapsed yourself (or downstream) to judge if pace is behind — this job does not make the buy/build decision.

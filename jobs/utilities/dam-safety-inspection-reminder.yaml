@@ -1,0 +1,25 @@
+id: dam-safety-inspection-reminder
+version: 1
+name: Dam Safety Inspection Reminder
+description: >
+  Reminds staff when a regulatory-required safety inspection for a dam or
+  reservoir is coming due, based on each structure's last inspection date
+  and required inspection interval. Use this if your utility operates a
+  hydro dam or water-storage reservoir and needs to keep inspections on
+  schedule to stay compliant with dam-safety regulations.
+category: utilities
+tags: [utilities, dam-safety, compliance, reservoir, inspection]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select dam_id, dam_name, last_inspection_date, inspection_interval_months, (last_inspection_date + (inspection_interval_months || ' months')::interval)::date as due_date from dam_assets where (last_inspection_date + (inspection_interval_months || ' months')::interval)::date <= current_date + interval '{{lead_time_days}} days' order by due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the dam/reservoir asset registry database.
+  lead_time_days:
+    default: "30"
+    description: How many days before the inspection is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `dam_assets` table with `dam_id`, `dam_name`, `last_inspection_date`, and `inspection_interval_months` columns per structure — adjust to your dam-safety program's asset registry and the interval required by your regulator (e.g. FERC, state dam-safety office). Read-only reminder only; it does not schedule or perform the inspection itself.

@@ -1,0 +1,28 @@
+id: transformer-load-threshold-alert
+version: 1
+name: Transformer Load Threshold Alert
+description: >
+  Checks recent load readings on distribution transformers against each
+  unit's nameplate capacity and flags any running hot enough that peak
+  summer or winter demand could push them into overload. Use this if you'd
+  rather schedule a transformer upgrade or load-shift in advance than find
+  out about an overload from a burned-out unit and an outage call.
+category: utilities
+tags: [utilities, electric, transformers, capacity-planning]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select transformer_id, location, nameplate_kva, round(avg(load_kva), 1) as avg_load_kva, round(max(load_kva), 1) as peak_load_kva, round(max(load_kva) / nameplate_kva * 100, 1) as peak_pct_of_capacity from transformer_load_readings where reading_time >= now() - interval '{{lookback_days}} days' group by transformer_id, location, nameplate_kva having max(load_kva) / nameplate_kva * 100 >= {{load_threshold_pct}}::numeric order by peak_pct_of_capacity desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the SCADA/AMI transformer-monitoring database.
+  lookback_days:
+    default: "7"
+    description: How many days of recent load readings to consider when computing average and peak load.
+  load_threshold_pct:
+    default: "85"
+    description: Percentage of nameplate capacity at which a transformer is flagged as approaching overload risk ahead of peak season.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `transformer_load_readings` table with `transformer_id`, `location`, `nameplate_kva`, `load_kva`, and `reading_time` columns, and a separate nameplate-capacity value per transformer — adjust to your SCADA/GIS schema. Read-only planning signal, not a real-time protection trip; it does not de-energize or re-route load itself.

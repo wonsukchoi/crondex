@@ -1,0 +1,30 @@
+id: demand-response-event-participation-check
+version: 1
+name: Demand Response Event Participation Check
+description: >
+  After a demand-response event has been called, compares each enrolled
+  customer's or device's actual load reduction against their baseline and
+  committed curtailment amount, and lists which ones didn't curtail as
+  expected. Use this if your utility runs demand-response programs and
+  needs a quick way to see who followed through on an event versus who
+  needs a follow-up call, a performance-payment adjustment, or a
+  non-compliance notice.
+category: utilities
+tags: [demand-response, load-curtailment, program-compliance, energy]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select p.enrollment_id, p.customer_name, e.baseline_kw, e.observed_kw, (e.baseline_kw - e.observed_kw) as actual_reduction_kw, p.committed_reduction_kw from dr_event_readings e join dr_enrollments p on p.enrollment_id = e.enrollment_id where e.event_id = '{{event_id}}' and (e.baseline_kw - e.observed_kw) < (p.committed_reduction_kw * {{participation_threshold_pct}} / 100.0) order by actual_reduction_kw asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the demand-response metering/enrollment database.
+  event_id:
+    default: "latest"
+    description: Identifier of the demand-response event to check; a wrapper script can resolve "latest" to the most recent event_id before running the query.
+  participation_threshold_pct:
+    default: "80"
+    description: Minimum percentage of an enrollee's committed reduction that counts as having participated; anything below this is flagged as a non-participant.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `dr_enrollments` table (enrollment_id, customer_name, committed_reduction_kw) and a `dr_event_readings` table (event_id, enrollment_id, baseline_kw, observed_kw) populated from meter data after the event window closes. Read-only and informational; it flags candidates for manual follow-up or contractual review, it does not issue penalties or payments itself.

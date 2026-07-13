@@ -1,0 +1,43 @@
+id: claims-insurance-valuation-mismatch-check
+version: 1
+name: Claims Insurance Valuation Mismatch Check
+description: >
+  Cross-checks filed damaged-goods claims against the coverage level the
+  customer actually declared on file (released value vs. full-value
+  protection) and flags any claim whose requested payout doesn't match what
+  their coverage supports. Use this if a payout dispute has ever blown up
+  after the fact because a claim was processed against the wrong valuation
+  tier nobody double-checked first.
+category: moving-relocation
+tags: [moving-relocation, claims, insurance, valuation]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cap="{{released_value_cap_per_lb}}" '
+    NR==1 {next}
+    {
+      claim_id=$1; move_id=$2; coverage_type=$3; declared_value=$4; claimed_amount=$5; item_weight_lbs=$6; status=$7;
+      if (tolower(coverage_type) == "released-value") {
+        max_payout = item_weight_lbs * cap;
+        if (claimed_amount > max_payout) {
+          printf "MISMATCH: claim %s (move %s) is released-value coverage, max payout ~%.2f for %s lbs, but claimed %s\n", claim_id, move_id, max_payout, item_weight_lbs, claimed_amount;
+        }
+      } else if (tolower(coverage_type) == "full-value-protection") {
+        if (claimed_amount > declared_value) {
+          printf "MISMATCH: claim %s (move %s) is full-value-protection with declared value %s, but claimed %s exceeds it\n", claim_id, move_id, declared_value, claimed_amount;
+        }
+      } else {
+        printf "UNKNOWN COVERAGE TYPE: claim %s (move %s) lists coverage_type \"%s\", cannot verify\n", claim_id, move_id, coverage_type;
+      }
+    }
+  ' "{{claims_csv_path}}"
+variables:
+  claims_csv_path:
+    default: "./damage-claims.csv"
+    description: "Path to a CSV with columns: claim_id,move_id,coverage_type (released-value or full-value-protection),declared_value,claimed_amount,item_weight_lbs,status."
+  released_value_cap_per_lb:
+    default: 0.60
+    description: "Standard released-value liability cap in dollars per pound (commonly $0.60/lb in the US) used to sanity-check claims filed under released-value coverage."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only flags claims whose requested amount looks inconsistent with the customer's coverage tier, it doesn't approve, deny, or pay out claims itself. Have claims/insurance staff manually verify any flagged mismatch before disputing or resolving the claim.

@@ -1,0 +1,39 @@
+id: moving-invoice-aging-check
+version: 1
+name: Completed Move Invoice Aging Check
+description: >
+  Checks invoices for completed moves against an aging threshold and
+  flags any that are still unpaid past the number of days you set. Use
+  this if a move has ever wrapped up fine but the final invoice quietly
+  went unpaid for weeks because nobody was tracking it after the truck
+  left.
+category: moving-relocation
+tags: [moving-relocation, invoicing, collections, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_overdue}}" '
+    NR==1 {next}
+    $5 == "completed" && $6 == "unpaid" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= max_days) {
+        printf "AGING: invoice %s for %s — $%s, due %s (%d days overdue)\n", $1, $2, $7, $4, overdue_days;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./moving-invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,customer_name,move_date (YYYY-MM-DD),due_date (YYYY-MM-DD),move_status (completed/scheduled/cancelled),payment_status (unpaid/paid),amount."
+  max_days_overdue:
+    default: 30
+    description: Days past the due date before an unpaid invoice for a completed move is flagged (e.g. 30, 60, or 90 to match your aging buckets).
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only surfaces overdue invoices for moves that already
+  happened, it doesn't send a reminder or contact the customer — follow
+  up manually once flagged.

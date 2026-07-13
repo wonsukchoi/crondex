@@ -1,0 +1,55 @@
+id: moving-off-season-promo-reminder
+version: 1
+name: Moving Off-Season Promo Reminder
+description: >
+  Flags past customers who haven't moved again or referred anyone in over a
+  set number of months and drafts a promo outreach message offering an
+  off-peak discount during the slow season. Use this if trucks and crews
+  have ever sat underbooked in the off-season because past customers were
+  never reminded you're still around and offering a deal.
+category: moving-relocation
+tags: [moving-relocation, off-season, promo, sales, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v months="{{inactivity_interval_months}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; last=$4; referred=$5;
+      if (last == "") {
+        printf "PROMO CANDIDATE: %s (%s) — no move on record\n", id, name;
+        next;
+      }
+      cmd = "date -d \"" last "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since > months * 30 && referred != "yes") {
+        printf "PROMO CANDIDATE: %s (%s) — last move %s (%.0f days ago), no referrals\n", id, name, last, days_since;
+      }
+    }
+  ' "{{past_customers_csv_path}}"
+prompt: >
+  Read the past customers at {{past_customers_csv_path}} (columns:
+  customer_id, customer_name, contact_info, last_move_date, referred_anyone
+  ["yes" or blank]). Identify every customer whose last_move_date is more
+  than {{inactivity_interval_months}} months ago (or blank), and who hasn't
+  referred anyone. For each one, draft a short, friendly promo message
+  offering the current off-peak/off-season discount and inviting them to
+  book another move or refer a friend, using their name. Group the drafts
+  by how long it's been since their last move, longest first — do not send
+  anything.
+script_note: >
+  The command gives you a zero-token list of past customers overdue for a
+  repeat move or referral, with day counts; only the prompt drafts the
+  personalized off-season promo outreach messages.
+variables:
+  past_customers_csv_path:
+    default: "./past-customers.csv"
+    description: "Path to a CSV with columns: customer_id,customer_name,contact_info,last_move_date (YYYY-MM-DD, blank if none on record),referred_anyone (yes or blank)."
+  inactivity_interval_months:
+    default: 18
+    description: How many months without a repeat move or referral before a past customer is flagged as a promo candidate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and personalize the promo messages before sending through your usual SMS/email tool.

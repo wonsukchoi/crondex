@@ -1,0 +1,43 @@
+id: dot-mc-authority-compliance-check
+version: 1
+name: DOT/MC Operating Authority Compliance Check
+description: >
+  Checks the moving company's DOT/MC operating authority and required
+  filings (BOC-3 process agent designation, cargo and liability
+  insurance filings, state permits) against their renewal or expiry
+  dates and flags anything lapsing within your warning window. Use this
+  if you've ever worried a truck could get pulled off a long-distance
+  job — or the whole company shut down — because a federal filing quietly
+  lapsed and nobody was watching the renewal date.
+category: moving-relocation
+tags: [moving-relocation, compliance, dot, mc-authority, insurance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "AUTHORITY/FILING EXPIRING: %s (%s) — reference %s expires %s (%d days away)\n", $1, $2, $4, $3, days_until;
+      }
+    }
+  ' "{{filings_csv_path}}"
+variables:
+  filings_csv_path:
+    default: "./dot-mc-filings.csv"
+    description: "Path to a CSV with columns: filing_name,filing_type (dot-operating-authority/mc-authority/boc3-process-agent/cargo-insurance/liability-insurance/state-permit),expiry_date (YYYY-MM-DD),reference_number."
+  warning_days:
+    default: 45
+    description: How many days before a filing's expiry date it should be flagged, giving enough lead time to refile since federal/state renewals rarely process same-day.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags upcoming or already-lapsed authority and
+  filings, it doesn't file the renewal itself — do that with FMCSA or
+  your state agency once flagged. Operating with a lapsed DOT/MC
+  authority can get trucks placed out of service, so treat flags here
+  as high priority.

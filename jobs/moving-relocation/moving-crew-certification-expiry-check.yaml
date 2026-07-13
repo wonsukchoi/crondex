@@ -1,0 +1,36 @@
+id: moving-crew-certification-expiry-check
+version: 1
+name: Moving Crew Certification Expiry Check
+description: >
+  Checks each moving crew member's required certifications, like specialty
+  piano/antique-handling certs or warehouse forklift cards, against their
+  expiry dates and flags anyone lapsing soon. Use this if a crew has ever
+  been assigned to a specialty-item move or a warehouse shift only to find
+  out on-site that the certification covering that job had already expired.
+category: moving-relocation
+tags: [moving-relocation, crew-management, certification, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{expiry_warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "CERT EXPIRING: %s — %s cert expires %s (%.0f days left), status %s\n", $1, $3, $4, days_left, $5;
+      }
+    }
+  ' "{{crew_certs_csv_path}}"
+variables:
+  crew_certs_csv_path:
+    default: "./crew-certifications.csv"
+    description: "Path to a CSV with columns: crew_member_name,employee_id,cert_type (e.g. piano-handling, forklift, fine-art-handling),expiry_date (YYYY-MM-DD),status (active/expired/renewal-pending)."
+  expiry_warning_days:
+    default: 21
+    description: How many days before a certification's expiry date to start flagging it, so there's time to schedule renewal training before it lapses.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces certifications expiring soon, it doesn't book renewal training or reassign crews itself. Named with a moving- prefix since crew-safety-cert-expiry-check already exists for the construction category; this one is scoped to moving-specific specialty-item and warehouse certs.

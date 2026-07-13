@@ -1,0 +1,46 @@
+id: damaged-goods-claim-tracker
+version: 1
+name: Damaged Goods Claim Tracker
+description: >
+  Tracks customer-reported damaged or lost item claims from a move and
+  flags any claim still open past your target resolution window. Use this
+  if a damage claim has ever sat unresolved for weeks because nobody was
+  watching the clock on it, leaving an unhappy customer chasing you for
+  an update.
+category: moving-relocation
+tags: [moving-relocation, claims, customer-service, damage]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v target="{{resolution_target_days}}" '
+    NR==1 {next}
+    {
+      claim_id=$1; customer=$2; move_date=$3; filed_date=$4; item=$5; status=tolower($6);
+      cmd = "date -d \"" filed_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" filed_date "\" +%s 2>/dev/null";
+      cmd | getline filed_epoch; close(cmd);
+      age_days = int((today - filed_epoch) / 86400);
+      if (status != "resolved" && status != "closed" && status != "denied") {
+        if (age_days > target) {
+          printf "OVERDUE: claim %s — %s (%s), filed %s, open %d day(s) (target %d), status %s\n", claim_id, customer, item, filed_date, age_days, target, status;
+        } else {
+          open_count++;
+        }
+      }
+    }
+    END {
+      if (open_count > 0) {
+        printf "%d open claim(s) still within the resolution window.\n", open_count;
+      }
+    }
+  ' "{{claims_csv_path}}"
+variables:
+  claims_csv_path:
+    default: "./damage-claims.csv"
+    description: "Path to a CSV with columns: claim_id,customer_name,move_date (YYYY-MM-DD),date_filed (YYYY-MM-DD),item_description,status (open, in-review, resolved, closed, denied)."
+  resolution_target_days:
+    default: 30
+    description: Number of days a claim is allowed to stay open before it's flagged as overdue.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes claim status is kept current in the source CSV (e.g. exported from a claims spreadsheet or CRM) and does not itself contact the customer or an insurer.

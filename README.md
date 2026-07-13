@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1245 jobs across 59 categories:
+1265 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -146,6 +146,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
+| `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |

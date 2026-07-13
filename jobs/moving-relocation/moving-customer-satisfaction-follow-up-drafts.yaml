@@ -1,0 +1,43 @@
+id: moving-customer-satisfaction-follow-up-drafts
+version: 1
+name: Moving Customer Satisfaction Follow-Up Drafts
+description: >
+  Reviews post-move customer satisfaction survey responses, flags any score
+  below your quality bar, and drafts a personal follow-up message for each
+  unhappy customer. Use this if a bad move (broken item, late crew, surprise
+  charge) has ever gone unaddressed until the customer left a public review
+  instead of giving you a chance to make it right.
+category: moving-relocation
+tags: [moving-relocation, customer-satisfaction, surveys, retention]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_score="{{min_acceptable_score}}" '
+    NR==1 {next}
+    $4 != "" && $4 < min_score {
+      printf "LOW SCORE: %s for %s — rating %s/5, move date %s, comment: %s\n", $1, $2, $4, $3, $5;
+    }
+  ' "{{surveys_csv_path}}"
+script_note: >
+  The shell command only lists the surveys that fell below the score
+  threshold — it doesn't write anything. Drafting a warm, specific
+  follow-up that references the customer's actual comment and offers a
+  concrete next step is what the prompt mode adds.
+prompt: >
+  Read the post-move satisfaction survey log at {{surveys_csv_path}}
+  (columns: move_id, customer_name, move_date, rating, comment). Find every
+  response with a rating below {{min_acceptable_score}} out of 5. For each
+  one, draft a short, warm, personal follow-up message to the customer that
+  acknowledges their specific comment, apologizes for the experience, and
+  offers a concrete next step (a claim for damaged items, a partial refund,
+  or a call to discuss).
+variables:
+  surveys_csv_path:
+    default: "./move-satisfaction-surveys.csv"
+    description: "Path to a CSV with columns: move_id,customer_name,move_date (YYYY-MM-DD),rating (1-5),comment."
+  min_acceptable_score:
+    default: 3
+    description: Ratings at or above this number (out of 5) are considered fine; anything below is flagged for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review each message before sending, this job never contacts the customer on its own.

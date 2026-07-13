@@ -1,0 +1,31 @@
+id: piano-specialty-item-insurance-check
+version: 1
+name: Piano & Specialty Item Insurance Check
+description: >
+  Checks scheduled moves that include declared specialty or high-value
+  items (piano, art, safe, and similar) against whether supplemental
+  insurance coverage was offered and documented, and flags any that
+  weren't. Use this if a piano or safe has ever been damaged in transit and
+  the customer found out only afterward that nobody offered them extra
+  coverage for it.
+category: moving-relocation
+tags: [moving-relocation, insurance, specialty-items, high-value, risk]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      move=$1; customer=$2; items=$3; offered=$4; documented=$5;
+      if (items != "" && (offered != "yes" || documented != "yes")) {
+        printf "MISSING COVERAGE: %s (%s) — specialty items: %s, offered: %s, documented: %s\n", move, customer, items, offered, documented;
+      }
+    }
+  ' "{{scheduled_moves_csv_path}}"
+variables:
+  scheduled_moves_csv_path:
+    default: "./scheduled-moves.csv"
+    description: "Path to a CSV with columns: move_id,customer_name,specialty_items (semicolon-separated, e.g. piano;art;safe — blank if none declared),insurance_offered (yes/no),insurance_documented (yes/no)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes the pre-move inventory/insurance offer is logged into the CSV (from a booking form or estimator's notes) before this runs.

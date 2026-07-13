@@ -1,0 +1,59 @@
+id: long-distance-delivery-window-check
+version: 1
+name: Long-Distance Delivery Window At-Risk Check
+description: >
+  Checks long-distance/interstate shipments still in transit against
+  their contracted delivery window (spread dates) and flags any at risk
+  of missing the end of that window. Use this if a long-distance
+  customer has ever found out their shipment would be late only when it
+  didn't show up on the last day of the window, instead of hearing from
+  you first.
+category: moving-relocation
+tags: [moving-relocation, long-distance, delivery-window, customer-communication]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v buffer="{{buffer_days}}" '
+    NR==1 {next}
+    $6 == "in-transit" {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline window_end_epoch; close(cmd);
+      days_left = (window_end_epoch - today) / 86400;
+      if (days_left <= buffer) {
+        printf "AT RISK: shipment %s for %s — window ends %s (%d days left), currently in transit\n", $1, $2, $5, days_left;
+      }
+    }
+  ' "{{shipments_csv_path}}"
+prompt: |
+  Read {{shipments_csv_path}} and find shipments with status
+  "in-transit" whose delivery_window_end is within {{buffer_days}} days
+  of today (or already past). For each one at risk of missing its
+  delivery window:
+  1. Look up the shipment's origin, destination, and last known truck
+     location/status if that information is available to you.
+  2. Draft a short, plain-language proactive heads-up message to the
+     customer explaining the delivery window may be tight and giving
+     your best current estimate — do NOT send it, save it as a draft.
+  3. Summarize which shipments are at risk, why, and what draft messages
+     you prepared.
+script_note: >
+  `command` gives you the raw list of in-transit shipments within
+  {{buffer_days}} days of their window end, with no customer-facing
+  message and no lookup of current truck location. `prompt` adds the
+  status lookup, the plain-language draft notification per shipment, and
+  a synthesized summary.
+variables:
+  shipments_csv_path:
+    default: "./long-distance-shipments.csv"
+    description: "Path to a CSV with columns: shipment_id,customer_name,origin,destination,delivery_window_end (YYYY-MM-DD),status (in-transit/delivered/cancelled)."
+  buffer_days:
+    default: 3
+    description: How many days before the contracted delivery window ends a still-in-transit shipment should be flagged as at risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Draft-only: any customer notification this job prepares must be
+  reviewed and sent manually — it never contacts the customer on its
+  own. Read-only otherwise: it only flags shipments and drafts messages,
+  it doesn't change dispatch or routing.

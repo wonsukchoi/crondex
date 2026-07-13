@@ -1,0 +1,34 @@
+id: customer-move-day-reminder-drafts
+version: 1
+name: Customer Move Day Reminder Drafts
+description: >
+  Reads tomorrow's scheduled moves and drafts a short reminder message for
+  each customer confirming the move date, arrival window, and crew size or
+  truck details, so someone just has to review and send. Use this if a
+  customer has ever been caught off guard or unprepared on move day because
+  nobody reminded them what to expect and when the crew would show up.
+category: moving-relocation
+tags: [moving-relocation, customer-communication, scheduling, reminders]
+schedule: "0 15 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the CSV at {{moves_csv_path}} (columns: customer_name, move_date,
+  arrival_window, origin_address, destination_address, crew_size,
+  truck_details, contact_method). Filter to rows where move_date is
+  tomorrow's date. For each matching row, draft a short, friendly reminder
+  message (2-4 sentences, plain language, no jargon) confirming the move
+  date, arrival window, and crew size/truck details, addressed by the
+  customer's name. Output each draft clearly labeled with the customer name
+  and their preferred contact_method. Do not send anything — these are
+  drafts only, for a human to review and send via {{default_send_channel}}
+  or the customer's listed contact_method.
+variables:
+  moves_csv_path:
+    default: "./scheduled-moves.csv"
+    description: "Path to a CSV with columns: customer_name,move_date (YYYY-MM-DD),arrival_window,origin_address,destination_address,crew_size,truck_details,contact_method."
+  default_send_channel:
+    default: "email"
+    description: Fallback channel to suggest for sending the drafted reminder when a customer's contact_method column is blank or ambiguous.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — this job never sends anything, it only produces message drafts for a human to review and send. Double-check arrival window and crew/truck details against the latest dispatch schedule before sending, in case of last-minute changes.

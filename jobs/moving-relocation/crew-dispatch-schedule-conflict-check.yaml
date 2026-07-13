@@ -1,0 +1,43 @@
+id: crew-dispatch-schedule-conflict-check
+version: 1
+name: Crew Dispatch Schedule Conflict Check
+description: >
+  Scans the day's move schedule for any crew or truck booked onto two moves
+  that overlap, or booked back-to-back with too little time between them to
+  drive from one job site to the next. Use this if a crew has ever shown up
+  late to a move (or had to rush and cut corners) because dispatch quietly
+  double-booked the same crew or truck.
+category: moving-relocation
+tags: [moving-relocation, dispatch, scheduling, crew-management]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  (head -1 "{{dispatch_csv_path}}"; tail -n +2 "{{dispatch_csv_path}}" | sort -t',' -k1,1 -k4,4) | awk -F',' -v buffer="{{min_travel_buffer_minutes}}" '
+    NR==1 {next}
+    {
+      resource=$1; move=$2; client=$3; start=$4; end=$5;
+      cmd = "date -d \"" start "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" start "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      cmd2 = "date -d \"" end "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" end "\" +%s 2>/dev/null";
+      cmd2 | getline end_epoch; close(cmd2);
+      if (resource == prev_resource) {
+        gap = (start_epoch - prev_end_epoch) / 60;
+        if (start_epoch < prev_end_epoch) {
+          printf "OVERLAP: %s has move %s (ends %s) overlapping move %s (starts %s) for client %s\n", resource, prev_move, prev_end, move, start, client;
+        } else if (gap < buffer) {
+          printf "TIGHT TRAVEL: %s has only %d min between move %s (ends %s) and move %s (starts %s, client %s)\n", resource, gap, prev_move, prev_end, move, start, client;
+        }
+      }
+      prev_resource=resource; prev_move=move; prev_end=end; prev_end_epoch=end_epoch;
+    }
+  '
+variables:
+  dispatch_csv_path:
+    default: "./move-dispatch.csv"
+    description: "CSV with header row, columns: crew_or_truck_id,move_id,client_name,start_time,end_time (YYYY-MM-DD HH:MM), one row per scheduled move leg for that crew or truck."
+  min_travel_buffer_minutes:
+    default: 45
+    description: Minimum minutes required between the end of one move and the start of the next for the same crew or truck before it's flagged as a tight travel window (movers typically need longer drive/reload buffers than other field crews).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes the day's dispatch board (from a moving/scheduling tool export or shared sheet) is written to the CSV before this runs, and that a crew_or_truck_id can represent either a crew team or a specific truck depending on how you dispatch.

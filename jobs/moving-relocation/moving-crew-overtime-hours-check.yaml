@@ -1,0 +1,45 @@
+id: moving-crew-overtime-hours-check
+version: 1
+name: Moving Crew Overtime Hours Check
+description: >
+  Totals each moving crew member's logged hours for the week and flags
+  anyone approaching or over your overtime threshold. Use this if payroll
+  surprises or crew burnout have ever snuck up on you because overtime
+  only got noticed once the payroll run came back higher than expected,
+  especially during a heavy moving season.
+category: moving-relocation
+tags: [moving-relocation, overtime, labor-hours, payroll]
+schedule: "0 16 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v week="{{current_week_ending}}" -v threshold="{{overtime_threshold_hours}}" -v warn="{{warning_threshold_hours}}" '
+    NR==1 {next}
+    $2 == week {
+      hours[$1] += $3 + 0;
+    }
+    END {
+      for (mover in hours) {
+        if (hours[mover] > threshold) {
+          printf "OVERTIME: %s — %.1f hours logged for week ending %s (threshold %s)\n", mover, hours[mover], week, threshold;
+        } else if (hours[mover] >= warn) {
+          printf "APPROACHING LIMIT: %s — %.1f hours logged for week ending %s (threshold %s)\n", mover, hours[mover], week, threshold;
+        }
+      }
+    }
+  ' "{{crew_hours_csv_path}}"
+variables:
+  crew_hours_csv_path:
+    default: "./moving-crew-hours.csv"
+    description: "Path to a CSV with columns: crew_member_name,week_ending (YYYY-MM-DD),hours_worked."
+  current_week_ending:
+    default: "2026-07-12"
+    description: The week_ending value (YYYY-MM-DD) to total hours for — update weekly, or generate dynamically from your time-tracking export.
+  overtime_threshold_hours:
+    default: 40
+    description: Weekly hours above which a crew member is flagged for overtime.
+  warning_threshold_hours:
+    default: 36
+    description: Weekly hours at or above which a crew member is flagged as approaching the overtime threshold.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: current_week_ending is a static default — wire it up to your time-tracking system's export or a date calculation so it always points at the current week.

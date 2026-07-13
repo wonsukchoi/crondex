@@ -1,0 +1,42 @@
+id: storage-in-transit-expiry-check
+version: 1
+name: Storage-in-Transit Expiry Check
+description: >
+  Checks customer shipments held in storage-in-transit against their
+  contracted free-storage window and flags any approaching or past
+  expiry, since that's when extra storage billing kicks in. Use this if
+  a customer's belongings have ever sat in storage-in-transit past their
+  free window without anyone billing for it or telling the customer.
+category: moving-relocation
+tags: [moving-relocation, storage-in-transit, billing, warehousing]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      shipment_id=$1; customer=$2; sit_start=$3; free_days=$4+0; released=tolower($5);
+      cmd = "date -d \"" sit_start "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" sit_start "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      expiry_epoch = start_epoch + (free_days * 86400);
+      expires_in_days = int((expiry_epoch - today) / 86400);
+      if (released != "yes" && expires_in_days <= warn) {
+        if (expires_in_days < 0) {
+          printf "PAST FREE WINDOW: %s — %s, SIT start %s, free storage expired %d day(s) ago, billing should have started\n", shipment_id, customer, sit_start, -expires_in_days;
+        } else {
+          printf "EXPIRING SOON: %s — %s, SIT start %s, free storage window ends in %d day(s)\n", shipment_id, customer, sit_start, expires_in_days;
+        }
+      }
+    }
+  ' "{{sit_shipments_csv_path}}"
+variables:
+  sit_shipments_csv_path:
+    default: "./sit-shipments.csv"
+    description: "Path to a CSV with columns: shipment_id,customer_name,sit_start_date (YYYY-MM-DD),free_storage_days,released (yes/no) — released means the shipment has come out of storage-in-transit and is out for delivery or already delivered."
+  warn_days_before:
+    default: 5
+    description: How many days before (or after, shown as past due) the calculated free-storage expiry to start flagging a shipment.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags shipments approaching or past their contracted free-storage window, it does not update billing itself or move goods out of storage.

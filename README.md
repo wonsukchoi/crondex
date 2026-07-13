@@ -63,6 +63,38 @@ No install needed — `npx` always runs against the latest catalog.
 
 ---
 
+## Use as an MCP server
+
+Skip the shell-out entirely — register crondex as an MCP server and your
+agent gets `recommend`/`list`/`categories`/`show`/`next` as native tools
+instead of invoking a CLI. Read-only: no filesystem writes, no crontab
+access.
+
+Claude Code:
+
+```bash
+claude mcp add crondex -- npx -y @wonsukchoi/crondex mcp
+```
+
+Any other MCP client (e.g. `.mcp.json`, Claude Desktop's config):
+
+```json
+{
+  "mcpServers": {
+    "crondex": {
+      "command": "npx",
+      "args": ["-y", "@wonsukchoi/crondex", "mcp"]
+    }
+  }
+}
+```
+
+Tools exposed: `crondex_recommend`, `crondex_list`, `crondex_categories`,
+`crondex_show`, `crondex_next_runs` — each returns the same JSON shape as
+the matching CLI command's `--json` flag.
+
+---
+
 ## What's in a job
 
 Every job is one YAML file:

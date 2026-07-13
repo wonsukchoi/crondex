@@ -1,0 +1,24 @@
+id: pet-microchip-id-on-file-check
+version: 1
+name: Pet Microchip ID On File Check
+description: >
+  Scans your boarding/daycare client roster for pets with no microchip ID
+  recorded on file. Use this if a pet has ever gotten loose during a walk
+  or play session and staff had nothing to give a shelter or scanner-holding
+  finder beyond a physical description.
+category: petcare
+tags: [petcare, boarding, daycare, microchip, records, safety]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    { if ($3 == "") print "NO MICROCHIP ID ON FILE: " $1 " (" $2 ")"; }
+  ' "{{roster_csv_path}}"
+variables:
+  roster_csv_path:
+    default: "./pet-roster.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,microchip_id (blank if none on file)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from the veterinary category's microchip-registration-verification-check.yaml, which confirms a chip is registered with the manufacturer's database — this only checks that your own intake record captured a microchip ID at all. It does not verify the number is accurate or still registered to the current owner.

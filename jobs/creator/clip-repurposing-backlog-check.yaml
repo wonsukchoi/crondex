@@ -1,0 +1,39 @@
+id: clip-repurposing-backlog-check
+version: 1
+name: Clip Repurposing Backlog Check
+description: >
+  Checks your tracker of short-form clip candidates and flags any that
+  have sat unpublished past a grace period. Use this if a great clip has
+  ever been identified from a long-form video and then just never
+  actually got cut and posted because it fell off the bottom of the list.
+category: creator
+tags: [creator, clips, repurposing, video]
+schedule: "0 9 * * 2,5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_days}}" '
+    NR==1 {next}
+    $3 != "published" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline id_ts; close(cmd);
+      age_days = (today - id_ts) / 86400;
+      if (age_days >= stale) printf "BACKLOG: %s @ %s — status \"%s\" for %d days (identified %s)\n", $1, $2, $3, age_days, $4;
+    }
+  ' "{{clip_backlog_csv_path}}"
+variables:
+  clip_backlog_csv_path:
+    default: "./clip-repurposing-backlog.csv"
+    description: "Path to a CSV with columns: video_title,clip_timestamp,status (planned/cut/published),date_identified (YYYY-MM-DD)."
+  stale_days:
+    default: 5
+    description: Days a clip candidate can sit without being published before it's flagged as stuck in the backlog.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Different from youtube-clip-repurposing, which drafts new clip candidates
+  the day a long-form video goes up — this tracks what happens after that:
+  whether a candidate actually got cut and posted, or just sat in
+  "planned"/"cut" status. Log candidates from that job (or manual reviews)
+  into clip-repurposing-backlog.csv and update status as clips move through
+  editing to published.

@@ -1,0 +1,32 @@
+id: project-closeout-checklist-check
+version: 1
+name: Project Closeout Checklist Check
+description: >
+  Checks recently completed client projects against the standard closeout
+  checklist (final assets delivered and archived, usage rights transferred,
+  final invoice sent, retainer/SOW closed out, post-mortem scheduled) and
+  flags any project marked done with steps still open. Use this if a
+  project has ever been called "finished" only for someone to discover
+  weeks later that the final files were never archived or the closing
+  invoice never went out.
+category: agency
+tags: [agency, project-closeout, deliverables, offboarding]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select p.project_name, p.client, p.completed_at, string_agg(c.item_name, ', ') filter (where c.completed_at is null) as open_items from projects p join closeout_checklist_items c on c.project_id = p.project_id where p.status = 'completed' and p.completed_at >= now() - interval '{{lookback_days}} days' group by p.project_name, p.client, p.completed_at having count(c.item_name) filter (where c.completed_at is null) > 0 order by p.completed_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's project-management database.
+  lookback_days:
+    default: "30"
+    description: How many days back to check for recently completed projects still missing closeout steps.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `projects` table with `project_id`, `project_name`, `client`,
+  `status`, and `completed_at`, plus a `closeout_checklist_items` table
+  with `project_id`, `item_name`, and a nullable `completed_at` — adjust
+  to your PM tool's schema. Read-only and informational; it does not
+  check off items, archive files, or send any invoice itself.

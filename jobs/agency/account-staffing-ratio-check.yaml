@@ -1,0 +1,31 @@
+id: account-staffing-ratio-check
+version: 1
+name: Account-Team Staffing Ratio Check
+description: >
+  Counts how many active client accounts each account lead is responsible
+  for and flags anyone stretched past the agency's target accounts-per-lead
+  ratio. Use this if an account lead has ever quietly ended up owning twice
+  as many accounts as their peers because new clients kept getting assigned
+  to whoever answered fastest, not whoever had capacity.
+category: agency
+tags: [agency, staffing, account-management, capacity]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_lead, count(*) as active_accounts from clients where status = 'active' group by account_lead having count(*) > {{max_accounts_per_lead}} order by active_accounts desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's client/account-management database.
+  max_accounts_per_lead:
+    default: "6"
+    description: Maximum number of active accounts one account lead is expected to carry before it's flagged as overloaded.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `clients` table with `account_lead` and `status` columns —
+  adjust the query if account ownership lives in a separate assignment
+  table. This is a headcount ratio, not a workload measure; pair it with
+  billable-utilization-rate-check (hours) or project-profitability-check
+  (revenue) for a fuller picture before reassigning accounts. Read-only;
+  it does not reassign any account itself.

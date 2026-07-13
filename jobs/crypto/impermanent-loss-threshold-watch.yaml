@@ -1,0 +1,46 @@
+id: impermanent-loss-threshold-watch
+version: 1
+name: Impermanent Loss Threshold Watch
+description: >
+  Estimates the current impermanent loss on a liquidity-pool position by
+  comparing pooled-asset value against simply holding the original assets,
+  and flags it once the loss crosses a threshold you set. Use this if
+  you've ever pulled liquidity out of a pool and only then realized how
+  far behind "just holding" you'd fallen.
+category: crypto
+tags: [crypto, defi, liquidity-pool, impermanent-loss]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  For the liquidity position {{position_address_or_id}} in the
+  {{pool_name}} pool on {{protocol_name}} (via the protocol's app, a
+  position tracker, or an LP-analytics site), compare the current pooled-
+  asset value against the value if the originally deposited amount of each
+  asset had simply been held instead.
+  1. Report the estimated impermanent loss as a percentage versus holding,
+     and in {{denomination_currency}}.
+  2. Compare it against fees/rewards earned so far from the position, to
+     give a net picture — impermanent loss can be partly or fully offset
+     by yield.
+  3. Flag as worth reviewing if net impermanent loss (after fees/rewards)
+     exceeds {{il_threshold_pct}}%.
+  4. If below threshold, report the current buffer in one line.
+variables:
+  position_address_or_id:
+    default: "your wallet address or LP position ID"
+    description: Wallet address or LP/NFT position identifier to check.
+  pool_name:
+    default: "ETH/USDC"
+    description: Name of the liquidity pool (asset pair).
+  protocol_name:
+    default: "Uniswap v3"
+    description: DEX/protocol the pool is on.
+  denomination_currency:
+    default: "USD"
+    description: Currency to express the impermanent loss amount in.
+  il_threshold_pct:
+    default: 5
+    description: Net impermanent loss percentage that's worth flagging for review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never withdraws or adjusts the position. The estimate depends on knowing the original deposit amounts/prices; if that data isn't discoverable, say so rather than guessing. Distinct from yield-farming-apy-comparison, which compares headline APY across pools rather than tracking realized IL on a position you already hold.

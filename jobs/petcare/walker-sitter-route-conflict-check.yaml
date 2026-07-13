@@ -1,0 +1,45 @@
+id: walker-sitter-route-conflict-check
+version: 1
+name: Dog Walker / Pet Sitter Route Conflict Check
+description: >
+  Scans today's dog-walking or pet-sitting visit schedule for any walker or
+  sitter booked onto two visits that overlap, or booked back-to-back with
+  too little travel time between addresses. Use this if a walker has ever
+  shown up late (or had to rush a visit) because the schedule quietly
+  double-booked them or left no buffer between two stops.
+category: petcare
+tags: [petcare, walking, pet-sitting, scheduling, route, conflict]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  tail -n +2 "{{schedule_csv_path}}" | sort -t',' -k1,1 -k3,3 | awk -F',' -v buffer="{{buffer_minutes}}" '
+    function to_epoch(t,    cmd, e) {
+      cmd = "date -d \"1970-01-01 " t "\" +%s 2>/dev/null || date -j -f \"%H:%M\" \"" t "\" +%s 2>/dev/null";
+      cmd | getline e; close(cmd);
+      return e;
+    }
+    {
+      w = $1;
+      start_e = to_epoch($3);
+      end_e = to_epoch($4);
+      if (w == prev_w) {
+        gap_min = (start_e - prev_end_e) / 60;
+        if (start_e < prev_end_e) {
+          printf "CONFLICT: %s — %s (%s-%s) overlaps %s (%s-%s)\n", w, prev_pet, prev_start, prev_end, $2, $3, $4;
+        } else if (gap_min < buffer) {
+          printf "TIGHT TURNAROUND: %s — only %d min between %s (ends %s) and %s (starts %s)\n", w, gap_min, prev_pet, prev_end, $2, $3;
+        }
+      }
+      prev_w = w; prev_pet = $2; prev_start = $3; prev_end = $4; prev_end_e = end_e;
+    }
+  '
+variables:
+  schedule_csv_path:
+    default: "./walker-schedule.csv"
+    description: "Path to a CSV with columns: walker_name,pet_name,start_time (HH:MM, 24h, same day),end_time (HH:MM)."
+  buffer_minutes:
+    default: 15
+    description: Minimum minutes required between the end of one visit and the start of the next for the same walker before flagging a tight turnaround.
+compatible_agents: [generic, claude, codex]
+notes: Assumes all visits fall within a single day and don't cross midnight; times are treated as local wall-clock only, with no actual travel-distance data. Distinct from mobile-vet-route-scheduling-conflict-check (veterinary house calls) — this covers dog-walking and pet-sitting visit routes.

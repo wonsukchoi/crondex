@@ -1,0 +1,33 @@
+id: daycare-temperament-evaluation-expiry-check
+version: 1
+name: Daycare Temperament Evaluation Expiry Check
+description: >
+  Scans your daycare roster for dogs whose on-file temperament/behavior
+  evaluation has expired or is expiring soon under your required
+  re-evaluation interval. Use this if a dog's original temperament eval has
+  ever quietly aged for years while new behaviors went unassessed, right up
+  until something happened in a playgroup.
+category: petcare
+tags: [petcare, daycare, temperament-evaluation, admission, safety]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  warn_by=$(date -d "+{{warn_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{warn_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v warn="$warn_by" '
+    NR==1 {next}
+    {
+      if ($3 < today) print "EXPIRED: " $1 " (" $2 ") — temperament eval expired " $3;
+      else if ($3 <= warn) print "EXPIRING SOON: " $1 " (" $2 ") — expires " $3;
+    }
+  ' "{{roster_csv_path}}"
+variables:
+  roster_csv_path:
+    default: "./daycare-temperament-evals.csv"
+    description: "Path to a CSV with columns: dog_name,owner_name,temperament_eval_due_date (YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: How many days ahead of the due date to start flagging an evaluation as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from aggressive-behavior-flag-review-reminder.yaml, which re-reviews pets already flagged after an incident — this covers the baseline periodic re-evaluation every daycare dog needs regardless of flag status. Paperwork check only; a qualified staff member must conduct the actual re-evaluation.

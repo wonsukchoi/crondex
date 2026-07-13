@@ -1,0 +1,58 @@
+id: facility-repair-ticket-aging-check
+version: 1
+name: Facility Repair Ticket Aging Check
+description: >
+  Lists open facility repair tickets (a broken latch, a leaking pipe, a
+  cracked run floor) with how long each has been open, and gives a
+  safety-weighted prioritization of what to fix first. Use this if a
+  maintenance ticket has ever sat open for weeks until it turned into a
+  bigger problem — or a safety risk — because nobody was tracking the
+  backlog by age.
+category: petcare
+tags: [petcare, facility, maintenance, safety, tickets]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      if ($5 == "open") {
+        cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+        cmd | getline last_epoch; close(cmd);
+        age_days = (today - last_epoch) / 86400;
+        printf "OPEN %d DAYS: #%s %s (%s)%s\n", age_days, $1, $2, $3, ($6 == "yes" ? " [SAFETY]" : "");
+        if (age_days > stale) count_stale++;
+      }
+    }
+    END { if (count_stale > 0) printf "ALERT: %d ticket(s) open past %s days\n", count_stale, stale; }
+  ' "{{tickets_csv_path}}"
+prompt: |
+  Read the open facility repair tickets from {{tickets_csv_path}} (columns:
+  ticket_id, description, area, reported_date, status, safety_related).
+
+  1. Rank the open tickets by urgency, weighting anything with
+     safety_related=yes highest regardless of how long it's been open.
+  2. For each ticket open past {{stale_after_days}} days, suggest a
+     concrete next action (assign to a specific role, order a part,
+     escalate to the owner) based on the description.
+  3. Group the remaining tickets by area (boarding runs, daycare yard,
+     grooming room, lobby) so a facilities person can batch a single
+     walkthrough instead of bouncing around.
+  4. Do not mark any ticket resolved — only recommend next steps for a
+     person to act on.
+script_note: >
+  `command` gives a flat list of open tickets with age in days and a count
+  past the staleness threshold — no prioritization or grouping. `prompt`
+  ranks by safety impact, suggests a next action per stale ticket, and
+  groups tickets by area for an efficient walkthrough.
+variables:
+  tickets_csv_path:
+    default: "./facility-repair-tickets.csv"
+    description: "Path to a CSV with columns: ticket_id,description,area,reported_date (YYYY-MM-DD),status (open/closed),safety_related (yes/no)."
+  stale_after_days:
+    default: 14
+    description: Days a ticket can stay open before it's counted toward the staleness alert.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from safety-equipment-inspection-log-check.yaml, which covers scheduled recurring inspections of specific equipment — this tracks ad hoc reported repair issues through to resolution. Advisory only; nothing here closes or reassigns a ticket automatically.

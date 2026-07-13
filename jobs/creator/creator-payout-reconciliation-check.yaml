@@ -1,0 +1,42 @@
+id: creator-payout-reconciliation-check
+version: 1
+name: Creator Fund and Ad Revenue Payout Reconciliation
+description: >
+  Compares expected platform ad-revenue or creator-fund payouts against
+  what actually landed, and flags anything missing or short. Use this if
+  a payout has ever come in lower than the platform's own estimated
+  earnings dashboard said it would, or just never showed up, and nobody
+  noticed until months later.
+category: creator
+tags: [creator, monetization, payout, revenue]
+schedule: "0 9 5 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      platform=$1; period=$2; expected=$3; actual=$4; paid_date=$5;
+      if (paid_date == "" || actual == "" || actual+0 == 0) {
+        printf "UNPAID: %s %s — expected %.2f, no payout recorded yet\n", platform, period, expected+0;
+        next;
+      }
+      diff_pct = (expected+0 - actual+0) / (expected+0) * 100;
+      if (diff_pct > tol) printf "SHORTFALL: %s %s — expected %.2f, paid %.2f (%.1f%% short)\n", platform, period, expected+0, actual+0, diff_pct;
+    }
+  ' "{{payout_csv_path}}"
+variables:
+  payout_csv_path:
+    default: "./creator-payouts.csv"
+    description: "Path to a CSV with columns: platform,period (e.g. 2026-06),expected_amount,actual_amount,paid_date (YYYY-MM-DD; leave actual_amount/paid_date blank if not paid yet)."
+  tolerance_pct:
+    default: 5
+    description: Percent shortfall between expected and actual payout allowed before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Fill in expected_amount from each platform's estimated-earnings
+  dashboard at the end of a period, then fill in actual_amount/paid_date
+  once the payout lands. Covers platform ad revenue and creator-fund
+  payouts specifically — for sponsor invoices see
+  brand-deal-payment-followup-check, and for membership perk delivery see
+  membership-tier-fulfillment-check.

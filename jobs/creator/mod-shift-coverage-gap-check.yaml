@@ -1,0 +1,40 @@
+id: mod-shift-coverage-gap-check
+version: 1
+name: Community Moderator Shift Coverage Gap Check
+description: >
+  Checks your upcoming moderator shift schedule for streams or peak
+  posting hours against the minimum mods you need on duty, and flags any
+  shift that's short-staffed. Use this if a stream has ever gone live
+  with only one mod on duty during a raid or a comment brigade because
+  nobody double-checked the sign-up sheet beforehand.
+category: creator
+tags: [creator, community, moderation, staffing]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  cutoff=$(( today + {{lookahead_days}} * 86400 ));
+  awk -F',' -v today="$today" -v cutoff="$cutoff" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline shift_ts; close(cmd);
+      if (shift_ts >= today && shift_ts <= cutoff && $4+0 < $5+0) {
+        printf "GAP: %s %s-%s — %d of %d mods scheduled\n", $1, $2, $3, $4+0, $5+0;
+      }
+    }
+  ' "{{mod_schedule_csv_path}}"
+variables:
+  mod_schedule_csv_path:
+    default: "./mod-shift-schedule.csv"
+    description: "Path to a CSV with columns: shift_date (YYYY-MM-DD),shift_start,shift_end,mods_scheduled,mods_required."
+  lookahead_days:
+    default: 3
+    description: How many days ahead to check for under-covered shifts.
+compatible_agents: [generic, claude, codex]
+notes: >
+  For creators running live-chat or Discord moderation coverage during
+  streams or peak posting hours. Update mods_scheduled as your volunteer
+  or paid mod team confirms shifts; this only flags shifts still short as
+  the date approaches.

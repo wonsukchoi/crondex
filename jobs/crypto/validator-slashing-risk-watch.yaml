@@ -1,0 +1,40 @@
+id: validator-slashing-risk-watch
+version: 1
+name: Validator Uptime & Slashing Risk Watch
+description: >
+  Checks a staked validator's recent attestation/block performance and any
+  slashing or penalty events via a public explorer, and flags degrading
+  uptime before it costs real rewards or triggers a slash. Use this if you
+  run or delegate to a validator and have ever found out about a missed-
+  attestation streak or a slashing event only after checking weeks later.
+category: crypto
+tags: [crypto, staking, validator, slashing]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check validator {{validator_id}} on {{network_name}} (via a public
+  explorer such as beaconcha.in, mintscan, or the network's own explorer)
+  for performance over the last {{lookback_hours}} hours.
+  1. Report the current attestation effectiveness / uptime percentage, and
+     whether any expected blocks were missed or successfully proposed.
+  2. Report any slashing or penalty event in the lookback window — treat
+     this as urgent regardless of size.
+  3. Flag it if uptime/effectiveness has dropped below
+     {{effectiveness_threshold_pct}}%.
+  4. If everything looks healthy, say so in one line.
+variables:
+  validator_id:
+    default: "your validator index or address"
+    description: Validator index, pubkey, or operator address to check.
+  network_name:
+    default: "Ethereum"
+    description: Network the validator runs on (e.g. "Ethereum", "Cosmos Hub", "Solana").
+  lookback_hours:
+    default: 6
+    description: How far back to check performance — should roughly match the schedule interval.
+  effectiveness_threshold_pct:
+    default: 95
+    description: Attestation effectiveness / uptime percentage below which to flag as degraded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only explorer lookup — never touches validator keys or signing infrastructure. Distinct from staking-reward-claim-reminder, which tracks unclaimed reward balances rather than validator health/slashing risk.

@@ -1,0 +1,49 @@
+id: creator-workload-sustainability-check
+version: 1
+name: Creator Workload and Burnout Sustainability Check
+description: >
+  Checks your own logged hours and rest days against sustainable
+  thresholds and flags when you're running too hot for too long. Use this
+  if you've ever kept a perfectly steady posting schedule while quietly
+  working every single day to hit it, and only noticed you were burned
+  out once the content itself started slipping.
+category: creator
+tags: [creator, burnout, workload, wellbeing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v recent="{{recent_days}}" -v max_avg="{{max_avg_daily_hours}}" -v min_rest="{{min_rest_days}}" '
+    NR==1 {next}
+    { n++; hours[n]=$2; off[n]=$3 }
+    END {
+      if (n == 0) { print "No workload data logged yet."; exit; }
+      start = (n - recent + 1 < 1) ? 1 : n - recent + 1;
+      total_hours = 0; rest_days = 0; count = 0;
+      for (i = start; i <= n; i++) { total_hours += hours[i]; if (off[i] == "yes") rest_days++; count++; }
+      avg_hours = total_hours / count;
+      printf "Last %d days: avg %.1f hrs/day worked, %d rest day(s).\n", count, avg_hours, rest_days;
+      if (avg_hours > max_avg) printf "WARNING: average workload (%.1f hrs/day) exceeds sustainable threshold (%.1f hrs/day)\n", avg_hours, max_avg;
+      if (rest_days < min_rest) printf "WARNING: only %d rest day(s) in the last %d days (minimum %d)\n", rest_days, count, min_rest;
+    }
+  ' "{{workload_log_csv_path}}"
+variables:
+  workload_log_csv_path:
+    default: "./creator-workload-log.csv"
+    description: "CSV with a header row, columns: date (YYYY-MM-DD),hours_worked,day_off (yes/no), one row per day, oldest first."
+  recent_days:
+    default: 14
+    description: How many of the most recent logged days to evaluate.
+  max_avg_daily_hours:
+    default: 8
+    description: Average daily hours over the window that's considered sustainable; above this triggers a warning.
+  min_rest_days:
+    default: 2
+    description: Minimum rest days expected within the window; fewer triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Self-reported log — a rough daily estimate of hours worked is fine, it
+  doesn't need to be precise. Different from upload-cadence-consistency-check,
+  which measures drift in the gap between published posts, not how much
+  work or rest actually went into producing them; you can hold a
+  perfectly steady cadence while quietly burning out to do it.

@@ -1,0 +1,34 @@
+id: creative-production-capacity-check
+version: 1
+name: Creative Production Capacity Check
+description: >
+  Compares the hours booked against the production calendar for each
+  creative discipline (design, copy, video, etc.) for the coming weeks
+  against that discipline's available team capacity, and flags any week
+  that's overbooked. Use this if a creative director has ever accepted a
+  new project deadline only to discover the design team was already
+  booked solid for that week on other client work.
+category: agency
+tags: [agency, creative-review, capacity, production-scheduling]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select discipline, week_start, sum(booked_hours) as booked_hours, max(available_hours) as available_hours, round(100.0 * sum(booked_hours) / nullif(max(available_hours), 0), 1) as pct_booked from production_bookings where week_start between current_date and current_date + interval '{{lookahead_weeks}} weeks' group by discipline, week_start having sum(booked_hours) > max(available_hours) order by week_start asc, pct_booked desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's resourcing/production-scheduling database.
+  lookahead_weeks:
+    default: "4"
+    description: How many weeks ahead of the current week to check the production calendar for overbooking.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `production_bookings` table (or view) with `discipline`,
+  `week_start`, `booked_hours`, and `available_hours` per discipline per
+  week — adjust to your resourcing tool's schema. This looks at team
+  capacity by discipline, distinct from billable-utilization-rate-check
+  (individual staff billable percentage) and account-staffing-ratio-check
+  (accounts per account lead). Read-only; it flags overbooked weeks for a
+  resourcing manager to rebalance, it does not move or reassign any
+  booking itself.

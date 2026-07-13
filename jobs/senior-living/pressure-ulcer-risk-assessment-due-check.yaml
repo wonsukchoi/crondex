@@ -1,0 +1,55 @@
+id: pressure-ulcer-risk-assessment-due-check
+version: 1
+name: Pressure Ulcer Risk Assessment Due Check
+description: >
+  Checks each resident's most recent standardized skin/pressure-injury
+  risk assessment (e.g. Braden Scale) against the required reassessment
+  interval and flags anyone whose assessment is due or overdue. Use this
+  if you want a standing check that skin-risk scores stay current
+  instead of being assumed accurate months after they were last done.
+category: senior-living
+tags: [senior-living, pressure-ulcer, skin-integrity, risk-assessment, resident-care]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{reassessment_interval_days}}" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      days_until_due = interval - days_since;
+      if (days_until_due <= lead) {
+        printf "DUE: %s — last skin/pressure-injury risk assessment %s (%d days ago, %d days until next due)\n", $1, $2, days_since, days_until_due;
+      }
+    }
+  ' "{{skin_risk_assessments_csv_path}}"
+variables:
+  skin_risk_assessments_csv_path:
+    default: "./skin-pressure-risk-assessments.csv"
+    description: >
+      Path to a CSV with columns: resident_id,last_assessment_date
+      (YYYY-MM-DD). Use resident_id rather than a resident's full name.
+  reassessment_interval_days:
+    default: 30
+    description: >
+      Maximum number of days allowed between required skin/pressure-injury
+      risk reassessments — set to your facility's care-plan policy or
+      state regulation (many facilities also require reassessment after
+      any new wound is found or a significant change in condition, which
+      this schedule-based check does not detect on its own).
+  lookahead_days:
+    default: 5
+    description: How many days before a reassessment is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a skin/pressure-injury risk assessment export with one row per
+  resident holding the date of their most recent standardized score —
+  adjust to your EHR/charting system's export format. This tracks the
+  risk-assessment schedule, not existing wound treatment orders or
+  wound-care documentation, which would need its own tracked log.
+  Read-only and summary-only: it only flags which residents are due for
+  reassessment, it does not perform the assessment, change a care plan,
+  or contact anyone.

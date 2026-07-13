@@ -1,0 +1,65 @@
+id: sponsor-ad-read-compliance-check
+version: 1
+name: Podcast Sponsor Ad-Read Compliance Check
+description: >
+  Checks the sponsor read that actually aired in a published episode's
+  transcript against the contracted word count and required disclosure
+  phrase. Use this if a sponsor has ever come back after an episode went
+  live saying the read was too short or missing the "paid partnership"
+  disclosure they contracted for.
+category: podcast
+tags: [podcast, sponsorship, compliance, ad-read]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ ! -f "{{episode_transcript_file}}" ]; then echo "WARNING: transcript file {{episode_transcript_file}} not found, cannot verify sponsor read"; exit 1; fi;
+  segment=$(awk "/{{sponsor_segment_start_marker}}/,/{{sponsor_segment_end_marker}}/" "{{episode_transcript_file}}");
+  if [ -z "$segment" ]; then echo "WARNING: no sponsor segment found between markers in {{episode_transcript_file}}"; exit 1; fi;
+  word_count=$(echo "$segment" | wc -w);
+  has_disclosure=$(echo "$segment" | grep -ci "{{required_disclosure_phrase}}");
+  issues="";
+  if [ "$word_count" -lt "{{min_word_count}}" ]; then issues="$issues word count $word_count below contracted minimum of {{min_word_count}};"; fi;
+  if [ "$has_disclosure" -eq 0 ]; then issues="$issues missing required disclosure phrase '{{required_disclosure_phrase}}';"; fi;
+  if [ -n "$issues" ]; then echo "WARNING: sponsor read compliance issues -$issues"; exit 1;
+  else echo "OK: sponsor read is $word_count words and includes the required disclosure"; fi
+script_note: >
+  The script gives an objective word count and an exact-phrase match for
+  the disclosure. It can't tell whether a paraphrased disclosure still
+  satisfies the sponsor's legal requirement, or whether the read sounded
+  natural enough that the sponsor will want to renew — an LLM pass over
+  the same transcript segment adds that judgment.
+prompt: |
+  Read the sponsor segment in {{episode_transcript_file}} between the
+  markers {{sponsor_segment_start_marker}} and {{sponsor_segment_end_marker}}.
+  1. Check the word count against the contracted minimum of
+     {{min_word_count}} words.
+  2. Check for a disclosure equivalent to "{{required_disclosure_phrase}}"
+     — accept a natural paraphrase, not just an exact string match.
+  3. Flag anything the contract requires that's missing (promo code
+     mention, specific claim the sponsor asked for), if that context is
+     available.
+  4. If everything checks out, confirm in one line.
+variables:
+  episode_transcript_file:
+    default: "episode-transcript.txt"
+    description: Path to the published episode's transcript file.
+  sponsor_segment_start_marker:
+    default: "[SPONSOR START]"
+    description: Marker line in the transcript that begins the sponsor read segment.
+  sponsor_segment_end_marker:
+    default: "[SPONSOR END]"
+    description: Marker line in the transcript that ends the sponsor read segment.
+  min_word_count:
+    default: 60
+    description: Minimum contracted word count for the sponsor read.
+  required_disclosure_phrase:
+    default: "paid partnership"
+    description: Phrase (or close equivalent) the read must include to satisfy sponsor disclosure requirements.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires transcript markers around the sponsor segment (added manually or
+  by your transcription workflow) — without them the script can't isolate
+  the read from the rest of the episode. Complements
+  `ad-read-script-approval-overdue-check`, which checks the script gets
+  sponsor sign-off before recording, not whether the aired read matched it.

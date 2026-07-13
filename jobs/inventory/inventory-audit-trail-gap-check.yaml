@@ -1,0 +1,37 @@
+id: inventory-audit-trail-gap-check
+version: 1
+name: Inventory Audit Trail Gap Check
+description: >
+  Scans your inventory adjustment log for missing transaction IDs in an
+  otherwise sequential run, and for adjustments logged without a reason
+  code, both signs that a change was made outside the normal audit process.
+  Use this if an inventory adjustment has ever gone through with no record
+  of who did it or why, and nobody noticed until an auditor asked.
+category: inventory
+tags: [inventory, audit-trail, data-integrity, compliance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  sort -t',' -k1,1n "{{inventory_transactions_csv_path}}" | awk -F',' -v min_gap="{{min_gap_size}}" '
+    NR==1 {next}
+    {
+      id=$1+0;
+      if (prev_id != "" && (id - prev_id) > min_gap) {
+        printf "GAP: transaction ids %d to %d missing (%d records)\n", prev_id+1, id-1, id-prev_id-1;
+      }
+      if ($5 == "") {
+        printf "MISSING REASON CODE: transaction %d on %s for %s (adjustment %s)\n", id, $2, $3, $4;
+      }
+      prev_id = id;
+    }
+  '
+variables:
+  inventory_transactions_csv_path:
+    default: "./inventory-transactions.csv"
+    description: "Path to a CSV with columns: transaction_id (sequential integer),transaction_date,sku,adjustment_qty,reason_code — an export of every inventory adjustment transaction. Doesn't need to be pre-sorted; the command sorts it."
+  min_gap_size:
+    default: 1
+    description: Number of consecutive missing transaction IDs before a gap is flagged. 1 flags any gap at all.
+compatible_agents: [generic, claude, codex]
+notes: Assumes your inventory system assigns transaction IDs sequentially with no legitimate skips (e.g. no ID reservation across parallel writers) — if your system does skip IDs normally, raise min_gap_size or drop the gap check and keep only the missing-reason-code check. A gap can mean a deleted or reversed adjustment that bypassed your audit process; investigate before assuming the worst.

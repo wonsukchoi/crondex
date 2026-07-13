@@ -1,0 +1,42 @@
+id: peer-feedback-cycle-completion-tracker
+version: 1
+name: Peer Feedback Cycle Completion Tracker
+description: >
+  Checks a performance-review cycle's peer/360 feedback requests and
+  flags reviewers who still haven't submitted as the cycle deadline
+  closes in. Use this if a performance review has ever gone out
+  missing peer input because one reviewer's feedback request sat
+  ignored in their inbox until it was too late to chase.
+category: team
+tags: [team, performance-review, peer-feedback, "360"]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        status = (days_left < 0) ? "OVERDUE" : "DUE SOON";
+        printf "%s (%d day(s)): %s has not submitted peer feedback for %s (deadline %s)\n", status, days_left, $1, $2, $4;
+      }
+    }
+  ' "{{peer_feedback_csv_path}}"
+variables:
+  peer_feedback_csv_path:
+    default: "./peer-feedback-cycle.csv"
+    description: "Path to a CSV with columns: reviewer_name,reviewee_name,status (pending/submitted),cycle_deadline_date (YYYY-MM-DD)."
+  warn_days_before_deadline:
+    default: 5
+    description: Start flagging pending peer feedback once the cycle deadline is within this many days (negative values mean it's already past).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from interview-loop-feedback-nag (hiring-loop
+  scorecards) and team-okr-checkin-reminder (goal progress) — this
+  tracks peer/360 feedback submissions ahead of a performance-review
+  cycle deadline. Assumes a maintained export from your performance-
+  review tool.

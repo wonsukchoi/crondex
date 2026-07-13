@@ -1,0 +1,69 @@
+id: hospice-transition-coordination-tracker
+version: 1
+name: Hospice Transition Coordination Tracker
+description: >
+  Checks residents newly enrolled in hospice care for the coordination
+  steps that typically need to happen at transition (updated code
+  status, hospice agency contact on file, care plan updated to reflect
+  comfort-focused goals) and flags anyone missing a step past a grace
+  period. Use this if a resident has ever started hospice while the
+  facility's own care plan and contact records still lagged days behind
+  the actual change in their care.
+category: senior-living
+tags: [senior-living, hospice, care-coordination, end-of-life, resident-care]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline enroll_epoch; close(cmd);
+      days_since = (today - enroll_epoch) / 86400;
+      if (days_since >= grace && ($3 != "yes" || $4 != "yes" || $5 != "yes")) {
+        printf "INCOMPLETE: %s — hospice since %s (%d days): code_status_updated=%s hospice_contact_on_file=%s care_plan_updated=%s\n", $1, $2, days_since, $3, $4, $5;
+      }
+    }
+  ' "{{hospice_transitions_csv_path}}"
+script_note: >
+  The script gives a free, deterministic list of which hospice
+  transitions are past the grace period with at least one incomplete
+  coordination flag, but it can't judge which missing step is most
+  urgent for a given resident or draft the follow-up note for the
+  interdisciplinary team — that synthesis is what the prompt mode adds.
+prompt: >
+  Using the hospice transition log at {{hospice_transitions_csv_path}}
+  (columns: resident_id, hospice_enrollment_date, code_status_updated
+  yes/no, hospice_contact_on_file yes/no, care_plan_updated yes/no),
+  list every resident enrolled in hospice for {{grace_period_days}} days
+  or more who still has at least one "no" in those three columns.
+  For each, say plainly which step(s) are missing and why that one
+  matters most first (e.g. an unupdated code status is the most urgent
+  because it affects how staff would respond to a change in condition
+  right now). Do not speculate about a resident's prognosis or clinical
+  condition beyond what's in the data, and do not draft any message to a
+  family member — this is an internal coordination checklist only.
+variables:
+  hospice_transitions_csv_path:
+    default: "./hospice-transitions.csv"
+    description: >
+      Path to a CSV with columns: resident_id,hospice_enrollment_date
+      (YYYY-MM-DD),code_status_updated (yes/no),hospice_contact_on_file
+      (yes/no),care_plan_updated (yes/no). Use resident_id, not a
+      resident's full name.
+  grace_period_days:
+    default: 3
+    description: >
+      Number of days after hospice enrollment to give staff to complete
+      the coordination steps before flagging any that are still
+      incomplete.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This job touches sensitive end-of-life and code-status information —
+  restrict access to the underlying CSV and any job output to staff who
+  need it for care coordination. Read-only and summary-only: it only
+  flags which coordination steps are still incomplete for a nurse or
+  social worker to finish, it never changes a code status, edits a care
+  plan, or contacts a hospice agency or family member itself.

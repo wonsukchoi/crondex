@@ -1,0 +1,52 @@
+id: resident-council-grievance-followup-tracker
+version: 1
+name: Resident Council Grievance Follow-Up Tracker
+description: >
+  Scans the logged resident/family grievances filed through resident
+  council meetings or the facility's grievance process and flags any
+  that don't have a documented resolution or response within your
+  required turnaround window. Use this if a grievance raised at a
+  resident council meeting has ever quietly gone unanswered because it
+  only lived in someone's meeting notes instead of a tracked log.
+category: senior-living
+tags: [senior-living, resident-council, grievance, resident-rights, compliance]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{response_sla_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline filed_epoch; close(cmd);
+      days_open = (today - filed_epoch) / 86400;
+      if (days_open >= sla) {
+        printf "UNRESOLVED: %s — grievance filed %s (%s, %d days open, no resolution logged)\n", $1, $2, $3, days_open;
+      }
+    }
+  ' "{{grievance_log_csv_path}}"
+variables:
+  grievance_log_csv_path:
+    default: "./resident-grievance-log.csv"
+    description: >
+      Path to a CSV with columns: grievance_id,filed_date (YYYY-MM-DD),
+      category,status (open/resolved/withdrawn). Use grievance_id or
+      resident_id, not a resident's full name, if your log includes one.
+  response_sla_days:
+    default: 5
+    description: >
+      Number of days after a grievance is filed before an open,
+      unresolved entry is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a grievance log exported to CSV that already contains every
+  grievance raised, whether surfaced in a resident council meeting,
+  written comment card, or direct complaint — this job does not read
+  meeting minutes itself, so whatever intake process feeds the log must
+  capture council-raised items too. Read-only and summary-only: it only
+  flags which grievances are past the response window for a social
+  worker or administrator to follow up on, it does not resolve, dismiss,
+  or respond to any grievance itself, and any resident health
+  information referenced in a grievance should stay out of the category
+  field where possible.

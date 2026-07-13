@@ -1,0 +1,51 @@
+id: resident-leave-of-absence-return-check
+version: 1
+name: Resident Leave-of-Absence Return Check
+description: >
+  Checks the resident sign-out log for day passes and overnight
+  leaves-of-absence and flags anyone whose expected return time has
+  passed with no logged return. Use this if a resident has ever been
+  off-site on an approved outing or family visit and the facility didn't
+  notice they were overdue to come back until someone asked where they
+  were.
+category: senior-living
+tags: [senior-living, leave-of-absence, day-pass, safety, resident-care]
+schedule: "*/30 8-22 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_period_minutes}}" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      minutes_overdue = (today - expected_epoch) / 60;
+      if (minutes_overdue >= grace) {
+        printf "OVERDUE: %s — expected back %s, no return logged (%d minutes overdue)\n", $1, $2, minutes_overdue;
+      }
+    }
+  ' "{{leave_of_absence_log_csv_path}}"
+variables:
+  leave_of_absence_log_csv_path:
+    default: "./resident-leave-of-absence-log.csv"
+    description: >
+      Path to a CSV with columns: resident_id,expected_return_datetime
+      (an ISO-ish timestamp your `date` command can parse, e.g.
+      2026-07-13T17:00),actual_return_datetime (blank until they sign
+      back in). Use resident_id, not a resident's full name.
+  grace_period_minutes:
+    default: 30
+    description: >
+      Minutes past the expected return time before a resident with no
+      logged return is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes front-desk or nursing staff log both the expected return time
+  at sign-out and the actual return time at sign-in for every day pass
+  or leave of absence — adjust to your facility's actual sign-out sheet
+  or system export. This job is time-sensitive and safety-related:
+  treat any overdue flag as needing an immediate welfare check by staff,
+  not a routine end-of-day review. Read-only: it only flags who hasn't
+  signed back in on time, it does not contact a resident, family member,
+  or emergency services itself — that call is a human decision.

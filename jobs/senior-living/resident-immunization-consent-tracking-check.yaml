@@ -1,0 +1,49 @@
+id: resident-immunization-consent-tracking-check
+version: 1
+name: Resident Immunization Consent Tracking Check
+description: >
+  Checks the seasonal influenza and other offered-vaccine consent log
+  for residents who are missing a recorded consent decision (accept or
+  decline) as the vaccination clinic date approaches. Use this if a
+  resident has ever been skipped during a vaccination clinic, or given a
+  vaccine without one, simply because their consent form was never
+  logged either way.
+category: senior-living
+tags: [senior-living, immunization, vaccination, consent, resident-care]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    $3 == "" || $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline clinic_epoch; close(cmd);
+      days_until = (clinic_epoch - today) / 86400;
+      if (days_until <= lead) {
+        printf "MISSING CONSENT: %s — %s clinic on %s (%d days away), no consent decision on file\n", $1, $4, $2, days_until;
+      }
+    }
+  ' "{{immunization_consent_csv_path}}"
+variables:
+  immunization_consent_csv_path:
+    default: "./immunization-consent-log.csv"
+    description: >
+      Path to a CSV with columns: resident_id,clinic_date (YYYY-MM-DD),
+      consent_status (accept/decline/pending or blank),vaccine_name. Use
+      resident_id, not a resident's full name.
+  lookahead_days:
+    default: 10
+    description: >
+      How many days before the scheduled vaccination clinic date to
+      start flagging a resident with no recorded consent decision.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an immunization consent log with one row per resident per
+  offered vaccine/clinic date — adjust to your facility's actual
+  charting or clinic-scheduling export. Read-only: this only flags whose
+  consent decision is still missing for a nurse or resident-care
+  coordinator to follow up on, it does not record a consent decision,
+  administer any vaccine, or contact a resident or responsible party
+  itself.

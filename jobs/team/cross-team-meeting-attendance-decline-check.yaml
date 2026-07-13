@@ -1,0 +1,49 @@
+id: cross-team-meeting-attendance-decline-check
+version: 1
+name: Cross-Team Meeting Attendance Decline Check
+description: >
+  Scans attendance history for recurring cross-team meetings and flags
+  ones whose turnout has dropped, either falling below a floor or
+  declining sharply since the meeting started. Use this if a
+  cross-team sync has ever kept running on the calendar for a year
+  after everyone quietly stopped showing up, because nobody looked at
+  attendance trends, only whether the invite still existed.
+category: team
+tags: [team, meetings, cross-team, attendance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_attendance_pct}}" -v decline_pct="{{decline_threshold_pct}}" '
+    NR==1 {next}
+    {
+      m=$1; pct = ($4/$3)*100;
+      if (!(m in first_pct)) { first_pct[m]=pct }
+      last_pct[m]=pct;
+    }
+    END {
+      for (m in last_pct) {
+        drop = first_pct[m] - last_pct[m];
+        if (last_pct[m] < min_pct || drop >= decline_pct) {
+          printf "DECLINING: \"%s\" attendance now %.0f%% (was %.0f%%)\n", m, last_pct[m], first_pct[m];
+        }
+      }
+    }
+  ' "{{meeting_attendance_csv_path}}"
+variables:
+  meeting_attendance_csv_path:
+    default: "./cross-team-meeting-attendance.csv"
+    description: "Path to a CSV with columns: meeting_name,week_start_date,invited_count,attended_count, ordered oldest-to-newest per meeting."
+  min_attendance_pct:
+    default: 50
+    description: Flag a meeting whose most recent attendance rate is below this percentage.
+  decline_threshold_pct:
+    default: 25
+    description: Flag a meeting whose attendance rate has dropped by at least this many percentage points since the earliest tracked week.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from team-meeting-load-audit, which flags
+  individuals with too many meeting hours — this flags a specific
+  recurring meeting that may no longer be earning its slot on the
+  calendar. Assumes a maintained attendance export ordered per meeting
+  by week.

@@ -1,0 +1,56 @@
+id: psychotropic-medication-gradual-dose-reduction-review-check
+version: 1
+name: Psychotropic Medication Gradual Dose Reduction Review Check
+description: >
+  Checks residents on an ongoing psychotropic medication (antipsychotic,
+  antianxiety, antidepressant, or sedative/hypnotic) for the required
+  periodic gradual-dose-reduction (GDR) or clinical-necessity review and
+  flags anyone whose review is due or overdue. Use this if you want to
+  catch a psychotropic order that's been on autopilot past its required
+  review point, a common focus of state and federal unnecessary-drug-use
+  surveys.
+category: senior-living
+tags: [senior-living, psychotropic-medication, medication, clinical-review, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{review_interval_days}}" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      days_until_due = interval - days_since;
+      if (days_until_due <= lead) {
+        printf "DUE: %s — %s, last GDR/clinical-necessity review %s (%d days ago, %d days until next due)\n", $1, $2, $3, days_since, days_until_due;
+      }
+    }
+  ' "{{psychotropic_reviews_csv_path}}"
+variables:
+  psychotropic_reviews_csv_path:
+    default: "./psychotropic-medication-reviews.csv"
+    description: >
+      Path to a CSV with columns: resident_id,medication_class,
+      last_review_date (YYYY-MM-DD), one row per resident's active
+      psychotropic order. Use resident_id, not a resident's full name.
+  review_interval_days:
+    default: 90
+    description: >
+      Maximum number of days allowed between required gradual-dose-reduction
+      or clinical-necessity reviews for a psychotropic order — adjust to
+      your facility's policy and applicable state/federal requirement.
+  lookahead_days:
+    default: 7
+    description: How many days before a review is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a psychotropic-medication review log with one row per active
+  order and the date of its last clinical-necessity or GDR review —
+  adjust to your pharmacy consultant or EHR system's actual schema.
+  Read-only: this only flags which residents' psychotropic orders are
+  due for review by the attending physician and consultant pharmacist,
+  it does not itself change, taper, or discontinue any medication, and
+  any decision to reduce or continue a dose remains a clinical judgment
+  call for licensed staff.

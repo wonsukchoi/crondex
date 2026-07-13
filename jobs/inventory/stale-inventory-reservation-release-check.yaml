@@ -1,0 +1,43 @@
+id: stale-inventory-reservation-release-check
+version: 1
+name: Stale Inventory Reservation Release Check
+description: >
+  Flags inventory reservations still holding stock against an order that's
+  already cancelled or expired, which quietly locks that stock away from
+  everyone else. Use this if a customer has ever been told an item is out
+  of stock when it was really just sitting reserved against an order that
+  fell through weeks ago and never got released.
+category: inventory
+tags: [inventory, reservations, allocation, cleanup]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v statuses="{{stale_statuses}}" -v min_days="{{min_days_since_reserved}}" '
+    BEGIN { n=split(statuses, arr, "|"); for (i=1;i<=n;i++) stale[arr[i]]=1 }
+    NR==1 {next}
+    $6 != "" {next}
+    {
+      status=$4;
+      if (!(status in stale)) next;
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline reserved_epoch; close(cmd);
+      age_days = (today - reserved_epoch) / 86400;
+      if (age_days >= min_days) {
+        printf "STALE RESERVATION: %s — %d units of %s, order status %s since %s (%d days, never released)\n", $1, $3, $2, status, $5, age_days;
+      }
+    }
+  ' "{{reservations_csv_path}}"
+variables:
+  reservations_csv_path:
+    default: "./inventory-reservations.csv"
+    description: "Path to a CSV with columns: reservation_id,sku,quantity,order_status,reserved_since_date (YYYY-MM-DD),released_date (blank if the reservation is still holding stock)."
+  stale_statuses:
+    default: "cancelled|expired"
+    description: Pipe-separated list of order_status values that should already have triggered a release back to available stock.
+  min_days_since_reserved:
+    default: 1
+    description: Days since reserved_since_date before a stale-status reservation is flagged; raise this if your workflow has a normal same-day release lag.
+compatible_agents: [generic, claude, codex]
+notes: Assumes order_status is updated promptly when an order is cancelled or expired even if the separate inventory-release step is sometimes missed — that gap is exactly what this catches. Distinct from `available-to-promise-oversell-check`, which looks at whether total current allocations exceed on-hand rather than whether one specific reservation should already have been released.

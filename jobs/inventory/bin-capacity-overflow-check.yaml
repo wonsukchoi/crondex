@@ -1,0 +1,35 @@
+id: bin-capacity-overflow-check
+version: 1
+name: Bin Capacity Overflow Check
+description: >
+  Compares units stored in each bin against that bin's rated capacity and
+  flags any bin holding more than it's supposed to. Use this if a bin has
+  ever been packed past what it can safely or physically hold because
+  nobody was checking stored quantity against the bin's own rating, only
+  against the SKU's stock level.
+category: inventory
+tags: [inventory, bin, warehouse, capacity]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{overflow_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      bin=$1; loc=$2; capacity=$3+0; stored=$4+0;
+      if (capacity <= 0) next;
+      pct_full = (stored/capacity)*100;
+      if (pct_full >= (100+tol)) {
+        printf "OVERFLOW: bin %s (%s) — %d units stored, rated capacity %d (%.0f%% full)\n", bin, loc, stored, capacity, pct_full;
+      }
+    }
+  ' "{{bin_capacity_csv_path}}"
+variables:
+  bin_capacity_csv_path:
+    default: "./bin-capacity.csv"
+    description: "Path to a CSV with columns: bin_id,location,rated_capacity_units,current_units_stored — a snapshot export of stored quantity per bin against its rated capacity."
+  overflow_tolerance_pct:
+    default: 0
+    description: Percentage points over 100% full allowed before flagging; raise slightly if bins are routinely and safely stacked a bit over their nominal rating.
+compatible_agents: [generic, claude, codex]
+notes: Assumes `rated_capacity_units` and `current_units_stored` are expressed in the same unit (e.g. eaches, not one in cases and one in eaches) — run `unit-of-measure-conversion-mismatch-check` first if you're not sure. Distinct from `bin-location-mismatch-check`, which checks whether stock is in the *right* bin, not whether a bin is overloaded.

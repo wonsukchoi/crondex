@@ -1,0 +1,41 @@
+id: inter-location-transfer-receiving-discrepancy-check
+version: 1
+name: Inter-Location Transfer Receiving Discrepancy Check
+description: >
+  Compares the quantity shipped on an internal stock transfer against the
+  quantity actually logged as received at the destination and flags
+  shortages or overages past a threshold. Use this if a transfer between
+  two of your own locations has ever arrived short or over and nobody
+  noticed until the next count came up wrong at both ends.
+category: inventory
+tags: [inventory, transfers, multi-location, discrepancy]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v units="{{discrepancy_threshold_units}}" -v pct="{{discrepancy_threshold_pct}}" '
+    NR==1 {next}
+    $6 == "" {next}
+    {
+      shipped=$5+0; received=$6+0;
+      diff = received - shipped;
+      absdiff = diff < 0 ? -diff : diff;
+      pctdiff = (shipped>0) ? (absdiff/shipped)*100 : 0;
+      if (absdiff >= units || pctdiff >= pct) {
+        label = (diff < 0) ? "SHORT" : "OVER";
+        printf "%s: transfer %s / %s from %s to %s — shipped %d, received %d (%.1f%% %s)\n", label, $1, $2, $3, $4, shipped, received, pctdiff, label;
+      }
+    }
+  ' "{{transfer_receiving_csv_path}}"
+variables:
+  transfer_receiving_csv_path:
+    default: "./transfer-receiving.csv"
+    description: "Path to a CSV with columns: transfer_id,sku,from_location,to_location,shipped_qty,received_qty. Rows with a blank received_qty (not yet received) are skipped."
+  discrepancy_threshold_units:
+    default: 2
+    description: Absolute unit difference between shipped and received quantity that triggers a flag.
+  discrepancy_threshold_pct:
+    default: 5
+    description: Percent difference between shipped and received quantity that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Complements `warehouse-transfer-aging-check` (which flags transfers stuck in transit too long) by checking accuracy once a transfer is marked received — an on-time transfer can still arrive short or over. Also distinct from `po-receiving-quantity-discrepancy-check`, which covers external supplier purchase orders rather than internal location-to-location transfers.

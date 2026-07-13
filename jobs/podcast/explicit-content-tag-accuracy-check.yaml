@@ -1,0 +1,57 @@
+id: explicit-content-tag-accuracy-check
+version: 1
+name: Podcast Explicit Content Tag Accuracy Check
+description: >
+  Scans a newly published episode's transcript for language that would
+  warrant an explicit tag and compares that against the feed's current
+  tag setting. Use this if you've ever mismarked an episode explicit when
+  it wasn't, or shipped one with the explicit tag off when it should've
+  been on.
+category: podcast
+tags: [podcast, compliance, metadata, content-rating]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ ! -f "{{episode_transcript_file}}" ]; then echo "WARNING: transcript file {{episode_transcript_file}} not found"; exit 1; fi;
+  if [ ! -f "{{profanity_wordlist_file}}" ]; then echo "WARNING: wordlist file {{profanity_wordlist_file}} not found"; exit 1; fi;
+  hit_count=$(grep -oiFf "{{profanity_wordlist_file}}" "{{episode_transcript_file}}" | wc -l);
+  echo "found $hit_count flagged word occurrence(s) in {{episode_transcript_file}} (current explicit tag: {{current_explicit_tag}})";
+  if [ "$hit_count" -ge "{{explicit_word_threshold}}" ] && [ "{{current_explicit_tag}}" != "yes" ]; then
+    echo "WARNING: $hit_count flagged word occurrence(s) found but explicit tag is not set to yes"; exit 1;
+  fi;
+  if [ "$hit_count" -lt "{{explicit_word_threshold}}" ] && [ "{{current_explicit_tag}}" = "yes" ]; then
+    echo "NOTE: explicit tag is set to yes but only $hit_count flagged word occurrence(s) found — confirm this is still warranted"; fi
+script_note: >
+  The wordlist match is a blunt proxy — it catches obvious profanity but
+  misses mature themes (violence, drug use, sexual content) that don't
+  show up as a specific word, and can false-positive on words used in an
+  unrelated context. An LLM pass over the transcript reads for actual
+  content warranting the tag, not just keyword hits.
+prompt: |
+  Read the transcript at {{episode_transcript_file}} and assess whether it
+  warrants an explicit content tag: profanity, sexual content, graphic
+  violence, or drug use discussed in detail.
+  1. Compare your assessment against the current explicit tag setting of
+     "{{current_explicit_tag}}".
+  2. If they disagree, explain what specifically drove your assessment
+     (quote or paraphrase the relevant passage, don't just say "language").
+  3. If they agree, confirm in one line.
+variables:
+  episode_transcript_file:
+    default: "episode-transcript.txt"
+    description: Path to the published episode's transcript file.
+  profanity_wordlist_file:
+    default: "profanity-wordlist.txt"
+    description: Path to a plain-text file with one flagged word/phrase per line, used for the fixed-string keyword scan.
+  current_explicit_tag:
+    default: "no"
+    description: The episode's current explicit tag setting in your feed ("yes" or "no").
+  explicit_word_threshold:
+    default: 3
+    description: Number of flagged-word occurrences that triggers a warning if the explicit tag isn't set to yes.
+compatible_agents: [generic, claude, codex]
+notes: >
+  You must supply your own profanity_wordlist_file — none is bundled. The
+  keyword scan is a floor, not a full rating system; treat a "NOTE" as a
+  prompt to double-check, not an automatic downgrade.

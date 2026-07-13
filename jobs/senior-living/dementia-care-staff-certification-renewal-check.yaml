@@ -1,0 +1,47 @@
+id: dementia-care-staff-certification-renewal-check
+version: 1
+name: Dementia Care Staff Certification Renewal Check
+description: >
+  Checks memory-care and dementia-care specialized training
+  certifications for direct-care staff and flags anyone whose
+  certification is expiring soon. Use this if a staff member has ever
+  kept working a memory-care unit past the point their required
+  dementia-care credential lapsed, separate from their general CPR or
+  first-aid card.
+category: senior-living
+tags: [senior-living, memory-care, dementia-care, staff-certification, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      days_left = (exp_epoch - today) / 86400;
+      if (days_left <= lead) {
+        printf "EXPIRING: %s — %s certification expires %s (%d days)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{dementia_certs_csv_path}}"
+variables:
+  dementia_certs_csv_path:
+    default: "./dementia-care-certifications.csv"
+    description: >
+      Path to a CSV with columns: staff_id,certification_name,
+      expiration_date (YYYY-MM-DD), scoped to memory-care/dementia-care
+      specific credentials (e.g. a state-required dementia-care training
+      hours certificate), not general CPR/first-aid.
+  lookahead_days:
+    default: 30
+    description: How many days ahead of expiration to start flagging a certification.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from staff-certification-cpr-first-aid-expiry-check, which
+  tracks a different, non-specialized credential — many states require a
+  separate dementia-care training certificate specifically for staff
+  assigned to a memory-care unit, on its own renewal cycle. Read-only:
+  this only flags staff for an HR or scheduling reviewer to renew, it
+  does not reassign anyone off the unit or change any schedule itself.

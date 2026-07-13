@@ -1,0 +1,51 @@
+id: chat-channel-sprawl-audit
+version: 1
+name: Chat Channel Sprawl Audit
+description: >
+  Scans a chat/Slack channel activity export and flags channels whose
+  message volume has dropped below a threshold, so quiet channels get
+  noticed for archiving instead of piling up forever. Use this if your
+  workspace has ever grown to hundreds of channels and nobody could
+  tell which ones were actually still in use versus abandoned relics
+  from a project that ended a year ago.
+category: team
+tags: [team, chat, slack, channels, sprawl]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_msgs="{{min_messages_threshold}}" '
+    NR==1 {next}
+    ($2+0) < min_msgs {
+      printf "LOW ACTIVITY: #%s — %s message(s), %s member(s)\n", $1, $2, $3;
+      count++
+    }
+    END { if (count+0==0) print "OK: no channels below the activity threshold" }
+  ' "{{channel_activity_csv_path}}"
+prompt: |
+  Review the low-activity channel list generated from
+  {{channel_activity_csv_path}} (channels with fewer than
+  {{min_messages_threshold}} messages in the tracked period). For each
+  one, recommend one of: archive, merge into another channel, or keep.
+  Use the channel name and member count as a hint that a channel might
+  be intentionally low-traffic but important (e.g. #incidents,
+  #leadership-announcements) rather than abandoned — don't assume every
+  quiet channel is dead. Keep it to one recommendation line per channel.
+script_note: >
+  The command gives you the raw low-activity list with counts. The
+  prompt adds judgment about which channels are safe to archive or
+  merge versus intentionally quiet-but-important, which needs reading
+  the channel's purpose, not just its message count.
+variables:
+  channel_activity_csv_path:
+    default: "./chat-channel-activity.csv"
+    description: "Path to a CSV with columns: channel_name,message_count_last_period,member_count."
+  min_messages_threshold:
+    default: 10
+    description: Flag a channel as low-activity if it had fewer than this many messages in the tracked period.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires a periodic export of channel activity (most chat tools can
+  export message counts per channel) — this doesn't connect to a chat
+  API directly and doesn't archive anything on its own; it only
+  surfaces candidates for a human to review.

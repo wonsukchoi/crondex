@@ -1,0 +1,35 @@
+id: driver-drug-alcohol-testing-schedule-check
+version: 1
+name: Driver Drug & Alcohol Testing Schedule Check
+description: >
+  Tracks when each safety-sensitive driver last completed a required
+  drug/alcohol test and flags anyone overdue for their next periodic or
+  random-pool test. Use this if a driver's testing record has ever gone
+  stale for a year or more because compliance was only checked when an
+  auditor asked for the file.
+category: fleet
+tags: [fleet, drivers, drug-testing, compliance, safety]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_test}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      if (days_since >= max_days)
+        print "TEST OVERDUE: " $1 " — last tested " $2 " (" days_since " days ago), type " $3;
+    }
+  ' "{{drug_testing_csv_path}}"
+variables:
+  drug_testing_csv_path:
+    default: "./driver-drug-alcohol-tests.csv"
+    description: "Path to a CSV with columns: driver_name,last_test_date(YYYY-MM-DD),test_type(random/pre-employment/post-accident/reasonable-suspicion)."
+  max_days_since_test:
+    default: 365
+    description: Days since a driver's last recorded test before they're flagged as overdue for the next one.
+compatible_agents: [generic, claude, codex]
+notes: This is a recordkeeping aid for your testing program's cadence, not the random-selection process itself — check your regulator's (e.g. DOT/FMCSA) actual random-testing rate requirements separately. Distinct from `driver-mvr-review-tracker` (driving record checks) and `driver-license-cdl-expiry-check` (license/CDL expiry).

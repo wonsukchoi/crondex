@@ -1,0 +1,59 @@
+id: peer-to-peer-fundraiser-performance-check
+version: 1
+name: Peer-to-Peer Fundraiser Performance Check
+description: >
+  Reviews individual participant fundraising pages in a peer-to-peer
+  campaign (a walk, ride, or "friends-asking-friends" drive) and flags
+  registered fundraisers who've raised little or nothing so they can get
+  coaching before the campaign ends. Use this if a peer-to-peer event has
+  ever hit its overall goal on the strength of a few top fundraisers
+  while dozens of registered participants raised nothing at all, and
+  nobody reached out to help them until it was too late.
+category: nonprofit
+tags: [nonprofit, fundraising, campaigns, peer-to-peer]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_raised={{coaching_threshold}} '
+    NR>1 && $2+0 < min_raised {
+      print "NEEDS COACHING: " $1 " — raised $" $2 " (" $3 " personal asks sent)";
+    }
+  ' "{{participant_fundraising_csv}}"
+prompt: |
+  Read the peer-to-peer participant list from
+  {{participant_fundraising_csv}} (columns: participant_name,
+  amount_raised, asks_sent).
+  1. List every participant who has raised less than
+     {{coaching_threshold}} so far.
+  2. For each, note whether the shortfall looks like a page-setup problem
+     (raised $0, asks_sent is also 0 — likely never personalized or
+     shared their page) versus an asking problem (asks_sent is nonzero
+     but conversion is low).
+  3. Draft a short, encouraging coaching message per participant — tips
+     tailored to which problem they seem to have (finish setting up the
+     page and share it, vs. try a different ask channel or personal
+     story) — referencing {{campaign_name}}.
+script_note: >
+  `command` only lists participants under the raised-amount threshold.
+  `prompt` also diagnoses likely cause (page never set up vs. low
+  ask-conversion) and drafts tailored coaching per participant, which
+  needs judgment the raw numbers alone don't give you.
+variables:
+  participant_fundraising_csv:
+    default: "p2p-participants.csv"
+    description: "CSV with header row, columns: participant_name,amount_raised,asks_sent — export from your peer-to-peer fundraising platform."
+  coaching_threshold:
+    default: 50
+    description: Dollar amount raised below which a registered participant gets flagged for coaching outreach.
+  campaign_name:
+    default: "your peer-to-peer campaign"
+    description: Name of the campaign, used in coaching message drafts.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `fundraising-goal-pace-check`, which tracks the
+  campaign's total against an overall goal — this looks at the
+  distribution across individual participants, since a campaign can be
+  on pace in aggregate while most registered fundraisers are
+  under-supported. Draft-only; coaching messages read better coming from
+  a staff member or team captain than an automated send.

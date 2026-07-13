@@ -1,0 +1,41 @@
+id: athletics-academic-eligibility-check
+version: 1
+name: Athletics/Extracurricular Academic Eligibility Check
+description: >
+  Cross-checks the athletics or extracurricular activity roster against
+  current grades and flags any student who has fallen below the GPA or
+  passing-course threshold required to stay eligible. Use this if a
+  student has ever kept playing or performing for weeks after falling
+  below the eligibility bar because nobody cross-checked the roster
+  against grades until an opposing team or judge's office questioned it.
+category: education
+tags: [education, athletics, extracurricular, eligibility, grades]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minGpa="{{min_gpa}}" -v minPassing="{{min_passing_courses}}" '
+    NR==1 {next}
+    {
+      if ($2 + 0 < minGpa || $3 + 0 < minPassing) {
+        printf "INELIGIBLE: student %s — activity %s — GPA %s, passing %s/required %s courses\n", $1, $4, $2, $3, minPassing;
+      }
+    }
+  ' "{{roster_grades_csv_path}}"
+variables:
+  roster_grades_csv_path:
+    default: "./athletics-roster-grades.csv"
+    description: "Path to a CSV with columns: student_id,current_gpa,passing_course_count,activity_name."
+  min_gpa:
+    default: 2.0
+    description: Minimum GPA required to remain eligible for athletics/extracurricular participation.
+  min_passing_courses:
+    default: 5
+    description: Minimum number of currently passing courses required to remain eligible.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Eligibility rules (GPA cutoff, passing-course count, check frequency)
+  vary by state athletic association and by activity — confirm your
+  governing body's actual rule before relying on the defaults here. Use
+  student_id rather than student names in the source CSV. Read-only: it
+  flags ineligibility, it doesn't bench anyone or notify coaches itself.

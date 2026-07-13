@@ -1,0 +1,35 @@
+id: telematics-device-connectivity-check
+version: 1
+name: Telematics Device Connectivity Check
+description: >
+  Checks when each vehicle's telematics/GPS device last reported in and
+  flags any that have gone silent longer than expected. Use this if a
+  vehicle has ever quietly stopped sending location or engine data for
+  days — unplugged device, dead device battery, blown fuse — before
+  anyone noticed the data just stopped.
+category: fleet
+tags: [fleet, telematics, connectivity, data-quality]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_hours="{{max_silent_hours}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%dT%H:%M:%S\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      hours_silent = (today - last_ts) / 3600;
+      if (hours_silent >= max_hours)
+        printf "DEVICE SILENT: vehicle %s — last reported %s (%.1f hours ago)\n", $1, $2, hours_silent;
+    }
+  ' "{{telematics_status_csv_path}}"
+variables:
+  telematics_status_csv_path:
+    default: "./telematics-device-status.csv"
+    description: "Path to a CSV with columns: vehicle_id,last_report_timestamp(ISO 8601)."
+  max_silent_hours:
+    default: 48
+    description: Hours since a device's last report before it's flagged as a connectivity gap.
+compatible_agents: [generic, claude, codex]
+notes: Tracks device-level data gaps, not driving behavior or location alerts — distinct from `driver-safety-score-monitor` and `geofence-violation-check`, which assume the data is already flowing.

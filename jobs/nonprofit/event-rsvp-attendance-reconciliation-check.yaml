@@ -1,0 +1,41 @@
+id: event-rsvp-attendance-reconciliation-check
+version: 1
+name: Event RSVP-to-Attendance Reconciliation Check
+description: >
+  After a fundraising event, compares who actually checked in against
+  who RSVP'd, so no-shows and walk-ins get corrected in donor records
+  instead of staying wrong all year. Use this if a gala's post-event
+  records have ever misstated who attended — inflating a no-show's
+  engagement history, or missing a walk-in entirely — because nobody
+  reconciled the check-in sheet against the RSVP list afterward.
+category: nonprofit
+tags: [nonprofit, events, fundraising, data-quality]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR { if (FNR>1) rsvp[$1]=1; next }
+    FNR>1 {
+      checked_in[$1]=1;
+      if (!($1 in rsvp)) print "WALK-IN (no RSVP on file): " $1;
+    }
+    END {
+      for (name in rsvp) if (!(name in checked_in)) print "NO-SHOW (on RSVP list, did not check in): " name;
+    }
+  ' "{{rsvp_list_csv}}" "{{checkin_list_csv}}"
+variables:
+  rsvp_list_csv:
+    default: "event-rsvps.csv"
+    description: "CSV with header row, columns: attendee_name,rsvp_status — the confirmed guest list before the event."
+  checkin_list_csv:
+    default: "event-checkins.csv"
+    description: "CSV with header row, columns: attendee_name,checkin_time — the actual sign-in/check-in log from the event."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `event-rsvp-shortfall-check` (pre-event RSVP-count-vs-goal
+  tracking) — this runs after the event to fix donor records: no-shows
+  shouldn't be credited with attendance, and walk-ins need to be added to
+  your CRM and, if they gave at the door, matched to a gift record.
+  Matches purely on name string, so keep naming consistent between your
+  RSVP and check-in exports or expect false positives from typos/nicknames.

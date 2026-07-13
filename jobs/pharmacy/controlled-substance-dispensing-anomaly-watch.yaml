@@ -1,0 +1,56 @@
+id: controlled-substance-dispensing-anomaly-watch
+version: 1
+name: Controlled Substance Dispensing Anomaly Watch
+description: >
+  Reviews a period's controlled-substance dispensing log for patterns worth
+  a second look — one staff member's dispensing volume of a Schedule II/III
+  drug far outside the team's normal range, or an unusual concentration of
+  early refills or overrides tied to one prescriber or patient. Use this if
+  a diversion or fraud pattern has ever only come to light during a DEA
+  audit, when a routine internal review earlier could have caught it first.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, diversion, compliance, staff]
+schedule: "0 20 * * 5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the controlled-substance dispensing log from
+  {{dispensing_log_csv_path}} (columns: fill_date, drug_name, schedule,
+  quantity, dispensing_staff_id, prescriber_id, patient_id,
+  early_refill_flag, override_flag) for the past {{lookback_days}} days.
+
+  1. Compute each dispensing_staff_id's total dispensed quantity by drug
+     schedule and compare it to the team average for that schedule; flag
+     any staff member more than {{deviation_multiplier}}x the team average.
+  2. Flag any prescriber_id or patient_id with an unusually high count of
+     early_refill_flag or override_flag entries relative to their own fill
+     volume, not just a raw count.
+  3. For each flag, state the specific numbers that triggered it (e.g.
+     "staff_id 42 dispensed 3.1x the team average of Schedule II fills"),
+     not a vague "looks unusual."
+  4. This is a screening report for a pharmacist-in-charge to review, not
+     an accusation — phrase findings as "worth a closer look," and note
+     explicitly that some patterns have innocent explanations (a staff
+     member covering more shifts, a prescriber who specializes in pain
+     management).
+  5. Use staff_id/prescriber_id/patient_id throughout, never names, and do
+     not draft any outreach or report to an outside party — this stays
+     internal to the pharmacist-in-charge.
+variables:
+  dispensing_log_csv_path:
+    default: "./controlled-substance-dispensing-log.csv"
+    description: "Path to a CSV export of controlled-substance dispensing activity with columns as described in the prompt."
+  lookback_days:
+    default: 30
+    description: How many days of dispensing history to analyze for a pattern.
+  deviation_multiplier:
+    default: 2.0
+    description: How many times the team average a staff member's dispensing volume must reach before being flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only internal screening tool, distinct from
+  jobs/pharmacy/controlled-substance-perpetual-inventory-check.yaml (which
+  reconciles counts, not dispensing behavior). A flag here is a starting
+  point for the pharmacist-in-charge to review, never grounds for
+  disciplinary action on its own, and this job does not contact staff,
+  prescribers, or regulators.

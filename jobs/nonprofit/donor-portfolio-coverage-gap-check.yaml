@@ -1,0 +1,48 @@
+id: donor-portfolio-coverage-gap-check
+version: 1
+name: Major Donor Portfolio Coverage Gap Check
+description: >
+  Reviews your major-donor list against relationship-manager assignments
+  and flags donors who have no one assigned to manage the relationship.
+  Use this if a major donor has ever fallen through the cracks — no
+  proposal in flight, no stewardship contact, nothing — simply because
+  they were never actually assigned to anyone's portfolio after being
+  identified as major-gift capable.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, major-gifts, operations]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the major-donor list from {{major_donors_source}} (donor name,
+  giving capacity/tier, assigned relationship manager if any, last
+  contact date).
+  1. List every donor above {{major_gift_threshold}} in giving capacity
+     with no relationship manager assigned at all.
+  2. Separately list donors who do have a manager assigned but haven't
+     been contacted in over {{stale_contact_days}} days, since an
+     assignment on paper isn't the same as active stewardship.
+  3. Suggest a reasonable distribution of the unassigned donors across
+     {{available_staff}}, balancing rough portfolio size rather than
+     dumping them all on one person.
+variables:
+  major_donors_source:
+    default: "your major-donor list / prospect research tracker"
+    description: Where major donors, giving capacity, and relationship-manager assignments are recorded.
+  major_gift_threshold:
+    default: 10000
+    description: Giving capacity or lifetime-giving level above which a donor counts as "major" for portfolio-coverage purposes.
+  stale_contact_days:
+    default: 120
+    description: Days since last contact before an assigned donor still counts as under-stewarded.
+  available_staff:
+    default: "your development team members"
+    description: Names or roles of staff who can take on portfolio assignments, used when suggesting a distribution.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `major-donor-proposal-followup-check`, which chases a
+  response on a proposal that's already been sent — this catches donors
+  who never got assigned to anyone in the first place, which is usually
+  the earlier and more silent failure. Recommendations only; portfolio
+  reassignments should go through whoever manages development team
+  capacity.

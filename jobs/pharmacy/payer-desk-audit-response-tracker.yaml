@@ -1,0 +1,45 @@
+id: payer-desk-audit-response-tracker
+version: 1
+name: Payer Desk Audit Response Tracker
+description: >
+  Tracks PBM/payer desk audit requests (documentation requests for specific
+  paid claims) against their response deadline and flags any still unanswered
+  as the deadline nears. Use this if a payer audit letter has ever sat in a
+  pile until the response window closed and the claim got recouped by
+  default just because nobody sent the requested paperwork in time.
+category: pharmacy
+tags: [pharmacy, audit, pbm, insurance, compliance, billing]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    {
+      audit_id=$1; payer_name=$2; response_deadline=$3; status=$4;
+      if (status != "responded" && status != "closed") {
+        cmd = "date -d \"" response_deadline "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" response_deadline "\" +%s 2>/dev/null";
+        cmd | getline deadline_epoch; close(cmd);
+        days_left = (deadline_epoch - today) / 86400;
+        if (days_left <= warn_days) {
+          printf "AUDIT RESPONSE DUE: %s — %s, deadline %s (%d days left), status %s.\n", audit_id, payer_name, response_deadline, days_left, status;
+        }
+      }
+    }
+  ' "{{audit_tracker_csv_path}}"
+variables:
+  audit_tracker_csv_path:
+    default: "./payer-desk-audit-log.csv"
+    description: "Path to a CSV log of open payer/PBM desk audit requests, columns: audit_id,payer_name,response_deadline (YYYY-MM-DD),status (open/responded/closed)."
+  warn_days_before_deadline:
+    default: 5
+    description: Days before the response deadline that an unanswered audit request starts getting flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only deadline tracking against a manually maintained audit log — it
+  does not submit documentation to the payer itself. Distinct from
+  jobs/pharmacy/pbm-reimbursement-rate-audit.yaml (which checks whether a
+  PBM underpaid claims) and jobs/pharmacy/340b-program-compliance-check.yaml
+  (which checks 340B eligibility documentation); this tracks a payer's own
+  formal request for records on already-paid claims.

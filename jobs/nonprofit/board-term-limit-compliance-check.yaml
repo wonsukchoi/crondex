@@ -1,0 +1,37 @@
+id: board-term-limit-compliance-check
+version: 1
+name: Board Term Limit Compliance Check
+description: >
+  Checks how many consecutive terms each board member has served against
+  your bylaws' maximum, and flags anyone at or past the limit regardless
+  of when their current term happens to end. Use this if a board member
+  has ever been renewed on autopilot past the number of consecutive terms
+  your bylaws actually allow, because the renewal decision only looked at
+  "is this person still willing to serve," not "are they still eligible."
+category: nonprofit
+tags: [nonprofit, board, governance, compliance]
+schedule: "0 9 1 1,7 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_terms={{max_consecutive_terms}} '
+    NR>1 && $2+0 >= max_terms {
+      print "TERM LIMIT REACHED: " $1 " — " $2 " consecutive terms served (bylaws max: " max_terms ")";
+    }
+  ' "{{board_term_history_csv}}"
+variables:
+  board_term_history_csv:
+    default: "board-term-history.csv"
+    description: "CSV with header row, columns: member_name,consecutive_terms_served. Update the count each time a term renews or resets (e.g. after a required break in service)."
+  max_consecutive_terms:
+    default: 3
+    description: Maximum consecutive terms your bylaws allow a board member to serve before requiring a break or stepping down.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `board-member-term-expiry-check`, which tracks whether a
+  renewal decision has been made before the current term's end date —
+  this tracks eligibility itself, since a member can be enthusiastically
+  "renewed" past what the bylaws actually permit if nobody is counting
+  total consecutive terms. Confirm your exact bylaws language (some
+  organizations allow re-election after a mandatory break) before acting
+  on a flag.

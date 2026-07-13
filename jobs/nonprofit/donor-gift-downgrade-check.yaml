@@ -1,0 +1,45 @@
+id: donor-gift-downgrade-check
+version: 1
+name: Donor Gift Downgrade Check
+description: >
+  Flags donors who are still giving but whose most recent gift is
+  significantly smaller than their historical average, a warning sign
+  before they lapse entirely. Use this if a donor has ever quietly
+  downgraded from a major gift to a token one for a couple of cycles
+  before disappearing, and nobody caught the slide while it was still a
+  conversation instead of a loss.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, stewardship]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v drop_pct={{downgrade_threshold_pct}} -v min_avg={{min_avg_gift}} '
+    NR>1 && $3 > 0 {
+      avg_prior = $2;
+      latest = $3;
+      if (avg_prior >= min_avg) {
+        pct_of_avg = (latest / avg_prior) * 100;
+        if (pct_of_avg <= (100 - drop_pct)) {
+          printf "DOWNGRADE: %s — latest gift $%s vs average $%s (%.0f%% of average)\n", $1, latest, avg_prior, pct_of_avg;
+        }
+      }
+    }
+  ' "{{donor_giving_history_csv}}"
+variables:
+  donor_giving_history_csv:
+    default: "donor-giving-history.csv"
+    description: "CSV with header row, columns: donor_name,average_prior_gift,latest_gift. Compute average_prior_gift over whatever trailing window (e.g. last 3 gifts) your CRM export supports."
+  downgrade_threshold_pct:
+    default: 40
+    description: How many percentage points below the donor's average the latest gift must fall to count as a downgrade.
+  min_avg_gift:
+    default: 100
+    description: Only evaluate donors whose average prior gift is at least this amount, so small recurring donors don't trigger noise on ordinary variation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `lapsed-donor-check`, which flags donors who've stopped
+  giving entirely — this catches the earlier warning sign of a shrinking
+  gift while the donor is still active and a conversation is still
+  possible. Read-only; pair a flag here with a personal check-in call
+  rather than an automated ask.

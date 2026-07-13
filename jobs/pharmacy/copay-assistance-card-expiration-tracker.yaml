@@ -1,0 +1,43 @@
+id: copay-assistance-card-expiration-tracker
+version: 1
+name: Copay Assistance Card Expiration Tracker
+description: >
+  Checks patients on file with a manufacturer copay assistance/coupon card
+  against its expiration or annual benefit-cap date and flags anyone whose
+  card is about to lapse or run out before their next expected refill. Use
+  this if a patient has ever shown up for a refill and been hit with the
+  full brand-name price only because their assistance card quietly expired
+  between visits.
+category: pharmacy
+tags: [pharmacy, copay-assistance, patients, billing, adherence]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_expiration}}" '
+    NR==1 {next}
+    {
+      patient_id=$1; drug_name=$2; card_expiration=$3; next_expected_refill=$4;
+      cmd = "date -d \"" card_expiration "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" card_expiration "\" +%s 2>/dev/null";
+      cmd | getline expiration_epoch; close(cmd);
+      days_left = (expiration_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        printf "COPAY CARD EXPIRING: patient %s — %s, card expires %s (%d days left), next refill expected %s.\n", patient_id, drug_name, card_expiration, days_left, next_expected_refill;
+      }
+    }
+  ' "{{copay_card_roster_csv_path}}"
+variables:
+  copay_card_roster_csv_path:
+    default: "./copay-assistance-cards.csv"
+    description: "Path to a CSV of patients with a manufacturer copay assistance card on file, columns: patient_id,drug_name,card_expiration_date (YYYY-MM-DD),next_expected_refill_date (YYYY-MM-DD)."
+  warn_days_before_expiration:
+    default: 21
+    description: Days before card expiration that a patient is flagged so there's time to re-enroll or find an alternative before the next fill.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only tracking against a manually maintained roster — it does not
+  re-enroll a patient in an assistance program automatically. Uses
+  patient_id rather than patient name; any outreach based on this list
+  should go through a pharmacist-reviewed contact process, not an automated
+  message about cost or medication.

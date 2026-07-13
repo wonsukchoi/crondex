@@ -1,0 +1,42 @@
+id: vehicle-title-lien-document-tracker
+version: 1
+name: Vehicle Title & Lien Document Tracker
+description: >
+  Checks each vehicle's title and lien paperwork status and flags loans
+  that were paid off without the lien release being recorded, or titles
+  that were never filed after purchase. Use this if a vehicle has ever
+  been ready to sell or trade in but got stuck for weeks because nobody
+  could locate a clean title or lien release letter.
+category: fleet
+tags: [fleet, title, lien, documentation, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{title_filing_grace_days}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; acquired=$2; title_status=$3; lien_status=$4; payoff_date=$5;
+      cmd="date -d \"" acquired "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" acquired "\" +%s";
+      cmd | getline acq_ts; close(cmd);
+      days_since_acq = int((today - acq_ts) / 86400);
+      if (title_status != "on-file" && days_since_acq >= grace)
+        printf "MISSING TITLE: vehicle %s — acquired %s, title still \"%s\" (%d days)\n", vehicle, acquired, title_status, days_since_acq;
+      if (lien_status == "active" && payoff_date != "") {
+        cmd2="date -d \"" payoff_date "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" payoff_date "\" +%s";
+        cmd2 | getline payoff_ts; close(cmd2);
+        if (payoff_ts <= today)
+          printf "UNRELEASED LIEN: vehicle %s — loan paid off %s but lien still active\n", vehicle, payoff_date;
+      }
+    }
+  ' "{{title_lien_csv_path}}"
+variables:
+  title_lien_csv_path:
+    default: "./vehicle-title-lien.csv"
+    description: "Path to a CSV with columns: vehicle_id,acquisition_date(YYYY-MM-DD),title_status(on-file/pending),lien_status(active/released),loan_payoff_date(YYYY-MM-DD, blank if none)."
+  title_filing_grace_days:
+    default: 45
+    description: Days after acquisition a title is allowed to still be "pending" before it's flagged as missing.
+compatible_agents: [generic, claude, codex]
+notes: Tracks paperwork custody (title/lien), not renewal deadlines — distinct from `vehicle-registration-expiry-check` (annual registration) and `fleet-insurance-expiry-check` (policy coverage).

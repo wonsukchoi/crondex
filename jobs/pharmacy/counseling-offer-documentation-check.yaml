@@ -1,0 +1,35 @@
+id: counseling-offer-documentation-check
+version: 1
+name: Mandatory Counseling Offer Documentation Check
+description: >
+  Scans a day's dispensing log for new prescriptions where the required
+  offer-to-counsel wasn't documented. Use this if a state board inspection
+  has ever asked to see proof the counseling offer was made on a new
+  prescription and the pharmacy had nothing but "we're pretty sure we did"
+  to show for it.
+category: pharmacy
+tags: [pharmacy, counseling, obra-90, compliance, log-review]
+schedule: "0 21 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      rx_number=$1; fill_type=$2; counseling_offered=$3;
+      if (fill_type == "new" && (counseling_offered == "" || counseling_offered == "no")) {
+        printf "COUNSELING OFFER NOT DOCUMENTED: Rx #%s (new fill).\n", rx_number;
+      }
+    }
+  ' "{{dispensing_log_csv_path}}"
+variables:
+  dispensing_log_csv_path:
+    default: "./dispensing-log.csv"
+    description: "Path to today's CSV export of the dispensing log, columns: rx_number,fill_type (new/refill),counseling_offered (yes/no/blank)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only documentation check — it does not verify counseling actually
+  happened, only that the offer was logged, which is what most state board
+  inspections and OBRA '90-derived rules actually require to be recorded.
+  Uses rx_number rather than patient name to keep the flagged list free of
+  identifying patient information where your dispensing export allows it.

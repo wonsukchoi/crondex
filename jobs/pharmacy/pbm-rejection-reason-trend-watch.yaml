@@ -1,0 +1,55 @@
+id: pbm-rejection-reason-trend-watch
+version: 1
+name: PBM Rejection Reason Trend Watch
+description: >
+  Rolls up a month of PBM claim rejections by reason code and payer to spot
+  a reason that's climbing week over week, rather than just triaging each
+  day's rejections in isolation. Use this if a slow-building systemic issue
+  (a plan's formulary quietly narrowing, a payer's edits getting stricter)
+  has ever only become obvious once someone finally pulled a month of data
+  together, long after daily triage had already cleared each day's queue.
+category: pharmacy
+tags: [pharmacy, pbm, claims, rejections, trend, billing]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the past {{lookback_weeks}} weeks of rejected-claim history from
+  {{rejection_history_csv_path}} (columns: rejection_date, payer_name,
+  reason_code, reason_description, rx_count).
+
+  1. Group rejections by payer_name and reason_code, then compute a
+     week-over-week count for each group across the lookback window.
+  2. Identify any payer/reason combination whose weekly count has grown
+     in each of the last {{consecutive_weeks_growth}} consecutive weeks,
+     or that has at least doubled from the first week to the most recent
+     week — these are the ones worth escalating, not a single noisy day.
+  3. For each flagged combination, write one or two sentences on the likely
+     cause if it's inferable from the reason_description (e.g. "non-formulary
+     rejections for [payer] have tripled — check for a recent formulary
+     change") and what to check next.
+  4. Ignore combinations with fewer than {{min_weekly_volume}} claims per
+     week — too low-volume to be a real trend versus noise.
+  5. Output a short ranked list, worst trend first. This is a trend report
+     for management review, not a same-day triage queue — do not include
+     individual claim IDs.
+variables:
+  rejection_history_csv_path:
+    default: "./pbm-rejection-history.csv"
+    description: "Path to a CSV export of daily rejected-claim counts over time, columns: rejection_date,payer_name,reason_code,reason_description,rx_count."
+  lookback_weeks:
+    default: 8
+    description: How many weeks of history to analyze for a trend.
+  consecutive_weeks_growth:
+    default: 3
+    description: Consecutive weeks of growth in a payer/reason combination required before it's flagged as a real trend.
+  min_weekly_volume:
+    default: 5
+    description: Minimum claims per week for a payer/reason combination to be considered, filtering out low-volume noise.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only trend analysis over already-exported rejection history — distinct
+  from jobs/pharmacy/pbm-claim-rejection-triage.yaml, which sorts a single
+  day's rejections for same-day action; this job looks across weeks for a
+  systemic pattern management should raise with a payer, and does not touch
+  or resubmit any claim itself.

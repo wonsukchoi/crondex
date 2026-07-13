@@ -1,0 +1,45 @@
+id: reverse-distribution-return-credit-tracker
+version: 1
+name: Reverse Distribution Return Credit Tracker
+description: >
+  Checks expired/unsaleable medication sent to a reverse distributor for
+  destruction against the credit memos received back, and flags any
+  shipment that's gone past a reasonable turnaround with no credit posted.
+  Use this if a box of expired stock has ever gone out for destruction and
+  the manufacturer credit that was supposed to come back for it just never
+  got tracked down.
+category: pharmacy
+tags: [pharmacy, reverse-distribution, returns, billing, inventory]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{overdue_after_days}}" '
+    NR==1 {next}
+    {
+      shipment_id=$1; ship_date=$2; expected_credit=$3; credit_received=$4;
+      if (credit_received == "" || credit_received == "0") {
+        cmd = "date -d \"" ship_date "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" ship_date "\" +%s 2>/dev/null";
+        cmd | getline ship_epoch; close(cmd);
+        age_days = (today - ship_epoch) / 86400;
+        if (age_days >= days) {
+          printf "CREDIT OVERDUE: shipment %s — shipped %s (%d days ago), expected ~$%s, no credit posted.\n", shipment_id, ship_date, age_days, expected_credit;
+        }
+      }
+    }
+  ' "{{return_shipment_log_csv_path}}"
+variables:
+  return_shipment_log_csv_path:
+    default: "./reverse-distribution-shipments.csv"
+    description: "Path to a CSV log of shipments sent to a reverse distributor, columns: shipment_id,ship_date (YYYY-MM-DD),expected_credit_dollars,credit_received_dollars (blank/0 until posted)."
+  overdue_after_days:
+    default: 90
+    description: Days after shipping before an unposted return credit is flagged as overdue for follow-up with the reverse distributor.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only tracking against a manually or export-maintained shipment log —
+  it does not file or dispute a credit claim itself, and it doesn't replace
+  the reverse distributor's own inventory manifest. Follow up any flagged
+  shipment with the reverse distributor's tracking/reference number before
+  assuming the credit was lost rather than just delayed.

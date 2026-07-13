@@ -1,0 +1,43 @@
+id: iep-service-minutes-delivery-tracker
+version: 1
+name: IEP Related-Service Minutes Delivery Tracker
+description: >
+  Compares the special education related-service minutes (speech, OT, PT,
+  counseling, etc.) actually delivered against what each student's IEP
+  requires and flags shortfalls. Use this if a student has ever gone weeks
+  under their mandated service minutes because a provider absence or
+  scheduling gap never got tracked against the IEP requirement.
+category: education
+tags: [education, iep, special-education, compliance, service-minutes]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerancePct="{{shortfall_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      required = $3; delivered = $4;
+      if (required <= 0) next;
+      pct = (delivered / required) * 100;
+      shortfall = 100 - pct;
+      if (shortfall > tolerancePct) {
+        printf "SHORTFALL: student %s — %s: %d/%d required minutes delivered (%.1f%% short)\n", $1, $2, delivered, required, shortfall;
+      }
+    }
+  ' "{{service_minutes_csv_path}}"
+variables:
+  service_minutes_csv_path:
+    default: "./iep-service-minutes.csv"
+    description: "Path to a CSV with columns: student_id,service_type,required_minutes_period,delivered_minutes_period — both minute counts for the same reporting period (e.g. a week or a grading period)."
+  shortfall_tolerance_pct:
+    default: 10
+    description: Percentage below required minutes that's tolerated before a shortfall is flagged (small scheduling variance is normal).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from iep-504-review-deadline-tracker, which tracks the annual/
+  triennial review calendar date, not ongoing service delivery — a
+  compliant review can still mask under-delivered minutes between reviews.
+  Use student_id rather than student names in the source CSV. A
+  persistent shortfall is a compliance issue (compensatory services may be
+  owed); route this to the special education coordinator, not just the
+  service provider.

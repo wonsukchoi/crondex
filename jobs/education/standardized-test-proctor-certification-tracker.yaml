@@ -1,0 +1,41 @@
+id: standardized-test-proctor-certification-tracker
+version: 1
+name: Standardized Test Proctor Certification Tracker
+description: >
+  Checks which staff assigned to proctor an upcoming standardized test still
+  need to complete required test-security/proctor training or certification,
+  and flags them before test day. Use this if a test has ever had to be
+  rescheduled or invalidated because a proctor in the room wasn't actually
+  certified to administer it.
+category: education
+tags: [education, testing, proctor, certification, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{test_date}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" cutoff "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" cutoff "\" +%s 2>/dev/null";
+      cmd | getline test_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (test_epoch - now_epoch) / 86400;
+      if ($3 != "yes") {
+        printf "NOT CERTIFIED: proctor %s for %s (%d days until test)\n", $1, $2, days_left;
+      }
+    }
+  ' "{{proctor_roster_csv_path}}"
+variables:
+  test_date:
+    default: "YYYY-MM-DD"
+    description: Date of the standardized test administration this roster covers.
+  proctor_roster_csv_path:
+    default: "./proctor-roster.csv"
+    description: "Path to a CSV with columns: proctor_id,test_name,certified (yes/no) — certified reflects completion of required test-security/proctor training for this administration."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from teacher-certification-expiry-tracker, which covers the
+  underlying teaching license, not the separate per-administration
+  test-security/proctor training many states and testing vendors require.
+  Use proctor_id rather than full names in the roster where your system
+  supports it. Read-only — it only flags gaps, it doesn't assign proctors.

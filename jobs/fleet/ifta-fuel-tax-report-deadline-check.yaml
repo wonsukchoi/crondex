@@ -1,0 +1,41 @@
+id: ifta-fuel-tax-report-deadline-check
+version: 1
+name: IFTA Quarterly Fuel Tax Report Deadline Check
+description: >
+  Warns as the next IFTA (International Fuel Tax Agreement) quarterly
+  filing deadline approaches, based on the standard fixed due dates. Use
+  this if a quarterly fuel tax report has ever been filed late — with the
+  late-filing penalty that comes with it — because the deadline snuck up
+  during a busy month.
+category: fleet
+tags: [fleet, ifta, fuel-tax, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  year=$(date +%Y);
+  for md in "01-31" "04-30" "07-31" "10-31"; do
+    for y in "$year" "$((year+1))"; do
+      d="$y-$md";
+      d_epoch=$(date -d "$d" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$d" +%s 2>/dev/null);
+      if [ -n "$d_epoch" ] && [ "$d_epoch" -ge "$today_epoch" ]; then
+        days_left=$(( (d_epoch - today_epoch) / 86400 ));
+        if [ "$days_left" -le "{{warn_days_before}}" ]; then
+          echo "IFTA REPORT DUE: $d ($days_left days left)";
+        fi;
+        break 2;
+      fi;
+    done;
+  done
+variables:
+  warn_days_before:
+    default: 14
+    description: Days before the next fixed IFTA quarterly due date (Jan 31 / Apr 30 / Jul 31 / Oct 31) to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses the standard IFTA quarterly due dates (shifted by member jurisdictions
+  to the next business day when a date falls on a weekend/holiday — verify
+  the exact date with your base jurisdiction near the deadline). Only
+  relevant if your fleet operates qualified motor vehicles across IFTA
+  member jurisdictions; skip this job otherwise.

@@ -1,0 +1,42 @@
+id: vehicle-extended-warranty-expiry-check
+version: 1
+name: Vehicle Extended Warranty/Service Contract Expiry Check
+description: >
+  Checks each vehicle's extended warranty or service contract against its
+  expiry date (by calendar date or mileage) and warns before coverage
+  runs out. Use this if a repair bill has ever come out of pocket that
+  would have been covered, because nobody noticed the warranty had
+  already lapsed by date or mileage.
+category: fleet
+tags: [fleet, warranty, service-contract, cost]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before}}" -v warn_miles="{{warn_miles_before}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; expiry_date=$2; current_mileage=$3; expiry_mileage=$4;
+      cmd="date -d \"" expiry_date "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" expiry_date "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      miles_left = expiry_mileage - current_mileage;
+      if (days_left <= warn_days)
+        printf "WARRANTY EXPIRING (DATE): vehicle %s — expires %s (%d days)\n", vehicle, expiry_date, days_left;
+      if (miles_left <= warn_miles)
+        printf "WARRANTY EXPIRING (MILEAGE): vehicle %s — %d miles left of %d mi coverage\n", vehicle, miles_left, expiry_mileage;
+    }
+  ' "{{warranty_csv_path}}"
+variables:
+  warranty_csv_path:
+    default: "./vehicle-warranty-contracts.csv"
+    description: "Path to a CSV with columns: vehicle_id,warranty_expiry_date(YYYY-MM-DD),current_mileage,warranty_expiry_mileage."
+  warn_days_before:
+    default: 30
+    description: Days before the warranty's calendar expiry to start warning.
+  warn_miles_before:
+    default: 1000
+    description: Miles remaining before the warranty's mileage cap to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Leave expiry_mileage blank or set very high for contracts with no mileage cap. Distinct from `fleet-insurance-expiry-check` (liability/collision coverage) and `vehicle-maintenance-due-check` (routine service intervals, not repair coverage).

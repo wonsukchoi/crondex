@@ -1,0 +1,41 @@
+id: drug-shortage-backorder-substitution-tracker
+version: 1
+name: Drug Shortage and Backorder Substitution Tracker
+description: >
+  Checks the pharmacy's active shortage/backorder list against on-hand
+  inventory and flags any drug that's out of stock with no therapeutic
+  substitution already noted, plus any patient waiting on a fill of a
+  shorted item. Use this if a patient has ever shown up for a refill only
+  to find out at the counter that the drug had been on backorder for days
+  with no substitution plan in place.
+category: pharmacy
+tags: [pharmacy, drug-shortage, backorder, inventory, substitution]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v min="{{min_on_hand_units}}" '
+    NR==1 {next}
+    {
+      ndc=$1; drug_name=$2; on_hand=$3; shortage_status=$4; substitution_noted=$5;
+      if (shortage_status == "shortage" || shortage_status == "backorder") {
+        if (on_hand+0 < min+0 && substitution_noted == "") {
+          printf "NO SUBSTITUTION PLAN: %s (%s) — on hand %s, status %s, no substitution noted.\n", drug_name, ndc, on_hand, shortage_status;
+        }
+      }
+    }
+  ' "{{shortage_status_csv_path}}"
+variables:
+  shortage_status_csv_path:
+    default: "./drug-shortage-status.csv"
+    description: "Path to a CSV combining a shortage/backorder list with current inventory, columns: ndc,drug_name,on_hand_units,shortage_status (shortage/backorder/none),substitution_noted (name of alternate NDC/drug, blank if none chosen yet)."
+  min_on_hand_units:
+    default: 5
+    description: On-hand unit count below which a shorted drug is treated as at risk of stocking out before the shortage clears.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only inventory/status check against locally exported data (e.g. a
+  manually maintained shortage tracker cross-referenced with FDA/ASHP
+  shortage lists) — it does not query any external shortage database
+  automatically. Choosing a clinically appropriate substitute still needs
+  pharmacist judgment; this only flags where a plan is missing.

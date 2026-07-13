@@ -1,0 +1,41 @@
+id: meal-benefit-application-backlog-check
+version: 1
+name: Meal Benefit New Application Processing Backlog Check
+description: >
+  Checks newly submitted free/reduced meal benefit applications against how
+  long they've been waiting for a determination and flags any past your
+  target processing window. Use this if a family has ever gone weeks
+  without a meal-benefit decision because new applications piled up behind
+  other cafeteria-office work.
+category: education
+tags: [education, meals, eligibility, applications, backlog]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxDays="{{max_processing_days}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sub_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      wait_days = (now_epoch - sub_epoch) / 86400;
+      if (wait_days >= maxDays) {
+        printf "OVERDUE: application %s submitted %s (%d days pending)\n", $1, $2, wait_days;
+      }
+    }
+  ' "{{applications_csv_path}}"
+variables:
+  applications_csv_path:
+    default: "./meal-benefit-applications.csv"
+    description: "Path to a CSV with columns: application_id,submitted_date (YYYY-MM-DD),status (pending, approved, or denied)."
+  max_processing_days:
+    default: 10
+    description: Days a new application can sit without a determination before it counts as backlog (federal guidance is generally within 10 operating days).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from free-reduced-lunch-eligibility-renewal-check, which tracks
+  approvals nearing expiration — this tracks brand-new applications waiting
+  on an initial determination, typically heaviest at the start of the
+  school year. Use application_id rather than family names in the source
+  CSV.

@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1411 jobs across 60 categories:
+1459 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -199,12 +199,12 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 20 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
+| `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 20 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 36 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 20 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
@@ -223,10 +223,10 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
-| `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
-| `pharmacy` | 20 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
+| `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |

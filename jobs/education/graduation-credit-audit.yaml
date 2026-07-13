@@ -1,0 +1,44 @@
+id: graduation-credit-audit
+version: 1
+name: Graduation Credit Requirement Audit
+description: >
+  Reviews each senior's transcript against your state or district's
+  graduation credit requirements by subject area and flags anyone who's
+  short, with enough time left to fix it. Use this if a senior has ever
+  found out during their final semester that they were missing a required
+  credit nobody caught earlier.
+category: education
+tags: [education, graduation, credits, transcripts, seniors]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review transcripts for the {{graduating_class}} cohort from
+  {{sis_hint}} against the graduation requirements below.
+  Required credits by subject area: {{credit_requirements}}.
+  1. For each senior, total completed and currently-enrolled-in-progress
+     credits by subject area and compare against the requirement.
+  2. Flag any student who is short in one or more subject areas, noting
+     exactly which area and how many credits short, and whether their
+     current schedule (if visible) closes the gap by graduation.
+  3. Separately flag students who are on track only if a currently
+     in-progress course is passed — these need monitoring, not just a
+     one-time check.
+  4. Summarize the list for counselors so schedule changes or credit-
+     recovery options can be arranged with enough of the year left to act.
+variables:
+  sis_hint:
+    default: "your student information system's transcript/gradebook data"
+    description: Where transcript and in-progress course data lives.
+  graduating_class:
+    default: "the current senior class (e.g. Class of 2027)"
+    description: Which cohort this audit run covers.
+  credit_requirements:
+    default: "4 English, 4 Math, 3 Science, 3 Social Studies, 1 PE/Health, electives to total 24"
+    description: Your state or district's graduation credit requirements by subject area.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — credit requirements and how transcripts encode
+  subject-area categorization vary too widely across SIS platforms and
+  states for one script. Run at least once each fall and again mid-year so
+  there's still time to schedule a fix.

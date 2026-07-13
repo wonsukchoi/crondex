@@ -1,0 +1,41 @@
+id: valet-parking-incident-log-check
+version: 1
+name: Valet and Parking Incident Log Check
+description: >
+  Scans the valet/parking incident log for entries still open past your
+  target response window, and immediately flags any theft or injury
+  report regardless of age. Use this if a scratched bumper or a missing
+  car has ever sat in a notebook for days before anyone escalated it to
+  the guest or insurance.
+category: hospitality
+tags: [hospitality, valet, parking, incident-tracking]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{sla_hours}}" -v severe="{{severe_incident_types}}" '
+    NR==1 {next}
+    $3 == "open" {
+      n = split(severe, sev, ",");
+      is_severe = 0;
+      for (i=1;i<=n;i++) if ($5 == sev[i]) is_severe=1;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline logged_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - logged_epoch) / 3600;
+      if (is_severe) printf "SEVERE - ESCALATE NOW: %s — %s (%s), open %d hrs\n", $1, $5, $4, age_hours;
+      else if (age_hours >= hours) printf "OVERDUE: %s — %s (%s), open %d hrs\n", $1, $5, $4, age_hours;
+    }
+  ' "{{incidents_csv_path}}"
+variables:
+  incidents_csv_path:
+    default: "./parking-incidents.csv"
+    description: "CSV with header row, columns: incident_id,logged_at (YYYY-MM-DD HH:MM),status (open/closed),vehicle_or_area,incident_type (scratch/dent/theft/injury/lost-key/other)."
+  sla_hours:
+    default: 4
+    description: Target hours to close a routine (non-severe) parking incident before it's flagged overdue.
+  severe_incident_types:
+    default: "theft,injury"
+    description: Comma-separated incident_type values that get escalated immediately regardless of age.
+compatible_agents: [generic, claude, codex]
+notes: Theft and injury reports need immediate escalation to management, security, and (for injury) risk/legal — don't wait for the SLA window on those regardless of how the log is staffed.

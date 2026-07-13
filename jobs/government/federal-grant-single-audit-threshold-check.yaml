@@ -1,0 +1,53 @@
+id: federal-grant-single-audit-threshold-check
+version: 1
+name: Federal Grant Single Audit Threshold Check
+description: >
+  Totals your agency's federal award expenditures for the fiscal year
+  and warns when you're approaching or have crossed the Single Audit
+  Act threshold that triggers a required Uniform Guidance audit. Use
+  this if federal pass-through spending has ever crept past the audit
+  trigger mid-year without finance or the grants office noticing until
+  the year-end close.
+category: government
+tags: [government, grants, federal-funds, single-audit, compliance, grantee]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{single_audit_threshold_usd}}" -v warn_pct="{{warn_at_pct_of_threshold}}" '
+    NR==1 {next}
+    {
+      total += $3;
+      count++;
+    }
+    END {
+      warn_amount = threshold * (warn_pct / 100);
+      printf "Federal awards tracked: %d, YTD federal expenditures: %.2f\n", count, total;
+      if (total >= threshold) {
+        printf "OVER THRESHOLD: YTD federal expenditures %.2f meet or exceed the %.2f Single Audit trigger — a Single Audit is required for this fiscal year.\n", total, threshold;
+      } else if (total >= warn_amount) {
+        printf "APPROACHING THRESHOLD: YTD federal expenditures %.2f have crossed %d%% of the %.2f Single Audit trigger.\n", total, warn_pct, threshold;
+      } else {
+        printf "Below threshold: %.2f of %.2f (%d%%).\n", total, threshold, (total/threshold)*100;
+      }
+    }
+  ' "{{federal_awards_csv_path}}"
+variables:
+  federal_awards_csv_path:
+    default: "./federal-award-expenditures.csv"
+    description: "Path to a CSV with columns: award_id,federal_agency,expenditure_ytd_usd (numeric, column 3), fiscal_year."
+  single_audit_threshold_usd:
+    default: 750000
+    description: "Cumulative federal expenditure threshold (USD) that triggers a required Single Audit under 2 CFR 200 Subpart F. Confirm the current figure — it is set by federal regulation and can change."
+  warn_at_pct_of_threshold:
+    default: 80
+    description: Percent of the threshold at which to start warning that a Single Audit is likely required this year.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is distinct from grant-compliance-report-tracker.yaml (this
+  agency awarding grants to others and chasing their reports) — this
+  job is the reverse direction: your agency as a recipient/subrecipient
+  of federal funds tracking its own cumulative spend against the audit
+  trigger. Threshold and rules come from 2 CFR 200 Subpart F; confirm
+  the current dollar figure with your auditor before relying on the
+  default.

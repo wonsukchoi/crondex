@@ -1,0 +1,42 @@
+id: midterm-endorsement-premium-audit
+version: 1
+name: Mid-Term Endorsement Premium Audit
+description: >
+  Checks processed mid-term policy endorsements (a driver added, a limit
+  raised, a location removed) against the premium adjustment the carrier
+  actually charged or refunded, and flags any that look off relative to
+  the change requested. Use this if an endorsement has ever come back
+  processed with a premium change that didn't match what the change
+  itself should have cost, and nobody double-checked before invoicing
+  the client.
+category: insurance
+tags: [insurance, endorsement, premium, audit, policy-changes]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      expected=$3+0; actual=$4+0;
+      if (expected == 0) next;
+      pct_diff = ((actual - expected) / expected) * 100;
+      if (pct_diff < 0) pct_diff = -pct_diff;
+      if (pct_diff > tolerance) {
+        printf "PREMIUM VARIANCE: endorsement %s on %s — expected change $%.2f, carrier charged $%.2f (%.1f%% off)\n", $1, $2, expected, actual, pct_diff;
+      }
+    }
+  ' "{{processed_endorsements_csv}}"
+variables:
+  processed_endorsements_csv:
+    default: "./processed-endorsements.csv"
+    description: "Path to a CSV with columns: endorsement_id,policy_number,expected_premium_change,actual_premium_change_charged."
+  variance_tolerance_pct:
+    default: 10
+    description: Percent variance allowed between expected and actual premium change before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks premium accuracy on endorsements already confirmed processed —
+  distinct from endorsement-request-followup-check, which checks whether
+  a requested endorsement was processed at all, not whether the resulting
+  premium change was correct.

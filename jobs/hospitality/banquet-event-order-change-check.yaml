@@ -1,0 +1,47 @@
+id: banquet-event-order-change-check
+version: 1
+name: Banquet Event Order (BEO) Change Tracker
+description: >
+  Reviews banquet event orders revised close to their event date and
+  flags changes that may not have reached the kitchen, banquet, or AV
+  teams in time. Use this if a last-minute headcount or menu change on a
+  BEO has ever reached the kitchen after prep was already done, because
+  the revision only got emailed to one person.
+category: hospitality
+tags: [hospitality, banquet, events, f-and-b, beo]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull banquet event orders (BEOs) from {{catering_system}} that were
+  revised in the last {{lookback_hours}} hours and are scheduled within
+  {{event_horizon_days}} days.
+  1. List each revised BEO with what changed (headcount, menu, room
+     setup, AV, timing) and how close the event is.
+  2. Flag any revision within {{urgent_hours}} hours of the event start —
+     those need a direct confirmation call or message to the kitchen,
+     banquet captain, and AV, not just an updated document sitting in
+     the system.
+  3. Note any BEO with more than {{revision_alert_count}} total
+     revisions, since a heavily-revised order is more likely to have a
+     step someone missed.
+  4. Draft a short confirmation message per urgent BEO summarizing
+     exactly what changed, ready to send to the affected teams.
+variables:
+  catering_system:
+    default: "your catering/events management system"
+    description: System tracking BEOs (e.g. "Tripleseat", "Cvent", "Delphi").
+  lookback_hours:
+    default: 24
+    description: How far back to check for BEO revisions.
+  event_horizon_days:
+    default: 7
+    description: Only review events scheduled within this many days.
+  urgent_hours:
+    default: 48
+    description: Hours before an event within which a revision is treated as urgent.
+  revision_alert_count:
+    default: 3
+    description: Total revision count on one BEO worth flagging as high-risk regardless of timing.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from group-booking-space-utilization-check, which reviews overall event-space utilization for the week — this tracks last-minute changes to a specific event's operational order.

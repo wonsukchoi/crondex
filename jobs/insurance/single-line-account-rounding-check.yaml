@@ -1,0 +1,38 @@
+id: single-line-account-rounding-check
+version: 1
+name: Single-Line Account Rounding Opportunity Check
+description: >
+  Scans the client book for policyholders who only carry one line of
+  business with the agency and surfaces them as cross-sell/account-rounding
+  candidates, drafting a short outreach note for the top prospects. Use
+  this if you've ever realized a client with only an auto policy has
+  been shopping their homeowners coverage elsewhere for years because no
+  one ever asked.
+category: insurance
+tags: [insurance, cross-sell, account-rounding, retention, sales]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the client policy roster at {{client_policy_roster_csv}} (expected
+  columns: client_name, client_id, lines_of_business — a semicolon- or
+  comma-separated list of what they currently hold, e.g. "auto" or
+  "home;umbrella", and annual_premium).
+  1. Identify every client who holds exactly one line of business.
+  2. Rank them by annual_premium (highest first) as the best rounding
+     candidates — larger single-line accounts are the most likely to be
+     underinsured elsewhere and the most valuable to round out.
+  3. For the top {{top_n_prospects}} candidates, draft a short, low-pressure
+     outreach note suggesting a quick coverage review (e.g. "noticed you
+     only have auto with us — want a 5-minute check on your home/renters
+     coverage too?").
+  4. Summarize the list and drafts in one report; do not send anything.
+variables:
+  client_policy_roster_csv:
+    default: "./client-policy-roster.csv"
+    description: "Path to a CSV with columns: client_name,client_id,lines_of_business,annual_premium."
+  top_n_prospects:
+    default: 10
+    description: How many top single-line accounts to draft outreach notes for.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — outreach notes are for review, not sent automatically.

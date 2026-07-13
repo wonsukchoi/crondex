@@ -1,0 +1,49 @@
+id: franchise-agreement-renewal-tracker
+version: 1
+name: Utility Franchise Agreement Renewal Tracker
+description: >
+  Checks your agency's cable, telecom, and utility franchise agreements
+  against their renewal notice window or expiration date and flags any
+  coming up soon. Use this if a franchise agreement has ever quietly
+  auto-renewed on old terms, or lapsed, because nobody outside the
+  original negotiating team was tracking the date.
+category: government
+tags: [government, franchise-agreement, utilities, contracts, deadline]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline notice_epoch; close(cmd);
+      diff_days = (notice_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "PAST NOTICE WINDOW: franchise %s (%s) — renewal notice date %s was %d day(s) ago\n", $1, $2, $3, -diff_days;
+        past++;
+      } else if (diff_days <= days) {
+        printf "NOTICE WINDOW APPROACHING: franchise %s (%s) — act by %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d past their notice window, %d approaching within %d days\n", past, due_soon, days;
+    }
+  ' "{{franchise_agreements_csv_path}}"
+variables:
+  franchise_agreements_csv_path:
+    default: "./franchise-agreements.csv"
+    description: "Path to a CSV with columns: agreement_id,franchisee_name (e.g. cable/telecom/gas provider),renewal_notice_or_expiry_date (YYYY-MM-DD),status (active/expired/terminated)."
+  warn_days_before:
+    default: 180
+    description: How many days before the renewal notice deadline or expiration to start warning — franchise negotiations typically need a long lead time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Renewal notice requirements and negotiation timelines are set by each
+  franchise agreement and applicable state/federal telecom law (e.g.
+  Cable Act notice provisions) — confirm per agreement. Distinct from
+  legal/contract-renewal-reminder.yaml's generic contract scope; this is
+  specifically the public right-of-way franchise relationship a local
+  government holds with a utility or cable provider.

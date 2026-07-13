@@ -1,0 +1,47 @@
+id: producer-ce-credit-hour-tracker
+version: 1
+name: Producer Continuing Education Credit Hour Tracker
+description: >
+  Adds up each licensed producer's logged continuing-education (CE)
+  credit hours per state against what that state requires before their
+  license renewal deadline, and flags anyone pacing behind. Use this if
+  a producer has ever discovered a week before their license renewal
+  that they're still short several required CE hours in one of the
+  states they're licensed in.
+category: insurance
+tags: [insurance, producer, continuing-education, license, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer="{{warn_hours_buffer}}" '
+    NR==1 {next}
+    {
+      key=$1 "|" $2;
+      earned[key]+=$4;
+      required[key]=$3;
+      deadline[key]=$5;
+    }
+    END {
+      for (k in required) {
+        split(k, parts, "|");
+        remaining = required[k] - earned[k];
+        if (remaining > buffer) {
+          printf "BEHIND: %s in %s — %d of %d CE hours logged (renews %s)\n", parts[1], parts[2], earned[k], required[k], deadline[k];
+        }
+      }
+    }
+  ' "{{producer_ce_log_csv}}"
+variables:
+  producer_ce_log_csv:
+    default: "./producer-ce-log.csv"
+    description: "Path to a CSV with columns: producer_name,state,required_ce_hours,ce_hours_earned_this_entry,license_renewal_date (YYYY-MM-DD). One row per logged CE course; the job sums hours per producer/state."
+  warn_hours_buffer:
+    default: 0
+    description: How many hours of slack to allow before flagging a producer as behind (0 = flag any shortfall).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks CE hour progress toward each state's requirement — distinct from
+  agent-broker-license-expiry-tracker, which watches the license
+  expiration dates themselves rather than whether the CE hours needed to
+  renew have actually been earned.

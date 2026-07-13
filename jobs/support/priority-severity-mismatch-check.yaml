@@ -1,0 +1,46 @@
+id: priority-severity-mismatch-check
+version: 1
+name: Ticket Priority-Severity Mismatch Check
+description: >
+  Reads tickets marked low or normal priority and checks whether their
+  content or how long they've dragged on actually reads as more severe
+  than the priority field suggests. Use this if a ticket has ever sat
+  quietly in the standard queue for days because it was tagged "low"
+  at intake, when the customer's own words described a business-critical
+  outage.
+category: support
+tags: [support, tickets, priority, triage, quality]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for open tickets marked {{low_priority_labels}}
+  priority that have been open longer than {{age_hours}} hours.
+  1. Read each ticket's subject and customer messages for language
+     suggesting real business impact (outage, data loss, blocked
+     go-live, revenue-affecting) that doesn't match a low/normal
+     priority label.
+  2. Flag any ticket where the content reads meaningfully more severe
+     than its assigned priority, and suggest the priority it should
+     probably carry instead.
+  3. Don't flag tickets that are just old and low-effort with genuinely
+     low-severity content — the point is a mismatch, not just age.
+  4. If nothing looks mismatched, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket priority and content are tracked.
+  low_priority_labels:
+    default: "low, normal"
+    description: Comma-separated priority labels to scan for a possible mismatch.
+  age_hours:
+    default: 24
+    description: Minimum hours a low/normal priority ticket has been open before it's worth this closer read.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Judgment-based — spotting understated severity from customer language
+  needs an LLM read, not a keyword scan, to avoid flagging every ticket
+  that merely contains an alarming word. Distinct from
+  `vip-ticket-priority-check`, which checks that a known VIP account's
+  tickets carry priority tagging; this looks at content-based severity
+  regardless of account tier.

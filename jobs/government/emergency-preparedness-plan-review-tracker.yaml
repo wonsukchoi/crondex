@@ -1,0 +1,51 @@
+id: emergency-preparedness-plan-review-tracker
+version: 1
+name: Emergency Preparedness Plan Review Tracker
+description: >
+  Checks your agency's emergency operations, continuity-of-operations,
+  and hazard mitigation plans against their required periodic review
+  date and flags any that are due or overdue for update. Use this if a
+  plan has ever gone years past its review cycle and only got noticed
+  when a grant application or an actual emergency required a current
+  copy.
+category: government
+tags: [government, emergency-management, preparedness, compliance, planning]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn_days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "OVERDUE: %s (%s) — review was due %s, %d day(s) ago\n", $1, $2, $3, -diff_days;
+        overdue++;
+      } else if (diff_days <= warn_days) {
+        printf "DUE SOON: %s (%s) — review due %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d plan(s) tracked, %d overdue, %d due within %d days\n", total, overdue, due_soon, warn_days;
+    }
+  ' "{{plans_csv_path}}"
+variables:
+  plans_csv_path:
+    default: "./emergency-preparedness-plans.csv"
+    description: "Path to a CSV with columns: plan_id,plan_name (e.g. EOP/COOP/Hazard Mitigation Plan),next_review_due_date (YYYY-MM-DD),owner_department."
+  warn_days_before:
+    default: 60
+    description: How many days before a plan's review due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Review intervals (commonly annual for an EOP, every 5 years for a
+  FEMA-approved Hazard Mitigation Plan) are set by your plan's own
+  adoption resolution or the applicable federal/state guidance — confirm
+  each plan's cadence before setting next_review_due_date. This tracks
+  paperwork review deadlines only; it does not assess plan quality or
+  run an exercise.

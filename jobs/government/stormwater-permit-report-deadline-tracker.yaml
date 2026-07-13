@@ -1,0 +1,50 @@
+id: stormwater-permit-report-deadline-tracker
+version: 1
+name: Stormwater (MS4) Permit Report Deadline Tracker
+description: >
+  Checks the required reports and permit conditions under your
+  municipality's stormwater discharge (MS4/NPDES) permit against their
+  due dates and flags anything coming up. Use this if a required
+  stormwater annual report or minimum-control-measure milestone has
+  ever nearly been missed because it lived in one engineer's calendar
+  instead of a shared tracker.
+category: government
+tags: [government, stormwater, environmental, permit, compliance, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 != "submitted" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "PAST DUE: %s (%s) — was due %s, %d day(s) ago, status: %s\n", $1, $2, $3, -diff_days, $4;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "DUE SOON: %s (%s) — due %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d overdue, %d due within %d days\n", overdue, due_soon, days;
+    }
+  ' "{{stormwater_obligations_csv_path}}"
+variables:
+  stormwater_obligations_csv_path:
+    default: "./stormwater-permit-obligations.csv"
+    description: "Path to a CSV with columns: obligation_id,description (e.g. annual report, outfall inspection, public education milestone),due_date (YYYY-MM-DD),status (pending/submitted)."
+  warn_days_before:
+    default: 30
+    description: How many days before a stormwater permit obligation's due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Deadlines and required minimum control measures come from your
+  jurisdiction's specific MS4/NPDES permit issued by the state or EPA
+  region — populate the CSV from that permit, not from a generic
+  schedule. This is environmental discharge-permit compliance, distinct
+  from public-works-work-order-backlog-check.yaml's physical storm
+  drain maintenance requests.

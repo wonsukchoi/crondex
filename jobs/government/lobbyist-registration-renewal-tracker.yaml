@@ -1,0 +1,49 @@
+id: lobbyist-registration-renewal-tracker
+version: 1
+name: Lobbyist Registration Renewal Tracker
+description: >
+  Checks registered lobbyists and their sponsoring clients against your
+  jurisdiction's registration/renewal deadline and flags any that are
+  about to lapse or are already expired. Use this if a lobbyist has
+  ever kept contacting officials on an expired registration because
+  nobody in the ethics or clerk's office was tracking renewal dates.
+category: government
+tags: [government, lobbying, ethics, registration, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      diff_days = (expiry_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "EXPIRED: lobbyist %s (client: %s) — registration lapsed %d day(s) ago (%s)\n", $1, $2, -diff_days, $3;
+        expired++;
+      } else if (diff_days <= days) {
+        printf "RENEWAL DUE: lobbyist %s (client: %s) — expires %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d expired, %d due within %d days\n", expired, due_soon, days;
+    }
+  ' "{{lobbyist_registrations_csv_path}}"
+variables:
+  lobbyist_registrations_csv_path:
+    default: "./lobbyist-registrations.csv"
+    description: "Path to a CSV with columns: lobbyist_name,client_name,expiry_date (YYYY-MM-DD),status (active/lapsed/withdrawn)."
+  warn_days_before:
+    default: 21
+    description: How many days before a registration's expiry date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Registration thresholds, exemptions, and renewal cycles are set by
+  your jurisdiction's lobbying disclosure ordinance — confirm the actual
+  filing rules before treating an expired flag as a violation. This is
+  distinct from financial-disclosure-filing-deadline-check.yaml, which
+  covers officials'/staff's own ethics disclosures, not third-party
+  lobbyist registrations.

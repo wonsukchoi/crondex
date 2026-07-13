@@ -1,0 +1,40 @@
+id: help-center-search-gap-check
+version: 1
+name: Help Center Search Gap Check
+description: >
+  Scans your help center's on-site search logs for queries that returned
+  zero results and ranks them by how often customers typed them. Use this
+  if a content gap has ever gone unnoticed for months because the missing
+  article never showed up anywhere except a search box nobody was
+  watching.
+category: support
+tags: [support, knowledge-base, help-center, search, content-gap]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{search_log_csv}}" ] || { echo "ERROR: search log CSV not found at {{search_log_csv}}"; exit 1; };
+  awk -F',' -v min={{min_hits}} '
+    NR==1 {next}
+    $3 == "0" { count[$1]++ }
+    END {
+      found=0;
+      for (q in count) {
+        if (count[q] >= min) { printf "GAP: \"%s\" searched %d time(s) with zero results\n", q, count[q]; found=1; }
+      }
+      if (!found) print "OK: no zero-result search query hit the minimum hit threshold";
+    }
+  ' "{{search_log_csv}}"
+variables:
+  search_log_csv:
+    default: "./help-center-search-log.csv"
+    description: "CSV with header row, columns: query,timestamp,result_count — export this from your help center's search analytics."
+  min_hits:
+    default: 3
+    description: Minimum number of times a zero-result query must recur in the log before it's worth flagging as a content gap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `knowledge-base-article-staleness-check`, which flags
+  existing articles by age — this flags topics with no article at all,
+  surfaced through what customers actually searched for and didn't find.

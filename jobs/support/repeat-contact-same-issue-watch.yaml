@@ -1,0 +1,45 @@
+id: repeat-contact-same-issue-watch
+version: 1
+name: Repeat Contact Same Issue Watch
+description: >
+  Reads recent tickets from the same customers and flags cases where
+  someone has opened multiple separate tickets about what looks like the
+  same underlying issue. Use this if a customer has ever had to file a
+  third ticket on the same problem because each prior one got closed
+  without anyone noticing it was a repeat, not a new complaint.
+category: support
+tags: [support, tickets, quality, repeat-contact, customer-experience]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look at tickets created in {{helpdesk_platform}} in the last
+  {{lookback_days}} days, grouped by customer.
+  1. For customers who filed {{min_ticket_count}} or more separate
+     tickets in the window, read the subject and first message of each to
+     judge whether they describe the same underlying issue rather than
+     genuinely different requests.
+  2. Flag any customer where multiple tickets look like the same
+     unresolved issue being re-reported instead of one ticket being
+     properly worked through to resolution.
+  3. For each flagged customer, note whether the tickets were handled by
+     different agents (a handoff/continuity problem) or the same agent
+     (a resolution-quality problem).
+  4. If no customer shows this pattern, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket history per customer is tracked.
+  lookback_days:
+    default: 14
+    description: Rolling window of tickets to group by customer and review.
+  min_ticket_count:
+    default: 3
+    description: Minimum number of tickets from the same customer in the window before checking for a repeat-issue pattern.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Judgment-based — telling "same issue re-reported" apart from "customer
+  just has several unrelated requests" needs reading actual ticket
+  content, not a keyword match. Distinct from
+  `ticket-reopened-rate-watch`, which only catches the same ticket being
+  literally reopened, not a customer starting a fresh ticket each time.

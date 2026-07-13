@@ -1,0 +1,50 @@
+id: property-tax-assessment-appeal-deadline-tracker
+version: 1
+name: Property Tax Assessment Appeal Deadline Tracker
+description: >
+  From the assessor's office side, checks filed property assessment
+  appeals against their statutory hearing or decision deadline and
+  flags any at risk of missing it. Use this if an appeal has ever
+  blown past its required hearing deadline and gotten resolved in the
+  property owner's favor by default because the board of review ran
+  out of time.
+category: government
+tags: [government, property-tax, assessment, appeals, compliance, deadline]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "PAST DECISION DEADLINE: appeal %s (parcel %s) — deadline %s was %d day(s) ago\n", $1, $2, $3, -diff_days;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "DEADLINE APPROACHING: appeal %s (parcel %s) — decide by %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d overdue, %d approaching within %d days\n", overdue, due_soon, days;
+    }
+  ' "{{appeals_csv_path}}"
+variables:
+  appeals_csv_path:
+    default: "./property-tax-assessment-appeals.csv"
+    description: "Path to a CSV with columns: appeal_id,parcel_id,statutory_decision_deadline (YYYY-MM-DD),status (pending/decided/withdrawn)."
+  warn_days_before:
+    default: 20
+    description: How many days before an appeal's statutory hearing/decision deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Statutory deadlines for board-of-review or board-of-equalization
+  decisions vary by state — confirm the applicable rule before relying
+  on the default warning window. This is the assessor/board-of-review's
+  own decision-deadline exposure, distinct from
+  realestate/property-tax-deadline-reminder.yaml, which is a taxpayer
+  tracking when their own tax bill is due.

@@ -1,0 +1,36 @@
+id: resort-amenity-utilization-check
+version: 1
+name: Resort Amenity Utilization Check
+description: >
+  Checks bookable non-spa amenities — pool cabanas, golf tee times, bike
+  rentals, tennis courts — against available slots for the week and flags
+  amenities running well under target utilization. Use this if a resort
+  fee has ever been hard to justify to guests because half the amenities
+  it supposedly covers were sitting empty and nobody had the numbers to
+  know it.
+category: hospitality
+tags: [hospitality, amenities, resort-fee, utilization]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_utilization_pct}}" '
+    NR==1 {next}
+    {
+      avail = $2; booked = $3;
+      if (avail > 0) {
+        pct = (booked / avail) * 100;
+        printf "%s: %.0f%% utilized (%d/%d slots)\n", $1, pct, booked, avail;
+        if (pct < min_pct) printf "  LOW UTILIZATION: below target %d%%\n", min_pct;
+      } else printf "%s: no bookable slots recorded\n", $1;
+    }
+  ' "{{amenity_bookings_csv}}"
+variables:
+  amenity_bookings_csv:
+    default: "./amenity-bookings.csv"
+    description: "CSV with header row, columns: amenity_name,slots_available,slots_booked — one row per bookable amenity for the week (pool cabanas, tee times, bike rentals, tennis courts, etc.)."
+  min_utilization_pct:
+    default: 30
+    description: Utilization percentage below which an amenity is flagged as underused.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from the spa category's therapist-utilization-rate-check and treatment-room-double-booking-check, which cover staffed treatment services — this covers self-service or facility-based amenities tied to general resort-fee value, not spa treatments.

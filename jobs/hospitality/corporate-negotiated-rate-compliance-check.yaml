@@ -1,0 +1,32 @@
+id: corporate-negotiated-rate-compliance-check
+version: 1
+name: Corporate Negotiated Rate Compliance Check
+description: >
+  Compares what was actually charged on corporate/negotiated-rate
+  reservations against the contracted rate for that company and flags
+  mismatches. Use this if a reservation has ever quietly posted at the
+  wrong rate because a rate code was mistyped or a stale contracted rate
+  never got updated in the PMS.
+category: hospitality
+tags: [hospitality, corporate-rates, revenue-assurance, front-desk]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_usd}}" '
+    NR==1 {next}
+    {
+      diff = $4 - $3;
+      if (diff < 0) diff = -diff;
+      if (diff > tol) printf "MISMATCH: reservation %s (%s) — contracted $%.2f, charged $%.2f\n", $1, $2, $3, $4;
+    }
+  ' "{{corporate_bookings_csv}}"
+variables:
+  corporate_bookings_csv:
+    default: "./corporate-rate-bookings.csv"
+    description: "CSV with header row, columns: reservation_id,company_name,contracted_rate_usd,rate_charged_usd."
+  tolerance_usd:
+    default: 1.00
+    description: Allowed difference in USD between contracted and charged rate before a reservation is flagged.
+compatible_agents: [generic, claude, codex]
+notes: A mismatch below the charged rate is lost revenue; one above it is a guest-facing billing error that will generate a complaint or chargeback — investigate both directions, not just undercharges.

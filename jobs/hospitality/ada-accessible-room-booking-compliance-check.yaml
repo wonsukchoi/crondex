@@ -1,0 +1,27 @@
+id: ada-accessible-room-booking-compliance-check
+version: 1
+name: ADA-Accessible Room Booking Compliance Check
+description: >
+  Cross-checks reservations where a guest requested an ADA-accessible
+  room against what was actually assigned, and flags any mismatch. Use
+  this if a guest who requested a roll-in shower has ever arrived to find
+  a standard room assigned instead, because the accessibility flag got
+  dropped somewhere between booking and room assignment.
+category: hospitality
+tags: [hospitality, ada, accessibility, compliance, reservations]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $3 == "yes" && $4 != "yes" {
+      printf "MISMATCH: reservation %s (arrival %s) requested an ADA-accessible room but assigned room is not flagged ADA\n", $1, $2;
+    }
+  ' "{{ada_bookings_csv}}"
+variables:
+  ada_bookings_csv:
+    default: "./ada-room-requests.csv"
+    description: "CSV with header row, columns: reservation_id,arrival_date (YYYY-MM-DD),ada_requested (yes/no),assigned_room_ada (yes/no) — one row per upcoming reservation."
+compatible_agents: [generic, claude, codex]
+notes: A mismatch is a compliance and guest-experience issue, not just an inconvenience — under the ADA a requested accessible room must be honored if available; escalate any flagged reservation to front-desk management before arrival, not after check-in.

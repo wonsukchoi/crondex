@@ -1,0 +1,48 @@
+id: customer-health-ticket-volume-correlation-watch
+version: 1
+name: Customer Health vs Ticket Volume Correlation Watch
+description: >
+  Cross-references your account health scores against recent support
+  ticket volume and flags accounts where a rising ticket count lines up
+  with a dropping health score. Use this if an account has ever churned
+  after weeks of piling up support tickets that nobody connected back to
+  the customer-success health dashboard because the two lived in
+  different tools.
+category: support
+tags: [support, customer-health, churn-risk, tickets, cross-functional]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Using {{helpdesk_platform}} for ticket volume and {{health_score_source}}
+  for account health scores, look at accounts with {{min_arr}} or more in
+  ARR (or your equivalent tier cutoff) over the last {{lookback_days}}
+  days.
+  1. For each such account, compare ticket volume this period against
+     their trailing baseline, and their current health score against
+     their prior score.
+  2. Flag accounts where ticket volume is up notably at the same time
+     health score is trending down — that combination is a stronger churn
+     signal than either alone.
+  3. For each flagged account, note the apparent driver if visible in
+     ticket subjects (a specific bug, onboarding friction, billing
+     confusion).
+  4. If no account shows both signals together, say so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where support ticket volume per account is tracked.
+  health_score_source:
+    default: "your CS platform (e.g. Gainsight, Vitally, a shared health-score spreadsheet)"
+    description: Where customer health scores are tracked.
+  min_arr:
+    default: "$10,000"
+    description: Minimum account ARR (or equivalent tier) to include in this check.
+  lookback_days:
+    default: 30
+    description: Rolling window to compare ticket volume and health score trend against.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires both a helpdesk and a separate health-score source — this is
+  a cross-functional signal for support and customer success to share,
+  not a replacement for either team's own dashboard. Read-only.

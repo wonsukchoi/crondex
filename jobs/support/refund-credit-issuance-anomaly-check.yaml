@@ -1,0 +1,43 @@
+id: refund-credit-issuance-anomaly-check
+version: 1
+name: Refund/Credit Issuance Anomaly Check
+description: >
+  Checks refunds and account credits issued by support agents over a
+  recent window and flags any agent issuing far more than the team
+  average. Use this if a support-issued refund or credit has ever gone
+  out at an unusual rate before anyone reviewed whether it reflected a
+  real product problem or a policy being applied too loosely.
+category: support
+tags: [support, refunds, credits, agents, quality, fraud-signal]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{refund_log_csv}}" ] || { echo "ERROR: refund log CSV not found at {{refund_log_csv}}"; exit 1; };
+  awk -F',' -v mult={{outlier_multiplier}} '
+    NR==1 {next}
+    { count[$1]++; total++ }
+    END {
+      if (total == 0) { print "OK: no refunds/credits logged in the window"; exit 0; }
+      avg = total / length(count);
+      flagged=0;
+      for (agent in count) {
+        if (count[agent] >= avg * mult) { printf "OUTLIER: agent \"%s\" issued %d refund(s)/credit(s) vs team average %.1f\n", agent, count[agent], avg; flagged=1; }
+      }
+      if (!flagged) print "OK: no agent issued refunds/credits above the outlier threshold";
+    }
+  ' "{{refund_log_csv}}"
+variables:
+  refund_log_csv:
+    default: "./refund-credit-log.csv"
+    description: "CSV with header row, columns: agent_name,ticket_id,amount,date — export this from your billing/helpdesk refund and credit issuance log."
+  outlier_multiplier:
+    default: 3
+    description: How many times above the team average refund/credit count counts as an outlier worth reviewing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A flagged agent isn't automatically doing anything wrong — they may
+  just work a queue with a genuinely refund-heavy issue that week — this
+  is a review prompt for a team lead, not an accusation or an automatic
+  policy action. Read-only; issues no refunds or credits itself.

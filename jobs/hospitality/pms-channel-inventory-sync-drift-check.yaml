@@ -1,0 +1,36 @@
+id: pms-channel-inventory-sync-drift-check
+version: 1
+name: PMS and Channel Manager Inventory Sync Drift Check
+description: >
+  Compares room availability counts exported from your PMS against what
+  the channel manager shows for the same room types and dates, and flags
+  any mismatch. Use this if a room has ever sold on an OTA after it was
+  already blocked out-of-order in the PMS, because the channel manager
+  sync silently fell behind.
+category: hospitality
+tags: [hospitality, pms, channel-manager, inventory, revenue-management]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR > 1) pms[$1","$2] = $3; next }
+    FNR==1 {next}
+    { cm[$1","$2] = $3 }
+    END {
+      for (k in pms) {
+        if (!(k in cm)) { printf "MISSING IN CHANNEL MANAGER: %s — PMS shows %d available\n", k, pms[k]; continue }
+        if (pms[k]+0 != cm[k]+0) printf "DRIFT: %s — PMS %d vs channel manager %d\n", k, pms[k], cm[k];
+      }
+      for (k in cm) if (!(k in pms)) printf "MISSING IN PMS: %s — channel manager shows %d available\n", k, cm[k];
+    }
+  ' "{{pms_availability_csv}}" "{{channel_manager_availability_csv}}"
+variables:
+  pms_availability_csv:
+    default: "./pms-availability.csv"
+    description: "CSV with header row, columns: room_type,date,available_rooms — exported from your PMS."
+  channel_manager_availability_csv:
+    default: "./channel-manager-availability.csv"
+    description: "CSV with header row, columns: room_type,date,available_rooms — exported from your channel manager."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from ota-rate-parity-check (compares rates across channels) and overbooking-risk-alert (compares confirmed bookings against total rooms) — this compares the raw inventory counts two systems believe they hold, which is what actually causes oversells when a sync job silently fails.

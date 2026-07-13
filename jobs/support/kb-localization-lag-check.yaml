@@ -1,0 +1,47 @@
+id: kb-localization-lag-check
+version: 1
+name: Knowledge Base Localization Lag Check
+description: >
+  Compares each translated help center article's last-updated date
+  against its source-language version and flags translations that have
+  fallen behind. Use this if a non-English customer has ever followed
+  translated instructions that were quietly out of date for months after
+  the English article got fixed, because only the source article's
+  staleness was ever tracked.
+category: support
+tags: [support, knowledge-base, localization, translation, self-service]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  curl -s -H "Authorization: Bearer {{api_token}}" "{{kb_translations_api_url}}" | grep -o '"slug":"[^"]*","locale":"[^"]*","source_updated_at":"[^"]*","translation_updated_at":"[^"]*"' | while IFS= read -r line; do
+    slug=$(echo "$line" | sed -E 's/.*"slug":"([^"]*)".*/\1/');
+    locale=$(echo "$line" | sed -E 's/.*"locale":"([^"]*)".*/\1/');
+    src=$(echo "$line" | sed -E 's/.*"source_updated_at":"([^"]*)".*/\1/');
+    tr=$(echo "$line" | sed -E 's/.*"translation_updated_at":"([^"]*)".*/\1/');
+    src_ts=$(date -d "$src" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$src" +%s 2>/dev/null);
+    tr_ts=$(date -d "$tr" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%S" "$tr" +%s 2>/dev/null);
+    if [ -n "$src_ts" ] && [ -n "$tr_ts" ] && [ "$src_ts" -gt "$tr_ts" ]; then
+      lag_days=$(( (src_ts - tr_ts) / 86400 ));
+      if [ "$lag_days" -ge {{lag_days_threshold}} ]; then echo "LAGGING: \"$slug\" ($locale) is $lag_days days behind its source-language update"; fi;
+    fi;
+  done
+variables:
+  kb_translations_api_url:
+    default: "https://api.example-helpdesk.com/help_center/articles?fields=slug,locale,source_updated_at,translation_updated_at"
+    description: Help center API endpoint returning translated articles alongside their source article's last-updated timestamp.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the help center API.
+  lag_days_threshold:
+    default: 30
+    description: Days a translation can trail its source-language update before it's flagged as lagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires your help center to expose both the source and translation
+  update timestamps in one place — many CMS/translation-management setups
+  do via a linked-content or translation-status API; adjust field names
+  to match. Distinct from `knowledge-base-article-staleness-check`, which
+  looks at absolute age against a fixed threshold rather than drift
+  relative to the source-language article.

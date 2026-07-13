@@ -1,0 +1,39 @@
+id: first-contact-resolution-rate-watch
+version: 1
+name: First Contact Resolution Rate Watch
+description: >
+  Checks what percentage of tickets get fully resolved in a single agent
+  reply, with no further back-and-forth from the customer. Use this if
+  resolution quality has ever looked fine on paper while the same issues
+  quietly took three or four replies to close, because nobody was
+  measuring reply count separately from resolution time.
+category: support
+tags: [support, tickets, quality, first-contact-resolution]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  total=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{closed_tickets_url}}" | grep -o '"id":' | wc -l | tr -d ' ');
+  fcr=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{closed_tickets_url}}" | grep -o '"agent_reply_count":1' | wc -l | tr -d ' ');
+  if [ -z "$total" ] || [ "$total" -eq 0 ]; then echo "OK: no closed tickets in the window to check"; exit 0; fi;
+  pct=$(( fcr * 100 / total ));
+  if [ "$pct" -lt "{{target_fcr_pct}}" ]; then echo "WARNING: first contact resolution rate is $pct% ($fcr of $total), below target {{target_fcr_pct}}%"; exit 1;
+  else echo "OK: first contact resolution rate is $pct% ($fcr of $total)"; fi
+variables:
+  closed_tickets_url:
+    default: "https://api.example-helpdesk.com/tickets?status=closed&closed_gte=7d_ago&fields=id,agent_reply_count"
+    description: Helpdesk API endpoint listing recently closed tickets with an agent_reply_count field.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  target_fcr_pct:
+    default: 60
+    description: Minimum acceptable percentage of closed tickets resolved with exactly one agent reply.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your helpdesk exposes an agent reply count per ticket — adjust
+  the grep pattern to match your API's field name. Distinct from
+  `ticket-reopened-rate-watch` (which looks at tickets bouncing back after
+  closing) — this measures the back-and-forth needed to close in the
+  first place, whether or not the ticket ever reopens.

@@ -1,0 +1,41 @@
+id: agency-eo-policy-renewal-tracker
+version: 1
+name: Agency E&O Policy Renewal Tracker
+description: >
+  Warns before your own insurance agency's errors & omissions (E&O)
+  professional liability policy comes up for renewal, separate from any
+  client-facing policy tracking. Use this if the agency's own malpractice
+  coverage has ever gotten close to lapsing because everyone was focused
+  on client renewals instead of the agency's own.
+category: insurance
+tags: [insurance, eo, professional-liability, agency, renewal, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  renewal=$(date -d "{{eo_renewal_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{eo_renewal_date}}" +%s 2>/dev/null);
+  days=$(( (renewal - today) / 86400 ));
+  if [ "$days" -le "{{warn_days_before}}" ]; then
+    if [ "$days" -lt 0 ]; then
+      echo "OVERDUE: agency E&O policy renewal date $days days past ({{eo_renewal_date}}) — verify coverage did not lapse.";
+    else
+      echo "DUE SOON: agency E&O policy renews in $days days ({{eo_renewal_date}}) — confirm limits, retro date, and premium with the carrier or wholesaler.";
+    fi
+  else
+    echo "OK: agency E&O renewal ($days days out) is outside the warning window.";
+  fi
+variables:
+  eo_renewal_date:
+    default: "2026-12-01"
+    description: The agency's own E&O/professional liability policy renewal date (YYYY-MM-DD).
+  warn_days_before:
+    default: 45
+    description: How many days before the renewal date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers the agency's own malpractice/professional liability coverage —
+  distinct from policy-renewal-reminder, which is a generic per-policy
+  reminder meant for any policyholder's own coverage, not scoped to E&O
+  or to the agency-as-insured. An E&O lapse exposes every producer at the
+  agency personally, so treat an OVERDUE result as urgent.

@@ -1,0 +1,52 @@
+id: infrastructure-asset-inspection-due-tracker
+version: 1
+name: Infrastructure Asset Inspection Due Tracker
+description: >
+  Checks your inventory of bridges, dams, water towers, and other
+  structural public assets against each one's required periodic
+  inspection interval and flags any that are due or overdue. Use this
+  if a required structural inspection has ever slipped past its
+  interval because it was tracked in an inspector's personal notebook
+  instead of a shared schedule.
+category: government
+tags: [government, infrastructure, inspections, bridges, compliance, public-safety]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn_days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "OVERDUE: asset %s (%s, type %s) — inspection was due %s, %d day(s) ago\n", $1, $2, $3, $4, -diff_days;
+        overdue++;
+      } else if (diff_days <= warn_days) {
+        printf "DUE SOON: asset %s (%s, type %s) — inspection due %s, in %d day(s)\n", $1, $2, $3, $4, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d asset(s) tracked, %d overdue, %d due within %d days\n", total, overdue, due_soon, warn_days;
+    }
+  ' "{{assets_csv_path}}"
+variables:
+  assets_csv_path:
+    default: "./infrastructure-asset-inspections.csv"
+    description: "Path to a CSV with columns: asset_id,asset_name,asset_type (bridge/dam/water-tower/culvert/other),next_inspection_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before an asset's inspection due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Required inspection intervals (e.g. the biennial cycle under the
+  National Bridge Inspection Standards for bridges) vary by asset type
+  and regulator — set next_inspection_due_date per asset from your own
+  inspection program, not from a single default interval. This tracks
+  structural/capital assets, not vehicles (see fleet/vehicle-inspection-due-check.yaml
+  for that) or routine maintenance requests (see
+  public-works-work-order-backlog-check.yaml).

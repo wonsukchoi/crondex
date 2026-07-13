@@ -1,0 +1,44 @@
+id: commission-statement-reconciliation-tracker
+version: 1
+name: Agency Commission Statement Reconciliation Tracker
+description: >
+  Compares commission amounts owed on your agency's own book against what
+  each carrier's commission statement actually paid and flags policies
+  paid short, missed entirely, or not yet reconciled. Use this if a
+  carrier has ever quietly underpaid or dropped a policy off a commission
+  statement and nobody caught it until year-end.
+category: insurance
+tags: [insurance, commission, reconciliation, agency, finance]
+schedule: "0 7 5 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_usd}}" '
+    NR==1 {next}
+    {
+      policy=$1; carrier=$2; expected=$3+0; paid=$4;
+      if (paid == "") {
+        printf "MISSING: %s (%s) — expected $%.2f, not on statement\n", policy, carrier, expected;
+        next;
+      }
+      paid=paid+0;
+      diff = expected - paid;
+      if (diff < 0) diff = -diff;
+      if (diff > tolerance) {
+        printf "VARIANCE: %s (%s) — expected $%.2f, paid $%.2f, diff $%.2f\n", policy, carrier, expected, paid, diff;
+      }
+    }
+  ' "{{commission_ledger_csv}}"
+variables:
+  commission_ledger_csv:
+    default: "./commission-ledger.csv"
+    description: "Path to a CSV with columns: policy_number,carrier,expected_commission,paid_commission (blank if the policy is missing from the carrier statement)."
+  variance_tolerance_usd:
+    default: 5
+    description: Dollar variance allowed before a paid commission counts as a mismatch worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation check. Requires the agency's expected-commission
+  figures (from the agency management system export) merged with the
+  carrier statement into one CSV before running; this job doesn't parse
+  carrier statement formats itself since they vary widely by carrier.

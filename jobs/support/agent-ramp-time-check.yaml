@@ -1,0 +1,43 @@
+id: agent-ramp-time-check
+version: 1
+name: Support Agent Ramp Time Check
+description: >
+  Compares each newly hired agent's ticket volume and resolution quality
+  against the tenured-agent baseline for their first weeks on the job.
+  Use this if a new hire has ever stayed quietly underwater for months
+  because nobody was tracking ramp progress against a baseline, only raw
+  ticket counts alongside everyone else.
+category: support
+tags: [support, agents, onboarding, ramp-time, staffing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for any support agent hired within the last
+  {{ramp_window_days}} days.
+  1. For each such agent, pull their ticket volume, average resolution
+     time, and reopen rate since their start date.
+  2. Compare each metric to the tenured-agent team average over the same
+     calendar period.
+  3. Flag any new agent whose metrics are still far off the tenured
+     baseline well past the point in their ramp window where you'd expect
+     them to be closing the gap (e.g. still at half the tenured volume at
+     the {{ramp_window_days}}-day mark).
+  4. If a new agent's onboarding buddy/trainer is identifiable, note who
+     to loop in.
+  5. If every new agent is ramping on a reasonable trajectory, say so in
+     one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket assignment and agent hire-date data is tracked.
+  ramp_window_days:
+    default: 90
+    description: Days since hire during which an agent is still considered "ramping" for this comparison.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `agent-workload-balance-check`, which looks at ticket
+  distribution across all current agents regardless of tenure — this
+  isolates new hires specifically and compares them to a baseline, not to
+  each other. Read-only signal for a manager to act on, not an automatic
+  performance rating.

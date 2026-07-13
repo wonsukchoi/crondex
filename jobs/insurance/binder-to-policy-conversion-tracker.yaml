@@ -1,0 +1,43 @@
+id: binder-to-policy-conversion-tracker
+version: 1
+name: Binder-to-Policy Conversion Tracker
+description: >
+  Checks outstanding insurance binders (temporary proof-of-coverage
+  issued before a carrier formally issues the policy) and flags any
+  binder approaching its expiration date without a matching policy number
+  on file. Use this if coverage has ever quietly gone unconfirmed because
+  a client kept operating on a 30- or 60-day binder that expired before
+  the carrier ever issued the actual policy.
+category: insurance
+tags: [insurance, binder, policy-issuance, underwriting, operations]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (expiry_epoch - now_epoch) / 86400;
+      if (days < 0) {
+        printf "EXPIRED UNCONVERTED: binder %s (%s) expired %s with no policy number on file\n", $1, $2, $3;
+      } else if (days <= warn) {
+        printf "AT RISK: binder %s (%s) expires %s (%d days) with no policy number yet\n", $1, $2, $3, days;
+      }
+    }
+  ' "{{open_binders_csv}}"
+variables:
+  open_binders_csv:
+    default: "./open-binders.csv"
+    description: "Path to a CSV with columns: binder_number,carrier,expiration_date (YYYY-MM-DD),issued_policy_number (blank if not yet converted)."
+  warn_days_before_expiry:
+    default: 10
+    description: How many days before a binder's expiration to flag it as at risk if unconverted.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A binder with no policy number past its expiration date can mean the
+  client has no actual enforceable coverage — treat EXPIRED UNCONVERTED
+  results as urgent and confirm status directly with the carrier.

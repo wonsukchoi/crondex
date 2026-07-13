@@ -1,0 +1,31 @@
+id: key-card-access-anomaly-check
+version: 1
+name: Key Card Access Anomaly Check
+description: >
+  Scans the room key card access log for guest-card entries logged after
+  that room's checkout date and flags them. Use this if a guest key card
+  has ever still opened a room door after checkout because it was never
+  deactivated, which is both a security gap and a lost-revenue risk if
+  the room was already resold.
+category: hospitality
+tags: [hospitality, security, key-card, access-control]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4 != "" && $3 == "guest" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline access_epoch; close(cmd);
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline checkout_epoch; close(cmd2);
+      if (access_epoch > checkout_epoch) printf "ANOMALY: room %s — guest key card used at %s, after checkout date %s\n", $1, $2, $4;
+    }
+  ' "{{access_log_csv}}"
+variables:
+  access_log_csv:
+    default: "./key-card-access-log.csv"
+    description: "CSV with header row, columns: room_number,access_time (YYYY-MM-DD HH:MM),card_type (guest/staff/master),checkout_date (YYYY-MM-DD, blank if guest is still checked in)."
+compatible_agents: [generic, claude, codex]
+notes: Access logs are sensitive guest and staff data — restrict who can view flagged output, and treat a flagged entry as a lead to investigate (lock not deactivated, PMS/lock system sync delay) rather than an accusation.

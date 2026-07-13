@@ -1,0 +1,43 @@
+id: crew-route-schedule-conflict-check
+version: 1
+name: Crew Route & Schedule Conflict Check
+description: >
+  Scans the day's cleaning schedule for any crew or cleaner booked onto two
+  jobs that overlap, or booked back-to-back with too little travel time
+  between them. Use this if a crew has ever shown up late (or not at all)
+  to a job because the schedule quietly double-booked them or left no time
+  to drive between two addresses.
+category: cleaning-services
+tags: [cleaning-services, scheduling, dispatch, crew-management]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  (head -1 "{{schedule_csv_path}}"; tail -n +2 "{{schedule_csv_path}}" | sort -t',' -k1,1 -k4,4) | awk -F',' -v buffer="{{min_travel_buffer_minutes}}" '
+    NR==1 {next}
+    {
+      crew=$1; job=$2; client=$3; start=$4; end=$5;
+      cmd = "date -d \"" start "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" start "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      cmd2 = "date -d \"" end "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" end "\" +%s 2>/dev/null";
+      cmd2 | getline end_epoch; close(cmd2);
+      if (crew == prev_crew) {
+        gap = (start_epoch - prev_end_epoch) / 60;
+        if (start_epoch < prev_end_epoch) {
+          printf "OVERLAP: crew %s has job %s (ends %s) overlapping job %s (starts %s) for client %s\n", crew, prev_job, prev_end, job, start, client;
+        } else if (gap < buffer) {
+          printf "TIGHT TRAVEL: crew %s has only %d min between job %s (ends %s) and job %s (starts %s, client %s)\n", crew, gap, prev_job, prev_end, job, start, client;
+        }
+      }
+      prev_crew=crew; prev_job=job; prev_end=end; prev_end_epoch=end_epoch;
+    }
+  '
+variables:
+  schedule_csv_path:
+    default: "./cleaning-schedule.csv"
+    description: "CSV with header row, columns: crew_name,job_id,client_name,start_time,end_time (YYYY-MM-DD HH:MM), one row per scheduled job."
+  min_travel_buffer_minutes:
+    default: 20
+    description: Minimum minutes required between the end of one job and the start of the next for the same crew before it's flagged as a tight travel window.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes the day's schedule (from a scheduling tool export or shared sheet) is written to the CSV before this runs, and that rows for the same crew are for jobs at different addresses.

@@ -1,0 +1,35 @@
+id: damage-incident-report-tracker
+version: 1
+name: Damage Incident Report Tracker
+description: >
+  Checks reported damage or breakage incidents from cleanings and flags any
+  still open past your target resolution window. Use this if a damage
+  claim has ever sat unresolved long enough that the client escalated it or
+  your insurer asked why nobody followed up sooner.
+category: cleaning-services
+tags: [cleaning-services, damage-claims, incident-tracking, insurance]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{resolution_window_days}}" '
+    NR==1 {next}
+    tolower($5) != "resolved" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      age_days = (today - reported_epoch) / 86400;
+      if (age_days > window) {
+        printf "OPEN INCIDENT: %s — reported %s (%.0f days open), client %s, status %s\n", $1, $2, age_days, $3, $5;
+      }
+    }
+  ' "{{damage_incidents_csv_path}}"
+variables:
+  damage_incidents_csv_path:
+    default: "./damage-incidents.csv"
+    description: "Path to a CSV with columns: incident_id,reported_date (YYYY-MM-DD),client_name,description,status (open/in-review/resolved)."
+  resolution_window_days:
+    default: 5
+    description: How many days a damage incident is allowed to stay unresolved before it gets flagged for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces incidents stuck open past the window, it doesn't file insurance claims or contact clients on its own. Route flagged incidents to whoever owns liability/insurance follow-up.

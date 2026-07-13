@@ -1,0 +1,39 @@
+id: recurring-invoice-generation-check
+version: 1
+name: Recurring Invoice Generation Check
+description: >
+  Checks which recurring cleaning clients are due for their next invoice
+  based on their billing frequency and last invoice date, and flags anyone
+  who hasn't been invoiced on schedule. Use this if a recurring client has
+  ever gone a billing cycle (or two) without getting invoiced because
+  nobody was tracking who was due and when.
+category: cleaning-services
+tags: [cleaning-services, billing, invoicing, recurring-revenue]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v grace="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      client=$1; freq=$2+0; last=$3; email=$4;
+      cmd = "date -d \"" last "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" last "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + (freq * 86400);
+      grace_epoch = due_epoch + (grace * 86400);
+      if (today > grace_epoch) {
+        days_overdue = int((today - due_epoch) / 86400);
+        printf "OVERDUE INVOICE: %s was due %d day(s) ago (last invoiced %s, billed every %d days), contact %s\n", client, days_overdue, last, freq, email;
+      }
+    }
+  ' "{{recurring_clients_csv_path}}"
+variables:
+  recurring_clients_csv_path:
+    default: "./recurring-clients.csv"
+    description: "CSV with header row, columns: client_name,billing_frequency_days,last_invoice_date,contact_email (last_invoice_date as YYYY-MM-DD)."
+  grace_period_days:
+    default: 2
+    description: Days of buffer past the calculated due date before a client is flagged as overdue for invoicing.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not generate or send invoices itself, only flags who is due. Assumes last_invoice_date is updated in the CSV each time an invoice is actually issued.

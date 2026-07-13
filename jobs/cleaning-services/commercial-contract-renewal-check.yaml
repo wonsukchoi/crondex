@@ -1,0 +1,39 @@
+id: commercial-contract-renewal-check
+version: 1
+name: Commercial Contract Renewal Check
+description: >
+  Checks commercial cleaning contracts against their renewal or expiry
+  date and flags any coming up within your notice window. Use this if a
+  janitorial or office-cleaning contract has ever auto-lapsed or gotten
+  scooped up by a competitor bid simply because nobody reached out to the
+  account before it expired.
+category: cleaning-services
+tags: [cleaning-services, contracts, commercial, renewals]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{renewal_notice_days}}" '
+    NR==1 {next}
+    $4 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "RENEWAL DUE: contract %s for %s — expires %s (%d days away)\n", $1, $2, $3, days_until;
+      }
+    }
+  ' "{{contracts_csv_path}}"
+variables:
+  contracts_csv_path:
+    default: "./commercial-contracts.csv"
+    description: "Path to a CSV with columns: contract_id,client_name,expiry_date (YYYY-MM-DD),status (active/expired/canceled)."
+  renewal_notice_days:
+    default: 60
+    description: How many days before expiry a contract should be flagged for account-manager outreach.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags contracts approaching renewal, it doesn't
+  renew, negotiate, or contact the client — an account manager needs to
+  follow up.

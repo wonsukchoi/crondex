@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1205,
+  "count": 1225,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1561,6 +1561,33 @@
         "codex"
       ],
       "path": "jobs/utilities/backflow-prevention-test-due-reminder.yaml"
+    },
+    {
+      "id": "background-check-renewal-tracker",
+      "version": 1,
+      "name": "Background Check Renewal Tracker",
+      "description": "Checks each cleaner's background-check expiration date and flags anyone whose renewal is coming up or already overdue. Use this if a cleaner has ever shown up to an in-home or office job on an expired background check, which is the kind of thing that ends client contracts and insurance coverage fast.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "background-check",
+        "compliance",
+        "credentials"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/background-check-renewal-tracker.yaml"
     },
     {
       "id": "background-check-status-check",
@@ -4234,6 +4261,85 @@
       "path": "jobs/childcare/classroom-supply-low-stock-check.yaml"
     },
     {
+      "id": "cleaning-client-churn-risk-check",
+      "version": 1,
+      "name": "Client Churn Risk Check",
+      "description": "Scans recurring clients' cleaning history for a dropped frequency (their gap since the last completed clean has grown well past their expected interval) or repeated recent cancellations, and flags them as an early churn-risk signal. Use this if a recurring client has ever quietly stopped booking and nobody noticed until they'd already switched to a competitor.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "churn-risk",
+        "retention",
+        "recurring-revenue"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/cleaning-client-churn-risk-check.yaml"
+    },
+    {
+      "id": "cleaning-invoice-aging-check",
+      "version": 1,
+      "name": "Unpaid Invoice Aging Check",
+      "description": "Checks invoices issued to cleaning clients against your standard aging buckets (30/60/90 days) and flags any that are still unpaid past the threshold you set. Use this if recurring or one-off cleaning jobs have ever gone unpaid for weeks because nobody was tracking which invoices had quietly slipped past due.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "invoicing",
+        "collections",
+        "aging"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/cleaning-services/cleaning-invoice-aging-check.yaml"
+    },
+    {
+      "id": "client-appointment-reminder-drafts",
+      "version": 1,
+      "name": "Client Appointment Reminder Drafts",
+      "description": "Reads tomorrow's scheduled cleanings and drafts a short reminder message for each client confirming the date, time window, and crew name, so someone just has to review and send. Use this if a client has ever forgotten they had a cleaning booked, leaving the crew locked out or the home/office not ready.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "appointments",
+        "reminders",
+        "customer-communication"
+      ],
+      "schedule": "0 15 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/client-appointment-reminder-drafts.yaml"
+    },
+    {
       "id": "client-birthday-reward-reminder",
       "version": 1,
       "name": "Client Birthday Reward Reminder",
@@ -4412,6 +4518,31 @@
       "path": "jobs/veterinary/client-payment-plan-delinquency-check.yaml"
     },
     {
+      "id": "client-quote-follow-up-drafts",
+      "version": 1,
+      "name": "Client Quote Follow-Up Drafts",
+      "description": "Reviews cleaning quotes sent to prospects and drafts a friendly follow-up message for anyone who hasn't accepted, declined, or replied within a set number of days. Use this if a quote has ever gone out to a prospect and then quietly disappeared because nobody remembered to check back in.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "sales",
+        "quotes",
+        "follow-up"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/client-quote-follow-up-drafts.yaml"
+    },
+    {
       "id": "client-rebooking-gap-check",
       "version": 1,
       "name": "Client Rebooking Gap Check",
@@ -4461,6 +4592,32 @@
         "codex"
       ],
       "path": "jobs/spa/client-review-response-lag-check.yaml"
+    },
+    {
+      "id": "client-satisfaction-follow-up-drafts",
+      "version": 1,
+      "name": "Client Satisfaction Follow-Up Drafts",
+      "description": "Reviews post-clean satisfaction survey or star-rating data, flags any score below your quality bar, and drafts a personal follow-up message for each unhappy client. Use this if a low rating has ever slipped by unnoticed until the client already canceled instead of getting a chance to have the issue fixed.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "client-satisfaction",
+        "surveys",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/cleaning-services/client-satisfaction-follow-up-drafts.yaml"
     },
     {
       "id": "client-satisfaction-survey-followup-check",
@@ -4824,6 +4981,31 @@
         "generic"
       ],
       "path": "jobs/creator/comment-toxicity-moderation-check.yaml"
+    },
+    {
+      "id": "commercial-contract-renewal-check",
+      "version": 1,
+      "name": "Commercial Contract Renewal Check",
+      "description": "Checks commercial cleaning contracts against their renewal or expiry date and flags any coming up within your notice window. Use this if a janitorial or office-cleaning contract has ever auto-lapsed or gotten scooped up by a competitor bid simply because nobody reached out to the account before it expired.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "contracts",
+        "commercial",
+        "renewals"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/cleaning-services/commercial-contract-renewal-check.yaml"
     },
     {
       "id": "commission-payout-tracker",
@@ -6089,6 +6271,88 @@
       "path": "jobs/finance/credit-utilization-watch.yaml"
     },
     {
+      "id": "crew-no-show-tracker",
+      "version": 1,
+      "name": "Crew No-Show Tracker",
+      "description": "Checks the crew attendance log for missed jobs and late arrivals against what was scheduled, then flags any crew or cleaner with a repeated pattern so it can be addressed before a client complains. Use this if a cleaner has ever been late or a no-show more than once and nobody noticed until a client called to ask where the crew was.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "crew-management",
+        "reliability",
+        "scheduling"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/crew-no-show-tracker.yaml"
+    },
+    {
+      "id": "crew-overtime-hours-check",
+      "version": 1,
+      "name": "Crew Overtime Hours Check",
+      "description": "Totals each cleaner's logged hours for the week and flags anyone approaching or over your overtime threshold. Use this if payroll surprises or crew burnout have ever snuck up on you because overtime only got noticed once the payroll run came back higher than expected.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "overtime",
+        "labor-hours",
+        "payroll"
+      ],
+      "schedule": "0 16 * * 5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/crew-overtime-hours-check.yaml"
+    },
+    {
+      "id": "crew-route-schedule-conflict-check",
+      "version": 1,
+      "name": "Crew Route & Schedule Conflict Check",
+      "description": "Scans the day's cleaning schedule for any crew or cleaner booked onto two jobs that overlap, or booked back-to-back with too little travel time between them. Use this if a crew has ever shown up late (or not at all) to a job because the schedule quietly double-booked them or left no time to drive between two addresses.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "scheduling",
+        "dispatch",
+        "crew-management"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/crew-route-schedule-conflict-check.yaml"
+    },
+    {
       "id": "crew-safety-cert-expiry-check",
       "version": 1,
       "name": "Crew Safety Certification Expiry Check",
@@ -7037,6 +7301,33 @@
         "codex"
       ],
       "path": "jobs/utilities/dam-safety-inspection-reminder.yaml"
+    },
+    {
+      "id": "damage-incident-report-tracker",
+      "version": 1,
+      "name": "Damage Incident Report Tracker",
+      "description": "Checks reported damage or breakage incidents from cleanings and flags any still open past your target resolution window. Use this if a damage claim has ever sat unresolved long enough that the client escalated it or your insurer asked why nobody followed up sooner.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "damage-claims",
+        "incident-tracking",
+        "insurance"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/damage-incident-report-tracker.yaml"
     },
     {
       "id": "damaged-merchandise-writeoff-tracker",
@@ -9304,6 +9595,31 @@
         "codex"
       ],
       "path": "jobs/manufacturing/equipment-calibration-due-check.yaml"
+    },
+    {
+      "id": "equipment-maintenance-due-check",
+      "version": 1,
+      "name": "Equipment Maintenance Due Check",
+      "description": "Checks floor buffers, vacuums, pressure washers, extractors, and other cleaning equipment against their scheduled maintenance interval, by either hours used or calendar time since the last service, and flags anything due. Use this if a machine has ever broken down mid-job because routine maintenance quietly slipped past its due date.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "equipment",
+        "maintenance",
+        "preventive-maintenance"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/cleaning-services/equipment-maintenance-due-check.yaml"
     },
     {
       "id": "equipment-maintenance-due-reminder",
@@ -11638,6 +11954,31 @@
         "codex"
       ],
       "path": "jobs/creator/gear-maintenance-reminder.yaml"
+    },
+    {
+      "id": "general-liability-insurance-expiry-check",
+      "version": 1,
+      "name": "General Liability Insurance Expiry Check",
+      "description": "Checks general liability insurance certificates for your business and any subcontractor cleaning crews against their expiry date and flags any lapsing within your warning window. Use this if you've ever had a crew show up to a commercial site on an insurance certificate that had already quietly expired, putting the contract at risk.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "insurance",
+        "compliance",
+        "subcontractors"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/cleaning-services/general-liability-insurance-expiry-check.yaml"
     },
     {
       "id": "generator-maintenance-run-reminder",
@@ -13997,6 +14338,34 @@
         "codex"
       ],
       "path": "jobs/devops/k8s-pod-restart-watch.yaml"
+    },
+    {
+      "id": "key-access-log-audit",
+      "version": 1,
+      "name": "Key & Access Log Audit",
+      "description": "Cross-checks the log of client keys, access codes, and fobs held by the business against the active client list and flags anything still held for a client who is no longer active. Use this if a former client's key or door code has ever stayed in a drawer (or worked) long after their service ended, which is a security and liability gap.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "key-access",
+        "security",
+        "compliance",
+        "audit"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/key-access-log-audit.yaml"
     },
     {
       "id": "key-fob-access-deactivation-check",
@@ -16754,6 +17123,33 @@
         "codex"
       ],
       "path": "jobs/hospitality/minibar-charge-reconciliation-check.yaml"
+    },
+    {
+      "id": "missed-clean-reschedule-tracker",
+      "version": 1,
+      "name": "Missed Clean Reschedule Tracker",
+      "description": "Checks recently skipped or cancelled cleaning appointments and flags any that still haven't been rebooked within your target window. Use this if a missed clean has ever quietly fallen through the cracks and turned into a client complaint or a cancelled contract instead of a quick reschedule.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "scheduling",
+        "missed-appointment",
+        "customer-retention"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/missed-clean-reschedule-tracker.yaml"
     },
     {
       "id": "mod-submission-review-queue-check",
@@ -22022,6 +22418,33 @@
       "path": "jobs/nonprofit/recurring-donor-payment-failure-check.yaml"
     },
     {
+      "id": "recurring-invoice-generation-check",
+      "version": 1,
+      "name": "Recurring Invoice Generation Check",
+      "description": "Checks which recurring cleaning clients are due for their next invoice based on their billing frequency and last invoice date, and flags anyone who hasn't been invoiced on schedule. Use this if a recurring client has ever gone a billing cycle (or two) without getting invoiced because nobody was tracking who was due and when.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "billing",
+        "invoicing",
+        "recurring-revenue"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/recurring-invoice-generation-check.yaml"
+    },
+    {
       "id": "recurring-payment-failure-check",
       "version": 1,
       "name": "Recurring Payment Failure Check",
@@ -22195,6 +22618,34 @@
         "codex"
       ],
       "path": "jobs/healthcare/referral-pending-followup-check.yaml"
+    },
+    {
+      "id": "referral-program-follow-up-drafts",
+      "version": 1,
+      "name": "Referral Program Follow-Up Drafts",
+      "description": "Flags clients who referred a new customer but haven't yet been thanked or rewarded under the referral program, and drafts the thank-you or reward message. Use this if a referral has ever gone unacknowledged long enough that the client stopped bothering to send more.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "referrals",
+        "customer-communication",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/referral-program-follow-up-drafts.yaml"
     },
     {
       "id": "referral-program-performance-tracker",
@@ -23866,6 +24317,34 @@
       "path": "jobs/pharmacy/script-queue-aging-check.yaml"
     },
     {
+      "id": "sds-chemical-safety-compliance-check",
+      "version": 1,
+      "name": "SDS Chemical Safety Compliance Check",
+      "description": "Checks your Safety Data Sheet (SDS) log for chemicals currently in use and flags any that are missing or older than your refresh window. Use this if you've ever failed (or worried about failing) an OSHA-style walkthrough because a chemical on the truck didn't have a current SDS on file.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "sds",
+        "chemical-safety",
+        "osha",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/sds-chemical-safety-compliance-check.yaml"
+    },
+    {
       "id": "seasonal-boarding-waitlist-review",
       "version": 1,
       "name": "Seasonal Boarding Waitlist Review",
@@ -23918,6 +24397,34 @@
         "codex"
       ],
       "path": "jobs/landscaping/seasonal-color-rotation-planting-reminder.yaml"
+    },
+    {
+      "id": "seasonal-deep-clean-upsell-reminder",
+      "version": 1,
+      "name": "Seasonal Deep-Clean Upsell Reminder",
+      "description": "Flags recurring clients who haven't had a deep-clean or seasonal add-on service in over a set number of months (or have none on record) and drafts a friendly upsell message offering to schedule one. Use this if you've ever realized months after the fact that a regular client was never offered a seasonal deep clean, leaving revenue on the table.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "upsell",
+        "deep-clean",
+        "sales"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/seasonal-deep-clean-upsell-reminder.yaml"
     },
     {
       "id": "seasonal-package-promo-reminder",
@@ -26595,6 +27102,33 @@
         "codex"
       ],
       "path": "jobs/manufacturing/supplier-quality-ppm-watch.yaml"
+    },
+    {
+      "id": "supply-low-stock-reorder-check",
+      "version": 1,
+      "name": "Supply Low-Stock Reorder Check",
+      "description": "Checks cleaning supply inventory (chemicals, paper products, equipment consumables) against each item's reorder threshold and lists what needs to be reordered. Use this if a crew has ever shown up to a job without enough glass cleaner or trash bags because nobody noticed the stockroom was running low.",
+      "category": "cleaning-services",
+      "tags": [
+        "cleaning-services",
+        "inventory",
+        "supplies",
+        "reorder"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/cleaning-services/supply-low-stock-reorder-check.yaml"
     },
     {
       "id": "support-headcount-volume-ratio-check",

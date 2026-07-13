@@ -1,0 +1,32 @@
+id: client-quote-follow-up-drafts
+version: 1
+name: Client Quote Follow-Up Drafts
+description: >
+  Reviews cleaning quotes sent to prospects and drafts a friendly follow-up
+  message for anyone who hasn't accepted, declined, or replied within a set
+  number of days. Use this if a quote has ever gone out to a prospect and
+  then quietly disappeared because nobody remembered to check back in.
+category: cleaning-services
+tags: [cleaning-services, sales, quotes, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the cleaning quotes at {{quotes_csv_path}} (columns: quote_id,
+  prospect_name, contact_email, quote_date, quote_amount, status). Find
+  every quote with status "sent" whose quote_date is more than
+  {{follow_up_after_days}} days ago. For each one, draft a short, friendly
+  follow-up message from the business owner or estimator checking in,
+  reminding them of the quoted price, and asking if they have any
+  questions or would like to schedule. Group the drafts under a short
+  summary of how many quotes are stalled and their total dollar value, so
+  whoever sends them can prioritize.
+variables:
+  quotes_csv_path:
+    default: "./cleaning-quotes.csv"
+    description: "Path to a CSV with columns: quote_id,prospect_name,contact_email,quote_date,quote_amount,status (status is one of sent, accepted, declined)."
+  follow_up_after_days:
+    default: 5
+    description: Number of days a quote can sit with status "sent" before it triggers a follow-up draft.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — messages should be reviewed and personalized by a person before sending, not sent automatically.

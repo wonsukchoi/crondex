@@ -1,0 +1,28 @@
+id: supply-low-stock-reorder-check
+version: 1
+name: Supply Low-Stock Reorder Check
+description: >
+  Checks cleaning supply inventory (chemicals, paper products, equipment
+  consumables) against each item's reorder threshold and lists what needs
+  to be reordered. Use this if a crew has ever shown up to a job without
+  enough glass cleaner or trash bags because nobody noticed the stockroom
+  was running low.
+category: cleaning-services
+tags: [cleaning-services, inventory, supplies, reorder]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      item=$1; qty=$3+0; threshold=$4+0; unit=$5;
+      if (qty <= threshold) printf "REORDER: %s — %s %s on hand (reorder threshold %s %s)\n", item, $3, unit, $4, unit;
+    }
+  ' "{{inventory_csv_path}}"
+variables:
+  inventory_csv_path:
+    default: "./supply-inventory.csv"
+    description: "CSV with header row, columns: item_name,category,quantity_on_hand,reorder_threshold,unit."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes quantity_on_hand in the CSV is updated after each supply run, restock, or inventory count.

@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1313 jobs across 60 categories:
+1362 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -130,14 +130,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 20 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
-| `government` | 20 | Public-sector ops — records requests, permits, constituent casework. |
+| `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 20 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 20 | Household reminders — maintenance, warranties, plants, safety. |
-| `hospitality` | 20 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
+| `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
-| `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
+| `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 20 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
@@ -164,7 +164,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `senior-living` | 20 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
-| `support` | 20 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 20 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 20 | Trip logistics — flights, passports, visas, insurance, miles. |

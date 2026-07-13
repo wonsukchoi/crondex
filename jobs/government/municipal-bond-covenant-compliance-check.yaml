@@ -1,0 +1,54 @@
+id: municipal-bond-covenant-compliance-check
+version: 1
+name: Municipal Bond Covenant Compliance Check
+description: >
+  Calculates a revenue bond's debt service coverage ratio and reserve
+  fund balance from your latest financials and flags a breach of the
+  bond covenant's minimum requirements. Use this if a covenant breach
+  has ever gone unnoticed until the trustee or bondholders raised it,
+  instead of finance catching it the same month the numbers came in.
+category: government
+tags: [government, bonds, debt, covenant, compliance, finance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_dscr="{{min_debt_service_coverage_ratio}}" -v min_reserve="{{required_reserve_fund_usd}}" '
+    NR==1 {next}
+    {
+      bond=$1; net_revenue=$2; debt_service=$3; reserve_balance=$4;
+      dscr = (debt_service > 0) ? net_revenue / debt_service : 0;
+      printf "Bond %s: net revenue %.2f / debt service %.2f = DSCR %.2f (min %.2f); reserve %.2f (required %.2f)\n", bond, net_revenue, debt_service, dscr, min_dscr, reserve_balance, min_reserve;
+      if (dscr < min_dscr) {
+        printf "COVENANT BREACH (rate covenant): %s DSCR %.2f is below the required %.2f\n", bond, dscr, min_dscr;
+        breach++;
+      }
+      if (reserve_balance < min_reserve) {
+        printf "COVENANT BREACH (reserve requirement): %s reserve balance %.2f is below the required %.2f\n", bond, reserve_balance, min_reserve;
+        breach++;
+      }
+    }
+    END {
+      if (breach > 0) { printf "%d covenant breach(es) found — notify finance and bond counsel.\n", breach; }
+      else { print "No covenant breaches found."; }
+    }
+  ' "{{bond_financials_csv_path}}"
+variables:
+  bond_financials_csv_path:
+    default: "./bond-covenant-financials.csv"
+    description: "Path to a CSV with columns: bond_id,net_pledged_revenue_usd,annual_debt_service_usd,reserve_fund_balance_usd — one row per outstanding bond issue, refreshed each reporting period."
+  min_debt_service_coverage_ratio:
+    default: 1.2
+    description: Minimum debt service coverage ratio (net pledged revenue divided by annual debt service) required by the bond's rate covenant.
+  required_reserve_fund_usd:
+    default: 500000
+    description: Minimum debt service reserve fund balance required by the bond indenture.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covenant thresholds (DSCR minimum, reserve requirement) come from each
+  bond's own indenture/official statement, not from any general rule —
+  set the defaults per issue before relying on this. A flagged breach is
+  a trigger to notify bond counsel and the trustee, not something this
+  job resolves on its own. Distinct from finance/loan-covenant-compliance-check.yaml,
+  which is written for a private-company loan agreement, not a
+  municipal revenue bond's rate covenant and reserve requirement.

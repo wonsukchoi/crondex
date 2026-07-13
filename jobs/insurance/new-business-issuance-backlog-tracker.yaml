@@ -1,0 +1,41 @@
+id: new-business-issuance-backlog-tracker
+version: 1
+name: New Business Policy Issuance Backlog Tracker
+description: >
+  Checks bound new-business submissions against how long they've waited
+  for the carrier to actually issue the formal policy and flags anything
+  stuck past the target turnaround. Use this if a client has ever paid
+  their first premium and waited months for policy documents that never
+  showed up because nobody was watching the issuance queue after bind.
+category: insurance
+tags: [insurance, new-business, policy-issuance, operations, underwriting]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{issuance_sla_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline bind_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (now_epoch - bind_epoch) / 86400;
+      if (days >= warn) {
+        printf "UNISSUED: %s (%s) bound %s, %d days waiting on policy documents\n", $1, $2, $3, days;
+      }
+    }
+  ' "{{bound_business_csv}}"
+variables:
+  bound_business_csv:
+    default: "./bound-new-business.csv"
+    description: "Path to a CSV with columns: client_name,carrier,bind_date (YYYY-MM-DD),policy_documents_issued_date (blank if not yet issued)."
+  issuance_sla_days:
+    default: 21
+    description: Days after bind date before an un-issued policy counts as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers the bind-to-issuance gap specifically, distinct from
+  binder-to-policy-conversion-tracker (which watches temporary binder
+  expiration dates) and quote-to-bind-conversion-tracker (which measures
+  the sales-side quote close rate, not post-bind document turnaround).

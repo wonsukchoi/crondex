@@ -1,0 +1,44 @@
+id: open-data-portal-publication-sla-check
+version: 1
+name: Open Data Portal Publication SLA Check
+description: >
+  Checks datasets your agency has committed to publish or refresh on
+  its open data portal against their required update cadence and flags
+  any that have gone stale. Use this if a dataset has ever silently
+  stopped updating for months while the portal page still looked live
+  to the public.
+category: government
+tags: [government, open-data, transparency, compliance, sla]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline updated_epoch; close(cmd);
+      age_days = (today - updated_epoch) / 86400;
+      required_days = $3;
+      total++;
+      if (age_days > required_days) {
+        printf "STALE: dataset %s — last updated %s (%d day(s) ago), required cadence every %d day(s)\n", $1, $2, age_days, required_days;
+        stale++;
+      }
+    }
+    END {
+      printf "%d dataset(s) tracked, %d past their required refresh cadence\n", total, stale;
+    }
+  ' "{{datasets_csv_path}}"
+variables:
+  datasets_csv_path:
+    default: "./open-data-portal-datasets.csv"
+    description: "Path to a CSV with columns: dataset_name,last_updated_date (YYYY-MM-DD),required_refresh_days (numeric, e.g. 30 for monthly)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Required refresh cadence should come from your open data policy or
+  ordinance (and any dataset-specific commitment) — the CSV's
+  required_refresh_days column is where you record that, not a
+  catalog-wide default. This checks metadata timestamps only; it does
+  not verify the published data is actually correct.

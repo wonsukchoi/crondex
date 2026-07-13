@@ -1,0 +1,40 @@
+id: engineering-bug-handoff-backlog-check
+version: 1
+name: Engineering Bug Handoff Backlog Check
+description: >
+  Checks how many tickets flagged as confirmed bugs and handed off to
+  engineering are still waiting on a fix past your target window. Use
+  this if a customer-reported bug has ever sat in an engineering backlog
+  for months with the support ticket just parked open, because once a
+  ticket left the helpdesk queue it stopped being anyone's job to chase.
+category: support
+tags: [support, engineering, bugs, handoff, backlog]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  count=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{api_url}}" | grep -o '"tag":"bug-escalated-to-eng"' | wc -l | tr -d ' ');
+  if [ -z "$count" ] || [ "$count" -eq 0 ]; then echo "OK: no bug handoffs waiting past {{age_days}} days"; exit 0;
+  elif [ "$count" -ge "{{threshold}}" ]; then echo "WARNING: $count bug handoff(s) to engineering unresolved past {{age_days}} days at {{api_url}}"; exit 1;
+  else echo "OK: $count bug handoff(s) unresolved past {{age_days}} days (under threshold {{threshold}})"; fi
+variables:
+  api_url:
+    default: "https://api.example-helpdesk.com/tickets?tag=bug-escalated-to-eng&status=open&age_gt_days=14"
+    description: Helpdesk API endpoint pre-filtered to tickets tagged as a confirmed bug handed off to engineering, still open past the age window.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the helpdesk API.
+  age_days:
+    default: 14
+    description: Days a bug handoff can sit without engineering resolution before it's aging, for labeling output.
+  threshold:
+    default: 5
+    description: Number of aging bug handoffs that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires your helpdesk (or bug tracker integration) to expose a
+  consistent tag/status marking tickets as handed off to engineering —
+  adjust the tag name and api_url filter to match your workflow. Distinct
+  from `ticket-backlog-aging-check`, which covers general open tickets
+  regardless of whether they've crossed a team boundary.

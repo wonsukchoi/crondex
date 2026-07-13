@@ -1,0 +1,43 @@
+id: self-serve-deflection-rate-watch
+version: 1
+name: Self-Serve Deflection Rate Watch
+description: >
+  Tracks the ratio of help center article views to new support tickets
+  created and flags it when self-service deflection is dropping. Use this
+  if customers have ever quietly stopped finding answers on their own and
+  started filing tickets instead, without anyone noticing until ticket
+  volume itself already spiked.
+category: support
+tags: [support, self-service, knowledge-base, deflection, help-center]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  views=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{kb_views_url}}" | grep -o '"views":[0-9]*' | grep -o '[0-9]*' | awk '{sum+=$1} END{print sum+0}');
+  tickets=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{new_tickets_url}}" | grep -o '"id":' | wc -l | tr -d ' ');
+  if [ -z "$tickets" ] || [ "$tickets" -eq 0 ]; then echo "OK: no new tickets in the window to compute a ratio against"; exit 0; fi;
+  ratio=$(( views / tickets ));
+  if [ "$ratio" -lt "{{min_ratio}}" ]; then echo "WARNING: self-serve deflection ratio is $ratio views per ticket ($views views, $tickets tickets), below target {{min_ratio}}"; exit 1;
+  else echo "OK: self-serve deflection ratio is $ratio views per ticket ($views views, $tickets tickets)"; fi
+variables:
+  kb_views_url:
+    default: "https://api.example-helpdesk.com/help_center/articles/views?window=7d"
+    description: Help center analytics endpoint returning article view counts for the lookback window.
+  new_tickets_url:
+    default: "https://api.example-helpdesk.com/tickets?created_gte=7d_ago"
+    description: Helpdesk API endpoint listing tickets created in the same lookback window.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token shared by both API endpoints (split into two variables if your tools differ).
+  min_ratio:
+    default: 5
+    description: Minimum acceptable help center views per new ticket before deflection counts as degraded.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A views-per-ticket ratio is a rough proxy, not a causal measure — a drop
+  can also mean marketing drove more raw traffic to tickets, not that the
+  help center got worse. Treat a warning as a prompt to look closer, not
+  a verdict. Distinct from `help-center-broken-link-check` and
+  `knowledge-base-article-staleness-check`, which check content health
+  directly rather than whether it's actually deflecting contacts.

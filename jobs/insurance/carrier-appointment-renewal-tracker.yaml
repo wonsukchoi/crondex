@@ -1,0 +1,43 @@
+id: carrier-appointment-renewal-tracker
+version: 1
+name: Carrier Appointment Renewal Tracker (Per State)
+description: >
+  Checks each carrier appointment your agency holds — the carrier's
+  authorization for the agency to sell and service its products in a
+  given state — against its renewal or termination date and flags any
+  expiring soon. Use this if the agency has ever kept quoting a carrier's
+  product in a state after that carrier-agency appointment quietly
+  lapsed, putting every bound policy at risk of being unwound.
+category: insurance
+tags: [insurance, carrier-appointment, agency, license, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (expiry_epoch - now_epoch) / 86400;
+      if (days < 0) {
+        printf "EXPIRED: %s appointment in %s expired %s — stop quoting/binding this carrier in this state until renewed\n", $1, $2, $3;
+      } else if (days <= warn) {
+        printf "DUE SOON: %s appointment in %s renews/expires %s (%d days)\n", $1, $2, $3, days;
+      }
+    }
+  ' "{{carrier_appointments_csv}}"
+variables:
+  carrier_appointments_csv:
+    default: "./carrier-appointments.csv"
+    description: "Path to a CSV with columns: carrier,state,appointment_renewal_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before an appointment's renewal/expiration date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Agency-level carrier appointments, not individual producer licenses —
+  distinct from agent-broker-license-expiry-tracker, which tracks each
+  producer's personal state license/appointment rather than the agency's
+  standing contract with a carrier to write its business in that state.

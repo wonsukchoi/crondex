@@ -1,0 +1,40 @@
+id: chat-abandonment-rate-check
+version: 1
+name: Live Chat Abandonment Rate Check
+description: >
+  Checks what percentage of live chat sessions get abandoned by the
+  customer before an agent ever replies. Use this if a customer has ever
+  given up and left a chat queue silently, which never shows up in
+  response-time metrics because a chat that got no reply also never got a
+  response time recorded against it.
+category: support
+tags: [support, chat, live-chat, abandonment, response-time]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  total=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{chat_sessions_url}}" | grep -o '"session_id":' | wc -l | tr -d ' ');
+  abandoned=$(curl -s -H "Authorization: Bearer {{api_token}}" "{{chat_sessions_url}}" | grep -o '"ended_reason":"customer_left_no_reply"' | wc -l | tr -d ' ');
+  if [ -z "$total" ] || [ "$total" -eq 0 ]; then echo "OK: no chat sessions in the window to check"; exit 0; fi;
+  pct=$(( abandoned * 100 / total ));
+  if [ "$pct" -gt "{{max_abandonment_pct}}" ]; then echo "WARNING: chat abandonment rate is $pct% ($abandoned of $total), above target {{max_abandonment_pct}}%"; exit 1;
+  else echo "OK: chat abandonment rate is $pct% ($abandoned of $total)"; fi
+variables:
+  chat_sessions_url:
+    default: "https://api.example-helpdesk.com/chat/sessions?window=1h"
+    description: Chat platform API endpoint listing recent chat sessions with a session_id and ended_reason field.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the chat platform API.
+  max_abandonment_pct:
+    default: 10
+    description: Maximum acceptable percentage of chat sessions ending with the customer leaving before any agent reply.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your chat tool exposes an ended_reason (or equivalent) field
+  distinguishing customer-abandoned sessions from resolved ones — adjust
+  the grep pattern to match your platform's field naming. Distinct from
+  `multi-channel-response-time-parity-check`, which compares response
+  time across channels for sessions that did get a reply; this catches
+  the ones that never did.

@@ -1,0 +1,35 @@
+id: wake-up-call-completion-check
+version: 1
+name: Wake-up Call Completion Check
+description: >
+  Checks today's logged wake-up call requests and flags any that are past
+  their requested time without being marked completed. Use this if a
+  guest has ever missed a flight because a wake-up call was logged at the
+  front desk but never actually placed.
+category: hospitality
+tags: [hospitality, front-desk, guest-experience, wake-up-calls]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{grace_minutes}}" '
+    NR==1 {next}
+    {
+      room = $1; req = $2; status = $3;
+      cmd = "date -d \"" req "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" req "\" +%s 2>/dev/null";
+      cmd | getline req_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      minutes_past = (now_epoch - req_epoch) / 60;
+      if (status == "missed") printf "MISSED: room %s wake-up call requested %s\n", room, req;
+      else if (status == "pending" && minutes_past >= grace) printf "UNCONFIRMED: room %s wake-up call requested %s, not marked completed (%d min past)\n", room, req, minutes_past;
+    }
+  ' "{{wakeup_calls_csv}}"
+variables:
+  wakeup_calls_csv:
+    default: "./wake-up-calls.csv"
+    description: "CSV with header row, columns: room_number,requested_time (YYYY-MM-DD HH:MM),status (pending/completed/missed) — updated as calls are placed."
+  grace_minutes:
+    default: 10
+    description: Minutes past the requested time before a still-pending call is flagged as unconfirmed.
+compatible_agents: [generic, claude, codex]
+notes: Assumes wake-up calls are logged to a shared CSV or PMS export as they're requested and placed — this only cross-checks the log, it doesn't place the call itself.

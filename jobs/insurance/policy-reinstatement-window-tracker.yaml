@@ -1,0 +1,45 @@
+id: policy-reinstatement-window-tracker
+version: 1
+name: Policy Reinstatement Window Tracker
+description: >
+  Checks policies that have already lapsed for non-payment against each
+  carrier's reinstatement deadline and flags anyone still inside the
+  window who hasn't been contacted. Use this if a policy has ever slipped
+  past its reinstatement deadline and became a brand-new (and
+  underwritten-from-scratch) application instead of a same-terms
+  reinstatement, just because nobody reached out in time.
+category: insurance
+tags: [insurance, reinstatement, lapse, retention, follow-up]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $4 == "yes" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days = (deadline_epoch - now_epoch) / 86400;
+      if (days < 0) {
+        printf "EXPIRED: %s lapsed %s, reinstatement window closed %s — now requires new business application\n", $1, $2, $3;
+      } else if (days <= warn) {
+        printf "ACT NOW: %s lapsed %s, reinstatement window closes %s (%d days left)\n", $1, $2, $3, days;
+      }
+    }
+  ' "{{lapsed_policies_csv}}"
+variables:
+  lapsed_policies_csv:
+    default: "./lapsed-policies.csv"
+    description: "Path to a CSV with columns: policy_number,lapse_date (YYYY-MM-DD),reinstatement_deadline (YYYY-MM-DD),contacted (yes/no)."
+  warn_days_before_deadline:
+    default: 7
+    description: How many days before the reinstatement deadline to flag as urgent.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped specifically to the post-lapse reinstatement window, not the
+  pre-lapse grace period — distinct from premium-payment-delinquency-tracker,
+  which flags accounts still current but approaching cancellation, and
+  from policy-lapse-rate-monitor, which tracks the aggregate lapse rate
+  rather than individual reinstatement deadlines.

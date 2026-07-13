@@ -1,0 +1,45 @@
+id: code-enforcement-violation-followup-tracker
+version: 1
+name: Code Enforcement Violation Follow-Up Tracker
+description: >
+  Checks open property code violation notices against their compliance
+  or reinspection deadline and flags the ones that are due, overdue, or
+  never got a follow-up inspection scheduled. Use this if a violation
+  notice has ever quietly expired with no reinspection or escalation
+  because it fell off an inspector's list once the notice was mailed.
+category: government
+tags: [government, code-enforcement, violations, inspections, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 != "closed" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      open_count++;
+      if (diff_days < 0) {
+        printf "PAST COMPLIANCE DATE: case %s (%s) — reinspection/compliance date %s was %d day(s) ago, status: %s\n", $1, $2, $3, -diff_days, $4;
+        overdue++;
+      }
+    }
+    END {
+      printf "%d open violation case(s), %d past their compliance/reinspection date\n", open_count, overdue;
+    }
+  ' "{{violations_csv_path}}"
+variables:
+  violations_csv_path:
+    default: "./code-enforcement-violations.csv"
+    description: "Path to a CSV with columns: case_id,address,compliance_or_reinspection_date (YYYY-MM-DD),status (e.g. notice-sent/compliance-pending/reinspection-scheduled/closed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only tracking check; it does not issue citations, escalate to a
+  hearing officer, or file a lien on its own — those steps still go
+  through your code enforcement office's normal process. Distinct from
+  permit-application-backlog-check.yaml (permit review queue) and
+  ada-complaint-aging-check.yaml (accessibility grievances) — this is
+  general property/nuisance code violations (overgrown lots, unsafe
+  structures, unpermitted work) tracked from notice to reinspection.

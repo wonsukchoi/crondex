@@ -1,0 +1,47 @@
+id: public-works-work-order-backlog-check
+version: 1
+name: Public Works Work Order Backlog Check
+description: >
+  Counts open public infrastructure maintenance requests (potholes,
+  streetlights, sidewalks, signage, storm drains) sitting past your
+  target response time and flags the oldest ones first. Use this if a
+  resident-reported hazard has ever sat open for weeks with nobody
+  tracking total queue size or how old the oldest ticket really is.
+category: government
+tags: [government, public-works, work-orders, backlog, maintenance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{target_response_days}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      age_days = (today - reported_epoch) / 86400;
+      total++;
+      if (age_days > days) {
+        over_target++;
+        printf "OVER TARGET: work order %s (%s, %s) — open %d day(s), target %d\n", $1, $2, $5, age_days, days;
+      }
+      if (age_days > max_age) { max_age = age_days; oldest_id = $1; }
+    }
+    END {
+      printf "%d open work order(s), %d over the %d-day target. Oldest: %s at %d day(s).\n", total, over_target, days, oldest_id, max_age;
+    }
+  ' "{{work_orders_csv_path}}"
+variables:
+  work_orders_csv_path:
+    default: "./public-works-work-orders.csv"
+    description: "Path to a CSV with columns: work_order_id,category (pothole/streetlight/sidewalk/sign/storm-drain/other),reported_date (YYYY-MM-DD),status (open/closed),priority."
+  target_response_days:
+    default: 14
+    description: Target number of days to resolve or dispatch a crew to a public works request before it counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only backlog report; it does not dispatch crews or reprioritize
+  work orders itself. Distinct from permit-application-backlog-check.yaml
+  (permit review queue, not physical infrastructure repairs) and from
+  fleet/facility work-order jobs in other categories, which track
+  vehicles or buildings rather than public right-of-way infrastructure.

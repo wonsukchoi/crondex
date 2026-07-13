@@ -1,0 +1,34 @@
+id: energy-cost-per-occupied-room-check
+version: 1
+name: Energy Cost per Occupied Room Watch
+description: >
+  Calculates yesterday's utility cost per occupied room from your daily
+  utility and occupancy figures and flags a spike above target. Use this
+  if a jump in energy cost has ever gone unnoticed until the monthly
+  utility bill arrived, when it could have pointed to a stuck HVAC unit,
+  a broken door seal, or rooms left running unoccupied.
+category: hospitality
+tags: [hospitality, energy, utilities, cost-control]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_cost_per_room_usd}}" '
+    NR==1 {next}
+    {
+      if ($3 > 0) {
+        cost_per_room = $2 / $3;
+        printf "%s: $%.2f per occupied room (target $%.2f), %d rooms occupied\n", $1, cost_per_room, target, $3;
+        if (cost_per_room > target) printf "  HIGH: exceeds target by $%.2f per room\n", cost_per_room - target;
+      } else print "WARNING: no occupied-room count recorded for this date";
+    }
+  ' "{{utility_occupancy_csv}}"
+variables:
+  utility_occupancy_csv:
+    default: "./daily-utility-occupancy.csv"
+    description: "CSV with header row, columns: date,utility_cost_usd,occupied_rooms — one row per day."
+  target_cost_per_room_usd:
+    default: 8.50
+    description: Target utility cost per occupied room in USD; adjust to your property's size, climate, and season.
+compatible_agents: [generic, claude, codex]
+notes: Feed this from submetered or estimated daily utility spend if you don't have real-time metering — even a rough daily allocation catches a sustained spike, which is the point, not exact per-day accounting.

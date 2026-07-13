@@ -1,0 +1,49 @@
+id: skill-based-queue-coverage-check
+version: 1
+name: Skill-Based Queue Coverage Check
+description: >
+  Checks each specialty product-area queue (billing, security, a specific
+  product line) against the agents currently scheduled and rostered with
+  that skill tag, and flags a queue with tickets waiting but nobody
+  qualified on shift. Use this if a specialty ticket has ever sat
+  untouched not because agents were busy, but because none of the agents
+  on shift that hour actually had the skill tag to take it.
+category: support
+tags: [support, skills, routing, staffing, coverage]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for open tickets in each specialty queue
+  ({{skill_queues_list}}) older than {{age_minutes}} minutes, and cross
+  reference against {{scheduling_tool}} for which agents are currently
+  on shift with the matching skill tag.
+  1. For each specialty queue with waiting tickets, list how many agents
+     with that skill tag are currently scheduled and online.
+  2. Flag any queue that has waiting tickets but zero (or clearly too
+     few) skill-tagged agents on shift right now.
+  3. Distinguish this from a queue that just has a busy but adequately
+     staffed skill team — only flag an actual coverage gap.
+  4. If every specialty queue has adequate skill coverage right now, say
+     so in one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket queues and agent skill tags are tracked.
+  skill_queues_list:
+    default: "billing, security, enterprise-integrations"
+    description: Comma-separated list of specialty/skill-based ticket queues to check.
+  age_minutes:
+    default: 30
+    description: Minutes a ticket can wait in a specialty queue before its coverage is worth checking.
+  scheduling_tool:
+    default: "your scheduling tool (e.g. When I Work, a shared shift calendar, your helpdesk's own scheduling feature)"
+    description: Where current agent shift schedules and skill tags are tracked.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires skill tags on both tickets/queues and agent schedules — most
+  useful once routing by skill is already set up. Distinct from
+  `agent-workload-balance-check` (which looks at raw ticket-count
+  imbalance across all agents) and `holiday-coverage-gap-check` (which
+  looks days ahead at overall staffing, not real-time skill-specific
+  coverage). Read-only.

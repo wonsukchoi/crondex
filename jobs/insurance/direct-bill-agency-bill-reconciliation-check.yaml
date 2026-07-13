@@ -1,0 +1,38 @@
+id: direct-bill-agency-bill-reconciliation-check
+version: 1
+name: Direct-Bill vs Agency-Bill Premium Reconciliation Check
+description: >
+  Compares each policy's billing method on file (carrier direct-bill vs.
+  agency-bill) against how the premium was actually collected and flags
+  mismatches, such as a direct-bill policy the agency mistakenly
+  collected premium for, or an agency-bill policy the carrier billed the
+  client directly. Use this if a client has ever been billed twice for
+  the same premium, or not billed at all, because the billing method on
+  file didn't match reality.
+category: insurance
+tags: [insurance, billing, reconciliation, premium, operations]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      method=$2; collector=$3;
+      expected = (method == "direct-bill") ? "carrier" : "agency";
+      if (collector != "" && collector != expected) {
+        printf "MISMATCH: %s is %s but %s collected the premium (expected %s)\n", $1, method, collector, expected;
+      } else if (collector == "") {
+        printf "UNCOLLECTED: %s (%s) shows no premium collector recorded\n", $1, method;
+      }
+    }
+  ' "{{billing_records_csv}}"
+variables:
+  billing_records_csv:
+    default: "./billing-records.csv"
+    description: "Path to a CSV with columns: policy_number,billing_method (direct-bill or agency-bill),premium_collected_by (carrier, agency, or blank)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only cross-check against a merged billing export; it does not
+  connect to any carrier billing system directly since those vary by
+  carrier.

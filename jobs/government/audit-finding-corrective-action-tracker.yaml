@@ -1,0 +1,45 @@
+id: audit-finding-corrective-action-tracker
+version: 1
+name: Audit Finding Corrective Action Tracker
+description: >
+  Reviews open findings from your agency's annual financial or
+  compliance audit and drafts a status summary of which corrective
+  action plans are on track, stalled, or past their committed date. Use
+  this if a prior-year audit finding has ever reappeared as a
+  "repeat finding" in the next audit because nobody was checking on the
+  corrective action plan in between.
+category: government
+tags: [government, audit, corrective-action, compliance, finance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the audit findings and corrective action tracker at
+  {{findings_tracker_location}}.
+  1. List each open finding: finding ID, audit year, brief description,
+     responsible department, corrective action plan, and target
+     completion date.
+  2. Flag any finding whose target completion date has passed with no
+     recorded completion, and separately flag any finding that also
+     appeared in a prior audit (a repeat finding) — those are the
+     highest priority.
+  3. For each flagged finding, draft a short status-request note to the
+     responsible department asking for an update, and note what
+     evidence would be needed to close it out (policy change, training
+     completed, reconciliation performed, etc.).
+  4. Summarize overall status: total open findings, how many are on
+     track vs. stalled vs. repeat findings, for a compliance officer or
+     audit committee update.
+variables:
+  findings_tracker_location:
+    default: "your agency's audit findings and corrective action plan tracker"
+    description: Where open audit findings and their corrective action plans are recorded (spreadsheet, GRC tool, or audit management system).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only: status-request notes go out through whatever channel your
+  finance or compliance office already uses, not automatically. This
+  tracks findings from your own agency's external/internal audit report
+  — distinct from grant-compliance-report-tracker.yaml (chasing
+  sub-recipients for their reports) and from
+  federal-grant-single-audit-threshold-check.yaml (whether a Single
+  Audit is required at all).

@@ -1,0 +1,57 @@
+id: guest-wifi-tech-complaint-pattern-check
+version: 1
+name: Guest Wi-Fi and In-Room Tech Complaint Pattern Watch
+description: >
+  Counts logged Wi-Fi, TV, and other in-room tech complaints by room or
+  area over a trailing window and flags any location clustering enough
+  complaints to suggest an infrastructure problem rather than isolated
+  guest issues. Use this if a dead access point on one floor has ever
+  generated a week of one-off complaint tickets before anyone noticed
+  they were all coming from the same hallway.
+category: hospitality
+tags: [hospitality, guest-experience, technology, wifi]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v days="{{lookback_days}}" -v threshold="{{cluster_threshold}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline logged_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - logged_epoch) / 86400;
+      if (age_days <= days) count[$1]++;
+    }
+    END {
+      for (loc in count) {
+        printf "%s: %d complaints in last %d days\n", loc, count[loc], days;
+        if (count[loc] >= threshold) printf "  CLUSTER: at/above threshold %d — check infrastructure, not just individual tickets\n", threshold;
+      }
+    }
+  ' "{{tech_complaints_csv}}"
+prompt: |
+  Run the complaint-clustering check against {{tech_complaints_csv}} for
+  the last {{lookback_days}} days, then for any location at or above
+  {{cluster_threshold}} complaints:
+  1. Check whether the complaints share one issue_type (all Wi-Fi vs.
+     mixed) — a single-issue-type cluster points more strongly at one
+     piece of infrastructure (an access point, a specific TV firmware)
+     than a mixed set of complaints does.
+  2. Recommend whether this needs an IT/engineering ticket now or can
+     wait for the next scheduled walk-through.
+  3. Draft a one-line internal note summarizing the pattern for the
+     engineering team.
+script_note: The command gives you per-location complaint counts and flags clusters over threshold for free; it doesn't group by issue_type or judge whether a cluster is one root cause versus coincidence — that synthesis is what the prompt mode adds.
+variables:
+  tech_complaints_csv:
+    default: "./tech-complaints.csv"
+    description: "CSV with header row, columns: room_or_area,logged_at (YYYY-MM-DD),issue_type (wifi/tv/thermostat/phone/other)."
+  lookback_days:
+    default: 7
+    description: How many days back to count complaints per location.
+  cluster_threshold:
+    default: 3
+    description: Number of complaints from one location within the window that flags a possible infrastructure issue.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Complements guest-complaint-sla-tracker, which tracks individual complaint resolution time — this looks for a spatial/technical pattern across many tech complaints instead of any single ticket's SLA.

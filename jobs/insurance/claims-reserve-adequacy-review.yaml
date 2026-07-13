@@ -1,0 +1,41 @@
+id: claims-reserve-adequacy-review
+version: 1
+name: Claims Reserve Adequacy Review
+description: >
+  Reviews open claims where the current reserve looks out of step with
+  claim severity indicators (medical treatment still ongoing, litigation
+  filed, total loss, etc.) and flags candidates for a reserve adjustment.
+  Use this if a reserve has ever sat unchanged for months while the
+  actual claim facts moved on, throwing off loss-ratio and reinsurance
+  numbers until an audit caught the gap.
+category: insurance
+tags: [insurance, claims, reserves, adequacy, finance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the open claims file at {{open_claims_reserve_csv}} (expected
+  columns: claim_number, loss_type, current_reserve, severity_indicators
+  — free text such as "litigation filed", "ongoing treatment", "total
+  loss", "liability disputed" — and reserve_last_updated_date).
+  1. For each claim, judge whether current_reserve looks adequate given
+     its severity_indicators and typical costs for that loss_type.
+  2. Flag claims where the reserve looks too low for the described
+     severity, and separately flag claims whose reserve hasn't been
+     revisited in over {{stale_review_days}} days regardless of amount.
+  3. For each flagged claim, give a one-line reason and a suggested
+     reserve range to bring to the adjuster/claims manager for review.
+  4. Do not change any reserve figures — this is a review list only, for
+     a human claims manager to act on.
+variables:
+  open_claims_reserve_csv:
+    default: "./open-claims-reserves.csv"
+    description: "Path to a CSV with columns: claim_number,loss_type,current_reserve,severity_indicators,reserve_last_updated_date."
+  stale_review_days:
+    default: 90
+    description: Days since the last reserve update before a claim is flagged for review regardless of amount.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Judgment call, not an authoritative actuarial reserve calculation —
+  output is a review/prioritization list for a claims manager or actuary
+  to confirm, not an automatic reserve change.

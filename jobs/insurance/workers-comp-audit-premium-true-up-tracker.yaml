@@ -1,0 +1,41 @@
+id: workers-comp-audit-premium-true-up-tracker
+version: 1
+name: Workers' Comp Audit Premium True-Up Tracker
+description: >
+  Tracks policyholders due for their annual workers' compensation payroll
+  audit and flags any whose actual-payroll true-up hasn't been completed
+  or invoiced within the target window after the policy period ends. Use
+  this if an audit premium true-up has ever gone unbilled for so long
+  that the additional premium became hard to collect or the policyholder
+  forgot why they suddenly owed money.
+category: insurance
+tags: [insurance, workers-comp, audit, premium, true-up]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{overdue_after_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline period_end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since_end = (now_epoch - period_end_epoch) / 86400;
+      if (days_since_end >= warn) {
+        printf "OVERDUE AUDIT: %s — policy period ended %s (%d days ago), no audit/true-up recorded\n", $1, $2, days_since_end;
+      }
+    }
+  ' "{{wc_policies_csv}}"
+variables:
+  wc_policies_csv:
+    default: "./workers-comp-policies.csv"
+    description: "Path to a CSV with columns: policy_number,policy_period_end_date (YYYY-MM-DD),estimated_payroll,audit_completed_date (blank if not yet done)."
+  overdue_after_days:
+    default: 45
+    description: Days after policy period end before an un-audited policy counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags missing/overdue audits only — it does not calculate the actual
+  true-up premium, since that depends on the carrier's rating rules and
+  final audited payroll figures.

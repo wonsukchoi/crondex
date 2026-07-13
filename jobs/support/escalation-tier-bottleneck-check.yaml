@@ -1,0 +1,43 @@
+id: escalation-tier-bottleneck-check
+version: 1
+name: Escalation Tier Bottleneck Check
+description: >
+  Breaks down average time-in-stage across each tier or team in your
+  escalation path and identifies which specific stage is actually causing
+  the delay. Use this if escalated tickets have ever been slow overall
+  with nobody able to say whether the holdup was Tier 2 triage, a
+  specialist queue, or engineering sign-off, because only the total
+  time was ever measured.
+category: support
+tags: [support, escalation, tickets, tier2, bottleneck]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{escalation_stage_csv}}" ] || { echo "ERROR: escalation stage CSV not found at {{escalation_stage_csv}}"; exit 1; };
+  awk -F',' -v warn={{stage_hours_threshold}} '
+    NR==1 {next}
+    { sum[$2]+=$3; n[$2]++ }
+    END {
+      flagged=0;
+      for (stage in sum) {
+        avg = sum[stage] / n[stage];
+        if (avg >= warn) { printf "BOTTLENECK: \"%s\" averages %.1fh in stage across %d ticket(s)\n", stage, avg, n[stage]; flagged=1; }
+      }
+      if (!flagged) print "OK: no escalation stage averaged past the threshold";
+    }
+  ' "{{escalation_stage_csv}}"
+variables:
+  escalation_stage_csv:
+    default: "./escalation-stage-log.csv"
+    description: "CSV with header row, columns: ticket_id,stage_name,hours_in_stage — export this from your helpdesk's escalation/tier transition history."
+  stage_hours_threshold:
+    default: 8
+    description: Average hours a ticket spends in a single escalation stage before that stage counts as a bottleneck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `escalation-queue-aging-check`, which flags a raw count of
+  tickets aging in the escalation queue as a whole — this breaks the same
+  path down by stage to pinpoint which specific tier or team is the slow
+  link, which the aggregate count alone can't tell you.

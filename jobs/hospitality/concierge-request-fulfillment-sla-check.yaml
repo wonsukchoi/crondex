@@ -1,0 +1,34 @@
+id: concierge-request-fulfillment-sla-check
+version: 1
+name: Concierge Request Fulfillment SLA Check
+description: >
+  Checks logged concierge requests — restaurant reservations, show
+  tickets, transportation, tours — against your fulfillment SLA and flags
+  any still open past the deadline. Use this if a guest's dinner
+  reservation request has ever gone unconfirmed for hours because it got
+  buried under other front-desk tasks.
+category: hospitality
+tags: [hospitality, concierge, guest-services, sla]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{sla_hours}}" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline logged_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - logged_epoch) / 3600;
+      if (age_hours >= hours) printf "OVERDUE: room %s — %s request (open %d hrs)\n", $1, $4, age_hours;
+    }
+  ' "{{requests_csv_path}}"
+variables:
+  requests_csv_path:
+    default: "./concierge-requests.csv"
+    description: "CSV with header row, columns: room_number,logged_at (YYYY-MM-DD HH:MM),status (open/closed),request_type (dinner-reservation/tickets/transportation/tour/other)."
+  sla_hours:
+    default: 1
+    description: Target hours to fulfill or confirm a concierge request before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from guest-complaint-sla-tracker (service complaints) and guest-maintenance-request-backlog-check (physical repairs) — this tracks proactive guest-services requests, which usually need a much tighter SLA since they're time-bound (a dinner reservation, a show start time).

@@ -1,0 +1,40 @@
+id: group-block-pickup-attrition-check
+version: 1
+name: Group Block Pickup and Attrition Tracker
+description: >
+  Reviews contracted group room blocks against actual room-night pickup as
+  the cutoff date approaches and flags blocks trending toward attrition.
+  Use this if a group's contracted block has ever come in well under
+  pickup with nobody catching it until after the cutoff, when it's too
+  late to release the rooms back to inventory or invoice the attrition fee.
+category: hospitality
+tags: [hospitality, group-sales, revenue-management, attrition]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the group block roster from {{group_sales_system}} for blocks with
+  a cutoff date within the next {{cutoff_lookahead_days}} days.
+  1. For each block, calculate pickup percentage (room-nights picked up /
+     room-nights contracted) and flag any block below
+     {{attrition_warning_pct}}% pickup.
+  2. For blocks already past their cutoff date, note whether unpicked
+     rooms have actually been released back to general inventory yet.
+  3. Check each flagged block's contract for an attrition clause and
+     estimate the attrition fee owed if pickup doesn't improve before
+     the cutoff.
+  4. Suggest one action per flagged block: reach out to the group
+     contact, release rooms to inventory, or start the attrition invoice
+     process.
+variables:
+  group_sales_system:
+    default: "your group sales/CRM system"
+    description: System tracking group block contracts and pickup (e.g. "Salesforce", "Delphi", "Tripleseat").
+  cutoff_lookahead_days:
+    default: 21
+    description: How many days ahead of a block's cutoff date to start reviewing it.
+  attrition_warning_pct:
+    default: 70
+    description: Pickup percentage below which a block is flagged as attrition risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Attrition clauses and fee formulas vary a lot by contract — treat the fee estimate as a starting point for sales/finance to confirm, not a final invoice number.

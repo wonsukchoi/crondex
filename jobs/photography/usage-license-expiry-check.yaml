@@ -1,0 +1,40 @@
+id: usage-license-expiry-check
+version: 1
+name: Client Usage License Expiry Check
+description: >
+  Tracks time-limited commercial usage licenses you've granted clients
+  for photos or video (e.g. a one-year ad-campaign license) and flags
+  any approaching expiry. Use this if a commercial client has ever
+  kept running your images in their marketing past the license window
+  you actually sold them, without anyone offering a renewal first.
+category: photography
+tags: [photography, licensing, usage-rights, contracts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "LICENSE EXPIRING: %s — %s (%s usage) expires %s (%d days away)\n", $1, $2, $3, $4, days_until;
+      }
+    }
+  ' "{{usage_licenses_csv_path}}"
+variables:
+  usage_licenses_csv_path:
+    default: "./usage-licenses.csv"
+    description: "Path to a CSV with columns: client_name,shoot_description,usage_type (e.g. web/print/paid-ads/broadcast),license_expiry_date (YYYY-MM-DD)."
+  warning_days:
+    default: 45
+    description: How many days before a usage license's expiry date it should be flagged so a renewal can be offered before the client is caught using content outside its licensed window.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags upcoming or already-expired usage
+  licenses, it doesn't renew the license or contact the client — do
+  that once flagged, and note that continued use past expiry is a
+  contract/licensing matter, not something this job enforces.

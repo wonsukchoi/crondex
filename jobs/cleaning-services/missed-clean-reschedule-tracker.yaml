@@ -1,0 +1,35 @@
+id: missed-clean-reschedule-tracker
+version: 1
+name: Missed Clean Reschedule Tracker
+description: >
+  Checks recently skipped or cancelled cleaning appointments and flags any
+  that still haven't been rebooked within your target window. Use this if
+  a missed clean has ever quietly fallen through the cracks and turned into
+  a client complaint or a cancelled contract instead of a quick reschedule.
+category: cleaning-services
+tags: [cleaning-services, scheduling, missed-appointment, customer-retention]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{reschedule_window_days}}" '
+    NR==1 {next}
+    tolower($4) != "yes" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline missed_epoch; close(cmd);
+      age_days = (today - missed_epoch) / 86400;
+      if (age_days > window) {
+        printf "NOT RESCHEDULED: client %s — missed clean on %s (%.0f days ago, reason: %s)\n", $1, $2, age_days, $3;
+      }
+    }
+  ' "{{missed_cleans_csv_path}}"
+variables:
+  missed_cleans_csv_path:
+    default: "./missed-cleans.csv"
+    description: "Path to a CSV with columns: client_name,missed_date (YYYY-MM-DD),reason,rescheduled (yes/no)."
+  reschedule_window_days:
+    default: 3
+    description: How many days a missed clean is allowed to sit unrescheduled before it gets flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job. Follow up with the client or crew directly once flagged — this job only surfaces the gap, it doesn't rebook the appointment.

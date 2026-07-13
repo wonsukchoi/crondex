@@ -1,0 +1,48 @@
+id: rental-gear-return-reminder
+version: 1
+name: Rental Gear Return Reminder
+description: >
+  Flags rented cameras, lenses, and lighting gear that are due back soon,
+  and separately flags any rental still needed for another shoot before its
+  return date. Use this if a late fee has ever snuck up on a rental camera
+  body or light kit, or gear got returned only to be needed again for a
+  shoot the next day.
+category: photography
+tags: [photography, equipment, rental, gear, deadline]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      item=$1; source=$2; return_date=$3; next_shoot_date=$4;
+      cmd = "date -d \"" return_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" return_date "\" +%s 2>/dev/null";
+      cmd | getline return_epoch; close(cmd);
+      days_to_return = int((return_epoch - today) / 86400);
+      if (days_to_return <= warn) {
+        if (days_to_return < 0) {
+          printf "OVERDUE: %s (from %s) was due back %d day(s) ago\n", item, source, -days_to_return;
+        } else {
+          printf "DUE SOON: %s (from %s) due back in %d day(s)\n", item, source, days_to_return;
+        }
+      }
+      if (next_shoot_date != "" && next_shoot_date != "none") {
+        cmd2 = "date -d \"" next_shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" next_shoot_date "\" +%s 2>/dev/null";
+        cmd2 | getline next_shoot_epoch; close(cmd2);
+        if (next_shoot_epoch < return_epoch) {
+          printf "CONFLICT: %s (from %s) is needed again on %s but isn'"'"'t due back from this rental until %s\n", item, source, next_shoot_date, return_date;
+        }
+      }
+    }
+  ' "{{rentals_csv_path}}"
+variables:
+  rentals_csv_path:
+    default: "./equipment-rentals.csv"
+    description: "Path to a CSV with columns: item_name,rental_source,return_due_date (YYYY-MM-DD),next_shoot_needed_date (YYYY-MM-DD, or blank/none if not yet booked for another shoot)."
+  warn_days_before:
+    default: 2
+    description: How many days before the return date to start warning that a rental is due back soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags return deadlines and scheduling conflicts, it does not extend the rental or return it for you. If a CONFLICT line shows up, either extend the rental or rebook the shoot — don't just let the return date slip.

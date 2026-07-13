@@ -1,0 +1,37 @@
+id: booking-retainer-collection-check
+version: 1
+name: Booking Retainer Collection Check
+description: >
+  Checks confirmed photography bookings for retainers (deposits) that
+  haven't been collected within the required window before the session,
+  and flags them. Use this if a client date has ever gone uncollected on
+  the retainer and then the client canceled last-minute, leaving that date
+  unbookable by anyone else and unpaid for.
+category: photography
+tags: [photography, booking, retainer, deposit, contracts]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{collection_window_days}}" '
+    NR==1 {next}
+    {
+      booking_id=$1; client=$2; session_date=$3; session_type=$4; contract_signed=tolower($5); retainer_collected=tolower($6);
+      cmd = "date -d \"" session_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" session_date "\" +%s 2>/dev/null";
+      cmd | getline session_epoch; close(cmd);
+      days_to_session = int((session_epoch - today) / 86400);
+      if (contract_signed == "yes" && retainer_collected != "yes" && days_to_session <= window) {
+        printf "NO RETAINER: %s — %s (%s) booked for %s, %d day(s) out, retainer still not collected\n", booking_id, client, session_type, session_date, days_to_session;
+      }
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./bookings.csv"
+    description: "Path to a CSV with columns: booking_id,client_name,session_date (YYYY-MM-DD),session_type,contract_signed (yes/no),retainer_collected (yes/no)."
+  collection_window_days:
+    default: 14
+    description: How many days out from the session date to start flagging a signed booking that still has no retainer collected.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not charge or invoice anyone, only flags who still owes a retainer. A signed contract without a collected retainer is the highest-risk combination — the date is being held but nothing is on the line for the client if they walk.

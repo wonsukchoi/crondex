@@ -1,0 +1,39 @@
+id: key-access-log-audit
+version: 1
+name: Key & Access Log Audit
+description: >
+  Cross-checks the log of client keys, access codes, and fobs held by the
+  business against the active client list and flags anything still held
+  for a client who is no longer active. Use this if a former client's key
+  or door code has ever stayed in a drawer (or worked) long after their
+  service ended, which is a security and liability gap.
+category: cleaning-services
+tags: [cleaning-services, key-access, security, compliance, audit]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR==1) { next }
+      active[$1] = $2;
+      next
+    }
+    FNR==1 { next }
+    {
+      id=$1; name=$2; access_type=$3; issued=$4;
+      status = (id in active) ? active[id] : "unknown";
+      if (tolower(status) != "active") {
+        printf "ACCESS RISK: %s (%s) holds %s issued %s — client status: %s\n", id, name, access_type, issued, status;
+      }
+    }
+  ' "{{active_clients_csv_path}}" "{{key_log_csv_path}}"
+variables:
+  active_clients_csv_path:
+    default: "./active-clients.csv"
+    description: "Path to a CSV with columns: client_id,status (active/inactive/cancelled)."
+  key_log_csv_path:
+    default: "./key-access-log.csv"
+    description: "Path to a CSV with columns: client_id,client_name,access_type (key/code/fob),issued_date (YYYY-MM-DD)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job. Physically retrieve or deactivate flagged keys/codes yourself — this job only surfaces the gap, it doesn't revoke access.

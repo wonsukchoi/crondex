@@ -1,0 +1,38 @@
+id: editing-backlog-aging-check
+version: 1
+name: Editing Backlog Aging Check
+description: >
+  Checks shoots that have been shot but not yet culled or edited against an
+  aging threshold, and lists the oldest backlog first. Use this if editing
+  work has ever piled up quietly until a client who shot months ago is
+  still waiting, while more recent shoots kept jumping the queue.
+category: photography
+tags: [photography, editing, culling, backlog, workflow]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v threshold="{{aging_threshold_days}}" '
+    NR==1 {next}
+    {
+      shoot_id=$1; client=$2; shoot_date=$3; edited=tolower($4);
+      if (edited != "yes") {
+        cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+        cmd | getline shoot_epoch; close(cmd);
+        age_days = int((today - shoot_epoch) / 86400);
+        if (age_days >= threshold) {
+          printf "%06d BACKLOG: %s — %s shot on %s, %d day(s) old, still not edited\n", age_days, shoot_id, client, shoot_date, age_days;
+        }
+      }
+    }
+  ' "{{shoots_csv_path}}" | sort -rn | cut -c8-
+variables:
+  shoots_csv_path:
+    default: "./shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,client_name,shoot_date (YYYY-MM-DD),edited (yes/no)."
+  aging_threshold_days:
+    default: 7
+    description: Minimum number of days since the shoot date before an un-edited shoot is flagged as backlog.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not edit or reorder anything itself, only surfaces the oldest un-edited shoots so they can be prioritized. Mark edited as "yes" once culling and editing are done so a shoot drops off the list.

@@ -1,0 +1,43 @@
+id: client-satisfaction-follow-up-drafts
+version: 1
+name: Client Satisfaction Follow-Up Drafts
+description: >
+  Reviews post-clean satisfaction survey or star-rating data, flags any
+  score below your quality bar, and drafts a personal follow-up message
+  for each unhappy client. Use this if a low rating has ever slipped by
+  unnoticed until the client already canceled instead of getting a chance
+  to have the issue fixed.
+category: cleaning-services
+tags: [cleaning-services, client-satisfaction, surveys, retention]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_score="{{min_acceptable_score}}" '
+    NR==1 {next}
+    $4 != "" && $4 < min_score {
+      printf "LOW SCORE: %s for %s — rating %s/5, clean date %s, comment: %s\n", $1, $2, $4, $3, $5;
+    }
+  ' "{{ratings_csv_path}}"
+script_note: >
+  The shell command only lists the surveys that fell below the score
+  threshold — it doesn't write anything. Drafting a warm, specific
+  follow-up that references the client's actual comment and offers to
+  make it right is what the prompt mode adds.
+prompt: >
+  Read the satisfaction survey log at {{ratings_csv_path}} (columns:
+  client_id, client_name, clean_date, rating, comment). Find every
+  response with a rating below {{min_acceptable_score}} out of 5. For
+  each one, draft a short, warm, personal follow-up message to the client
+  that acknowledges their specific comment, apologizes for the
+  experience, and offers a concrete next step (a re-clean, a credit, or a
+  call to discuss).
+variables:
+  ratings_csv_path:
+    default: "./client-ratings.csv"
+    description: "Path to a CSV with columns: client_id,client_name,clean_date (YYYY-MM-DD),rating (1-5),comment."
+  min_acceptable_score:
+    default: 3
+    description: Ratings at or above this number (out of 5) are considered fine; anything below is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Draft-only — review each message before sending, this job never contacts the client on its own.

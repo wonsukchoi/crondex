@@ -1,0 +1,40 @@
+id: second-shooter-payment-tracker
+version: 1
+name: Second Shooter & Assistant Payment Tracker
+description: >
+  Tracks payments owed to second shooters, assistants, and other
+  contractors per booking and flags any still unpaid past your
+  studio's payment terms. Use this if a second shooter has ever had
+  to chase you for their cut of a wedding weeks after the shoot
+  because nobody was tracking contractor payouts alongside client
+  invoices.
+category: photography
+tags: [photography, contractors, payments, second-shooter]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v terms="{{payment_terms_days}}" '
+    NR==1 {next}
+    $5 == "unpaid" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      days_since_shoot = (today - shoot_epoch) / 86400;
+      if (days_since_shoot >= terms) {
+        printf "UNPAID CONTRACTOR: %s — booking %s on %s, $%s owed (%d days since shoot)\n", $1, $3, $2, $4, days_since_shoot;
+      }
+    }
+  ' "{{contractor_payments_csv_path}}"
+variables:
+  contractor_payments_csv_path:
+    default: "./contractor-payments.csv"
+    description: "Path to a CSV with columns: contractor_name,shoot_date (YYYY-MM-DD),booking_reference,amount_owed,status (unpaid/paid)."
+  payment_terms_days:
+    default: 14
+    description: How many days after the shoot date a contractor should be paid before an unpaid balance is flagged, matching your standard payment terms.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags contractors owed past your payment terms,
+  it doesn't issue payment — run payroll or send the payout once
+  flagged.

@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1205 jobs across 57 categories:
+1245 jobs across 59 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -115,6 +115,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 20 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `cleaning-services` | 20 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 20 | Shared-workspace membership ops — desks, room booking, community, amenities. |
@@ -149,6 +150,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 20 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
+| `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |

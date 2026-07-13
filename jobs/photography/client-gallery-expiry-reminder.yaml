@@ -1,0 +1,47 @@
+id: client-gallery-expiry-reminder
+version: 1
+name: Client Gallery Expiry Reminder
+description: >
+  Flags client online photo galleries approaching their auto-expiry or
+  take-down date so a reminder can go out in time to download images or
+  order prints. Use this if a client has ever emailed asking for their
+  photos after the gallery link already stopped working.
+category: photography
+tags: [photography, galleries, client-communication, expiry]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{reminder_window_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left >= 0 && days_left <= window) {
+        printf "GALLERY EXPIRING SOON: %s — client %s, expires %s (%.0f day(s) left), link %s\n", $1, $3, $2, days_left, $4;
+      }
+    }
+  ' "{{galleries_csv_path}}"
+prompt: |
+  Run this job's shell command against {{galleries_csv_path}} to get the list
+  of client galleries expiring within {{reminder_window_days}} days. For each
+  one, draft a short, friendly reminder email to the client (using their name
+  and the gallery link and expiry date) nudging them to download their images
+  or place a print order before access closes. Do NOT send anything — save
+  each as a draft and list which clients still need a reminder.
+script_note: >
+  The shell command gives you the raw list of galleries expiring soon for
+  free. The prompt mode adds the actual client-facing reminder drafts, which
+  need natural phrasing and a connector to save as drafts — that's judgment
+  a generic script can't do.
+variables:
+  galleries_csv_path:
+    default: "./client-galleries.csv"
+    description: "Path to a CSV with columns: gallery_id,expiry_date (YYYY-MM-DD),client_name,gallery_url."
+  reminder_window_days:
+    default: 10
+    description: How many days before a gallery's expiry/take-down date to start flagging it for a reminder.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only job — the prompt mode drafts reminder emails but never sends them automatically; review before sending. The shell-only command mode is purely read-only and never drafts anything.

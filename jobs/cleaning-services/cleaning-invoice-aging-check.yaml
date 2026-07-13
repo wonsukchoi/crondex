@@ -1,0 +1,38 @@
+id: cleaning-invoice-aging-check
+version: 1
+name: Unpaid Invoice Aging Check
+description: >
+  Checks invoices issued to cleaning clients against your standard aging
+  buckets (30/60/90 days) and flags any that are still unpaid past the
+  threshold you set. Use this if recurring or one-off cleaning jobs have
+  ever gone unpaid for weeks because nobody was tracking which invoices
+  had quietly slipped past due.
+category: cleaning-services
+tags: [cleaning-services, invoicing, collections, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_overdue}}" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= max_days) {
+        printf "AGING: invoice %s for %s — $%s, due %s (%d days overdue)\n", $1, $2, $5, $3, overdue_days;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,client_name,due_date (YYYY-MM-DD),status (unpaid/paid),amount."
+  max_days_overdue:
+    default: 30
+    description: Days past the due date before an unpaid invoice is flagged (e.g. 30, 60, or 90 to match your aging buckets).
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only surfaces overdue invoices, it doesn't send a
+  reminder or contact the client — follow up manually once flagged.

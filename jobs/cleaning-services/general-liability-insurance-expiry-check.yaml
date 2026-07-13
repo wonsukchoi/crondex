@@ -1,0 +1,40 @@
+id: general-liability-insurance-expiry-check
+version: 1
+name: General Liability Insurance Expiry Check
+description: >
+  Checks general liability insurance certificates for your business and
+  any subcontractor cleaning crews against their expiry date and flags
+  any lapsing within your warning window. Use this if you've ever had a
+  crew show up to a commercial site on an insurance certificate that had
+  already quietly expired, putting the contract at risk.
+category: cleaning-services
+tags: [cleaning-services, insurance, compliance, subcontractors]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "INSURANCE EXPIRING: %s (%s) — policy %s expires %s (%d days away)\n", $1, $2, $4, $3, days_until;
+      }
+    }
+  ' "{{insurance_csv_path}}"
+variables:
+  insurance_csv_path:
+    default: "./insurance-certificates.csv"
+    description: "Path to a CSV with columns: entity_name,entity_type (own-business/subcontractor),expiry_date (YYYY-MM-DD),policy_number."
+  warning_days:
+    default: 30
+    description: How many days before a certificate's expiry date it should be flagged so a renewed certificate can be collected in time.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags upcoming or already-lapsed certificates, it
+  doesn't renew a policy or contact the carrier or subcontractor — do
+  that once flagged, and don't dispatch a crew whose certificate has
+  lapsed.

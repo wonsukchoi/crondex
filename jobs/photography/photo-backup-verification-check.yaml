@@ -1,0 +1,35 @@
+id: photo-backup-verification-check
+version: 1
+name: Photo Backup Verification Check
+description: >
+  Checks recent shoots for a confirmed second/off-site backup copy and flags
+  any shoot whose photos or footage still live on only one card or drive.
+  Use this if you've ever realized days later that a wedding or event shoot
+  had no backup and a single failed card would have meant losing it forever.
+category: photography
+tags: [photography, backup, data-safety, shoots]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{recent_shoot_window_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      age_days = (today - shoot_epoch) / 86400;
+      if (age_days <= window && tolower($4) != "yes") {
+        printf "NO OFF-SITE BACKUP: %s — shoot %s (%s), client %s, copies on file: %s\n", $1, $2, $3, $5, $4;
+      }
+    }
+  ' "{{shoots_csv_path}}"
+variables:
+  shoots_csv_path:
+    default: "./shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,shoot_date (YYYY-MM-DD),shoot_type,offsite_backup_confirmed (yes/no),client_name."
+  recent_shoot_window_days:
+    default: 14
+    description: How many days back to consider a shoot "recent" enough that a missing backup is still worth flagging urgently.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces shoots missing a confirmed off-site/second copy, it doesn't run the backup itself. Update the offsite_backup_confirmed column once a second copy (cloud, second drive, RAID) is actually verified.

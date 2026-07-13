@@ -1,0 +1,51 @@
+id: crew-no-show-tracker
+version: 1
+name: Crew No-Show Tracker
+description: >
+  Checks the crew attendance log for missed jobs and late arrivals against
+  what was scheduled, then flags any crew or cleaner with a repeated
+  pattern so it can be addressed before a client complains. Use this if a
+  cleaner has ever been late or a no-show more than once and nobody
+  noticed until a client called to ask where the crew was.
+category: cleaning-services
+tags: [cleaning-services, crew-management, reliability, scheduling]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v late="{{late_threshold_minutes}}" '
+    NR==1 {next}
+    {
+      crew=$1; job=$2; sched=$3; arrival=$4; client=$5;
+      if (arrival == "") {
+        printf "NO-SHOW: crew %s missed job %s for %s, scheduled %s\n", crew, job, client, sched;
+        next;
+      }
+      cmd = "date -d \"" sched "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" sched "\" +%s 2>/dev/null";
+      cmd | getline sched_epoch; close(cmd);
+      cmd2 = "date -d \"" arrival "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" arrival "\" +%s 2>/dev/null";
+      cmd2 | getline arrival_epoch; close(cmd2);
+      diff = (arrival_epoch - sched_epoch) / 60;
+      if (diff > late) printf "LATE: crew %s arrived %d min late to job %s for %s (scheduled %s, arrived %s)\n", crew, diff, job, client, sched, arrival;
+    }
+  ' "{{attendance_csv_path}}"
+prompt: >
+  Read the crew attendance log at {{attendance_csv_path}} (columns:
+  crew_name, job_id, scheduled_start, actual_arrival, client_name;
+  actual_arrival is blank if the crew never showed). List every no-show
+  and every arrival more than {{late_threshold_minutes}} minutes late.
+  Then look across all entries for the same crew_name and call out any
+  crew or cleaner with a repeated pattern (e.g. late more than once, a
+  no-show more than once, or consistently late on the same day of week),
+  since a single lateness is normal but a pattern is what should get
+  addressed before a client complains.
+script_note: The command catches individual no-shows and late arrivals from the log with zero tokens; only the prompt mode looks across entries to spot a repeating pattern per crew worth flagging to a manager.
+variables:
+  attendance_csv_path:
+    default: "./crew-attendance-log.csv"
+    description: "CSV with header row, columns: crew_name,job_id,scheduled_start,actual_arrival,client_name (actual_arrival blank if a no-show, times as YYYY-MM-DD HH:MM)."
+  late_threshold_minutes:
+    default: 15
+    description: Minutes after scheduled_start before an arrival counts as late.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; requires arrival times to actually be logged for every scheduled job (e.g. via a check-in text, GPS ping, or manual entry) to be useful.

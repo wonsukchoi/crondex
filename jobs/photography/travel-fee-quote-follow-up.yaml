@@ -1,0 +1,54 @@
+id: travel-fee-quote-follow-up
+version: 1
+name: Travel Fee Quote Follow-Up
+description: >
+  Flags destination/travel shoot quotes that include a travel fee estimate
+  and haven't converted into a booking within a set number of days, and
+  drafts a follow-up message. Use this if a destination wedding or travel
+  shoot quote has ever gone quiet after the client saw the travel fee line
+  item, with nobody circling back to address it.
+category: photography
+tags: [photography, travel, quotes, follow-up, sales]
+schedule: "0 10 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{follow_up_after_days}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; sent=$4; status=$5; fee=$6;
+      if (tolower(status) == "booked" || tolower(status) == "declined") { next; }
+      if (fee == "" || fee+0 == 0) { next; }
+      cmd = "date -d \"" sent "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" sent "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since > days) {
+        printf "UNCONVERTED TRAVEL QUOTE: %s (%s) — sent %s (%.0f days ago), travel fee: %s, status: %s\n", id, name, sent, days_since, fee, status;
+      }
+    }
+  ' "{{travel_quotes_csv_path}}"
+prompt: >
+  Read the travel shoot quotes at {{travel_quotes_csv_path}} (columns:
+  quote_id, client_name, contact_info, quote_sent_date, status — one of
+  "pending", "booked", or "declined", travel_fee_estimate). Identify every
+  quote that includes a nonzero travel_fee_estimate, is still "pending",
+  and whose quote_sent_date is more than {{follow_up_after_days}} days ago.
+  For each one, draft a short, friendly follow-up message checking in on
+  the destination/travel shoot quote, offering to answer questions about
+  the travel fee breakdown (e.g. what it covers) or explore date/location
+  flexibility, and inviting them to book. Group the drafts by how long
+  they've been waiting, longest first — do not send anything.
+script_note: >
+  The command gives you a zero-token list of unconverted travel quotes past
+  the follow-up window with day counts; only the prompt drafts the
+  personalized follow-up messages addressing the travel fee.
+variables:
+  travel_quotes_csv_path:
+    default: "./travel-quotes.csv"
+    description: "Path to a CSV with columns: quote_id,client_name,contact_info,quote_sent_date (YYYY-MM-DD),status (pending/booked/declined),travel_fee_estimate."
+  follow_up_after_days:
+    default: 7
+    description: How many days after a travel quote is sent, with no booking, before it's flagged for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and personalize the follow-up messages before sending through your usual SMS/email tool.

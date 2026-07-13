@@ -1,0 +1,32 @@
+id: client-appointment-reminder-drafts
+version: 1
+name: Client Appointment Reminder Drafts
+description: >
+  Reads tomorrow's scheduled cleanings and drafts a short reminder message
+  for each client confirming the date, time window, and crew name, so
+  someone just has to review and send. Use this if a client has ever
+  forgotten they had a cleaning booked, leaving the crew locked out or the
+  home/office not ready.
+category: cleaning-services
+tags: [cleaning-services, appointments, reminders, customer-communication]
+schedule: "0 15 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the scheduled cleanings at {{cleanings_csv_path}} (columns:
+  booking_id, client_name, contact_info, cleaning_date, time_window,
+  crew_name). Find every cleaning scheduled for {{lookahead_days}} day(s)
+  from today. For each one, draft a short, friendly reminder message
+  (suitable for SMS or email) confirming the date, time window, and crew
+  name, and asking the client to reply if they need to reschedule or grant
+  access. Present the drafts grouped by cleaning date — do not send
+  anything.
+variables:
+  cleanings_csv_path:
+    default: "./scheduled-cleanings.csv"
+    description: "Path to a CSV with columns: booking_id,client_name,contact_info,cleaning_date (YYYY-MM-DD),time_window,crew_name."
+  lookahead_days:
+    default: 1
+    description: How many days ahead of today to look for cleanings to remind about (1 means tomorrow).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and send the reminders yourself through your usual SMS/email tool before this touches a real client inbox.

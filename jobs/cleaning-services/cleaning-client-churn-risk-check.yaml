@@ -1,0 +1,54 @@
+id: cleaning-client-churn-risk-check
+version: 1
+name: Client Churn Risk Check
+description: >
+  Scans recurring clients' cleaning history for a dropped frequency (their
+  gap since the last completed clean has grown well past their expected
+  interval) or repeated recent cancellations, and flags them as an early
+  churn-risk signal. Use this if a recurring client has ever quietly
+  stopped booking and nobody noticed until they'd already switched to a
+  competitor.
+category: cleaning-services
+tags: [cleaning-services, churn-risk, retention, recurring-revenue]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v cancel_threshold="{{cancel_threshold}}" -v drop_multiplier="{{frequency_drop_multiplier}}" '
+    NR==1 {next}
+    {
+      client=$1; name=$2; cdate=$3; status=$4; freq=$5;
+      cmd = "date -d \"" cdate "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" cdate "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd); cmd = "";
+      if (tolower(status) == "cancelled") { cancels[client]++; }
+      if (tolower(status) == "completed" && epoch > 0 && (lastcompleted[client]+0) < epoch) {
+        lastcompleted[client] = epoch;
+      }
+      names[client] = name;
+      freqdays[client] = freq;
+    }
+    END {
+      for (c in names) {
+        days_since = (lastcompleted[c]+0 > 0) ? (today - lastcompleted[c]) / 86400 : -1;
+        expected = freqdays[c] + 0;
+        dropped = (lastcompleted[c]+0 > 0 && expected > 0 && days_since > expected * drop_multiplier);
+        cancel_risk = ((cancels[c]+0) >= cancel_threshold);
+        if (dropped || cancel_risk) {
+          printf "CHURN RISK: %s (%s) — %d recent cancellations, %.0f days since last completed clean (expected every %d days)\n", c, names[c], cancels[c]+0, days_since, expected;
+        }
+      }
+    }
+  ' "{{clients_csv_path}}"
+variables:
+  clients_csv_path:
+    default: "./client-cleaning-history.csv"
+    description: "Path to a CSV with columns: client_id,client_name,cleaning_date (YYYY-MM-DD),status (completed/cancelled),expected_frequency_days (the client's normal recurring interval in days)."
+  cancel_threshold:
+    default: 2
+    description: Number of cancelled cleanings (within the data provided) that alone marks a client as churn risk.
+  frequency_drop_multiplier:
+    default: 1.5
+    description: A client is flagged if the days since their last completed clean exceed their expected_frequency_days times this multiplier.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job. Reach out personally to flagged clients — this job only surfaces the risk signal, it doesn't contact anyone.

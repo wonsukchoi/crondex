@@ -1,0 +1,43 @@
+id: referral-program-follow-up-drafts
+version: 1
+name: Referral Program Follow-Up Drafts
+description: >
+  Flags clients who referred a new customer but haven't yet been thanked
+  or rewarded under the referral program, and drafts the thank-you or
+  reward message. Use this if a referral has ever gone unacknowledged
+  long enough that the client stopped bothering to send more.
+category: cleaning-services
+tags: [cleaning-services, referrals, customer-communication, retention]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    tolower($6) != "yes" || tolower($7) != "yes" {
+      printf "FOLLOW-UP NEEDED: %s referred %s on %s — thanked: %s, reward: %s\n", $2, $4, $5, $6, $7;
+    }
+  ' "{{referrals_csv_path}}"
+prompt: >
+  Read the referrals at {{referrals_csv_path}} (columns: referral_id,
+  referring_client_name, referring_client_contact, new_customer_name,
+  referral_date, thanked_status, reward_status; thanked_status and
+  reward_status are each "yes", "no", or "pending"). Find every referral
+  where thanked_status or reward_status is not "yes". For each one, draft
+  a short, warm thank-you message to the referring client, mentioning the
+  new customer by first name if appropriate and noting the reward they'll
+  receive per {{reward_description}}. Group the drafts by referral date,
+  oldest first — do not send anything.
+script_note: >
+  The command gives you a zero-token list of referrals still owed a
+  thank-you or reward; only the prompt drafts the personalized
+  thank-you/reward messages.
+variables:
+  referrals_csv_path:
+    default: "./client-referrals.csv"
+    description: "Path to a CSV with columns: referral_id,referring_client_name,referring_client_contact,new_customer_name,referral_date (YYYY-MM-DD),thanked_status (yes/no/pending),reward_status (yes/no/pending)."
+  reward_description:
+    default: "a $25 account credit"
+    description: Short plain-language description of the referral reward, inserted into the drafted messages.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and send the thank-you/reward messages yourself, and confirm the reward is actually issued before it's promised.

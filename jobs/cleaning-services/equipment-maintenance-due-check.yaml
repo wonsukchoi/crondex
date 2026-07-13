@@ -1,0 +1,45 @@
+id: equipment-maintenance-due-check
+version: 1
+name: Equipment Maintenance Due Check
+description: >
+  Checks floor buffers, vacuums, pressure washers, extractors, and other
+  cleaning equipment against their scheduled maintenance interval, by
+  either hours used or calendar time since the last service, and flags
+  anything due. Use this if a machine has ever broken down mid-job
+  because routine maintenance quietly slipped past its due date.
+category: cleaning-services
+tags: [cleaning-services, equipment, maintenance, preventive-maintenance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v hours_limit="{{hours_interval_default}}" -v days_limit="{{calendar_interval_days_default}}" '
+    NR==1 {next}
+    {
+      hours_interval = ($6 != "" ? $6 : hours_limit);
+      calendar_interval_days = ($7 != "" ? $7 : days_limit);
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_service_epoch; close(cmd);
+      days_since_service = (today - last_service_epoch) / 86400;
+      due_by_hours = ($5 >= hours_interval);
+      due_by_calendar = (days_since_service >= calendar_interval_days);
+      if (due_by_hours || due_by_calendar) {
+        printf "MAINTENANCE DUE: %s (%s) — last serviced %s (%d days ago), %s/%s hrs used, %s\n", $1, $2, $3, days_since_service, $5, hours_interval, (due_by_hours ? "hours threshold reached" : "calendar interval reached");
+      }
+    }
+  ' "{{equipment_csv_path}}"
+variables:
+  equipment_csv_path:
+    default: "./equipment-maintenance.csv"
+    description: "Path to a CSV with columns: equipment_id,equipment_name,last_service_date (YYYY-MM-DD),equipment_type,hours_used_since_service,hours_interval (optional, overrides default),calendar_interval_days (optional, overrides default)."
+  hours_interval_default:
+    default: 200
+    description: Default hours of use between services for equipment rows that don't specify their own hours_interval.
+  calendar_interval_days_default:
+    default: 90
+    description: Default number of days between services for equipment rows that don't specify their own calendar_interval_days.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags equipment that's due, it doesn't schedule a
+  technician or order parts — book the service once flagged.

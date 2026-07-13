@@ -1,0 +1,55 @@
+id: seasonal-deep-clean-upsell-reminder
+version: 1
+name: Seasonal Deep-Clean Upsell Reminder
+description: >
+  Flags recurring clients who haven't had a deep-clean or seasonal add-on
+  service in over a set number of months (or have none on record) and
+  drafts a friendly upsell message offering to schedule one. Use this if
+  you've ever realized months after the fact that a regular client was
+  never offered a seasonal deep clean, leaving revenue on the table.
+category: cleaning-services
+tags: [cleaning-services, upsell, deep-clean, sales]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v months="{{deep_clean_interval_months}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; last=$4;
+      if (last == "") {
+        printf "UPSELL CANDIDATE: %s (%s) — no deep clean on record\n", id, name;
+        next;
+      }
+      cmd = "date -d \"" last "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since > months * 30) {
+        printf "UPSELL CANDIDATE: %s (%s) — last deep clean %s (%.0f days ago)\n", id, name, last, days_since;
+      }
+    }
+  ' "{{recurring_clients_csv_path}}"
+prompt: >
+  Read the recurring clients at {{recurring_clients_csv_path}} (columns:
+  client_id, client_name, contact_info, last_deep_clean_date, left blank
+  if they've never had one). Identify every client whose
+  last_deep_clean_date is more than {{deep_clean_interval_months}} months
+  ago, or blank. For each one, draft a short, friendly upsell message
+  mentioning it's been a while (or that they've never tried it) and
+  offering to schedule a seasonal deep clean or add-on service, using
+  their name. Group the drafts by how overdue they are, most overdue
+  first — do not send anything.
+script_note: >
+  The command gives you a zero-token list of overdue/never-serviced
+  clients with day counts; only the prompt drafts the personalized
+  upsell outreach messages.
+variables:
+  recurring_clients_csv_path:
+    default: "./recurring-clients.csv"
+    description: "Path to a CSV with columns: client_id,client_name,contact_info,last_deep_clean_date (YYYY-MM-DD, blank if never)."
+  deep_clean_interval_months:
+    default: 6
+    description: How many months without a deep-clean/seasonal add-on before a client is flagged as an upsell candidate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and personalize the upsell messages before sending through your usual SMS/email tool.

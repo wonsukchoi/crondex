@@ -1,0 +1,30 @@
+id: weatherstripping-draft-check-reminder
+version: 1
+name: Weatherstripping & Door/Window Draft Check Reminder
+description: >
+  Reminds you to check doors and windows for worn weatherstripping and
+  drafts before the cold (or hot) season sets in, based on how long it's
+  been since the last check. Use this if you've ever had a heating bill
+  spike and traced it back to a door sweep that had been cracked and
+  leaking air for a whole winter.
+category: home
+tags: [home, energy, seasonal, maintenance, weatherstripping]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s); year=$(date +%Y);
+  check_date="${year}-{{check_month_day}}";
+  check_ts=$(date -d "$check_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$check_date" +%s);
+  days_to_check=$(( (check_ts - today) / 86400 ));
+  if [ "$days_to_check" -ge 0 ] && [ "$days_to_check" -le "{{warn_days}}" ]; then echo "REMINDER: check weatherstripping and door/window drafts in $days_to_check day(s) ($check_date) before the season change — hold a lit candle or your hand near frames and feel for airflow.";
+  else echo "OK: no weatherstripping check due within {{warn_days}} days."; fi
+variables:
+  check_month_day:
+    default: "09-15"
+    description: Yearly date (MM-DD) to check weatherstripping, typically before your cold season starts.
+  warn_days:
+    default: 14
+    description: Days before the check date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Adjust check_month_day to your climate; schedule a second copy for a pre-summer check if your area also needs draft sealing for AC efficiency.

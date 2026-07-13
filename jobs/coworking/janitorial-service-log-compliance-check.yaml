@@ -1,0 +1,53 @@
+id: janitorial-service-log-compliance-check
+version: 1
+name: Janitorial Service Log Compliance Check
+description: >
+  Checks the cleaning vendor's scheduled service visits against what was
+  actually logged as completed, and flags any visit that's overdue with no
+  completion recorded. Use this if a cleaning crew has ever quietly
+  skipped a scheduled visit and nobody noticed until a member complained
+  about the state of the kitchen or bathrooms.
+category: coworking
+tags: [coworking, janitorial, cleaning, vendor, facilities]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select visit_id, vendor_name, area, scheduled_at from janitorial_service_visits where completed_at is null and scheduled_at <= now() - interval '{{overdue_hours_threshold}} hours' order by scheduled_at asc;"
+prompt: >
+  Run this against the janitorial service log: list scheduled cleaning
+  visits with no completion logged more than {{overdue_hours_threshold}}
+  hours after their scheduled time, over the last {{lookback_days}} days.
+  Then look across those missed visits for a pattern — a specific vendor,
+  area, or day of week that keeps coming up repeatedly rather than a single
+  one-off miss. If a pattern exists, draft a short, factual note to send to
+  the vendor (dates, areas, and times missed) that the community manager
+  could use to raise it as a service-level issue, rather than just listing
+  today's gap in isolation.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that logs scheduled and completed janitorial service visits.
+  overdue_hours_threshold:
+    default: "4"
+    description: Hours past a visit's scheduled time before it's flagged as overdue with no completion logged.
+  lookback_days:
+    default: "14"
+    description: How many days of visit history the agent-prompt mode reviews when looking for a repeat pattern.
+script_note: >
+  The `command` alone gives you today's raw list of overdue, unconfirmed
+  visits at zero token cost — enough for a same-day nudge. It won't notice
+  that the same vendor has missed Tuesday bathroom service three weeks
+  running; only the `prompt` mode reviews history for a pattern and drafts
+  the vendor escalation note.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `janitorial_service_visits` table with `visit_id`,
+  `vendor_name`, `area`, `scheduled_at`, and `completed_at` (nullable)
+  columns, populated by whatever check-in method the cleaning crew or a
+  facilities app uses (a sign-off sheet, a QR code scan) — adjust the query
+  to your schema. Distinct from self-storage's
+  unit-turnover-cleaning-backlog-check.yaml (per-unit move-out cleaning) and
+  from community-manager-checklist-completion-check.yaml (staff's own daily
+  routine, not a third-party vendor's contracted visits). Read-only; it does
+  not contact the vendor itself, it only prepares what a human should send.

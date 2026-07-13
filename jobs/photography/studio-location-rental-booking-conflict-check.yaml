@@ -1,0 +1,53 @@
+id: studio-location-rental-booking-conflict-check
+version: 1
+name: Studio Space / Location Rental Booking Conflict Check
+description: >
+  Scans reservations for the studio space and any rented outside locations
+  for two shoots booked into the same space with overlapping times. Use
+  this if a studio bay or a rented location has ever been double-booked
+  because reservations were tracked in a shared calendar or spreadsheet
+  with no overlap check, leaving one client showing up to find another
+  shoot already in progress.
+category: photography
+tags: [photography, studio, location, booking, conflict, scheduling]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      space=$1; booking_id=$2; date=$3; start=$4; end=$5;
+      key=space "|" date;
+      starts[key, ++count[key]] = start;
+      ends[key, count[key]] = end;
+      ids[key, count[key]] = booking_id;
+      spaces[key]=space; dates[key]=date;
+    }
+    END {
+      for (k in count) {
+        c = count[k];
+        for (i=1; i<=c; i++) {
+          for (j=i+1; j<=c; j++) {
+            split(starts[k,i], s1, ":"); split(ends[k,i], e1, ":");
+            split(starts[k,j], s2, ":"); split(ends[k,j], e2, ":");
+            m_s1 = s1[1]*60+s1[2]; m_e1 = e1[1]*60+e1[2];
+            m_s2 = s2[1]*60+s2[2]; m_e2 = e2[1]*60+e2[2];
+            if (m_s1 < m_e2 && m_s2 < m_e1) {
+              printf "SPACE CONFLICT: %s on %s — %s (%s-%s) overlaps %s (%s-%s)\n", spaces[k], dates[k], ids[k,i], starts[k,i], ends[k,i], ids[k,j], starts[k,j], ends[k,j];
+            }
+          }
+        }
+      }
+    }
+  ' "{{space_bookings_csv_path}}"
+variables:
+  space_bookings_csv_path:
+    default: "./studio-location-bookings.csv"
+    description: "Path to a CSV with columns: space_name (e.g. Studio A, Riverside Park rental),booking_id,booking_date (YYYY-MM-DD),start_time (HH:MM, 24h),end_time (HH:MM, 24h)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it flags overlapping reservations for the same named space on
+  the same day; it doesn't book, cancel, or rearrange anything. Distinct
+  from second-shooter-scheduling-conflict-check, which checks people's time
+  conflicts rather than physical space conflicts.

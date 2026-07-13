@@ -1,0 +1,30 @@
+id: home-security-sensor-battery-test-reminder
+version: 1
+name: Home Security Sensor & Panel Battery Test Reminder
+description: >
+  Reminds you to test your door/window security sensors and replace the
+  backup battery in your alarm panel or keypad based on how long it's been
+  since the last check. Use this if you've ever had a power outage and
+  found out then that the alarm panel's backup battery was already dead.
+category: home
+tags: [home, security, safety, maintenance, battery]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: security sensors/panel backup battery last tested $days_since day(s) ago (every ${interval} months) — walk-test each door/window sensor and check the panel/keypad backup battery.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last walk-tested the sensors and checked the panel backup battery — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test sensors and the backup battery, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_tested_date yourself each time you test. Distinct from smoke-detector-battery-check — this covers intrusion sensors and the alarm panel's own backup battery, not smoke/CO alarms. Only relevant if you have a monitored or self-monitored security system.

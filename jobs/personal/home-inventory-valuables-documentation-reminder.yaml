@@ -1,0 +1,38 @@
+id: home-inventory-valuables-documentation-reminder
+version: 1
+name: Home Inventory & Valuables Documentation Reminder
+description: >
+  Reminds you when it's been too long since you last photographed and
+  documented your household valuables (electronics, jewelry, furniture,
+  serial numbers, receipts) for insurance purposes. Use this if you've
+  never actually made a claim-ready record of what you own and would
+  struggle to prove it after a fire, flood, or burglary.
+category: personal
+tags: [home-inventory, insurance, valuables, documentation, personal]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last=$(date -d "{{last_documented_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_documented_date}}" +%s);
+  now=$(date +%s);
+  days_since=$(( (now - last) / 86400 ));
+  if [ "$days_since" -ge "{{redo_threshold_days}}" ]; then
+    echo "It has been $days_since days since you last documented your home valuables ({{last_documented_date}}) — photograph rooms/items, save serial numbers and receipts, and refresh {{inventory_location}}.";
+  fi
+variables:
+  last_documented_date:
+    default: "2025-07-01"
+    description: Date you last completed a full home valuables documentation pass (YYYY-MM-DD).
+  redo_threshold_days:
+    default: "365"
+    description: Days since the last documentation pass that should trigger a reminder to redo it.
+  inventory_location:
+    default: "~/personal/home_inventory/"
+    description: Where photos, receipts, and a written inventory list are kept.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from home/home-insurance-renewal-reminder.yaml, which tracks the
+  policy's renewal date — this is about maintaining your own evidence of
+  what's covered, which is what actually speeds up a claim. Assumes
+  last_documented_date is updated manually after each pass. Read-only
+  reminder, does not touch the insurer's account.

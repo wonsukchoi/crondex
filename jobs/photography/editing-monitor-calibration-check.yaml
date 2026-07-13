@@ -1,0 +1,43 @@
+id: editing-monitor-calibration-check
+version: 1
+name: Editing Monitor Color Calibration Schedule Check
+description: >
+  Checks each editing workstation's monitor against its calibration
+  interval and flags any display overdue for recalibration. Use this if a
+  gallery has ever come back from a client looking too warm or too dark
+  because it was edited on a monitor that hadn't been calibrated in months
+  and had quietly drifted off true color.
+category: photography
+tags: [photography, editing, color-calibration, monitors, quality-control]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      station=$1; monitor=$2; last_cal=$3; interval_days=$4;
+      cmd = "date -d \"" last_cal "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_cal "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + (interval_days+0) * 86400;
+      days_until_due = (due_epoch - today) / 86400;
+      if (days_until_due <= window) {
+        printf "CALIBRATION DUE: %s — %s last calibrated %s, due in %d day(s)\n", station, monitor, last_cal, days_until_due;
+      }
+    }
+  ' "{{monitors_csv_path}}"
+variables:
+  monitors_csv_path:
+    default: "./editing-monitors.csv"
+    description: "Path to a CSV with columns: workstation_name,monitor_model,last_calibration_date (YYYY-MM-DD),calibration_interval_days (e.g. 30 for a monthly hardware-calibrated display)."
+  warning_days:
+    default: 5
+    description: How many days before a monitor's next calibration due date to flag it, so it can be recalibrated before editing on a drifted display.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it only flags overdue calibration dates from the log you
+  maintain, it doesn't run the calibration hardware or software itself.
+  Distinct from lighting-grip-equipment-maintenance-check, which tracks
+  physical-wear maintenance on lighting/grip gear rather than color
+  accuracy on editing displays.

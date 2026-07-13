@@ -1,0 +1,38 @@
+id: driver-license-id-expiry-reminder
+version: 1
+name: Driver's License & State ID Expiry Reminder
+description: >
+  Checks a tracked list of personal identity documents (driver's license,
+  state ID, Global Entry/TSA PreCheck card, and similar) and warns you
+  before any of them expire. Use this if you've ever discovered your
+  license was expired at the DMV counter or a TSA checkpoint because
+  nothing reminded you ahead of time.
+category: personal
+tags: [documents, id, expiry, reminder, personal]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{lead_time_days}}" 'NR>1 {
+    cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s";
+    cmd | getline exp_ts; close(cmd);
+    days_left = int((exp_ts - today) / 86400);
+    if (days_left <= warn) print "WARNING: " $1 " expires in " days_left " day(s) (" $2 ")";
+  }' "{{documents_csv_path}}"
+variables:
+  documents_csv_path:
+    default: "~/personal/id_documents.csv"
+    description: >
+      Path to a CSV with columns: document_name, expiry_date (YYYY-MM-DD).
+      One row per personal ID document tracked.
+  lead_time_days:
+    default: "60"
+    description: How many days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  For personal identity documents only — see travel/passport-expiry-check.yaml
+  for passport-specific "6 months validity" border rules, and
+  fleet/driver-license-cdl-expiry-check.yaml for tracking commercial drivers'
+  licenses. Assumes a manually maintained CSV; no DMV or agency API
+  connection. Read-only reminder.

@@ -1,0 +1,51 @@
+id: testimonial-review-request-follow-up
+version: 1
+name: Client Testimonial / Review Request Follow-Up
+description: >
+  Flags clients whose gallery was delivered a set number of days ago but who
+  haven't been asked for a testimonial or online review yet, and drafts the
+  request. Use this if a client raved about their gallery in a quick thank-you
+  text and that enthusiasm never got turned into a Google or Yelp review
+  because nobody followed up while it was fresh.
+category: photography
+tags: [photography, testimonials, reviews, client-communication, marketing]
+schedule: "0 10 * * 2"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v wait="{{wait_days_after_delivery}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; delivered=$4; requested=$5;
+      if (tolower(requested) == "yes") { next; }
+      cmd = "date -d \"" delivered "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" delivered "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since >= wait) {
+        printf "REQUEST DUE: %s (%s) — gallery delivered %s (%.0f days ago), no review request sent\n", id, name, delivered, days_since;
+      }
+    }
+  ' "{{delivered_galleries_csv_path}}"
+prompt: >
+  Read the delivered-gallery log at {{delivered_galleries_csv_path}}
+  (columns: client_id, client_name, contact_info, gallery_delivered_date,
+  review_requested — "yes" or "no"). Identify every client where
+  review_requested is not "yes" and gallery_delivered_date is at least
+  {{wait_days_after_delivery}} days ago. For each one, draft a short, warm
+  message thanking them again for the booking and asking if they'd be
+  willing to leave a quick review, with a direct link placeholder for your
+  Google Business or preferred review platform. Do not send anything.
+script_note: >
+  The command gives you a zero-token list of delivered clients who are due
+  for a review ask; only the prompt drafts the personalized request
+  messages.
+variables:
+  delivered_galleries_csv_path:
+    default: "./delivered-galleries.csv"
+    description: "Path to a CSV with columns: client_id,client_name,contact_info,gallery_delivered_date (YYYY-MM-DD),review_requested (yes/no)."
+  wait_days_after_delivery:
+    default: 5
+    description: How many days after gallery delivery to wait before asking for a testimonial or review, so the ask lands after the client has actually seen their photos.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and personalize each message before sending through your usual email/SMS tool; don't spam a client who already left a review just because the CSV wasn't updated.

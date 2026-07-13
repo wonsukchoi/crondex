@@ -1,0 +1,37 @@
+id: co-detector-unit-expiration-reminder
+version: 1
+name: Carbon Monoxide Detector Unit Expiration Reminder
+description: >
+  Warns you before a carbon monoxide detector reaches the end of its
+  sensor life based on its manufacture date, since CO sensors degrade and
+  need full unit replacement even if the battery is fine. Use this if
+  you've ever assumed a CO detector was still good just because it wasn't
+  chirping, when the sensor itself had actually expired years ago.
+category: home
+tags: [home, safety, carbon-monoxide, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  mfg={{manufacture_date}}; life={{sensor_life_years}}; warn={{warn_days}};
+  mfg_epoch=$(date -j -f %Y-%m-%d "$mfg" +%s 2>/dev/null || date -d "$mfg" +%s);
+  expire_epoch=$(( mfg_epoch + life*365*86400 ));
+  today_epoch=$(date +%s);
+  days_left=$(( (expire_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le "$warn" ]; then echo "WARNING: {{unit_location}} CO detector's sensor life ends in $days_left day(s) (manufactured $mfg, rated ${life}y) — replace the whole unit, not just the battery.";
+  else echo "OK: {{unit_location}} CO detector has $days_left day(s) of rated sensor life left."; fi
+variables:
+  unit_location:
+    default: "hallway"
+    description: Which CO detector this tracks, e.g. "hallway" or "basement" — one job per unit.
+  manufacture_date:
+    default: "2026-01-01"
+    description: Manufacture date (YYYY-MM-DD) printed on the back of the unit, not the install date.
+  sensor_life_years:
+    default: 7
+    description: Rated sensor life in years printed on the unit (commonly 5-10 years depending on model).
+  warn_days:
+    default: 60
+    description: Days before end-of-life to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. One job per detector — copy it and adjust unit_location/manufacture_date for each. Distinct from smoke-detector-battery-check, which is a recurring battery/test reminder rather than a fixed end-of-sensor-life replacement date.

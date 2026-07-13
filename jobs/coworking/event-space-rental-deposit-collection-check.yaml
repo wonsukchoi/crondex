@@ -1,0 +1,34 @@
+id: event-space-rental-deposit-collection-check
+version: 1
+name: Event Space Rental Deposit Collection Check
+description: >
+  Checks upcoming private bookings of your event space or large meeting
+  room — workshops, off-site rentals, member-hosted gatherings — for ones
+  that require a security deposit but don't have one recorded as collected
+  yet. Use this if a rented-out event space has ever gotten damaged or run
+  over time with no deposit on file to cover it.
+category: coworking
+tags: [coworking, events, event-space, deposit, billing]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select booking_id, renter_name, event_date, deposit_amount_due, deposit_collected_at from event_space_bookings where deposit_required = true and deposit_collected_at is null and event_date between current_date and current_date + interval '{{lookahead_days}} days' order by event_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's event-space booking database.
+  lookahead_days:
+    default: "5"
+    description: How many days ahead to check for events whose deposit hasn't been collected.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `event_space_bookings` table with `booking_id`, `renter_name`,
+  `event_date`, `deposit_required`, `deposit_amount_due`, and
+  `deposit_collected_at` columns — adjust the query to your booking
+  schema. Narrower than hospitality's group-booking-space-utilization-check
+  (which covers hotel event-space utilization and contracts broadly): this
+  only tracks deposit collection for a coworking space's own bookable event
+  room. Read-only and informational; it does not charge a card or block the
+  booking itself, it only flags who front desk or sales needs to follow up
+  with before the event date.

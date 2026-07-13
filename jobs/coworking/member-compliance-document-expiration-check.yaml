@@ -1,0 +1,36 @@
+id: member-compliance-document-expiration-check
+version: 1
+name: Member Compliance Document Expiration Check
+description: >
+  Checks the business licenses and liability insurance certificates that
+  some members are required to keep on file — often makerspace, studio, or
+  light-manufacturing members using specialized equipment — and flags
+  anyone whose document is expiring soon or has already lapsed. Use this
+  if a member has ever kept using shared equipment or space on an
+  insurance certificate or license that quietly expired months ago.
+category: coworking
+tags: [coworking, compliance, insurance, licensing, members]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, document_type, expires_at from member_compliance_documents where document_type in ('business_license', 'general_liability_insurance') and expires_at <= now() + interval '{{lookahead_days}} days' order by expires_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/compliance database.
+  lookahead_days:
+    default: "30"
+    description: How many days ahead of the expiration date to flag a member's document as needing renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_compliance_documents` table with `member_id`,
+  `member_name`, `document_type`, and `expires_at` columns, populated only
+  for members whose plan or use of specialized/shared equipment requires a
+  license or COI on file — adjust the query and document types to your
+  space's actual requirements. Distinct from self-storage's
+  insurance-coverage-lapse-check.yaml (storage-unit contents insurance) and
+  from agency/logistics COI checks (vendor/subcontractor insurance): this is
+  specifically about a coworking member's own required documentation.
+  Read-only and informational; it does not suspend access or request the
+  updated document itself, it only flags who needs a follow-up.

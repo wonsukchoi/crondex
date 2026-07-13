@@ -1,0 +1,50 @@
+id: community-engagement-drop-watch
+version: 1
+name: Community Engagement Drop Watch
+description: >
+  Reviews each active member's participation in the community Slack,
+  forum, or member app — posts, reactions, event RSVPs, logins — over a
+  recent window and flags members whose activity has dropped off sharply
+  compared to their own baseline, even if their desk check-ins are
+  unchanged. Use this if a member has ever quietly stopped engaging with
+  the community online well before their check-ins dropped or they
+  cancelled, and you wish someone had noticed the isolation earlier.
+category: coworking
+tags: [coworking, community, engagement, churn-risk, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull each active member's community engagement activity — posts,
+  comments, reactions, event RSVPs, and logins to the community Slack,
+  Discourse forum, or member app — for the last {{lookback_days}} days, and
+  compare it against their own average activity over the prior
+  {{baseline_days}} days. Flag any member whose engagement has dropped by
+  {{drop_threshold_pct}}% or more, or who has gone completely silent for
+  the full lookback window, as a possible isolation or churn signal —
+  separate from and in addition to any desk-usage or check-in based churn
+  signal. For each flagged member, note their prior activity level, what
+  dropped (e.g. stopped posting but still reacting, stopped logging in
+  entirely), and whether a low-key community touchpoint (a DM, an event
+  invite) seems appropriate before assuming it's nothing.
+variables:
+  lookback_days:
+    default: "14"
+    description: How many recent days of community activity to review per member.
+  baseline_days:
+    default: "60"
+    description: How many prior days to use as each member's own activity baseline.
+  drop_threshold_pct:
+    default: "70"
+    description: Percentage drop in engagement, relative to a member's baseline, that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes access to whatever community platform the space uses (Slack,
+  Discourse, Circle, a custom member app) via its API or export; the exact
+  data pull varies enough by platform that this is agent-prompt rather than
+  a single portable script. Distinct from membership-plan-downgrade-risk-check.yaml,
+  which looks at physical desk usage against plan entitlement — this looks
+  at social/community participation, a separate and earlier churn signal.
+  Judgment-based and informational: a quiet member isn't necessarily an
+  unhappy one, so treat flags as a prompt for a friendly outreach, not a
+  retention alarm.

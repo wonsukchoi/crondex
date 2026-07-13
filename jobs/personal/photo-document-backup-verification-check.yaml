@@ -1,0 +1,43 @@
+id: photo-document-backup-verification-check
+version: 1
+name: Personal Photo & Document Backup Verification Check
+description: >
+  Compares file counts between your personal photos/documents folder and
+  its backup destination (external drive or synced cloud folder) and flags
+  a gap that suggests the backup stalled. Use this if you assume your
+  backup "just runs" and have never actually checked that it's keeping up.
+category: personal
+tags: [backup, photos, documents, personal, files]
+schedule: "0 9 * * 0"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  src="{{source_dir}}"; dst="{{backup_dir}}";
+  [ -d "$src" ] || { echo "ERROR: source dir $src not found"; exit 1; };
+  [ -d "$dst" ] || { echo "WARNING: backup destination $dst not found — backup may not be mounted or connected"; exit 1; };
+  src_count=$(find "$src" -type f | wc -l | tr -d ' ');
+  dst_count=$(find "$dst" -type f | wc -l | tr -d ' ');
+  diff=$(( src_count - dst_count ));
+  if [ "$diff" -gt "{{count_diff_threshold}}" ]; then
+    echo "WARNING: backup at $dst has $dst_count file(s) vs $src_count in $src ($diff missing) — backup looks stale or incomplete.";
+  else
+    echo "OK: backup at $dst has $dst_count file(s) vs $src_count in $src.";
+  fi
+variables:
+  source_dir:
+    default: "$HOME/Pictures"
+    description: Path to the personal photos/documents folder being backed up.
+  backup_dir:
+    default: "$HOME/Backups/Pictures"
+    description: Path to the backup destination (external drive mount point or synced cloud folder).
+  count_diff_threshold:
+    default: "5"
+    description: How many more files the source can have than the backup before flagging a gap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A file-count comparison, not a content/checksum verification — a gap
+  means "investigate," not necessarily "backup is broken." Distinct from
+  devops/backup-reminder.yaml (checks a single file's mtime, infra context)
+  and photography/photo-backup-verification-check.yaml (professional shoot
+  second-copy tracking); this is a personal folder-vs-folder file-count
+  check for family photos and documents.

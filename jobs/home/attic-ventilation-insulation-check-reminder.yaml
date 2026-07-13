@@ -1,0 +1,31 @@
+id: attic-ventilation-insulation-check-reminder
+version: 1
+name: Attic Ventilation & Insulation Check Reminder
+description: >
+  Reminds you to check the attic for adequate insulation depth, signs of
+  moisture/mold, and blocked soffit or ridge vents based on how long it's
+  been since the last check. Use this if you've ever gotten an unusually
+  high heating bill or ice dams on the roof and traced it back to attic
+  insulation that had settled or vents that were blocked with debris.
+category: home
+tags: [home, attic, insulation, maintenance, energy]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_checked_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: attic last checked $days_since day(s) ago (every ${interval} months) — check insulation depth, look for moisture/mold, and confirm soffit/ridge vents aren't blocked.";
+  else echo "OK: checked $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last checked the attic — update this yourself.
+  interval_months:
+    default: 12
+    description: How often to check the attic, in months. Shorten if you've had ice dams, roof leaks, or pest activity before.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_checked_date yourself each time you actually check. Wear a mask/respirator if disturbing old insulation, and watch your footing — only walk on joists, not the ceiling drywall between them.

@@ -1,0 +1,36 @@
+id: annual-credit-report-check-reminder
+version: 1
+name: Annual Credit Report Check Reminder
+description: >
+  Reminds you when it's been about a year since you last pulled and
+  reviewed your free credit report(s) for errors or unfamiliar accounts.
+  Use this if you've never actually looked at your credit report because
+  nothing prompts you to and it doesn't feel urgent until something's
+  already wrong.
+category: personal
+tags: [credit, finance, identity, reminder, personal]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last=$(date -d "{{last_pulled_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_pulled_date}}" +%s);
+  now=$(date +%s);
+  days_since=$(( (now - last) / 86400 ));
+  if [ "$days_since" -ge "{{reminder_threshold_days}}" ]; then
+    echo "It has been $days_since days since you last pulled your free credit report(s) ({{last_pulled_date}}) — time to check them again for errors or unfamiliar accounts.";
+  fi
+variables:
+  last_pulled_date:
+    default: "2025-07-01"
+    description: Date you last pulled and reviewed your credit report(s) (YYYY-MM-DD).
+  reminder_threshold_days:
+    default: "365"
+    description: Days since the last pull that should trigger a reminder to check again.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from finance/credit-utilization-watch.yaml, which tracks an
+  ongoing utilization ratio — this is a periodic nudge to actually pull and
+  read your free credit report(s) (e.g. via annualcreditreport.com in the
+  US) for errors or fraud, since checking your own report doesn't affect
+  your score. Contains no financial advice; assumes last_pulled_date is
+  updated manually after each check.

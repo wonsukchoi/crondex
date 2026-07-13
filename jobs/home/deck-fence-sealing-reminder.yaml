@@ -1,0 +1,33 @@
+id: deck-fence-sealing-reminder
+version: 1
+name: Deck & Fence Sealing/Staining Reminder
+description: >
+  Reminds you to reseal or restain your wood deck or fence based on how
+  long it's been since the last treatment. Use this if you've ever noticed
+  wood graying, splintering, or soaking up water because the sealant wore
+  off a season or two before anyone got around to redoing it.
+category: home
+tags: [home, exterior, deck, maintenance, seasonal]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_sealed_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: {{structure_name}} last sealed/stained $days_since day(s) ago (every ${interval} months) — do the water-bead test and reseal if water soaks in instead of beading.";
+  else echo "OK: {{structure_name}} sealed $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  structure_name:
+    default: "deck"
+    description: Which structure this tracks, e.g. "deck" or "fence" — one job per structure.
+  last_sealed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last sealed/stained it — update this yourself.
+  interval_months:
+    default: 18
+    description: How often to reseal, in months. High sun/rain exposure or composite-vs-wood material shifts this.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_sealed_date yourself each time you actually reseal. Distinct from exterior-caulk-paint-inspection-reminder, which covers the house siding/trim rather than standalone wood structures.

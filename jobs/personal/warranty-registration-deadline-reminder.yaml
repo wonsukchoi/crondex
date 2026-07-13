@@ -1,0 +1,39 @@
+id: warranty-registration-deadline-reminder
+version: 1
+name: Warranty Registration Deadline Reminder
+description: >
+  Checks recent big purchases against their manufacturer warranty
+  registration window and warns you before that window closes. Use this
+  if you've ever bought something expensive, meant to register it for the
+  warranty, and only remembered after the registration deadline passed.
+category: personal
+tags: [warranty, purchases, registration, reminder, personal]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" 'NR>1 {
+    cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s";
+    cmd | getline purch_ts; close(cmd);
+    age_days = int((today - purch_ts) / 86400);
+    remaining = $3 - age_days;
+    if (remaining >= 0 && remaining <= warn) print $1": register within " remaining " day(s) to activate warranty (purchased " $2 ")";
+  }' "{{purchases_csv_path}}"
+variables:
+  purchases_csv_path:
+    default: "~/personal/big_purchases.csv"
+    description: >
+      Path to a CSV with columns: item_name, purchase_date (YYYY-MM-DD),
+      registration_window_days. One row per big purchase that requires
+      manufacturer warranty registration.
+  warn_days:
+    default: "7"
+    description: Days remaining in the registration window that should trigger a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from home/warranty-expiry-reminder.yaml, which tracks the
+  multi-year expiry of warranties that are already registered — this
+  catches the narrow up-front window (often 30-90 days from purchase) many
+  manufacturers require to register a product before the warranty is valid
+  at all. Assumes a manually maintained CSV updated at time of purchase.

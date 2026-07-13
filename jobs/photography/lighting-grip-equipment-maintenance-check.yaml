@@ -1,0 +1,43 @@
+id: lighting-grip-equipment-maintenance-check
+version: 1
+name: Studio Lighting & Grip Equipment Maintenance Check
+description: >
+  Checks strobes, modifiers, stands, and other lighting/grip gear against
+  their scheduled maintenance or inspection interval and flags anything
+  due. Use this if a strobe has ever misfired mid-shoot or a C-stand's
+  grip head has ever slipped because routine maintenance quietly slipped
+  past its due date and nobody was tracking anything but the cameras.
+category: photography
+tags: [photography, lighting, grip, equipment, maintenance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      item=$1; itype=$2; last_service=$3; interval_days=$4;
+      cmd = "date -d \"" last_service "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_service "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + (interval_days+0) * 86400;
+      days_until_due = (due_epoch - today) / 86400;
+      if (days_until_due <= window) {
+        printf "MAINTENANCE DUE: %s (%s) — last serviced %s, due in %d day(s)\n", item, itype, last_service, days_until_due;
+      }
+    }
+  ' "{{lighting_gear_csv_path}}"
+variables:
+  lighting_gear_csv_path:
+    default: "./lighting-grip-equipment.csv"
+    description: "Path to a CSV with columns: item_name,item_type (strobe/modifier/stand/grip-head/battery-pack),last_service_date (YYYY-MM-DD),service_interval_days (manufacturer or in-house recommended interval)."
+  warning_days:
+    default: 7
+    description: How many days before an item's next service due date to flag it, so maintenance can be scheduled before it's actually overdue.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it only flags what's due for service based on the interval
+  you maintain, it doesn't perform the maintenance or reset the interval;
+  update last_service_date once an item is actually serviced. Distinct
+  from rental-gear-return-reminder, which tracks return deadlines for
+  rented gear, not maintenance on gear you own.

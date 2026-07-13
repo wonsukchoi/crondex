@@ -1,0 +1,34 @@
+id: ups-battery-backup-test-reminder
+version: 1
+name: Home Network/Office UPS Battery Test Reminder
+description: >
+  Reminds you to run a self-test on your home network or home-office
+  battery backup (UPS) and check its runtime based on how long it's been
+  since the last test. Use this if you've ever had a power blip take down
+  your router and NAS at the same time because the UPS battery had quietly
+  degraded and no one noticed until the outage that actually needed it.
+category: home
+tags: [home, office, network, maintenance, battery]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: {{ups_location}} UPS last tested $days_since day(s) ago (every ${interval} months) — run the unit's self-test/battery-test and confirm it still holds the expected runtime under load.";
+  else echo "OK: {{ups_location}} UPS tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  ups_location:
+    default: "home office"
+    description: Which UPS this tracks, e.g. "home office" or "network rack" — one job per unit.
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last ran a self-test/battery check on the UPS — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test, in months. UPS batteries typically need replacement every 3-5 years regardless of testing.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_tested_date yourself each time you test. Most UPS units have a manufacturer-specific self-test button or software utility — check your model's manual for the exact procedure.

@@ -1,0 +1,41 @@
+id: leftover-meal-expiry-watch
+version: 1
+name: Leftover Meal Expiry Watch
+description: >
+  Checks a tracked list of prepared leftovers against their use-by window
+  and flags anything about to expire or already past it. Use this if
+  leftovers regularly go bad in the back of your fridge because nothing
+  reminds you they're in there.
+category: personal
+tags: [meals, food-waste, leftovers, household, personal]
+schedule: "0 17 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_left}}" 'NR>1 {
+    cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s";
+    cmd | getline prep_ts; close(cmd);
+    age_days = int((today - prep_ts) / 86400);
+    remaining = $3 - age_days;
+    if (remaining <= warn) {
+      if (remaining < 0) print $1": EXPIRED, " (-remaining) " day(s) past use-by (made " $2 ")";
+      else print $1": use within " remaining " day(s) (made " $2 ")";
+    }
+  }' "{{leftovers_csv_path}}"
+variables:
+  leftovers_csv_path:
+    default: "~/personal/leftovers.csv"
+    description: >
+      Path to a CSV with columns: item_name, prepared_date (YYYY-MM-DD),
+      shelf_life_days. One row per leftover/prepped item in the fridge or
+      freezer.
+  warn_days_left:
+    default: "1"
+    description: Days of remaining shelf life (or less) that should trigger a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from meal-plan-reminder.yaml (forward weekly planning) and
+  grocery-staples-restock-reminder.yaml (pantry staple restocking) — this
+  tracks already-cooked food nearing spoilage. Add a row when you cook or
+  freeze something, and delete the row once it's eaten or tossed.

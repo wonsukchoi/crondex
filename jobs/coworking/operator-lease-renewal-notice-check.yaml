@@ -1,0 +1,36 @@
+id: operator-lease-renewal-notice-check
+version: 1
+name: Operator Lease Renewal Notice Check
+description: >
+  Checks the coworking space's own master lease with its landlord against
+  the required renewal-notice deadline, and flags it once that deadline is
+  approaching without a notice sent on file. Use this if you've ever seen a
+  business lose favorable renewal terms, or a lease auto-convert to
+  month-to-month at a worse rate, because nobody sent the landlord notice
+  in time.
+category: coworking
+tags: [coworking, lease, landlord, renewal, facilities]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select lease_id, location_name, lease_end_date, renewal_notice_days from operator_leases where notice_sent_at is null and (lease_end_date - (renewal_notice_days || ' days')::interval) <= current_date + interval '{{warning_lead_days}} days' order by lease_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or facilities record that tracks the operator's own real-estate leases.
+  warning_lead_days:
+    default: "30"
+    description: How many days before the renewal-notice deadline itself falls due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `operator_leases` table with `lease_id`, `location_name`,
+  `lease_end_date`, `renewal_notice_days` (the landlord's required notice
+  window, e.g. 90), and `notice_sent_at` (nullable) columns — for a space
+  with only one or a handful of locations this may just be a few
+  hand-maintained rows rather than a live system. This is about the
+  operator's own facility lease, not any tenant/member agreement — distinct
+  from self-storage's tenant-lease-agreement-renewal-reminder.yaml, which
+  tracks the storage facility's customers' unit leases. Read-only; it does
+  not send the renewal notice itself, it only flags when it's time for
+  someone (ownership, a broker, legal) to send it.

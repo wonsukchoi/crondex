@@ -1,0 +1,60 @@
+id: proof-selection-reminder
+version: 1
+name: Client Proof-Selection Reminder
+description: >
+  Flags clients who received their proofing gallery but haven't finished
+  picking their final images within the target window, and drafts a
+  reminder nudging them to select. Use this if a shoot has ever stalled
+  for weeks because the client never got around to choosing favorites,
+  holding up editing, album design, and final delivery behind them.
+category: photography
+tags: [photography, proofing, galleries, client-communication, follow-up]
+schedule: "0 10 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{selection_window_days}}" -v required="{{required_selection_count}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; sent=$4; selected=$5;
+      if (selected+0 >= required+0) { next; }
+      cmd = "date -d \"" sent "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" sent "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since > window) {
+        printf "SELECTION INCOMPLETE: %s (%s) — proofing gallery sent %s (%.0f days ago), %d of %d images selected\n", id, name, sent, days_since, selected, required;
+      }
+    }
+  ' "{{proof_selections_csv_path}}"
+prompt: >
+  Read the proofing gallery log at {{proof_selections_csv_path}} (columns:
+  gallery_id, client_name, contact_info, gallery_sent_date,
+  images_selected_count — an integer). Identify every gallery where fewer
+  than {{required_selection_count}} images have been selected and
+  gallery_sent_date is more than {{selection_window_days}} days ago. For
+  each one, draft a friendly reminder message explaining that final image
+  selection is still needed before editing or album design can start, and
+  offering to help narrow down favorites if the client feels stuck. Group
+  the drafts by days waiting, most overdue first — do not send anything.
+script_note: >
+  The command gives you a zero-token list of galleries with incomplete
+  selections past the window; only the prompt drafts the personalized
+  nudge messages.
+variables:
+  proof_selections_csv_path:
+    default: "./proof-selections.csv"
+    description: "Path to a CSV with columns: gallery_id,client_name,contact_info,gallery_sent_date (YYYY-MM-DD),images_selected_count."
+  selection_window_days:
+    default: 14
+    description: How many days after the proofing gallery is sent before an incomplete selection is flagged for a reminder.
+  required_selection_count:
+    default: 1
+    description: Minimum number of images a client must have selected for the gallery to be considered no longer awaiting a decision (set to the package's included count).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only and draft-only — it doesn't touch the gallery platform or send
+  anything; review and personalize before sending through your usual
+  email/SMS tool. Distinct from client-gallery-expiry-reminder, which
+  warns about the gallery link itself going dark, not whether the client
+  has actually finished choosing images.

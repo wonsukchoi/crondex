@@ -1,0 +1,41 @@
+id: copyright-watermark-metadata-check
+version: 1
+name: Copyright Metadata & Watermark Embed Check
+description: >
+  Checks images queued for web or social publishing for embedded copyright
+  and photographer-credit metadata (and a watermark flag, if your workflow
+  uses one) before they go out. Use this if an image has ever been
+  reposted or scraped from your social feed with zero way to trace it back
+  to you because the copyright metadata field was left blank on export.
+category: photography
+tags: [photography, copyright, metadata, watermark, publishing]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v require_wm="{{require_watermark}}" '
+    NR==1 {next}
+    {
+      file=$1; copyright=$2; credit=$3; watermarked=$4;
+      missing="";
+      if (copyright == "") missing = missing "copyright-field,";
+      if (credit == "") missing = missing "credit-field,";
+      if (require_wm == "yes" && tolower(watermarked) != "yes") missing = missing "watermark,";
+      if (missing != "") {
+        printf "MISSING BEFORE PUBLISH: %s — missing: %s\n", file, missing;
+      }
+    }
+  ' "{{publish_queue_csv_path}}"
+variables:
+  publish_queue_csv_path:
+    default: "./publish-queue.csv"
+    description: "Path to a CSV with columns: file_name,copyright_metadata (e.g. IPTC copyright field value, blank if unset),credit_line (blank if unset),watermarked (yes/no)."
+  require_watermark:
+    default: "no"
+    description: Set to "yes" if your studio's workflow requires a visible or embedded watermark before publishing to social/web, in addition to copyright/credit metadata.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it checks the metadata export you log to the CSV, it doesn't
+  embed metadata or apply a watermark to the files itself; run your usual
+  export/watermarking tool first, then log the result here before
+  publishing.

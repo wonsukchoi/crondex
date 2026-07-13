@@ -1,0 +1,34 @@
+id: member-referral-credit-tracking-check
+version: 1
+name: Member Referral Credit Tracking Check
+description: >
+  Checks earned member-referral credits that haven't been applied to the
+  referring member's account yet, and flags any sitting unapplied past a
+  set number of days. Use this if a member has ever referred a friend who
+  joined, earned a credit for it, and then never actually saw that credit
+  show up on a bill because nobody applied it.
+category: coworking
+tags: [coworking, referral, credits, billing, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select referral_id, referring_member_id, referring_member_name, referred_name, credit_amount, earned_at from referral_credits where status = 'earned' and applied_at is null and earned_at <= now() - interval '{{stale_after_days}} days' order by earned_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/billing database.
+  stale_after_days:
+    default: "14"
+    description: Number of days an earned referral credit can sit unapplied before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `referral_credits` table with `referral_id`,
+  `referring_member_id`, `referring_member_name`, `referred_name`,
+  `credit_amount`, `status`, `earned_at`, and `applied_at` (nullable)
+  columns — adjust the query to your referral-program schema. Distinct
+  from fitness's referral-followup-reminder, which is about following up
+  with the referred lead, not tracking credit issuance to the referring
+  member. Read-only and informational; it does not apply the credit or
+  adjust any invoice itself, it only surfaces which members are still owed
+  one.

@@ -1,0 +1,42 @@
+id: home-insurance-coverage-value-gap-check
+version: 1
+name: Home Insurance Coverage vs. Home Value Gap Check
+description: >
+  Compares your homeowners policy's dwelling coverage amount against your
+  home's current estimated rebuild/replacement value and flags a gap. Use
+  this if you've ever finished a renovation or addition and kept paying
+  the same premium without ever checking whether the coverage limit still
+  matches what it would actually cost to rebuild the house today.
+category: home
+tags: [home, insurance, renovation, coverage]
+schedule: "0 9 1 1,7 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  My homeowners insurance policy currently has a dwelling coverage limit of
+  {{dwelling_coverage_amount}} {{currency}}. Since I last reviewed this
+  policy, notable changes to the home include: {{renovation_notes}}. Using
+  general knowledge of home rebuild-cost trends and the renovation notes
+  given, assess whether the current dwelling coverage limit looks
+  reasonably close to what it would cost to rebuild the home today, or
+  whether it looks like it's fallen behind (common causes: an addition,
+  major remodel, rising local construction costs, or a coverage limit that
+  hasn't been touched in years). Don't try to produce an exact appraisal —
+  flag directionally whether this looks worth a call to the insurance agent
+  for a real replacement-cost estimate, and explain why in plain language.
+variables:
+  dwelling_coverage_amount:
+    default: "300000"
+    description: Current dwelling coverage limit on the policy declarations page.
+  currency:
+    default: "USD"
+    description: Currency of the coverage amount.
+  renovation_notes:
+    default: "no major changes since the policy was last reviewed"
+    description: Free-text notes on renovations, additions, or upgrades made since the last coverage review — update this whenever you finish a project.
+compatible_agents: [claude, codex, generic]
+notes: >
+  This is a directional sanity check, not a substitute for a professional
+  replacement-cost estimate from your insurer or an appraiser. Distinct
+  from home-insurance-renewal-reminder (which just tracks the renewal
+  date) — this checks whether the coverage amount itself is still right.

@@ -1,0 +1,34 @@
+id: router-firmware-update-reminder
+version: 1
+name: Home Router/Wi-Fi Firmware Update Reminder
+description: >
+  Checks whether your home router or Wi-Fi access point has a newer firmware
+  version available than the one you last recorded, and reminds you to
+  update it. Use this if you've ever realized your router had been running
+  three-year-old firmware with known vulnerabilities because it never
+  prompted you to update.
+category: home
+tags: [home, security, network, router, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Check whether a newer firmware version is available for this home router
+  or Wi-Fi access point: model "{{router_model}}", currently on firmware
+  version "{{current_firmware_version}}". Look up the manufacturer's support
+  page or release notes (web search if needed) for the latest published
+  firmware for this exact model. If a newer version exists, report the
+  latest version number, the release date, and whether the release notes
+  mention a security fix (call that out prominently). Give plain-language
+  update steps for this model (usually the router's admin web UI or its
+  companion app). If you can't find the model or can't determine the
+  current published version, say so rather than guessing.
+variables:
+  router_model:
+    default: "your router model"
+    description: Router/access point make and model, e.g. "Netgear Nighthawk RAX50".
+  current_firmware_version:
+    default: "unknown"
+    description: Firmware version currently installed, as shown in the router's admin page — update this after each firmware update you apply.
+compatible_agents: [claude, codex, generic]
+notes: Read-only lookup; applying the update is a manual step you do in the router's admin UI. No generic API covers every router vendor's firmware feed, so this is agent-prompt rather than a fixed script.

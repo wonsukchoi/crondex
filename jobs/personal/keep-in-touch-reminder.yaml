@@ -1,0 +1,45 @@
+id: keep-in-touch-reminder
+version: 1
+name: Keep-in-Touch Reminder
+description: >
+  Checks a tracked list of friends and family against how often you mean to
+  stay in touch with each of them, and drafts a short check-in message for
+  anyone overdue. Use this if you've ever realized months had passed since
+  you last talked to someone you actually care about.
+category: personal
+tags: [relationships, contacts, reminder, personal]
+schedule: "0 9 * * 6"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" 'NR>1 {
+    cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $2 "\" +%s";
+    cmd | getline last_ts; close(cmd);
+    days_since = int((today - last_ts) / 86400);
+    if (days_since >= $3) print $1": " days_since " day(s) since last contact (target: every " $3 " day(s))";
+  }' "{{contacts_csv_path}}"
+script_note: >
+  `command` lists who's overdue for contact for free, zero tokens. `prompt`
+  additionally drafts an actual short, non-generic check-in message for
+  each overdue person, which needs judgment about tone the raw list can't
+  provide.
+prompt: |
+  Read {{contacts_csv_path}} (columns: name, last_contacted_date,
+  target_interval_days). For each person overdue for contact (days since
+  last_contacted_date is at or past target_interval_days), draft a short,
+  warm, low-pressure check-in message (2-3 sentences) appropriate for a
+  friend or family member you haven't talked to in a while — avoid
+  anything that reads as generic or mass-sent. List each overdue person
+  with their draft message.
+variables:
+  contacts_csv_path:
+    default: "~/personal/keep_in_touch.csv"
+    description: >
+      Path to a CSV with columns: name, last_contacted_date (YYYY-MM-DD),
+      target_interval_days. One row per person you want to stay in touch
+      with.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — never sends a message itself. Update last_contacted_date in
+  the CSV yourself after you actually reach out.

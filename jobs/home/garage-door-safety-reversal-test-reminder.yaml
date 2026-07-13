@@ -1,0 +1,31 @@
+id: garage-door-safety-reversal-test-reminder
+version: 1
+name: Garage Door Safety Reversal Test Reminder
+description: >
+  Reminds you to test your garage door opener's auto-reverse safety
+  feature (photo-eye sensors and the force-reversal test) based on how
+  long it's been since the last check. Use this if you've ever assumed the
+  auto-reverse still worked simply because the door had never actually hit
+  anything.
+category: home
+tags: [home, garage, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: garage door safety reversal last tested $days_since day(s) ago (every ${interval} months) — place a roll of paper towels under the door and confirm it reverses on contact, and check the photo-eye sensors aren't misaligned.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last tested the auto-reverse safety feature — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test, in months. Manufacturers generally recommend monthly; adjust down if you have small children or pets.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_tested_date yourself each time you actually test. A failed reversal test is a safety hazard — stop using the opener and call a technician rather than waiting for the next reminder.

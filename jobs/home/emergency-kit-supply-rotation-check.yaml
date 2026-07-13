@@ -1,0 +1,32 @@
+id: emergency-kit-supply-rotation-check
+version: 1
+name: Emergency Kit Supply Rotation Check
+description: >
+  Reads a log of your emergency/disaster kit items and flags any item past
+  its expiration or rotation date (water, food, medication, batteries).
+  Use this if you've ever grabbed the go-bag during a real emergency and
+  found the water bottles from three moves ago.
+category: home
+tags: [home, safety, emergency-preparedness, checklist]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "REMINDER: \"" $1 "\" in the emergency kit expires/needs rotation in " days_left " days (" $2 ")";
+    }
+  ' {{kit_items_csv}}
+variables:
+  kit_items_csv:
+    default: "emergency-kit-items.csv"
+    description: "CSV with header row, columns: item_name,expiry_or_rotation_date(YYYY-MM-DD). Include stored water, food, batteries, medications, etc."
+  warn_days:
+    default: 30
+    description: Days before an item's expiry/rotation date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Update emergency-kit-items.csv whenever you restock the kit, adding the new expiry date for each item. Zero-token; distinct from warranty-expiry-reminder, which tracks products, not consumable emergency supplies.

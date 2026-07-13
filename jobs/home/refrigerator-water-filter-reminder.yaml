@@ -1,0 +1,33 @@
+id: refrigerator-water-filter-reminder
+version: 1
+name: Refrigerator Water Filter Replacement Reminder
+description: >
+  Reminds you to replace your refrigerator's water/ice filter cartridge
+  based on how long it's been since the last change. Use this if your
+  water dispenser has ever tasted off or the flow slowed to a trickle
+  because the filter had quietly gone months past its rated life.
+category: home
+tags: [home, kitchen, appliances, maintenance, filter]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_changed_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: refrigerator water filter last changed $days_since day(s) ago (every ${interval} months) — replace the cartridge (model: {{filter_model}}).";
+  else echo "OK: filter changed $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  filter_model:
+    default: "check your fridge manual"
+    description: Replacement filter model/part number for your refrigerator, so you order the right one.
+  last_changed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last replaced the filter — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to replace the filter, in months (most manufacturers recommend 6 months; heavy use may need shorter).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_changed_date yourself each time you actually replace it. Distinct from hvac-filter-reminder, which tracks the furnace/AC air filter rather than the fridge's water filter.

@@ -1,0 +1,38 @@
+id: book-reading-progress-tracker
+version: 1
+name: Book Reading Progress Tracker
+description: >
+  Reports percent-complete for every book you're currently reading and
+  flags any with no logged progress update in a while. Use this if you
+  tend to have three books going at once and quietly stop touching one of
+  them for months.
+category: personal
+tags: [reading, books, habit-tracking, personal]
+schedule: "0 9 * * 6"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_threshold_days}}" 'NR>1 {
+    pct = ($3 > 0) ? int(($2 / $3) * 100) : 0;
+    cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $4 "\" +%s";
+    cmd | getline upd_ts; close(cmd);
+    days_since = int((today - upd_ts) / 86400);
+    flag = (days_since >= stale) ? " — STALLED, no update in " days_since " day(s)" : "";
+    print $1": " pct "% (" $2 "/" $3 " pages)" flag;
+  }' "{{books_in_progress_csv_path}}"
+variables:
+  books_in_progress_csv_path:
+    default: "~/personal/books_in_progress.csv"
+    description: >
+      Path to a CSV with columns: title, current_page, total_pages,
+      last_updated_date (YYYY-MM-DD). One row per book currently being read.
+  stale_threshold_days:
+    default: "14"
+    description: Days without a progress update that should flag a book as stalled.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from learning/reading-list-nudge.yaml, which surfaces the next
+  unread item from a "read later" queue — this tracks percent progress and
+  staleness across books already in progress. Update current_page and
+  last_updated_date yourself as you read.

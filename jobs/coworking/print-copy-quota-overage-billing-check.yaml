@@ -1,0 +1,33 @@
+id: print-copy-quota-overage-billing-check
+version: 1
+name: Print/Copy Quota Overage Billing Check
+description: >
+  Checks each member's print and copy usage for the current billing period
+  against the page quota included in their plan, and flags anyone over
+  quota who hasn't been billed for the overage yet. Use this if members
+  have ever printed thousands of pages over their included allowance
+  without anyone actually invoicing them for it.
+category: coworking
+tags: [coworking, printing, billing, quota, overage]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, billing_period_end, pages_printed, included_pages, (pages_printed - included_pages) as overage_pages, round((pages_printed - included_pages) * {{overage_rate_cents}} / 100.0, 2) as overage_amount_due from member_print_usage where pages_printed > included_pages and billed_at is null and billing_period_end <= current_date order by overage_pages desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that tracks print/copy station usage per member.
+  overage_rate_cents:
+    default: "10"
+    description: Price, in cents per page, charged for pages printed beyond the included quota.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_print_usage` table with `member_id`, `member_name`,
+  `billing_period_end`, `pages_printed`, `included_pages`, and `billed_at`
+  (nullable) columns, populated by whatever print-management software feeds
+  your print stations (e.g. PaperCut, PrinterLogic) — adjust the query to
+  your schema. This is distinct from printer-supply-level-check.yaml, which
+  watches toner/paper stock on the hardware, not member usage against a
+  billing quota. Read-only and informational: it does not generate or send
+  an invoice itself, it only surfaces who owes an overage charge.

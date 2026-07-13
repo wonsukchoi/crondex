@@ -1,0 +1,35 @@
+id: new-member-onboarding-task-completion-check
+version: 1
+name: New Member Onboarding Task Completion Check
+description: >
+  Checks recently joined members against the standard onboarding
+  checklist — welcome packet sent, orientation tour given, key fob issued,
+  billing details confirmed — and flags anyone still missing a step past a
+  grace period. Use this if a new member has ever shown up for their
+  second week without a working fob or without ever getting the tour,
+  because nobody was tracking whether onboarding actually finished.
+category: coworking
+tags: [coworking, onboarding, members, checklist, community]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, task_name, joined_at from member_onboarding_tasks where completed_at is null and joined_at <= now() - interval '{{grace_period_days}} days' order by joined_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/onboarding database.
+  grace_period_days:
+    default: "3"
+    description: Number of days a new member's onboarding tasks get to be completed before a still-open task is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_onboarding_tasks` table with `member_id`,
+  `member_name`, `task_name`, `joined_at`, and `completed_at` (nullable)
+  columns, one row per required onboarding step per member — adjust the
+  query to your schema. Distinct from
+  community-manager-checklist-completion-check.yaml, which tracks daily
+  staff opening/closing routines rather than a one-time new-member
+  checklist. Read-only and informational; it does not complete any task or
+  message the member itself, it only surfaces which new members still have
+  an open onboarding gap.

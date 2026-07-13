@@ -1,0 +1,40 @@
+id: meeting-room-credit-expiration-check
+version: 1
+name: Meeting Room Credit Expiration Check
+description: >
+  Checks the monthly meeting-room hours included in each member's plan
+  against how many they've actually used, and flags members sitting on a
+  large pool of unused credit hours as the billing cycle's end approaches.
+  Use this if members have ever paid for a plan that includes room hours,
+  barely used any, and let them evaporate every month without a reminder
+  to book.
+category: coworking
+tags: [coworking, meeting-room, credits, membership, utilization]
+schedule: "0 9 25-31 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, plan_name, credit_hours_included, credit_hours_used, billing_cycle_end from member_room_credits where billing_cycle_end <= current_date + interval '{{lookahead_days}} days' and credit_hours_used <= (credit_hours_included * {{unused_threshold_pct}} / 100.0) order by (credit_hours_included - credit_hours_used) desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/billing database.
+  lookahead_days:
+    default: "5"
+    description: How many days before the billing cycle ends to start flagging unused credit hours.
+  unused_threshold_pct:
+    default: "25"
+    description: Percentage of included room-hour credits used, at or below which a member is flagged as sitting on unused credit.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_room_credits` table with `member_id`, `member_name`,
+  `plan_name`, `credit_hours_included`, `credit_hours_used`, and
+  `billing_cycle_end` columns — adjust the query to your membership
+  schema, and adjust the cron day-of-month range if your billing cycles
+  don't run calendar-month to calendar-month. Distinct from
+  lease-expansion-opportunity-check.yaml (members using more than their
+  plan allows) and meeting-room-double-booking-check.yaml (scheduling
+  conflicts): this flags the opposite problem, banked value about to be
+  lost. Read-only and informational; it does not send a reminder or extend
+  any credit itself, it only surfaces who's worth nudging to book before
+  the cycle resets.

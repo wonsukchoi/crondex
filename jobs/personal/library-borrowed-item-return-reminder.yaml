@@ -1,0 +1,35 @@
+id: library-borrowed-item-return-reminder
+version: 1
+name: Library & Borrowed Item Return Reminder
+description: >
+  Checks a tracked list of library books and items borrowed from friends
+  or family and warns you before any of them are due back. Use this if
+  you've ever racked up late fees, or worse lost track of who you
+  borrowed something from entirely.
+category: personal
+tags: [library, borrowed, books, reminder, personal]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{lead_time_days}}" 'NR>1 {
+    cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $3 "\" +%s";
+    cmd | getline due_ts; close(cmd);
+    days_left = int((due_ts - today) / 86400);
+    if (days_left <= warn) print "DUE SOON: \"" $1 "\" (from " $2 ") due in " days_left " day(s) (" $3 ")";
+  }' "{{borrowed_items_csv_path}}"
+variables:
+  borrowed_items_csv_path:
+    default: "~/personal/borrowed_items.csv"
+    description: >
+      Path to a CSV with columns: item_name, source, due_date (YYYY-MM-DD).
+      source is the library or the person you borrowed it from.
+  lead_time_days:
+    default: "3"
+    description: How many days before the due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained CSV of borrowed items; no connection to any
+  library catalog system. Read-only reminder — remove a row yourself once
+  the item is returned.

@@ -1,0 +1,35 @@
+id: kitchen-equipment-service-contract-check
+version: 1
+name: Kitchen Equipment Service Contract Check
+description: >
+  Checks maintenance service contracts and scheduled service dates for
+  shared kitchen and pantry equipment — espresso machines, dishwashers,
+  ice makers, fridges — and flags anything with a service visit coming due
+  or a contract about to lapse. Use this if the espresso machine has ever
+  broken down for a week because nobody realized its service contract had
+  quietly expired.
+category: coworking
+tags: [coworking, kitchen, equipment, maintenance, facilities]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select equipment_id, equipment_name, contract_end_date, next_service_due_date from kitchen_equipment_service_contracts where contract_end_date <= now() + interval '{{lookahead_days}} days' or next_service_due_date <= now() + interval '{{lookahead_days}} days' order by least(contract_end_date, next_service_due_date) asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that tracks kitchen/pantry equipment and their service contracts.
+  lookahead_days:
+    default: "14"
+    description: How many days ahead to flag an upcoming service visit or contract expiration.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `kitchen_equipment_service_contracts` table with
+  `equipment_id`, `equipment_name`, `contract_end_date`, and
+  `next_service_due_date` columns — adjust the query to your facilities or
+  vendor-management schema. Distinct from coffee-snack-inventory-reorder-check.yaml
+  (consumable stock levels) and printer-supply-level-check.yaml (a different
+  equipment category entirely): this tracks the equipment's own maintenance
+  contracts. Read-only and informational; it does not schedule the service
+  visit or renew the contract itself, it only flags what facilities needs to
+  follow up on.

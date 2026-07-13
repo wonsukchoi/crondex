@@ -1,0 +1,40 @@
+id: portfolio-website-image-link-check
+version: 1
+name: Portfolio Website Broken Image/Link Check
+description: >
+  Requests every image and page URL listed for your portfolio website and
+  flags any that return an error or a non-image response instead of
+  loading. Use this if a portfolio gallery has ever quietly shown broken
+  image icons to a prospective client because a CDN path changed or a file
+  got deleted, and nobody noticed until a booking inquiry dried up.
+category: photography
+tags: [photography, portfolio, website, broken-link, images]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=, read -r label url; do
+    [ "$label" = "label" ] && continue;
+    [ -z "$url" ] && continue;
+    status=$(curl -s -o /dev/null -w "%{http_code}" -m "{{request_timeout_seconds}}" -L "$url");
+    ctype=$(curl -s -o /dev/null -w "%{content_type}" -m "{{request_timeout_seconds}}" -L "$url");
+    if [ "$status" -ge 400 ] 2>/dev/null || [ -z "$status" ]; then
+      printf "BROKEN: %s (%s) — HTTP %s\n" "$label" "$url" "$status";
+    elif echo "$url" | grep -qiE '\.(jpg|jpeg|png|webp|gif)$' && ! echo "$ctype" | grep -qi "^image/"; then
+      printf "UNEXPECTED CONTENT-TYPE: %s (%s) — expected image, got %s\n" "$label" "$url" "$ctype";
+    fi
+  done < "{{portfolio_urls_csv_path}}"
+variables:
+  portfolio_urls_csv_path:
+    default: "./portfolio-urls.csv"
+    description: "Path to a CSV with columns: label,url. One row per portfolio page or hero/gallery image URL to check."
+  request_timeout_seconds:
+    default: 15
+    description: Max seconds to wait for each URL before treating it as unreachable.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it only requests URLs and reports status, it never edits the
+  site. Requires `curl` on PATH. Distinct from a generic broken-link
+  checker: this one also validates that image URLs actually return image
+  content, not just a 200 status (a CDN can 200 with a placeholder/error
+  page for a missing asset).

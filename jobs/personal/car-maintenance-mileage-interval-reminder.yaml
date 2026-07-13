@@ -1,0 +1,42 @@
+id: car-maintenance-mileage-interval-reminder
+version: 1
+name: Car Maintenance Mileage Interval Reminder
+description: >
+  Tracks multiple maintenance items for your personal car (oil change,
+  tire rotation, etc.) by mileage interval and flags any due soon based on
+  your current odometer reading. Use this if your car's maintenance is
+  scheduled by miles driven, not by date, and a fixed monthly reminder
+  doesn't match how you actually drive.
+category: personal
+tags: [vehicle, car, maintenance, mileage, reminder, personal]
+schedule: "0 8 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  odo="{{current_odometer_miles}}";
+  awk -F',' -v odo="$odo" -v warn="{{warn_miles_before}}" 'NR>1 {
+    next_due = $2 + $3;
+    remaining = next_due - odo;
+    if (remaining <= warn) print $1": due at " next_due " mi (current " odo " mi, " remaining " mi remaining)";
+  }' "{{maintenance_schedule_csv_path}}"
+variables:
+  current_odometer_miles:
+    default: "50000"
+    description: Your car's current odometer reading, in miles — update this periodically.
+  warn_miles_before:
+    default: "300"
+    description: How many miles before a service's next-due mileage to start warning.
+  maintenance_schedule_csv_path:
+    default: "~/personal/car_maintenance_schedule.csv"
+    description: >
+      Path to a CSV with columns: service_name, last_service_mileage,
+      interval_miles. One row per maintenance item (oil change, tire
+      rotation, brake inspection, etc.).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Mileage-based, for a single personal vehicle. Distinct from
+  home/car-maintenance-due-reminder.yaml, which tracks one task by a fixed
+  calendar date, and from the fleet category, which tracks multiple
+  company-owned vehicles. Update current_odometer_miles yourself (no
+  connection to the car's onboard computer), and update
+  last_service_mileage in the CSV after each service.

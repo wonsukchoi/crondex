@@ -1,0 +1,43 @@
+id: drone-part-107-certification-renewal-check
+version: 1
+name: Drone / Aerial Photography FAA Part 107 Certification Renewal Check
+description: >
+  Checks each drone pilot's FAA Part 107 Remote Pilot Certificate against
+  its recurrency deadline and flags anyone whose certificate needs renewal
+  within your warning window. Use this if an aerial shoot has ever been
+  booked and only afterward did someone realize the pilot's Part 107
+  recurrency had already lapsed, putting the flight (and the shoot) at risk
+  of an FAA violation.
+category: photography
+tags: [photography, drone, aerial, faa, part-107, certification, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      pilot=$1; cert_number=$2; recurrency_due=$3;
+      cmd = "date -d \"" recurrency_due "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" recurrency_due "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "RECURRENCY DUE: %s — cert %s recurrency due %s (%d days away)\n", pilot, cert_number, recurrency_due, days_until;
+      }
+    }
+  ' "{{pilots_csv_path}}"
+variables:
+  pilots_csv_path:
+    default: "./drone-pilots.csv"
+    description: "Path to a CSV with columns: pilot_name,certificate_number,recurrency_due_date (YYYY-MM-DD — the Part 107 recurrent training/test deadline, every 24 calendar months)."
+  warning_days:
+    default: 45
+    description: How many days before a pilot's recurrency deadline to flag it, leaving time to complete the free online recurrent training before it lapses.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it only flags upcoming or lapsed recurrency deadlines from
+  the CSV you maintain, it doesn't file anything with the FAA or complete
+  training for you. Don't fly commercial drone shoots on a lapsed
+  certificate; also check local airspace/waiver requirements separately,
+  this job only tracks the pilot certificate itself.

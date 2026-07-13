@@ -1,0 +1,52 @@
+id: wedding-day-timeline-confirmation-reminder
+version: 1
+name: Wedding-Day Timeline Confirmation Reminder
+description: >
+  Flags upcoming weddings whose shot-list or hour-by-hour timeline hasn't
+  been locked and confirmed with the couple within your target window
+  before the wedding date. Use this if you've ever arrived at a wedding
+  with no confirmed first-look time or family-photo list and had to
+  improvise the whole schedule on the spot.
+category: photography
+tags: [photography, weddings, timeline, confirmation, client-communication]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{lock_deadline_days_before}}" '
+    NR==1 {next}
+    {
+      id=$1; couple=$2; wedding_date=$3; contact=$4; locked=$5;
+      if (tolower(locked) == "yes") { next; }
+      cmd = "date -d \"" wedding_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" wedding_date "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_until = (epoch - today) / 86400;
+      if (days_until <= window && days_until >= 0) {
+        printf "TIMELINE NOT LOCKED: %s (%s) — wedding is %s (%.0f days away), timeline still unconfirmed\n", id, couple, wedding_date, days_until;
+      }
+    }
+  ' "{{weddings_csv_path}}"
+prompt: >
+  Read the wedding schedule at {{weddings_csv_path}} (columns: wedding_id,
+  couple_names, wedding_date, contact_info, timeline_locked — "yes" or
+  "no"). Identify every wedding where timeline_locked is not "yes" and
+  wedding_date is within {{lock_deadline_days_before}} days from today. For
+  each one, draft a message to the couple asking to finalize the
+  hour-by-hour timeline: first look, ceremony, family formals, golden-hour
+  portraits, and reception key moments, so it can be locked before the
+  day. Order the drafts by soonest wedding date first — do not send
+  anything.
+script_note: >
+  The command gives you a zero-token list of unconfirmed timelines within
+  the deadline window; only the prompt drafts the outreach asking the
+  couple to finalize each timeline element.
+variables:
+  weddings_csv_path:
+    default: "./weddings.csv"
+    description: "Path to a CSV with columns: wedding_id,couple_names,wedding_date (YYYY-MM-DD),contact_info,timeline_locked (yes/no)."
+  lock_deadline_days_before:
+    default: 14
+    description: How many days before the wedding date a timeline should be locked and confirmed; weddings inside this window with no confirmed timeline are flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review before sending. Distinct from contract-signature-missing-check (paperwork) and photography-shoot-day-reminder-drafts (the day-before logistics reminder); this one targets locking the actual shot-by-shot schedule earlier in the planning window.

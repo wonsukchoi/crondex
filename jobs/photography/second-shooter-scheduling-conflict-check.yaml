@@ -1,0 +1,62 @@
+id: second-shooter-scheduling-conflict-check
+version: 1
+name: Second Shooter / Assistant Scheduling Conflict Check
+description: >
+  Scans upcoming shoot assignments for any second shooter, assistant, or
+  contractor booked onto two shoots that overlap, or booked back-to-back
+  with too little travel time between venues. Use this if a second shooter
+  has ever been double-booked across two weddings on the same date, or shown
+  up late to the second shoot because nobody checked the drive time between
+  venues.
+category: photography
+tags: [photography, second-shooter, scheduling, contractors, conflict]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer="{{min_travel_buffer_minutes}}" '
+    NR==1 {next}
+    {
+      person=$1; shoot_id=$2; date=$3; start=$4; end=$5;
+      key=person "|" date;
+      n=split(key, parts, "|");
+      starts[key, ++count[key]] = start;
+      ends[key, count[key]] = end;
+      ids[key, count[key]] = shoot_id;
+      people[key]=person; dates[key]=date;
+    }
+    END {
+      for (k in count) {
+        c = count[k];
+        for (i=1; i<=c; i++) {
+          for (j=i+1; j<=c; j++) {
+            split(starts[k,i], s1, ":"); split(ends[k,i], e1, ":");
+            split(starts[k,j], s2, ":"); split(ends[k,j], e2, ":");
+            m_s1 = s1[1]*60+s1[2]; m_e1 = e1[1]*60+e1[2];
+            m_s2 = s2[1]*60+s2[2]; m_e2 = e2[1]*60+e2[2];
+            if (m_s1 <= m_e2 && m_s2 <= m_e1) {
+              printf "DOUBLE-BOOKED: %s on %s — %s (%s-%s) overlaps %s (%s-%s)\n", people[k], dates[k], ids[k,i], starts[k,i], ends[k,i], ids[k,j], starts[k,j], ends[k,j];
+            } else {
+              gap = (m_s1 < m_s2) ? (m_s2 - m_e1) : (m_s1 - m_e2);
+              if (gap >= 0 && gap < buffer+0) {
+                printf "TIGHT TURNAROUND: %s on %s — only %d min between %s and %s\n", people[k], dates[k], gap, ids[k,i], ids[k,j];
+              }
+            }
+          }
+        }
+      }
+    }
+  ' "{{assignments_csv_path}}"
+variables:
+  assignments_csv_path:
+    default: "./second-shooter-assignments.csv"
+    description: "Path to a CSV with columns: person_name,shoot_id,shoot_date (YYYY-MM-DD),start_time (HH:MM, 24h),end_time (HH:MM, 24h). One row per person per shoot assignment."
+  min_travel_buffer_minutes:
+    default: 60
+    description: Minimum minutes required between two assignments for the same person on the same day before it's flagged as a tight turnaround.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it only flags overlaps and tight turnarounds between two
+  shoots on the same calendar day for the same person; it doesn't account
+  for actual travel distance between venues, so treat "tight turnaround"
+  flags as a prompt to check real drive time, not a precise ETA.

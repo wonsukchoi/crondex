@@ -1,0 +1,46 @@
+id: editing-style-guide-consistency-spot-check
+version: 1
+name: Color-Grading / Editing Style-Guide Consistency Spot-Check
+description: >
+  Reviews a sample of recently delivered edits against your studio's
+  documented color-grading and editing style guide and flags gallery
+  batches that look like they drifted from the house look. Use this if
+  you've ever brought on a second editor and later noticed a client's
+  gallery looked noticeably warmer, flatter, or more saturated than your
+  usual style, with nobody catching the drift before delivery.
+category: photography
+tags: [photography, editing, color-grading, style-guide, quality-control]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the studio's editing style guide at {{style_guide_path}} (documents
+  the target look: white balance approach, contrast/saturation range,
+  skin-tone handling, and any signature preset or LUT). Read the recently
+  delivered batches log at {{delivered_batches_csv_path}} (columns:
+  batch_id, client_name, editor_name, delivery_date, sample_image_urls —
+  semicolon-separated links to a handful of sample images from the
+  batch). For batches delivered in the last {{lookback_days}} days,
+  examine the sample images against the style guide and flag any batch
+  that looks inconsistent (off white balance, wrong contrast/saturation
+  range, skin tones that don't match the documented approach, or a
+  clearly different preset). For each flagged batch, name the specific
+  deviation and which editor delivered it, so it can be raised with them
+  before the client notices or the next batch repeats the drift.
+variables:
+  style_guide_path:
+    default: "./editing-style-guide.md"
+    description: Path to the studio's written editing/color-grading style guide.
+  delivered_batches_csv_path:
+    default: "./delivered-batches.csv"
+    description: "Path to a CSV with columns: batch_id,client_name,editor_name,delivery_date (YYYY-MM-DD),sample_image_urls (semicolon-separated URLs to a few representative edited images from the batch)."
+  lookback_days:
+    default: 7
+    description: How many days back to sample delivered batches for the consistency check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Judgment call, not a pixel-diff tool — it's a spot-check against a small
+  image sample, not a full color audit, and it can't open raw/proprietary
+  editing project files, only rendered sample image URLs. Distinct from
+  editing-backlog-aging-check, which tracks how much editing is queued,
+  not whether finished edits match the house style.

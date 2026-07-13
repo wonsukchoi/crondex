@@ -1,0 +1,41 @@
+id: stock-submission-metadata-completeness-check
+version: 1
+name: Stock Submission Metadata Completeness Check
+description: >
+  Checks images queued for stock photo/video submission for missing
+  title, keyword, or category metadata that agencies require before
+  accepting an upload. Use this if a stock submission has ever been
+  rejected or buried in search results because the keyword list was too
+  short or a required field was left blank.
+category: photography
+tags: [photography, stock, metadata, keywords, licensing]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_kw="{{min_keyword_count}}" '
+    NR==1 {next}
+    {
+      file=$1; title=$2; category=$3; keywords=$4;
+      n = split(keywords, kw, ";");
+      missing="";
+      if (title == "") missing = missing "title,";
+      if (category == "") missing = missing "category,";
+      if (n < min_kw+0) missing = missing "keywords(" n "/" min_kw "),";
+      if (missing != "") {
+        printf "INCOMPLETE: %s — missing: %s\n", file, missing;
+      }
+    }
+  ' "{{stock_queue_csv_path}}"
+variables:
+  stock_queue_csv_path:
+    default: "./stock-submission-queue.csv"
+    description: "Path to a CSV with columns: file_name,title,category,keywords (semicolon-separated list). One row per image or clip queued for stock submission."
+  min_keyword_count:
+    default: 7
+    description: Minimum number of keywords required before a submission is considered complete (many agencies require at least this many for good search placement).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >-
+  Read-only — it flags missing or thin metadata based on the CSV export
+  from your keywording tool; it doesn't write metadata into the image
+  files or submit anything to an agency itself.

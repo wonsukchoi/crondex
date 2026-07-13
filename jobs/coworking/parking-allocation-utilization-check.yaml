@@ -1,0 +1,32 @@
+id: parking-allocation-utilization-check
+version: 1
+name: Parking Allocation Utilization Check
+description: >
+  Checks paid parking spot allocations against gate or badge-in usage
+  logs, and flags spots that are being paid for but show no recent entry,
+  as well as any day where allocated spots exceed the lot's physical
+  capacity. Use this if a limited parking lot has ever had spots sitting
+  empty every day while other members sat on a waitlist for one.
+category: coworking
+tags: [coworking, parking, utilization, revenue, amenities]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select p.spot_id, p.member_id, p.member_name, max(g.entry_at) as last_entry from parking_allocations p left join parking_gate_logs g on g.spot_id = p.spot_id and g.entry_at >= now() - interval '{{stale_days}} days' where p.status = 'paid' group by p.spot_id, p.member_id, p.member_name having max(g.entry_at) is null order by p.spot_id asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database that tracks parking spot allocations and gate/badge entry logs.
+  stale_days:
+    default: "14"
+    description: Number of days without a logged entry after which a paid parking spot is flagged as possibly unused.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `parking_allocations` table (`spot_id`, `member_id`,
+  `member_name`, `status`) and a `parking_gate_logs` table (`spot_id`,
+  `entry_at`) fed by a gate reader or badge system — adjust the query to
+  your access-control schema. Read-only and informational, same pattern as
+  dedicated-desk-vacancy-check.yaml but for parking: it does not reassign
+  or cancel any allocation itself, it only surfaces spots worth a follow-up
+  or reallocation to the waitlist.

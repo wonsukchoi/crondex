@@ -1,0 +1,65 @@
+id: formulary-change-impact-check
+version: 1
+name: Formulary Change Patient Impact Check
+description: >
+  Cross-references a payer's updated preferred drug list against current
+  patients filling a medication that just got removed or tiered up, so
+  outreach can happen before their next refill gets rejected at the
+  register. Use this if a formulary change has ever only become visible to
+  a patient when their refill suddenly cost three times as much, instead of
+  being caught ahead of time.
+category: pharmacy
+tags: [pharmacy, formulary, pbm, patients, insurance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    FNR==NR {
+      if (FNR>1) { removed[$1]=$2; }
+      next
+    }
+    {
+      ndc=$2;
+      if (ndc in removed) {
+        printf "PATIENT ON REMOVED/RETIERED DRUG: %s (patient %s) — %s\n", $3, $1, removed[ndc];
+      }
+    }
+  ' "{{formulary_changes_csv_path}}" "{{active_patient_fills_csv_path}}"
+prompt: |
+  Cross-reference the formulary changes in {{formulary_changes_csv_path}}
+  (columns: ndc, change_description, effective_date) against currently
+  active patient fills in {{active_patient_fills_csv_path}} (columns:
+  patient_id, ndc, drug_name).
+
+  1. List every patient_id whose active fill's ndc appears in the
+     formulary-changes file, grouped by change_description.
+  2. For each affected patient, note the effective_date so the pharmacist
+     knows how much runway there is before the next fill is affected.
+  3. Suggest, at a general level only (e.g. "a formulary-preferred
+     alternative exists in the same class" or "no alternative — prior
+     authorization will likely be needed"), whether this looks like a
+     same-class substitution situation or a prior-auth situation — do not
+     recommend a specific drug or dose; that call is the pharmacist's.
+  4. Output grouped by change_description, patient_id only (no names),
+     ready for the pharmacist to plan outreach.
+script_note: >
+  The shell command gives you the same flagged patient/NDC list instantly
+  with zero tokens; the prompt version additionally groups by the type of
+  change and gives a first read on substitution vs. prior-auth likelihood,
+  which needs judgment the script can't provide.
+variables:
+  formulary_changes_csv_path:
+    default: "./formulary-changes.csv"
+    description: "Path to a CSV of recent/upcoming payer formulary changes, columns: ndc,change_description,effective_date."
+  active_patient_fills_csv_path:
+    default: "./active-patient-fills.csv"
+    description: "Path to a CSV export of patients with an active fill on file, columns: patient_id,ndc,drug_name."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only cross-reference; it does not contact patients or change any
+  fill. Uses patient_id rather than patient name throughout, and any
+  outreach based on this list should go through your normal
+  pharmacist-reviewed patient communication process, not an automated
+  message about a medication change.

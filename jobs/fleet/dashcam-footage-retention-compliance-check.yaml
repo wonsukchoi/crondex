@@ -1,0 +1,43 @@
+id: dashcam-footage-retention-compliance-check
+version: 1
+name: Dashcam Footage Retention Compliance Check
+description: >
+  Reviews dashcam footage tied to open incidents and confirms it's been
+  preserved before the provider's auto-delete window closes, while
+  flagging routine footage that's overdue for purge under your retention
+  policy. Use this if incident footage has ever auto-deleted before an
+  insurance or legal team asked for it, because nobody flagged it for a
+  hold in time.
+category: fleet
+tags: [fleet, dashcam, video, retention, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review dashcam footage status in {{dashcam_provider_hint}} for the last
+  {{lookback_days}} days.
+  1. Cross-reference open accident/incident reports against dashcam clips
+     for the matching vehicle and timeframe; flag any incident whose
+     footage hasn't been marked for retention/hold and is within
+     {{auto_delete_warning_days}} days of the provider's default
+     auto-delete window.
+  2. Flag any footage clip already past your routine retention policy
+     ({{routine_retention_days}} days) that hasn't been purged, as a
+     storage-cost and privacy concern.
+  3. Report flagged incident footage first (time-sensitive), then flagged
+     routine footage overdue for purge.
+variables:
+  dashcam_provider_hint:
+    default: "your dashcam/telematics video provider (Samsara, Lytx, Motive, etc.)"
+    description: Name of the dashcam or telematics video provider/portal.
+  lookback_days:
+    default: 14
+    description: How many days back to check for incidents needing footage preservation.
+  auto_delete_warning_days:
+    default: 3
+    description: Days before a provider's default auto-delete window closes to flag unpreserved incident footage as urgent.
+  routine_retention_days:
+    default: 90
+    description: How long routine (non-incident) footage should be kept before it's flagged as overdue for purge.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — auto-delete windows and hold/preservation mechanics vary by dashcam provider, and matching footage to incident reports needs judgment, not a fixed join. Distinct from `accident-incident-report-tracker` (report closure aging) and `telematics-device-connectivity-check` (device data gaps, not video specifically). Preserving footage under legal hold may have compliance requirements beyond this job's scope — involve legal/compliance for actual litigation holds.

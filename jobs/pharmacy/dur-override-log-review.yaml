@@ -1,0 +1,37 @@
+id: dur-override-log-review
+version: 1
+name: DUR Alert Override Log Review
+description: >
+  Reviews the day's drug utilization review (DUR) alerts that a pharmacist
+  overrode at the point of sale — drug interaction, duplicate therapy, high
+  dose — and checks whether each override has a documented clinical
+  rationale on file. Use this if a DUR override has ever gone out the door
+  with nothing but a keystroke to explain why the alert was cleared,
+  leaving nothing to show if that fill is ever questioned later.
+category: pharmacy
+tags: [pharmacy, dur, patient-safety, compliance, log-review]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      rx_number=$1; alert_type=$2; override_reason=$3; pharmacist_id=$4;
+      if (override_reason == "") {
+        printf "OVERRIDE MISSING RATIONALE: Rx #%s — %s alert overridden by %s with no documented reason.\n", rx_number, alert_type, pharmacist_id;
+      }
+    }
+  ' "{{dur_override_log_csv_path}}"
+variables:
+  dur_override_log_csv_path:
+    default: "./dur-override-log.csv"
+    description: "Path to today's CSV export of DUR alert overrides, columns: rx_number,alert_type (drug-interaction/duplicate-therapy/high-dose/etc.),override_reason (free text, blank if undocumented),pharmacist_id."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only documentation check, not a clinical review of whether the
+  override itself was appropriate — that judgment stays with the
+  pharmacist-in-charge. Uses rx_number and pharmacist_id rather than patient
+  name; this does not alter dispensing status or contact anyone, it only
+  surfaces overrides missing the rationale a board inspection or malpractice
+  review would expect to find.

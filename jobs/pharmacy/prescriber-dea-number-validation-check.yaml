@@ -1,0 +1,54 @@
+id: prescriber-dea-number-validation-check
+version: 1
+name: Prescriber DEA Number Validation Check
+description: >
+  Checks each controlled-substance prescription's prescriber DEA number
+  against the standard DEA checksum format and flags any that fail the
+  check before the fill goes out. Use this if a malformed or mistyped DEA
+  number has ever slipped through on a controlled-substance script and only
+  gotten caught (or not) well after the fact.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, prescribers, compliance]
+schedule: "*/30 8-20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      rx_number=$1; prescriber_dea=$2; schedule=$3;
+      if (schedule ~ /^(II|III|IV|V)$/) {
+        dea=prescriber_dea; gsub(/[^A-Za-z0-9]/, "", dea);
+        if (length(dea) != 9) {
+          printf "INVALID DEA FORMAT: Rx #%s — %s is not 9 characters.\n", rx_number, prescriber_dea;
+          next;
+        }
+        letter=substr(dea,1,1); digits=substr(dea,3,7);
+        if (letter !~ /^[A-Za-z]$/ || digits !~ /^[0-9]{7}$/) {
+          printf "INVALID DEA FORMAT: Rx #%s — %s does not match the expected pattern.\n", rx_number, prescriber_dea;
+          next;
+        }
+        d1=substr(digits,1,1); d2=substr(digits,2,1); d3=substr(digits,3,1);
+        d4=substr(digits,4,1); d5=substr(digits,5,1); d6=substr(digits,6,1); check=substr(digits,7,1);
+        sum_odd = d1+d3+d5;
+        sum_even = (d2+d4+d6)*2;
+        expected_check = (sum_odd+sum_even) % 10;
+        if (expected_check != check+0) {
+          printf "DEA CHECKSUM MISMATCH: Rx #%s — %s failed the checksum (expected check digit %d, got %s).\n", rx_number, prescriber_dea, expected_check, check;
+        }
+      }
+    }
+  ' "{{controlled_rx_queue_csv_path}}"
+variables:
+  controlled_rx_queue_csv_path:
+    default: "./controlled-substance-rx-queue.csv"
+    description: "Path to a CSV export of pending controlled-substance prescriptions, columns: rx_number,prescriber_dea_number,schedule (II/III/IV/V)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a format/checksum check only (the standard DEA-number
+  self-check-digit algorithm) — it does not confirm the number is actually
+  registered, active, or belongs to the named prescriber; verify a flagged
+  DEA number against the prescriber's actual registration before refusing
+  to fill. Distinct from jobs/pharmacy/pharmacist-license-renewal-check.yaml,
+  which tracks your own pharmacists' registration expiration dates, not a
+  format check on prescriptions coming in from outside prescribers.

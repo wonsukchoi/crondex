@@ -1,0 +1,52 @@
+id: planned-giving-bequest-followup-check
+version: 1
+name: Planned Giving / Bequest Follow-Up Check
+description: >
+  Reviews donors who've expressed a planned gift or bequest intention and
+  flags ones who haven't been stewarded in a while, since these
+  relationships need ongoing care for years before the gift ever
+  materializes. Use this if a bequest intention has ever been logged once
+  and then forgotten for years, only for the organization to lose touch
+  with the donor long before the estate was ever settled.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, planned-giving, stewardship]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the planned-giving/bequest intention tracker from
+  {{planned_gifts_source}} (donor name, intention type — bequest,
+  beneficiary designation, charitable trust, etc. — date logged, and
+  date of last contact).
+  1. List every donor whose last contact was more than
+     {{stewardship_gap_days}} days ago.
+  2. For each, draft a warm, low-pressure check-in message — planned-gift
+     donors should be stewarded like major donors, not chased like a
+     pledge — referencing {{org_mission_hint}} and, if noted, anything
+     specific about their intention (a program they wanted the gift to
+     support, an anniversary, etc.).
+  3. Separately note any donor over age {{advanced_age_hint}} (if age is
+     recorded) or marked as having health concerns, so outreach can be
+     handled with extra sensitivity and possibly routed through a board
+     member or the ED rather than a form email.
+variables:
+  planned_gifts_source:
+    default: "your planned-giving / bequest intention tracker"
+    description: Where planned-gift and bequest intentions, dates logged, and last-contact dates are recorded.
+  stewardship_gap_days:
+    default: 180
+    description: Days since last contact before a planned-giving donor gets flagged for a check-in.
+  org_mission_hint:
+    default: "your organization's mission and programs"
+    description: Brief context to keep outreach specific rather than generic.
+  advanced_age_hint:
+    default: 80
+    description: Age (if recorded) above which outreach gets flagged for extra-sensitive handling rather than a routine email.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `major-donor-proposal-followup-check`, which chases a
+  response to an active ask — planned-gift relationships have no "ask
+  pending," just an ongoing stewardship relationship that can span
+  decades. Draft-only, and always route sensitive outreach (advanced age,
+  health concerns, family situations) through a relationship owner who
+  knows the donor, not an automated send.

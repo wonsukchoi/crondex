@@ -1,0 +1,47 @@
+id: special-education-initial-evaluation-timeline-tracker
+version: 1
+name: Special Education Initial Evaluation Timeline Tracker
+description: >
+  Tracks students referred for an initial special education evaluation
+  against the legally required evaluation-completion deadline and flags
+  any approaching or past it. Use this if an initial evaluation has ever
+  slipped past its statutory timeline (commonly 60 days from parental
+  consent) because it wasn't tracked separately from the annual IEP review
+  calendar.
+category: education
+tags: [education, special-education, iep, compliance, evaluation, deadlines]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v deadlineDays="{{evaluation_deadline_days}}" -v warnDays="{{warn_days}}" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline consent_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      deadline_epoch = consent_epoch + (deadlineDays * 86400);
+      days_left = (deadline_epoch - now_epoch) / 86400;
+      if (days_left <= warnDays) {
+        printf "%s: student %s — consent dated %s, evaluation due in %d days\n", (days_left < 0 ? "OVERDUE" : "DUE SOON"), $1, $2, days_left;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./sped-initial-referrals.csv"
+    description: "Path to a CSV with columns: student_id,parental_consent_date (YYYY-MM-DD),evaluation_completed_date (YYYY-MM-DD, blank if not yet completed)."
+  evaluation_deadline_days:
+    default: 60
+    description: Calendar days from parental consent to required evaluation completion — confirm your state's actual statutory timeline, which varies (some use school/instructional days instead of calendar days).
+  warn_days:
+    default: 14
+    description: Days before the deadline to start flagging a still-pending evaluation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from iep-504-review-deadline-tracker, which covers the periodic
+  review calendar for students already on an IEP/504 — this covers the
+  one-time initial-referral-to-evaluation clock, which is a separate and
+  strictly enforced legal deadline. Use student_id rather than student
+  names in the source CSV. Treat overdue results as urgent compliance
+  items, not routine backlog.

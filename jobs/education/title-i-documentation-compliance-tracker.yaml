@@ -1,0 +1,46 @@
+id: title-i-documentation-compliance-tracker
+version: 1
+name: Title I Compliance Documentation Tracker
+description: >
+  Reviews the required Title I documentation (schoolwide plan updates,
+  parent involvement policy, annual parent notification letters, right-to-
+  know teacher-qualification notices) and flags anything missing or past
+  its required date. Use this if a Title I document has ever gone missing
+  or late until a program monitoring visit or audit surfaced the gap.
+category: education
+tags: [education, title-i, compliance, documentation, federal-funding]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the Title I compliance checklist and document tracker at
+  {{title_i_tracker_hint}} for {{school_name}}.
+  1. List each required Title I document or notice (schoolwide plan
+     update, parent and family engagement policy, school-parent compact,
+     annual Title I parent notification letter, teacher/paraprofessional
+     qualification "right to know" notice, and any others your district's
+     checklist requires) and its status: complete, in progress, or
+     missing.
+  2. For anything with a statutory or district-set due date, flag whether
+     it's on track, due within {{warn_days}} days, or already past due.
+  3. Note which documents require school-level parent/family input or
+     sign-off (these usually take longer) versus ones that are purely
+     administrative, since that changes how much lead time to give.
+  4. Summarize gaps for the Title I coordinator so nothing surfaces for
+     the first time during a program monitoring visit.
+variables:
+  title_i_tracker_hint:
+    default: "your district's Title I compliance checklist or grants-management system"
+    description: Where the Title I document tracker/checklist lives.
+  school_name:
+    default: "the school or Title I site to review"
+    description: Which Title I school site this run covers.
+  warn_days:
+    default: 30
+    description: Days before a document's required date to start flagging it as due soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — Title I documentation requirements and how
+  districts track them vary by state and district plan. Distinct from
+  department-budget-variance-check, which covers spending, not the
+  program's compliance paperwork.

@@ -1,0 +1,43 @@
+id: vehicle-decommission-disposal-tracker
+version: 1
+name: Vehicle Decommission & Disposal Tracker
+description: >
+  Reviews vehicles marked for retirement and checks whether every
+  decommission step — telematics and fuel card deactivation, plate
+  surrender, final odometer capture, insurance removal, title transfer —
+  actually got done before the vehicle left the fleet. Use this if a
+  retired vehicle has ever kept racking up insurance premiums or fuel
+  card charges for months because nobody formally took it off the books.
+category: fleet
+tags: [fleet, decommission, disposal, offboarding]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the fleet roster and identify vehicles marked as retired, sold,
+  or pending disposal in {{fleet_management_system_hint}} within the last
+  {{lookback_days}} days.
+  1. For each such vehicle, confirm whether its telematics device and
+     fuel card were deactivated, its insurance policy line was removed,
+     its plates were surrendered or transferred, and a final odometer
+     reading was captured.
+  2. Flag any vehicle still showing active insurance, an active fuel
+     card, or telematics pings after its recorded disposal date.
+  3. Flag any vehicle whose disposal was decided more than
+     {{stale_disposal_days}} days ago but hasn't actually left the fleet
+     roster yet.
+  4. Report flagged vehicles with which specific steps are outstanding,
+     ranked by how much ongoing cost (insurance, fuel card) the gap is
+     causing.
+variables:
+  fleet_management_system_hint:
+    default: "your fleet management/telematics system"
+    description: Name of the system fleet roster and disposal status come from.
+  lookback_days:
+    default: 90
+    description: How many days back to check for recently retired/disposed vehicles.
+  stale_disposal_days:
+    default: 30
+    description: Days since a disposal decision before a still-active vehicle is flagged as stalled.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — confirming deactivation spans several separate systems (telematics, fuel card, insurance, DMV) with no single source of truth, which needs judgment rather than a fixed CSV check. Distinct from `lease-return-condition-check`, which covers leased-vehicle turn-in, not owned-vehicle retirement.

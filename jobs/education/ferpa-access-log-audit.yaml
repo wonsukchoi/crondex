@@ -1,0 +1,81 @@
+id: ferpa-access-log-audit
+version: 1
+name: FERPA Student Record Access Log Audit
+description: >
+  Scans the student information system's access log for unusual patterns —
+  after-hours access, a staff member pulling an unusually high number of
+  student records, or access to a student outside that staff member's
+  normal roster — and has an agent judge which are worth a closer look.
+  Use this if inappropriate access to student records has ever gone
+  unnoticed because nobody was reviewing the access log until a complaint
+  or audit forced it.
+category: education
+tags: [education, ferpa, privacy, compliance, audit]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v startHour="{{after_hours_start}}" -v endHour="{{after_hours_end}}" -v maxRecords="{{max_records_per_session}}" '
+    NR==1 {next}
+    {
+      split($2, t, "T"); split(t[2], hm, ":"); hour = hm[1] + 0;
+      after_hours = (hour >= startHour || hour < endHour) ? "yes" : "no";
+      count[$1]++;
+      if (after_hours == "yes") {
+        printf "AFTER-HOURS ACCESS: staff %s accessed student %s at %s\n", $1, $3, $2;
+      }
+    }
+    END {
+      for (staff in count) {
+        if (count[staff] > maxRecords) {
+          printf "HIGH VOLUME: staff %s accessed %d student records in log window\n", staff, count[staff];
+        }
+      }
+    }
+  ' "{{access_log_csv_path}}"
+prompt: |
+  Review the flagged entries from the FERPA access-log scan below (raw
+  after-hours-access and high-volume-access hits from
+  {{access_log_csv_path}}), plus the full access log if you have direct
+  read access to {{sis_hint}}.
+  1. For each flagged staff member, note whether their role plausibly
+     explains the access (e.g. a counselor pulling many records during
+     schedule-change week) versus something that looks out of pattern
+     (a staff member with no roster connection to the student accessed,
+     or a volume spike with no obvious cause).
+  2. Separately flag any access to a student record by a staff member who
+     has no current course, advisory, or case-management relationship to
+     that student, if the roster data needed to check that is available.
+  3. Summarize only what's worth a follow-up conversation or a check with
+     the individual staff member — don't accuse, just flag for review.
+  4. Do not include full student names or other identifying details beyond
+     student_id in the summary unless the reviewing administrator already
+     has record-level access.
+variables:
+  access_log_csv_path:
+    default: "./sis-access-log.csv"
+    description: "Path to a CSV with columns: staff_id,access_timestamp (ISO 8601),student_id."
+  sis_hint:
+    default: "your student information system's audit/access-log feature"
+    description: Where the full access log lives, if the agent has direct read access beyond the CSV export.
+  after_hours_start:
+    default: 20
+    description: Hour (24h, local time) after which access counts as after-hours.
+  after_hours_end:
+    default: 6
+    description: Hour (24h, local time) before which access counts as after-hours.
+  max_records_per_session:
+    default: 50
+    description: Number of distinct student records accessed by one staff member in the log window that counts as high volume.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only and summary-only — this never modifies access permissions or
+  contacts staff itself. Use staff_id and student_id, not full names, in
+  the source CSV and in any summary shared beyond administrators who
+  already have record-level access, per FERPA minimum-necessary practice.
+script_note: >
+  The `command` alone catches simple after-hours/high-volume patterns from
+  the CSV with zero tokens. It can't tell you whether a flagged access
+  actually makes sense for that staff member's role, or catch a
+  low-volume but out-of-roster access — that judgment call is what the
+  `prompt` pass adds.

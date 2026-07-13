@@ -1,0 +1,41 @@
+id: dir-fee-reconciliation-check
+version: 1
+name: DIR Fee Reconciliation Check
+description: >
+  Compares a PBM's direct and indirect remuneration (DIR) fee assessments
+  against the claims they're supposedly clawing back against, and flags any
+  DIR fee with no matching claim on file or one that exceeds your expected
+  per-claim cap. Use this if a DIR fee statement has ever landed and gotten
+  filed away unchecked because reconstructing which claims it actually ties
+  to felt like too much work.
+category: pharmacy
+tags: [pharmacy, dir-fees, pbm, reimbursement, billing, audit]
+schedule: "0 9 15 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v cap="{{expected_per_claim_cap_dollars}}" '
+    NR==1 {next}
+    {
+      claim_id=$1; fee_amount=$2; matched_claim=$3;
+      if (matched_claim == "" || matched_claim == "none") {
+        printf "UNMATCHED DIR FEE: %s — $%s assessed with no matching claim on file.\n", claim_id, fee_amount;
+      } else if (fee_amount+0 > cap+0) {
+        printf "DIR FEE OVER CAP: claim %s — $%s assessed, expected cap $%s.\n", claim_id, fee_amount, cap;
+      }
+    }
+  ' "{{dir_fee_statement_csv_path}}"
+variables:
+  dir_fee_statement_csv_path:
+    default: "./dir-fee-statement.csv"
+    description: "Path to a CSV export of a DIR fee statement with columns: claim_id,fee_amount,matched_claim_id (blank or 'none' if the PBM's statement doesn't tie it to a claim)."
+  expected_per_claim_cap_dollars:
+    default: 15.00
+    description: Dollar amount above which a single claim's DIR fee looks worth escalating to the PBM.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation against an already-exported DIR statement — it
+  does not dispute fees or contact the PBM. DIR fee terms vary a lot by
+  contract and by plan year, so confirm the cap against your actual PBM
+  agreement before treating a flagged fee as an error rather than a
+  legitimate performance-based adjustment.

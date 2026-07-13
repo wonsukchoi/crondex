@@ -1,0 +1,40 @@
+id: gifted-talented-referral-backlog-check
+version: 1
+name: Gifted/Talented Referral Backlog Check
+description: >
+  Checks how long student referrals to the gifted and talented program have
+  been waiting for evaluation and flags any sitting past your target
+  turnaround. Use this if a referral has ever sat untouched for months
+  because it went into a folder and nobody was tracking the queue.
+category: education
+tags: [education, gifted-and-talented, referrals, backlog]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxDays="{{max_wait_days}}" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline ref_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      wait_days = (now_epoch - ref_epoch) / 86400;
+      if (wait_days >= maxDays) {
+        printf "OVERDUE: student %s referred %s (%d days waiting for evaluation)\n", $1, $2, wait_days;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./gt-referrals.csv"
+    description: "Path to a CSV with columns: student_id,referral_date (YYYY-MM-DD),evaluation_completed_date (YYYY-MM-DD, blank if not yet evaluated)."
+  max_wait_days:
+    default: 45
+    description: Days a referral can wait without an evaluation before it counts as backlog.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Use student_id rather than student names in the source CSV. Read-only:
+  it only reports the backlog, it doesn't schedule evaluations itself. Some
+  states set a legal timeline for G/T evaluation similar to special
+  education — check your state's requirement and adjust max_wait_days
+  accordingly.

@@ -1,0 +1,46 @@
+id: teacher-pd-hours-compliance-tracker
+version: 1
+name: Teacher Professional Development Hours Compliance Tracker
+description: >
+  Checks each teacher's logged professional development hours against the
+  minimum required for the current cycle and flags anyone on pace to fall
+  short before the deadline. Use this if a teacher has ever discovered
+  close to the deadline that they hadn't logged enough PD hours for the
+  year, separate from their state teaching license actually expiring.
+category: education
+tags: [education, staff, professional-development, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v requiredHours="{{required_hours}}" -v cutoff="{{cycle_end_date}}" -v warnDays="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" cutoff "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" cutoff "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (end_epoch - now_epoch) / 86400;
+      if ($2 + 0 < requiredHours && days_left <= warnDays) {
+        printf "SHORT ON HOURS: teacher %s — %s/%s hours logged, %d days left in cycle\n", $1, $2, requiredHours, days_left;
+      }
+    }
+  ' "{{pd_hours_csv_path}}"
+variables:
+  pd_hours_csv_path:
+    default: "./teacher-pd-hours.csv"
+    description: "Path to a CSV with columns: teacher_id,hours_logged."
+  required_hours:
+    default: 20
+    description: Minimum professional development hours required for the current cycle.
+  cycle_end_date:
+    default: "YYYY-MM-DD"
+    description: Date the current PD cycle (school year, semester, or state-defined period) ends.
+  warn_days:
+    default: 60
+    description: Days before the cycle end date to start flagging teachers who are still short.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from teacher-certification-expiry-tracker, which tracks the
+  license itself expiring — this tracks the ongoing annual/cycle PD-hour
+  requirement that's usually a renewal prerequisite, not a standalone
+  expiry date. Use teacher_id rather than names in the source CSV.

@@ -1,0 +1,40 @@
+id: device-checkout-reconciliation-check
+version: 1
+name: Student Device Checkout Reconciliation Check
+description: >
+  Compares the list of school-issued devices (Chromebooks, tablets,
+  hotspots) checked out to students against what's actually been returned
+  and flags anything still outstanding past your cutoff. Use this if a
+  device has ever gone missing at year-end because nobody reconciled the
+  checkout list against returns until inventory was already overdue.
+category: education
+tags: [education, inventory, devices, technology, reconciliation]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{return_cutoff_date}}" '
+    NR==1 {next}
+    $4 == "" {
+      cmd = "date -d \"" cutoff "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" cutoff "\" +%s 2>/dev/null";
+      cmd | getline cutoff_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (now_epoch >= cutoff_epoch) {
+        printf "OUTSTANDING: asset %s checked out to %s on %s, not returned\n", $1, $2, $3;
+      }
+    }
+  ' "{{device_checkout_csv_path}}"
+variables:
+  device_checkout_csv_path:
+    default: "./device-checkouts.csv"
+    description: "Path to a CSV with columns: asset_tag,student_id,checkout_date (YYYY-MM-DD),return_date (YYYY-MM-DD, blank if not yet returned)."
+  return_cutoff_date:
+    default: "YYYY-MM-DD"
+    description: Date by which devices are expected back (e.g. last day of school, or a mid-year check date) — nothing is flagged before this date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from textbook-inventory-shortage-check, which compares stock
+  counts against class size before term starts — this tracks individual
+  checked-out assets against individual returns. Use student_id rather
+  than student names in the source CSV. Read-only: it only reports what's
+  outstanding, it doesn't bill families or disable devices.

@@ -1,0 +1,35 @@
+id: odometer-fuel-mileage-reconciliation-check
+version: 1
+name: Odometer/Fuel Mileage Reconciliation Check
+description: >
+  Compares telematics-reported mileage against the odometer readings
+  entered at the fuel pump for the same period and flags large
+  mismatches. Use this if a fuel card has ever been used away from the
+  actual vehicle, or an odometer figure has ever looked off, and nobody
+  cross-checked the two numbers against each other.
+category: fleet
+tags: [fleet, mileage, fuel-card, telematics, data-integrity]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_diff_pct="{{max_mismatch_pct}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; telematics_miles=$2; fuelcard_miles=$3;
+      if (telematics_miles <= 0) next;
+      diff_pct = ((fuelcard_miles - telematics_miles) / telematics_miles) * 100;
+      abs_diff = (diff_pct < 0) ? -diff_pct : diff_pct;
+      if (abs_diff >= max_diff_pct)
+        printf "MILEAGE MISMATCH: vehicle %s — telematics %s mi vs fuel card %s mi (%.1f%% diff)\n", vehicle, telematics_miles, fuelcard_miles, diff_pct;
+    }
+  ' "{{mileage_reconciliation_csv_path}}"
+variables:
+  mileage_reconciliation_csv_path:
+    default: "./vehicle-mileage-reconciliation.csv"
+    description: "Path to a monthly CSV with columns: vehicle_id,telematics_miles,fuel_card_odometer_miles."
+  max_mismatch_pct:
+    default: 10
+    description: Percentage difference between the two mileage sources before a vehicle is flagged for review.
+compatible_agents: [generic, claude, codex]
+notes: A flag here means the two data sources disagree, not proof of fraud — could also be a rounding difference, a manual odometer entry error, or a device outage (see `telematics-device-connectivity-check`). Distinct from `fuel-card-anomaly-check`, which flags unusual transactions rather than mileage consistency.

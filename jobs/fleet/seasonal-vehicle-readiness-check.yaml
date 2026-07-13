@@ -1,0 +1,40 @@
+id: seasonal-vehicle-readiness-check
+version: 1
+name: Seasonal Vehicle Readiness Check
+description: >
+  Reviews the fleet ahead of winter or summer and flags vehicles missing
+  seasonal prep items like winter tires, coolant/antifreeze levels,
+  battery load tests, or AC service. Use this if a vehicle has ever
+  failed to start on the first cold morning of the year, or overheated
+  in a summer heat wave, because seasonal prep only happened after
+  something went wrong.
+category: fleet
+tags: [fleet, seasonal, maintenance, safety]
+schedule: "0 8 1 4,10 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  It's time for {{season_hint}} readiness review. Pull the fleet roster
+  and most recent service records from {{fleet_management_system_hint}}.
+  1. For each vehicle, check whether the applicable seasonal items for
+     your climate have been completed within the last
+     {{lookback_months}} months: winter — battery load test, coolant/
+     antifreeze concentration, winter tires or chains, wiper
+     fluid rated for freezing; summer — AC service, coolant level,
+     tire pressure check for heat expansion.
+  2. Flag vehicles missing any applicable item, prioritizing ones
+     assigned to routes in regions with extreme seasonal weather.
+  3. Report flagged vehicles grouped by missing item so maintenance can
+     batch the work by service type.
+variables:
+  season_hint:
+    default: "winter (adjust to 'summer' for the spring run)"
+    description: Which seasonal checklist applies to this run — set to winter or summer readiness depending on your climate and schedule.
+  fleet_management_system_hint:
+    default: "your fleet management/maintenance system"
+    description: Name of the system vehicle service records come from.
+  lookback_months:
+    default: 6
+    description: How many months back to accept a seasonal service item as still current.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — which seasonal items apply varies by climate, vehicle type, and region, which needs judgment rather than a fixed CSV threshold. Runs twice a year (April and October) by default; adjust `schedule` and `season_hint` together if your climate only needs one seasonal pass. Distinct from `vehicle-maintenance-due-check`, which tracks routine service intervals year-round.

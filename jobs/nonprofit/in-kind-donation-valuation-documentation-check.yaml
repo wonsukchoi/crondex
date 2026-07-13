@@ -1,0 +1,36 @@
+id: in-kind-donation-valuation-documentation-check
+version: 1
+name: In-Kind Donation Valuation Documentation Check
+description: >
+  Flags high-value in-kind (non-cash) gifts that are missing the
+  independent appraisal or valuation documentation required to support
+  the fair-market-value stated on the donor's tax records. Use this if a
+  donor has ever claimed a large non-cash deduction backed only by your
+  organization's own estimate, with no appraisal on file to support it if
+  the IRS ever asks.
+category: nonprofit
+tags: [nonprofit, donors, in-kind, compliance, tax]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold={{appraisal_required_threshold}} '
+    NR>1 && $3+0 >= threshold && $4 == "no" {
+      print "MISSING VALUATION DOC: " $1 " — \"" $2 "\" valued at $" $3 " (no independent appraisal on file)";
+    }
+  ' "{{in_kind_donations_csv}}"
+variables:
+  in_kind_donations_csv:
+    default: "in-kind-donations-valuation.csv"
+    description: "CSV with header row, columns: donor_name,item_description,estimated_value,appraisal_on_file(yes/no)."
+  appraisal_required_threshold:
+    default: 5000
+    description: "Dollar value at or above which an independent qualified appraisal / IRS Form 8283 Section B documentation is typically expected — confirm the current threshold with your accountant, this is not tax advice."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `in-kind-donation-acknowledgment-check`, which tracks
+  whether a thank-you/FMV letter was sent — this tracks whether the
+  underlying appraisal documentation exists to support that valuation for
+  gifts large enough to need one. Not tax advice; consult your
+  accountant or the current IRS Form 8283 instructions for the exact
+  threshold and requirements.

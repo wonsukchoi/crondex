@@ -1,0 +1,42 @@
+id: sterile-compounding-environmental-monitoring-check
+version: 1
+name: Sterile Compounding Environmental Monitoring Check
+description: >
+  Reviews the cleanroom's USP 797 environmental monitoring log (viable air
+  sampling, surface sampling, pressure differentials) for missed sampling
+  dates or results over the action level. Use this if an out-of-range air
+  or surface sample has ever sat in the log for days before anyone
+  connected it to a compounding hold, or a scheduled sampling date has ever
+  been skipped during a busy week.
+category: pharmacy
+tags: [pharmacy, compounding, usp-797, environmental-monitoring, compliance, cleanroom]
+schedule: "0 18 * * 5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v action_level="{{cfu_action_level}}" '
+    NR==1 {next}
+    {
+      location=$1; sample_type=$2; sample_date=$3; result_cfu=$4;
+      if (sample_date == "") {
+        printf "MISSED SAMPLE: %s (%s) has no logged sample date this period.\n", location, sample_type;
+      } else if (result_cfu != "" && result_cfu+0 > action_level+0) {
+        printf "ACTION LEVEL EXCEEDED: %s (%s) on %s — %s CFU (action level %s).\n", location, sample_type, sample_date, result_cfu, action_level;
+      }
+    }
+  ' "{{monitoring_log_csv_path}}"
+variables:
+  monitoring_log_csv_path:
+    default: "./sterile-compounding-environmental-log.csv"
+    description: "Path to a CSV export of this period's environmental monitoring log, columns: sample_location,sample_type (viable-air/surface/pressure),sample_date (YYYY-MM-DD, blank if not yet taken),result_cfu (colony-forming units, blank if not applicable)."
+  cfu_action_level:
+    default: 3
+    description: Colony-forming-unit count above which a viable air or surface sample is treated as exceeding the action level and needing follow-up (adjust to your SOP's location-specific limits).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only log review, distinct from jobs/pharmacy/compounding-log-review.yaml
+  (which checks individual batch preparation records for missing fields);
+  this job checks the cleanroom's periodic environmental sampling program
+  itself. An action-level exceedance requires an immediate pharmacist
+  decision on whether to hold sterile compounding — this job only surfaces
+  the data, it does not pause operations.

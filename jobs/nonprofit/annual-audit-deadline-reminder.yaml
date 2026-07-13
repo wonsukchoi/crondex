@@ -1,0 +1,42 @@
+id: annual-audit-deadline-reminder
+version: 1
+name: Annual Independent Audit Deadline Reminder
+description: >
+  Warns you as the deadline approaches for your organization's
+  independent financial statement audit or review, separate from the
+  Form 990 tax filing. Use this if a state grant, a major funder's
+  contract, or your own bylaws has ever required an independent audit by
+  a certain date and it nearly got missed because everyone's attention
+  was on the 990 instead.
+category: nonprofit
+tags: [nonprofit, compliance, finance, audit]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{audit_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{audit_deadline}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  if [ "$days_left" -le "{{warn_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "WARNING: independent audit/review for {{fiscal_year_label}} due {{audit_deadline}} — $days_left days left, auditor: {{auditor_name}}";
+    exit 1;
+  else echo "OK: independent audit/review for {{fiscal_year_label}} due {{audit_deadline}}, $days_left days left"; fi
+variables:
+  audit_deadline:
+    default: "2027-06-30"
+    description: "Date the independent audit or review report is due (YYYY-MM-DD) — set by your state's charitable-solicitation law, a funder's contract, or your bylaws' own requirement."
+  fiscal_year_label:
+    default: "FY2026"
+    description: Label for the fiscal year this audit covers, shown in the alert.
+  auditor_name:
+    default: "your independent audit firm"
+    description: Name of the audit firm engaged, shown in the alert so the right relationship is checked.
+  warn_days:
+    default: 45
+    description: Days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `form-990-filing-deadline-reminder` — many funders and
+  states require an audit or review by a date independent of, and often
+  earlier than, the 990 deadline. Recompute audit_deadline each fiscal
+  year and after confirming the engagement letter with your auditor.

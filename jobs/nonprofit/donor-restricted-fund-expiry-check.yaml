@@ -1,0 +1,60 @@
+id: donor-restricted-fund-expiry-check
+version: 1
+name: Donor-Restricted Fund Expiry Check
+description: >
+  Checks donor-restricted gifts (earmarked for a specific purpose or
+  time window, but not a grant) against their spend-by deadline and
+  flags any with an unspent balance as the deadline approaches. Use this
+  if a time-restricted donor gift has ever sat partly unspent past its
+  designated period, creating a compliance question about whether the
+  money has to be returned or released to unrestricted funds.
+category: nonprofit
+tags: [nonprofit, finance, compliance, restricted-funds]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days_before}} '
+    NR>1 && $4+0 > 0 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline deadline_ts; close(cmd);
+      days_left = int((deadline_ts - today) / 86400);
+      if (days_left <= warn) print "UNSPENT RESTRICTED BALANCE: " $1 " (\"" $2 "\") — $" $4 " unspent, deadline " $3 " (" days_left " days left)";
+    }
+  ' "{{restricted_funds_csv}}"
+prompt: |
+  Read donor-restricted funds from {{restricted_funds_csv}} (columns:
+  donor_name, fund_purpose, spend_by_date, unspent_balance).
+  1. For any fund within {{warn_days_before}} days of its spend_by_date
+     with an unspent_balance above zero, list it with the amount and
+     days remaining.
+  2. For each, suggest a plausible way to spend it down within its
+     stated purpose before the deadline, based on {{org_program_hint}}.
+  3. Separately flag any fund already past its deadline with money
+     still unspent — that needs a decision (donor conversation about an
+     extension, or releasing the funds per the gift agreement) rather
+     than more spending suggestions.
+script_note: >
+  `command` only flags unspent balances nearing or past deadline.
+  `prompt` also suggests in-purpose ways to spend the balance down and
+  separates "still time" cases from "already past deadline, needs a
+  decision" cases, which needs judgment.
+variables:
+  restricted_funds_csv:
+    default: "restricted-funds.csv"
+    description: "CSV with header row, columns: donor_name,fund_purpose,spend_by_date(YYYY-MM-DD),unspent_balance."
+  warn_days_before:
+    default: 45
+    description: Days before a fund's spend-by date to start warning if it still has an unspent balance.
+  org_program_hint:
+    default: "your organization's programs and current priorities"
+    description: Brief context to help suggest in-purpose ways to spend down a restricted balance.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `grant-restricted-fund-spend-check`, which tracks
+  line-item budget pacing within a grant — this tracks donor gifts (not
+  grants) that carry their own time or purpose restriction under the
+  original gift agreement. Check with your accountant or legal counsel
+  before reclassifying or returning any restricted balance; this job
+  only flags, it doesn't reallocate funds.

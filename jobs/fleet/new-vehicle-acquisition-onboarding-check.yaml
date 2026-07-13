@@ -1,0 +1,40 @@
+id: new-vehicle-acquisition-onboarding-check
+version: 1
+name: New Vehicle Acquisition Onboarding Check
+description: >
+  Checks newly acquired fleet vehicles against the setup checklist
+  (telematics install, insurance added, registration filed, fuel card
+  assigned) and flags any already in service with steps still missing.
+  Use this if a new vehicle has ever gone out on the road without a fuel
+  card or telematics device because it skipped a step in the intake
+  process.
+category: fleet
+tags: [fleet, onboarding, acquisition, setup]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{onboarding_window_days}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; acquired=$2; telematics=$3; insurance=$4; registered=$5; fuel_card=$6; in_service_date=$7;
+      cmd="date -d \"" acquired "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" acquired "\" +%s";
+      cmd | getline acq_ts; close(cmd);
+      days_since = int((today - acq_ts) / 86400);
+      incomplete = (telematics != "y" || insurance != "y" || registered != "y" || fuel_card != "y");
+      if (incomplete && in_service_date != "")
+        printf "IN SERVICE, INCOMPLETE SETUP: vehicle %s — telematics=%s insurance=%s registered=%s fuel_card=%s\n", vehicle, telematics, insurance, registered, fuel_card;
+      else if (incomplete && days_since >= window)
+        printf "ONBOARDING OVERDUE: vehicle %s — acquired %s (%d days ago), still missing setup steps\n", vehicle, acquired, days_since;
+    }
+  ' "{{acquisitions_csv_path}}"
+variables:
+  acquisitions_csv_path:
+    default: "./fleet-vehicle-acquisitions.csv"
+    description: "Path to a CSV with columns: vehicle_id,acquisition_date(YYYY-MM-DD),telematics_installed(y/n),insurance_added(y/n),registered(y/n),fuel_card_assigned(y/n),in_service_date(YYYY-MM-DD, blank if not yet in service)."
+  onboarding_window_days:
+    default: 14
+    description: Days after acquisition a vehicle is allowed to still be mid-setup before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: A vehicle already marked in-service with any checklist item incomplete is always flagged regardless of the time window, since that's an active-use gap, not just a slow intake.

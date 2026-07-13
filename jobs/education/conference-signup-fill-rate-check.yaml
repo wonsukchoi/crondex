@@ -1,0 +1,41 @@
+id: conference-signup-fill-rate-check
+version: 1
+name: Parent-Teacher Conference Sign-Up Fill Rate Check
+description: >
+  Checks how many parent-teacher conference slots are still unbooked as the
+  conference date approaches and flags teachers or time blocks with a low
+  sign-up rate. Use this if conference night has ever arrived with a wall
+  of open slots because nobody noticed low sign-up in time to send a
+  reminder.
+category: education
+tags: [education, parent-engagement, conferences, scheduling]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minRate="{{min_fill_rate_pct}}" '
+    NR==1 {next}
+    { total[$1] += 1; if ($3 == "booked") booked[$1] += 1; }
+    END {
+      for (teacher in total) {
+        rate = (booked[teacher] / total[teacher]) * 100;
+        if (rate < minRate) {
+          printf "LOW SIGN-UP: %s — %.1f%% booked (%d/%d slots)\n", teacher, rate, booked[teacher], total[teacher];
+        }
+      }
+    }
+  ' "{{conference_slots_csv_path}}"
+variables:
+  conference_slots_csv_path:
+    default: "./conference-slots.csv"
+    description: "Path to a CSV with columns: teacher_name,slot_time,status (booked or open)."
+  min_fill_rate_pct:
+    default: 70
+    description: Booked-slot percentage below which a teacher's schedule is flagged as needing a sign-up reminder push.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from parent-teacher-conference-noshow-tracker, which checks
+  attendance after the fact — this checks sign-up rate before the
+  conference happens, while there's still time to send reminders. Run
+  daily in the run-up to conference week; the signal fades fast once
+  slots fill.

@@ -1,0 +1,44 @@
+id: matching-gift-claim-backlog-check
+version: 1
+name: Matching Gift Claim Backlog Check
+description: >
+  Reports the total number and dollar value of employer matching-gift
+  claims that still haven't been submitted, bucketed by how long they've
+  sat unfiled, regardless of any single company's deadline. Use this if
+  your matching-gift pipeline has ever quietly grown into a pile of
+  unfiled paperwork because everyone was watching individual deadlines
+  and nobody stepped back to see the backlog as a whole.
+category: nonprofit
+tags: [nonprofit, donors, fundraising, matching-gifts, operations]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR>1 && $4 == "no" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline pledge_ts; close(cmd);
+      days_open = int((today - pledge_ts) / 86400);
+      total_count++; total_value += $5;
+      if (days_open <= 30) b30++;
+      else if (days_open <= 60) b60++;
+      else if (days_open <= 90) b90++;
+      else b90plus++;
+    }
+    END {
+      printf "BACKLOG: %d unsubmitted matching-gift claims worth $%.2f total\n", total_count+0, total_value+0;
+      printf "  0-30 days: %d | 31-60 days: %d | 61-90 days: %d | 90+ days: %d\n", b30+0, b60+0, b90+0, b90plus+0;
+    }
+  ' "{{matching_gifts_csv}}"
+variables:
+  matching_gifts_csv:
+    default: "matching-gifts.csv"
+    description: "CSV with header row, columns: donor_name,company,submission_deadline(YYYY-MM-DD),submitted(yes/no),match_value. pledge/original-gift date is assumed in a column not read by this summary beyond deadline aging; adjust column indices to your export."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `matching-gift-deadline-reminder`, which alerts on
+  individual claims nearing their own company's deadline — this is a
+  standing weekly operations summary of the whole unsubmitted pile so a
+  growing backlog gets noticed even when no single item is close to
+  expiring yet.

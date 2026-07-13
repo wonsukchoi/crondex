@@ -1,0 +1,35 @@
+id: counter-offer-renege-tracker
+version: 1
+name: Counter-Offer Renege Tracker
+description: >
+  Tracks candidates who accepted an offer but then backed out before
+  their start date — often because their current employer countered —
+  and flags a rising renege rate. Use this if you've ever only noticed a
+  string of accepted offers falling through right before day one after it
+  had already happened several times.
+category: hiring
+tags: [hiring, offers, counter-offer, retention, metrics]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v rate_cap="{{renege_rate_alert_pct}}" '
+    NR==1 {next}
+    { total++ }
+    $4 == "reneged" { reneged++; printf "RENEGED: %s — accepted %s, was due to start %s\n", $1, $2, $3 }
+    END {
+      if (total > 0) {
+        rate = (reneged / total) * 100;
+        if (rate >= rate_cap) printf "RENEGE RATE HIGH: %.1f%% of accepted offers this period fell through before start\n", rate;
+      }
+    }
+  ' "{{accepted_offers_csv_path}}"
+variables:
+  accepted_offers_csv_path:
+    default: "./accepted-offers.csv"
+    description: "Path to a CSV with columns: candidate_name,accepted_date (YYYY-MM-DD),start_date (YYYY-MM-DD),status (started/reneged/active)."
+  renege_rate_alert_pct:
+    default: 8
+    description: Percentage of accepted offers falling through before start date that's flagged as a concerning trend.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from offer-acceptance-rate-trend-check, which measures accept-vs-decline at the offer stage — this tracks offers that were accepted and later fell through, typically to a counter-offer from the candidate's current employer.

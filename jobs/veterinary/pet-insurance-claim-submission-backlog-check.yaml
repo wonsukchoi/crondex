@@ -1,0 +1,51 @@
+id: pet-insurance-claim-submission-backlog-check
+version: 1
+name: Pet Insurance Claim Submission Backlog Check
+description: >
+  Checks completed visits flagged for pet-insurance claim submission and
+  flags any where the claim still hasn't actually been filed with the
+  insurer past a reasonable turnaround. Use this if a client's pet
+  insurance reimbursement has ever been delayed for weeks because the
+  clinic's own claim paperwork sat unsubmitted, not because the insurer
+  was slow.
+category: veterinary
+tags: [veterinary, insurance, claims, billing, clients]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{submission_overdue_days}}" '
+    NR==1 {next}
+    $5 == "not_submitted" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      if (visit_epoch == "") next;
+      age_days = (today - visit_epoch) / 86400;
+      if (age_days >= days) {
+        print "CLAIM NOT SUBMITTED: " $1 " / " $2 " — visit on " $3 " (" int(age_days) " days ago), insurer: " $4;
+      }
+    }
+  ' "{{insurance_claims_csv}}"
+
+variables:
+  insurance_claims_csv:
+    default: "./insurance_claims.csv"
+    description: >
+      Path to a CSV with columns: client_name, pet_name, visit_date
+      (YYYY-MM-DD), insurer_name, claim_status (e.g. not_submitted,
+      submitted, paid, denied).
+  submission_overdue_days:
+    default: 7
+    description: >
+      Days after a visit flagged for insurance claim submission before
+      an unsubmitted claim is flagged as backlogged.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Tracks the clinic's own claim-filing backlog, distinct from
+  client-payment-plan-delinquency-check.yaml (client-owed installment
+  payments) — this is about the clinic submitting paperwork to a
+  third-party insurer on the client's behalf. Read-only; does not file
+  claims itself.

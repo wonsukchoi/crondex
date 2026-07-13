@@ -1,0 +1,36 @@
+id: contingent-conversion-window-tracker
+version: 1
+name: Contingent Worker Conversion Window Tracker
+description: >
+  Flags contingent/temp workers whose contract is ending soon with no
+  convert-to-perm-or-release decision recorded yet. Use this if a
+  contractor's end date has ever arrived before anyone decided whether to
+  extend, convert, or let the contract lapse, leaving the team scrambling
+  or losing someone worth keeping.
+category: hiring
+tags: [hiring, contingent, temp-to-perm, workforce-planning]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{decision_lead_days}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      days_left = (end_epoch - today) / 86400;
+      if (days_left <= lead) {
+        printf "DECISION NEEDED: %s — contract ends %s (%d days), conversion decision still pending\n", $1, $3, days_left;
+      }
+    }
+  ' "{{contingent_workers_csv_path}}"
+variables:
+  contingent_workers_csv_path:
+    default: "./contingent-workers.csv"
+    description: "Path to a CSV with columns: worker_name,contract_start_date (YYYY-MM-DD),contract_end_date (YYYY-MM-DD),conversion_decision (pending/convert/release/extend)."
+  decision_lead_days:
+    default: 21
+    description: Days before contract end date at which a still-pending conversion decision is flagged as urgent.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from staffing's temp-to-perm-conversion-fee-tracker, which confirms an agency invoices the client fee after a conversion already happened — this flags the upstream decision itself, before the contract runs out. Read-only; making the actual convert/release call is a hiring-manager decision.

@@ -1,0 +1,40 @@
+id: interview-no-show-pattern-check
+version: 1
+name: Candidate No-Show Pattern Check
+description: >
+  Counts scheduled-interview no-shows per candidate and flags repeat
+  offenders or a rising overall no-show rate. Use this if a candidate has
+  ever missed more than one scheduled interview without anyone noticing
+  it was a pattern instead of a one-off scheduling mix-up.
+category: hiring
+tags: [hiring, interviews, no-show, candidates, scheduling]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v repeat_cap="{{repeat_no_show_threshold}}" -v rate_cap="{{noshow_rate_alert_pct}}" '
+    NR==1 {next}
+    { total++ }
+    $3 == "no-show" { noshow[$1]++; total_noshow++ }
+    END {
+      for (name in noshow) {
+        if (noshow[name] >= repeat_cap) printf "REPEAT NO-SHOW: %s missed %d scheduled interviews\n", name, noshow[name];
+      }
+      if (total > 0) {
+        rate = (total_noshow / total) * 100;
+        if (rate >= rate_cap) printf "NO-SHOW RATE HIGH: %.1f%% of scheduled interviews over the period\n", rate;
+      }
+    }
+  ' "{{interview_attendance_csv_path}}"
+variables:
+  interview_attendance_csv_path:
+    default: "./interview-attendance.csv"
+    description: "Path to a CSV with columns: candidate_name,interview_date (YYYY-MM-DD),attendance_status (attended/no-show/cancelled-late)."
+  repeat_no_show_threshold:
+    default: 2
+    description: Number of no-shows by the same candidate before they're flagged as a repeat offender.
+  noshow_rate_alert_pct:
+    default: 10
+    description: Overall no-show rate (percent of all scheduled interviews) above which the whole period is flagged as a concern.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from interview-feedback-overdue-check, which covers interviews that happened but got no feedback — this tracks interviews that never happened at all. Also distinct from staffing's candidate-no-show-pattern-check, which tracks worker attendance at client job-site assignments, not interview scheduling.

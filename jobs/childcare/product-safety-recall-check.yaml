@@ -1,0 +1,37 @@
+id: product-safety-recall-check
+version: 1
+name: Classroom Product Safety Recall Check
+description: >
+  Checks your classroom equipment and toy inventory (cribs, high chairs,
+  toys, playpens) against recently issued CPSC recall notices and flags any
+  match. Use this if a recalled crib, toy, or piece of equipment has ever
+  stayed in use in a classroom for weeks after a recall notice went out
+  simply because nobody was cross-checking the inventory against it.
+category: childcare
+tags: [childcare, recall, safety, equipment, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the classroom equipment/toy inventory at {{equipment_inventory_csv_path}}
+  (columns: item_name, brand, model_or_sku, classroom) against recall
+  notices issued in the last {{lookback_days}} days from {{recall_source}}
+  (or another recall-tracking source you have access to).
+  1. Flag any inventory item whose brand/model matches or closely resembles
+     a recalled product.
+  2. For each match, note the recall reason and the manufacturer's remedy
+     (repair, replace, refund).
+  3. List flagged items by classroom so staff can pull them from use pending
+     confirmation.
+variables:
+  equipment_inventory_csv_path:
+    default: "./classroom-equipment-inventory.csv"
+    description: "Path to a CSV with columns: item_name,brand,model_or_sku,classroom."
+  recall_source:
+    default: "https://www.cpsc.gov/Recalls"
+    description: Recall database or feed to check against — CPSC covers the US; use your jurisdiction's equivalent elsewhere.
+  lookback_days:
+    default: 30
+    description: How many days of recent recall notices to check against.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Flags a possible match for human confirmation only — brand/model names can collide, so verify the exact model and lot/date code before pulling an item from use or telling a family anything.

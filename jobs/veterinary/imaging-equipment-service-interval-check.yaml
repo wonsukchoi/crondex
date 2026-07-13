@@ -1,0 +1,51 @@
+id: imaging-equipment-service-interval-check
+version: 1
+name: Imaging Equipment Service Interval Check
+description: >
+  Tracks manufacturer-recommended preventive maintenance service visits
+  (not accuracy calibration) for x-ray, ultrasound, and CT/MRI units and
+  warns before a scheduled service lapses. Use this if imaging equipment
+  has ever broken down mid-week because a routine service visit was
+  never booked — distinct from diagnostic-equipment-calibration-check.yaml,
+  which tracks accuracy/calibration verification rather than the
+  physical preventive-maintenance service contract interval.
+category: veterinary
+tags: [veterinary, equipment, imaging, maintenance, service]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (due_epoch == "") next;
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        print "OVERDUE SERVICE: " $1 " — service was due " $2 " (" int(-diff_days) " days ago)";
+      } else if (diff_days <= days) {
+        print "SERVICE DUE SOON: " $1 " — due " $2 " (" int(diff_days) " days)";
+      }
+    }
+  ' "{{imaging_service_schedule_csv}}"
+
+variables:
+  imaging_service_schedule_csv:
+    default: "./imaging_service_schedule.csv"
+    description: >
+      Path to a CSV with columns: equipment_name (e.g. "Digital X-Ray
+      Unit 1", "Ultrasound - Exam Room 2"), next_service_due
+      (YYYY-MM-DD).
+  warn_days_before:
+    default: 14
+    description: Days before a scheduled service visit to start warning.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only reminder covering the service-contract/preventive-maintenance
+  cadence, not accuracy calibration or in-house lab analyzers (see
+  diagnostic-equipment-calibration-check.yaml for those). Booking the
+  actual service visit is a separate manual step.

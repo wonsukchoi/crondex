@@ -1,0 +1,32 @@
+id: field-trip-headcount-reconciliation-check
+version: 1
+name: Field Trip Headcount Reconciliation Check
+description: >
+  Compares the headcount taken right before departure on an off-site outing
+  against the headcount taken on return and flags any mismatch. Use this if
+  a field trip headcount has ever been assumed to match without anyone
+  actually confirming the return count against the departure count —
+  distinct from field-trip-permission-slip-check (education category), which
+  tracks signed permission slips rather than the headcount reconciliation
+  itself, and from daily-attendance-headcount-reconciliation-check, which
+  covers routine in-building sign-in/sign-out rather than off-site outings.
+category: childcare
+tags: [childcare, field-trip, headcount, safety]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($3 != $4) {
+        printf "HEADCOUNT MISMATCH: %s (%s) — departed with %d, returned with %d\n", $2, $1, $3, $4;
+      }
+    }
+  ' "{{field_trip_log_csv_path}}"
+variables:
+  field_trip_log_csv_path:
+    default: "./field-trip-headcounts.csv"
+    description: "Path to a CSV with columns: trip_date (YYYY-MM-DD),classroom_or_trip_name,departure_headcount,return_headcount. One row per outing."
+compatible_agents: [generic, claude, codex]
+notes: Treat any mismatch as an immediate in-person verification, not a queued item — this check only catches a paperwork gap after the fact, it is not a substitute for the in-the-moment headcounts required at every stop.

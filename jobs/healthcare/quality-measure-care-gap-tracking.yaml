@@ -1,0 +1,66 @@
+id: quality-measure-care-gap-tracking
+version: 1
+name: Clinical Quality Measure Care Gap Tracking
+description: >
+  Checks a panel of patients against HEDIS-style clinical quality measures
+  (A1c screening, colorectal cancer screening, blood pressure control, and
+  similar) and lists who's still an open gap as the measurement period
+  winds down. Use this if a quality measure's performance rate has ever
+  come in lower than expected at year-end only because nobody was tracking
+  open gaps until the reporting deadline forced a scramble.
+category: healthcare
+tags: [healthcare, quality-measures, hedis, preventive-care, value-based-care]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' -v days_left_threshold="{{measurement_period_end_warn_days}}" '
+    NR==1 {next}
+    {
+      total[$2]++;
+      if ($3 == "closed") { closed[$2]++; }
+      else { printf "OPEN GAP: %s — %s (measure: %s)\n", $1, $2, $2; }
+    }
+    END {
+      for (m in total) {
+        rate = (total[m] > 0) ? (closed[m]+0) / total[m] * 100 : 0;
+        printf "MEASURE SUMMARY: %s — %d/%d closed (%.1f%%)\n", m, closed[m]+0, total[m], rate;
+      }
+    }
+  ' "{{quality_measures_csv_path}}"
+prompt: |
+  Look at the open-gap list and per-measure closure rates flagged above
+  (from {{quality_measures_csv_path}}).
+  1. For each measure below {{target_closure_rate_pct}}% closed, note how
+     many open gaps remain and roughly how many patients would need to
+     close a gap to hit target before the measurement period ends.
+  2. Group open-gap patients by whether they have an upcoming appointment
+     already on the books (easy — just need an order placed at that visit)
+     versus no upcoming appointment (needs outreach first).
+  3. Prioritize the list: patients with no upcoming appointment and an open
+     gap on a measure furthest from target come first.
+  4. Do not draft outreach messages — this job is prioritization only, not
+     patient contact.
+variables:
+  quality_measures_csv_path:
+    default: "./quality-measure-gaps.csv"
+    description: "Path to a CSV with columns: patient_id,measure_name (e.g. a1c-screening, colorectal-cancer-screening, bp-control),status (open/closed)."
+  target_closure_rate_pct:
+    default: 80
+    description: Target percentage of patients with a closed gap for each measure, used to prioritize which measures need the most attention.
+  measurement_period_end_warn_days:
+    default: 60
+    description: Reserved for future use — days before the measurement period ends when this job's urgency framing should shift; not currently used by the command.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The command gives you the raw open-gap list and per-measure closure rates
+  for free. Only the prompt pass prioritizes which patients are easiest to
+  close (already have an appointment) versus need outreach first, and ranks
+  measures by distance from target — that judgment call is what the LLM
+  pass adds.
+notes: >
+  Assumes an already-exported CSV from your EHR's quality/population-health
+  module rather than live PHI system access, keyed by patient_id. Read-only
+  prioritization — it does not place orders, close gaps, or contact
+  patients; any outreach should go through your practice's normal patient
+  communication workflow (e.g. patient-recall-reminder).

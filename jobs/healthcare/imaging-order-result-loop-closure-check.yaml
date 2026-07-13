@@ -1,0 +1,45 @@
+id: imaging-order-result-loop-closure-check
+version: 1
+name: Imaging Order Result Loop-Closure Check
+description: >
+  Checks ordered imaging studies (X-ray, CT, MRI, ultrasound) sent to an
+  outside radiology facility for ones where the exam was completed but no
+  report has come back yet. Use this if an imaging order has ever gone out
+  to an outside facility and the report just never made it back to the
+  ordering chart, leaving a finding — sometimes an urgent one — sitting
+  unseen at the radiology end.
+category: healthcare
+tags: [healthcare, imaging, radiology, care-coordination, lab-results]
+schedule: "0 9,15 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{stale_days_after_exam}}" '
+    NR==1 {next}
+    $4 == "" {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline exam_epoch; close(cmd);
+      days_since = (today - exam_epoch) / 86400;
+      if (days_since >= days) {
+        printf "MISSING IMAGING REPORT: %s — %s at %s, exam completed %s (%d days ago), no report received\n", $1, $2, $3, $4, days_since;
+      }
+    }
+  ' "{{imaging_orders_csv_path}}"
+variables:
+  imaging_orders_csv_path:
+    default: "./imaging-orders.csv"
+    description: "Path to a CSV with columns: patient_id,study_type,facility_name,exam_completed_date (blank if not yet done),report_received_date (blank if not yet received)."
+  stale_days_after_exam:
+    default: 5
+    description: Days since the imaging exam was completed before a missing report gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from lab-result-followup-check (lab results already in-house
+  awaiting provider review) — this covers imaging sent to an outside
+  facility where the study itself may have happened with no report ever
+  routed back. Read-only — it flags the gap, it does not fax or call the
+  imaging facility itself, and any result found abnormal should go through
+  your practice's critical-result notification protocol, not this job.

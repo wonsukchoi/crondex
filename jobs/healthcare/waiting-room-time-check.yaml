@@ -1,0 +1,47 @@
+id: waiting-room-time-check
+version: 1
+name: Waiting Room Time Check
+description: >
+  Compares each day's logged check-in-to-roomed times against a target wait
+  time and flags days or providers running consistently long. Use this if
+  patient wait times have ever crept up gradually — a schedule template
+  that's too tight, a provider consistently running behind — without
+  anyone noticing until it started showing up as complaints.
+category: healthcare
+tags: [healthcare, wait-time, patient-experience, operations, scheduling]
+schedule: "0 18 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_wait_minutes}}" '
+    NR==1 {next}
+    {
+      cmd1 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd1 | getline checkin_epoch; close(cmd1);
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline roomed_epoch; close(cmd2);
+      wait_min = (roomed_epoch - checkin_epoch) / 60;
+      total[$2]++; sum[$2] += wait_min;
+      if (wait_min > target) { over[$2]++; }
+    }
+    END {
+      for (p in total) {
+        avg = (total[p] > 0) ? sum[p] / total[p] : 0;
+        printf "%s: avg wait %.1f min over %d patients, %d over target (%d min)\n", p, avg, total[p], over[p]+0, target;
+        if (avg > target) { printf "  ABOVE TARGET AVERAGE\n"; }
+      }
+    }
+  ' "{{wait_time_csv_path}}"
+variables:
+  wait_time_csv_path:
+    default: "./daily-wait-times.csv"
+    description: "Path to a CSV with columns: patient_id,provider_name,checkin_time (YYYY-MM-DD HH:MM),roomed_time (YYYY-MM-DD HH:MM), covering today's visits."
+  target_wait_minutes:
+    default: 15
+    description: Target minutes from check-in to being roomed; providers/days averaging above this are flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only operations report — it flags which providers or days are
+  running long so staff can look at schedule templates or patient flow, it
+  does not change the schedule or contact anyone. Assumes an already-
+  exported CSV from your practice-management or check-in kiosk system.

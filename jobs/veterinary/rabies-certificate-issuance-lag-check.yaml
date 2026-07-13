@@ -1,0 +1,52 @@
+id: rabies-certificate-issuance-lag-check
+version: 1
+name: Rabies Certificate/Tag Issuance Lag Check
+description: >
+  Checks patients who received a rabies vaccine and flags any where the
+  signed rabies certificate and tag haven't actually been issued to the
+  owner within a reasonable window. Use this if a rabies vaccine has
+  ever been given and logged, but the client left without the paper
+  certificate or tag that's legally required for licensing — distinct
+  from pet-vaccine-due-reminder.yaml, which tracks upcoming/overdue
+  vaccine due dates rather than post-administration paperwork issuance.
+category: veterinary
+tags: [veterinary, rabies, certificate, compliance, patients]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{issuance_overdue_days}}" '
+    NR==1 {next}
+    $4 != "issued" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline vax_epoch; close(cmd);
+      if (vax_epoch == "") next;
+      age_days = (today - vax_epoch) / 86400;
+      if (age_days >= days) {
+        print "CERTIFICATE NOT ISSUED: " $1 " (" $3 ") — vaccinated " $2 " (" int(age_days) " days ago)";
+      }
+    }
+  ' "{{rabies_vaccination_log_csv}}"
+
+variables:
+  rabies_vaccination_log_csv:
+    default: "./rabies_vaccinations.csv"
+    description: >
+      Path to a CSV with columns: patient_name, vaccination_date
+      (YYYY-MM-DD), owner_name, certificate_status (e.g. issued,
+      pending).
+  issuance_overdue_days:
+    default: 2
+    description: >
+      Days after a rabies vaccination before an un-issued certificate
+      is flagged — most clinics issue same-visit, so this catches
+      genuine gaps rather than same-day printing lag.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only paperwork check. Rabies certificates are often required for
+  local licensing and boarding, so a flagged patient needs the
+  certificate/tag mailed or the owner contacted to pick it up, not just
+  a note in the chart.

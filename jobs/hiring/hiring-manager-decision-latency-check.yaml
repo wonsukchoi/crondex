@@ -1,0 +1,37 @@
+id: hiring-manager-decision-latency-check
+version: 1
+name: Hiring Manager Decision Latency Check
+description: >
+  Flags candidates whose interview feedback is fully in and consistent,
+  but who are still waiting on the hiring manager's actual hire/no-hire
+  call past your target window. Use this if a candidate has ever sat
+  fully evaluated for weeks — every scorecard submitted, no disagreement
+  to resolve — simply because the final call kept slipping down someone's
+  to-do list.
+category: hiring
+tags: [hiring, interviews, decisions, recruiting]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{decision_sla_days}}" '
+    NR==1 {next}
+    $4 == "pending" && $3 != "" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline complete_epoch; close(cmd);
+      days_waiting = (today - complete_epoch) / 86400;
+      if (days_waiting >= sla) {
+        printf "DECISION OVERDUE: %s — feedback complete since %s (%d days), awaiting a decision from %s\n", $1, $3, days_waiting, $2;
+      }
+    }
+  ' "{{decision_tracking_csv_path}}"
+variables:
+  decision_tracking_csv_path:
+    default: "./hiring-decisions.csv"
+    description: "Path to a CSV with columns: candidate_name,hiring_manager,feedback_complete_date (YYYY-MM-DD, blank if not all feedback is in),decision_status (pending/hired/rejected)."
+  decision_sla_days:
+    default: 3
+    description: Days after all feedback is complete before a still-pending hire/no-hire decision is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from interview-feedback-overdue-check (feedback itself is missing) and interview-feedback-score-divergence-check (feedback is in but conflicts) — this catches the case where feedback is complete and consistent, and the decision itself is simply stalled.

@@ -1,0 +1,56 @@
+id: payer-enrollment-status-check
+version: 1
+name: Payer Enrollment and Credentialing Status Check
+description: >
+  Checks each provider's enrollment status with each insurance payer
+  (Medicare, Medicaid, commercial plans) against revalidation and
+  re-attestation deadlines and flags anything lapsing or stuck in process.
+  Use this if a provider has ever been dropped from a payer panel — and
+  their claims started denying — because a revalidation deadline passed
+  unnoticed or a new-provider enrollment application sat pending too long.
+category: healthcare
+tags: [healthcare, credentialing, payer-enrollment, compliance, billing]
+schedule: "0 8 1,15 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_revalidation}}" -v stale_days="{{pending_stale_days}}" '
+    NR==1 {next}
+    {
+      if ($3 == "enrolled" && $4 != "") {
+        cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+        cmd | getline reval_epoch; close(cmd);
+        diff_days = (reval_epoch - today) / 86400;
+        if (diff_days <= warn_days) {
+          printf "REVALIDATION DUE: %s with %s — due %s (%d days)\n", $1, $2, $4, diff_days;
+        }
+      } else if ($3 == "pending") {
+        cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+        cmd | getline submitted_epoch; close(cmd);
+        pending_days = (today - submitted_epoch) / 86400;
+        if (pending_days >= stale_days) {
+          printf "ENROLLMENT STUCK PENDING: %s with %s — submitted %s (%d days, no payer decision)\n", $1, $2, $5, pending_days;
+        }
+      }
+    }
+  ' "{{payer_enrollment_csv_path}}"
+variables:
+  payer_enrollment_csv_path:
+    default: "./payer-enrollment.csv"
+    description: "Path to a CSV with columns: provider_name,payer_name,status (enrolled/pending/terminated),revalidation_due_date (YYYY-MM-DD, blank if pending),submitted_date (YYYY-MM-DD, blank if enrolled)."
+  warn_days_before_revalidation:
+    default: 60
+    description: How many days before a payer revalidation/re-attestation deadline to start warning.
+  pending_stale_days:
+    default: 45
+    description: Days a new-enrollment application can sit pending with no payer decision before it's flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from license-credential-expiry-check (state license/cert expiry)
+  and staff-cme-credit-tracking (education requirement for license renewal)
+  — this tracks each provider's standing with individual insurance payers,
+  which lapses independently of the license itself. Assumes an
+  already-exported CSV from your credentialing software or payer portal
+  logins; read-only — flags what needs a call to the payer or a
+  revalidation form, does not submit anything itself.

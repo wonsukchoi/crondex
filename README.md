@@ -107,14 +107,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1362 jobs across 60 categories:
+1411 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agency` | 20 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
-| `childcare` | 20 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 20 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
@@ -132,8 +132,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
-| `healthcare` | 20 | Clinic ops — appointments, recalls, licenses, lab results. |
-| `hiring` | 20 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `healthcare` | 33 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `hiring` | 32 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 20 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
@@ -169,7 +169,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 20 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 20 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
-| `veterinary` | 20 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
+| `veterinary` | 32 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 20 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->
 

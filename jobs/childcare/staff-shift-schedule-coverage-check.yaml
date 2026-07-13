@@ -1,0 +1,40 @@
+id: staff-shift-schedule-coverage-check
+version: 1
+name: Staff Shift Schedule Coverage Check
+description: >
+  Checks the published staff schedule for the coming days against each
+  shift's required staff count (based on your ratio requirement for that
+  classroom) and flags any shift left under-covered. Use this if a shift
+  has ever gone understaffed because a call-out or an unfilled opening was
+  never checked against the roster ahead of time — distinct from
+  staff-child-ratio-compliance-check, which checks today's actual headcount
+  in real time, and enrollment-capacity-ratio-forecast-check, which
+  projects weeks-ahead enrollment growth rather than checking the
+  already-published shift roster.
+category: childcare
+tags: [childcare, staffing, schedule, ratio, coverage]
+schedule: "0 15 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookahead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline shift_epoch; close(cmd);
+      days_out = (shift_epoch - today) / 86400;
+      if (days_out >= 0 && days_out <= lookahead && ($4+0) < ($5+0)) {
+        printf "UNDER-COVERED: %s %s — %s scheduled %d of %d required staff\n", $1, $2, $3, $4, $5;
+      }
+    }
+  ' "{{shift_schedule_csv_path}}"
+variables:
+  shift_schedule_csv_path:
+    default: "./staff-shift-schedule.csv"
+    description: "Path to a CSV with columns: shift_date (YYYY-MM-DD),shift_time,classroom,scheduled_staff_count,required_staff_count (per your licensed ratio for that classroom/age group)."
+  lookahead_days:
+    default: 7
+    description: How many days ahead to check the published schedule for coverage gaps.
+compatible_agents: [generic, claude, codex]
+notes: A gap this far out is a scheduling problem to solve (find coverage, adjust the roster) — pair with staff-child-ratio-compliance-check for the same-day, actual-headcount version of this check.

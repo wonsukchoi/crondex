@@ -1,0 +1,36 @@
+id: candidate-data-retention-purge-check
+version: 1
+name: Candidate Data Retention Purge Check
+description: >
+  Flags rejected or withdrawn candidates whose records have sat past your
+  data retention policy window and are due for a purge review. Use this
+  if candidate application data has ever piled up indefinitely in your
+  ATS because nobody was checking it against how long your own retention
+  policy actually says you can keep it.
+category: hiring
+tags: [hiring, compliance, data-retention, privacy, candidates]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v retain="{{retention_days}}" '
+    NR==1 {next}
+    ($2 == "rejected" || $2 == "withdrawn") {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline status_epoch; close(cmd);
+      days_held = (today - status_epoch) / 86400;
+      if (days_held >= retain) {
+        printf "PURGE REVIEW: %s — %s on %s (%d days ago), past %d-day retention window\n", $1, $2, $3, days_held, retain;
+      }
+    }
+  ' "{{candidates_csv_path}}"
+variables:
+  candidates_csv_path:
+    default: "./candidates.csv"
+    description: "Path to a CSV with columns: candidate_name,application_status (rejected/withdrawn/hired),status_date (YYYY-MM-DD)."
+  retention_days:
+    default: 730
+    description: Days a rejected/withdrawn candidate's data can be retained before it's flagged for purge review, per your data retention policy.
+compatible_agents: [generic, claude, codex]
+notes: Read-only flag for a human privacy/legal review — this job never deletes anything. Retention requirements vary by jurisdiction (e.g. GDPR vs. other local law) and by whether the candidate consented to a longer talent-pool retention period, so confirm the applicable rule before purging any record.

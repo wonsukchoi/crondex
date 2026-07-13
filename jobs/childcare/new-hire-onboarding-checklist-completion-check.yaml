@@ -1,0 +1,42 @@
+id: new-hire-onboarding-checklist-completion-check
+version: 1
+name: New Hire Onboarding Checklist Completion Check
+description: >
+  Checks each newly hired staff member's required pre-solo-shift onboarding
+  items (orientation, mandated-reporter training, TB test, shadowing hours)
+  against how many are actually complete, and flags anyone who's run out
+  of grace period still incomplete. Use this if a new hire has ever been
+  left alone with children before finishing the checklist that's supposed
+  to come first — distinct from staff-annual-training-hours-tracking-check,
+  which is an ongoing annual requirement rather than a one-time onboarding
+  gate, and from staff-background-check-recertification-check, which
+  covers the recurring clearance renewal rather than initial onboarding.
+category: childcare
+tags: [childcare, onboarding, staff, training, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline hire_epoch; close(cmd);
+      age_days = (today - hire_epoch) / 86400;
+      completed = $3 + 0;
+      required = $4 + 0;
+      if (age_days >= grace && completed < required) {
+        printf "INCOMPLETE ONBOARDING: %s — hired %s (%d days ago), %d of %d checklist items complete\n", $1, $2, age_days, completed, required;
+      }
+    }
+  ' "{{onboarding_checklist_csv_path}}"
+variables:
+  onboarding_checklist_csv_path:
+    default: "./staff-onboarding-checklist.csv"
+    description: "Path to a CSV with columns: staff_name,hire_date (YYYY-MM-DD),items_completed,items_required (orientation, mandated-reporter training, TB test, shadowing hours, etc.)."
+  grace_period_days:
+    default: 14
+    description: Days after hire before an incomplete checklist counts as overdue rather than still in progress.
+compatible_agents: [generic, claude, codex]
+notes: A staff member flagged here should not be scheduled for unsupervised classroom time until closed out — treat as a scheduling gate, not just a reminder.

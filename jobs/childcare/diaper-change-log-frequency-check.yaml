@@ -1,0 +1,47 @@
+id: diaper-change-log-frequency-check
+version: 1
+name: Diaper Change Log Frequency Check
+description: >
+  Checks each enrolled infant/toddler's most recent logged diaper change
+  against a maximum allowed gap and flags anyone overdue during operating
+  hours. Use this if a child has ever gone far longer than expected between
+  logged changes because a busy room meant the log — and possibly the
+  check itself — got missed.
+category: childcare
+tags: [childcare, diapering, health, safety, infant]
+schedule: "0 10,12,14,16 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  now_hm=$(date +%H:%M);
+  awk -F',' -v today="$today" -v now="$now_hm" -v max_gap="{{max_gap_minutes}}" '
+    function to_minutes(t,   parts) {
+      split(t, parts, ":");
+      return (parts[1] * 60) + parts[2];
+    }
+    NR==1 {next}
+    $2 == today {
+      m = to_minutes($3);
+      if (m > latest[$1]) { latest[$1] = m; }
+      seen[$1] = 1;
+    }
+    END {
+      now_m = to_minutes(now);
+      for (child in seen) {
+        gap = now_m - latest[child];
+        if (gap >= max_gap) {
+          printf "OVERDUE: %s — last change logged %d minutes ago (max %d)\n", child, gap, max_gap;
+        }
+      }
+    }
+  ' "{{diaper_log_csv_path}}"
+variables:
+  diaper_log_csv_path:
+    default: "./diaper-change-log.csv"
+    description: "Path to a CSV with columns: child_id,date (YYYY-MM-DD),change_time (HH:MM). One row per logged change; include a row for a child once they arrive so they show up in today's check."
+  max_gap_minutes:
+    default: 180
+    description: Maximum minutes allowed between logged changes during operating hours before a child counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Checks the log, not the child — a flagged gap needs an immediate in-person check, since it could mean a missed change or just a missed log entry. Only include children currently in diapers in the CSV to avoid false flags for toilet-trained children.

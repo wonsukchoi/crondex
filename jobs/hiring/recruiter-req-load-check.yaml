@@ -1,0 +1,33 @@
+id: recruiter-req-load-check
+version: 1
+name: Recruiter Req Load Check
+description: >
+  Counts how many open requisitions each recruiter is currently carrying
+  and flags anyone stacked well above the team average. Use this if one
+  recruiter has ever quietly ended up owning twice as many open reqs as
+  a teammate because req assignment was ad hoc and nobody was watching
+  the split.
+category: hiring
+tags: [hiring, recruiting, requisitions, workload]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cap="{{max_open_reqs_per_recruiter}}" '
+    NR==1 {next}
+    $3 == "open" { count[$2]++ }
+    END {
+      for (name in count) {
+        if (count[name] > cap) printf "OVERLOADED: %s is carrying %d open reqs (cap %d)\n", name, count[name], cap;
+      }
+    }
+  ' "{{req_assignments_csv_path}}"
+variables:
+  req_assignments_csv_path:
+    default: "./req-assignments.csv"
+    description: "Path to a CSV with columns: req_title,recruiter_name,status (open/filled/on-hold)."
+  max_open_reqs_per_recruiter:
+    default: 15
+    description: Number of concurrently open reqs a recruiter can carry before they're flagged as overloaded.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from interviewer-load-balance-check, which counts interviews conducted, and from open-req-aging-check, which looks at how long individual reqs have sat open — this looks at total req portfolio size per recruiter. Assumes a CSV export of current req ownership from your ATS.

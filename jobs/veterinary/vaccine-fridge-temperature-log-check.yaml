@@ -1,0 +1,49 @@
+id: vaccine-fridge-temperature-log-check
+version: 1
+name: Vaccine Fridge Cold-Chain Temperature Log Check
+description: >
+  Scans today's logged vaccine refrigerator temperature readings and
+  flags any reading outside the safe cold-chain range. Use this if a
+  vaccine fridge has ever drifted out of range for hours unnoticed,
+  putting an entire batch of vaccine inventory at risk of no longer
+  being viable — distinct from medication-inventory-expiry-check.yaml,
+  which tracks expiry dates rather than whether storage temperature was
+  actually maintained.
+category: veterinary
+tags: [veterinary, vaccine, cold-chain, temperature, compliance]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="$(date +%Y-%m-%d)" -v min="{{min_safe_temp_c}}" -v max="{{max_safe_temp_c}}" '
+    NR==1 {next}
+    $1 == today {
+      temp = $3 + 0;
+      if (temp < min || temp > max) {
+        print "OUT OF RANGE: " $2 " at " $1 " " $2 " reading " temp "C (safe range " min "-" max "C)";
+      }
+    }
+  ' "{{fridge_temperature_log_csv}}"
+
+variables:
+  fridge_temperature_log_csv:
+    default: "./vaccine_fridge_temp_log.csv"
+    description: >
+      Path to a CSV with columns: date (YYYY-MM-DD), time, temp_celsius,
+      fridge_id. One row per logged reading.
+  min_safe_temp_c:
+    default: 2
+    description: Minimum safe vaccine refrigerator temperature in Celsius.
+  max_safe_temp_c:
+    default: 8
+    description: Maximum safe vaccine refrigerator temperature in Celsius.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  This checks a manually or IoT-logged temperature file, it does not
+  connect to any specific fridge monitor hardware. An out-of-range
+  reading means the vaccine stock in that unit should be quarantined
+  and evaluated for viability before use, per manufacturer cold-chain
+  guidance — this job only flags the excursion, a person decides
+  disposition of the stock.

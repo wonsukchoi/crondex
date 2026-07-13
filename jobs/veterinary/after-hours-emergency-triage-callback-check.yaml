@@ -1,0 +1,52 @@
+id: after-hours-emergency-triage-callback-check
+version: 1
+name: After-Hours Emergency Triage Callback Check
+description: >
+  Checks the after-hours emergency line/triage log for calls that were
+  logged as needing a callback and haven't gotten one within a set
+  response window. Use this if a worried pet owner has ever called the
+  after-hours line, gotten triage advice, and then never received the
+  promised morning follow-up call because it fell through the cracks
+  overnight.
+category: veterinary
+tags: [veterinary, emergency, after-hours, triage, follow-up]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v hours="{{callback_window_hours}}" '
+    NR==1 {next}
+    $5 == "needed" {
+      cmd = "date -d \"" $2 " " $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 " " $3 "\" +%s 2>/dev/null";
+      cmd | getline call_epoch; close(cmd);
+      if (call_epoch == "") next;
+      age_hours = (today - call_epoch) / 3600;
+      if (age_hours >= hours) {
+        print "CALLBACK OVERDUE: " $1 " called " $2 " " $3 " (" int(age_hours) "h ago) — reason: " $4;
+      }
+    }
+  ' "{{after_hours_call_log_csv}}"
+
+variables:
+  after_hours_call_log_csv:
+    default: "./after_hours_calls.csv"
+    description: >
+      Path to a CSV with columns: caller_name, call_date (YYYY-MM-DD),
+      call_time (HH:MM), reason, callback_status (e.g. needed, done,
+      not-needed).
+  callback_window_hours:
+    default: 12
+    description: >
+      Hours after an after-hours call flagged as needing a callback
+      before it's considered overdue (default: covers an overnight call
+      through the next morning's opening).
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only, distinct from specialist-referral-followup-check.yaml
+  (outbound specialist referrals) and pet-medication-refill-backlog-check.yaml
+  (refill requests) — this is specifically about closing the loop on
+  after-hours emergency/triage calls. A flagged call may involve a pet
+  in genuine distress; treat it as urgent, not routine backlog.

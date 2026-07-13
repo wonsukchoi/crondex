@@ -1,0 +1,58 @@
+id: end-of-life-aftercare-followup-tracker
+version: 1
+name: End-of-Life Aftercare Follow-Up Tracker
+description: >
+  Reviews recent euthanasia cases and checks whether the expected
+  aftercare steps — sympathy acknowledgment, cremation/ashes return
+  status, final invoice closure — have actually happened, then drafts
+  any outreach that's missing. Use this if a grieving client has ever
+  been left wondering whether their pet's ashes were ready, or never
+  received any acknowledgment from the clinic, because aftercare
+  follow-up wasn't tracked anywhere once the appointment ended.
+category: veterinary
+tags: [veterinary, euthanasia, end-of-life, aftercare, client-relations]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the end-of-life case log at {{eol_case_log}} for euthanasia
+  cases from the last {{lookback_days}} days.
+  1. For each case, check whether a sympathy acknowledgment (card,
+     email, or call) has been logged as sent.
+  2. If the client chose cremation, check whether the ashes/cremation
+     status is logged as "returned to client" or "picked up"; if it's
+     been more than {{ashes_overdue_days}} days since the procedure with
+     no such status, flag it.
+  3. Check whether the final invoice/account is closed (no outstanding
+     balance flagged as unresolved).
+  4. For any case missing a sympathy acknowledgment, draft a short,
+     warm, non-generic condolence message referencing the pet by name
+     — DRAFT ONLY, do not send.
+  5. Summarize as: cases needing a sympathy message drafted, cases with
+     an ashes-return status overdue for follow-up, and cases with an
+     unresolved invoice — each with the client and pet name.
+
+variables:
+  eol_case_log:
+    default: "./eol_cases.csv"
+    description: >
+      Path to a CSV or export with columns: client_name, pet_name,
+      procedure_date, cremation_chosen (yes/no), ashes_status,
+      sympathy_sent (yes/no), invoice_status.
+  lookback_days:
+    default: 30
+    description: How many past days of euthanasia cases to review.
+  ashes_overdue_days:
+    default: 14
+    description: >
+      Days after the procedure with cremation chosen but no ashes-return
+      status logged before flagging for follow-up.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Sensitive, client-facing content. Any drafted sympathy message is
+  DRAFT ONLY and must get a compassionate human review before it is
+  ever sent — tone matters enormously here and no template should go
+  out unedited. This job never sends anything itself; it only reports
+  gaps and produces draft text for a person to review.

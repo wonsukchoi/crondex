@@ -1,0 +1,32 @@
+id: photography-shoot-day-reminder-drafts
+version: 1
+name: Shoot Day Reminder Drafts
+description: >
+  Reads tomorrow's scheduled shoots and drafts a short reminder message for
+  each client confirming the date, time, location, and what to bring or
+  wear. Use this if a client has ever shown up late, at the wrong location,
+  or in the wrong outfit because nobody sent a reminder the day before.
+category: photography
+tags: [photography, shoots, appointments, reminders, customer-communication]
+schedule: "0 15 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the scheduled shoots at {{shoots_csv_path}} (columns: shoot_id,
+  client_name, contact_info, shoot_date, shoot_time, location, shoot_type,
+  prep_notes). Find every shoot scheduled for {{lookahead_days}} day(s) from
+  today. For each one, draft a short, friendly reminder message (suitable
+  for SMS or email) confirming the date, time, and location, and
+  summarizing what to bring or wear based on prep_notes (e.g. outfit
+  coordination for a family portrait, props for a themed session, extra
+  batteries/permits for an outdoor commercial shoot). Present the drafts
+  grouped by shoot date — do not send anything.
+variables:
+  shoots_csv_path:
+    default: "./scheduled-shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,client_name,contact_info,shoot_date (YYYY-MM-DD),shoot_time,location,shoot_type,prep_notes."
+  lookahead_days:
+    default: 1
+    description: How many days ahead of today to look for shoots to remind about (1 means tomorrow).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and send the reminders yourself through your usual SMS/email tool before this touches a real client inbox.

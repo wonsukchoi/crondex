@@ -1,0 +1,40 @@
+id: photography-liability-insurance-expiry-check
+version: 1
+name: Photography Liability & Equipment Insurance Expiry Check
+description: >
+  Checks the studio's general liability and camera/gear insurance
+  certificates against their expiry date and flags any lapsing within
+  your warning window. Use this if a venue has ever asked for a
+  current certificate of insurance right before a shoot and you
+  weren't sure whether yours had quietly lapsed.
+category: photography
+tags: [photography, insurance, compliance, equipment]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_until = (expiry_epoch - today) / 86400;
+      if (days_until <= window) {
+        printf "INSURANCE EXPIRING: %s (%s) — policy %s expires %s (%d days away)\n", $1, $2, $4, $3, days_until;
+      }
+    }
+  ' "{{insurance_csv_path}}"
+variables:
+  insurance_csv_path:
+    default: "./insurance-certificates.csv"
+    description: "Path to a CSV with columns: entity_name,policy_type (general-liability/equipment-camera/professional-liability),expiry_date (YYYY-MM-DD),policy_number."
+  warning_days:
+    default: 30
+    description: How many days before a certificate's expiry date it should be flagged so a renewed certificate of insurance can be sent to a venue or client in time.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags upcoming or already-lapsed certificates, it
+  doesn't renew the policy or contact the carrier — do that once
+  flagged, and don't shoot at a venue that requires a COI you can't
+  currently produce.

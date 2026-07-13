@@ -1,0 +1,42 @@
+id: gallery-delivery-deadline-check
+version: 1
+name: Gallery Delivery Deadline Check
+description: >
+  Checks booked shoots against the studio's promised gallery-delivery
+  turnaround and flags any shoot that's approaching or past its delivery
+  deadline but hasn't been marked delivered yet. Use this if a client has
+  ever had to email asking "where are my photos?" because nobody was
+  tracking delivery promises against the calendar.
+category: photography
+tags: [photography, gallery-delivery, turnaround, client-communication]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      shoot_id=$1; shoot_date=$2; client=$3; turnaround=$4+0; delivered=tolower($5);
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      due_epoch = shoot_epoch + (turnaround * 86400);
+      due_in_days = int((due_epoch - today) / 86400);
+      if (delivered != "yes" && due_in_days <= warn) {
+        if (due_in_days < 0) {
+          printf "PAST DUE: %s — %s shoot on %s, gallery was due %d day(s) ago, not yet delivered\n", shoot_id, client, shoot_date, -due_in_days;
+        } else {
+          printf "DUE SOON: %s — %s shoot on %s, gallery due in %d day(s), not yet delivered\n", shoot_id, client, shoot_date, due_in_days;
+        }
+      }
+    }
+  ' "{{shoots_csv_path}}"
+variables:
+  shoots_csv_path:
+    default: "./shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,shoot_date (YYYY-MM-DD),client_name,gallery_turnaround_days,gallery_delivered (yes/no)."
+  warn_days_before:
+    default: 3
+    description: How many days before (or after, if negative shows as past due) the calculated delivery deadline to start flagging an undelivered gallery.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags shoots at risk of missing the delivery promise, it does not build or send the gallery itself. Mark gallery_delivered as "yes" the moment a gallery actually goes out so it stops being flagged.

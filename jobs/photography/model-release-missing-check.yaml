@@ -1,0 +1,30 @@
+id: model-release-missing-check
+version: 1
+name: Model Release Missing Check
+description: >
+  Checks completed shoots against signed model or property release records
+  and flags any shoot that's missing a release on file. Use this if you've
+  ever wanted to use a photo commercially (portfolio, ads, stock, a website
+  redesign) and then realized nobody ever got the subject or property owner
+  to sign off on that use.
+category: photography
+tags: [photography, model-release, property-release, legal, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      shoot_id=$1; client=$2; shoot_date=$3; shoot_type=$4; completed=tolower($5); release_signed=tolower($6);
+      if (completed == "yes" && release_signed != "yes") {
+        printf "MISSING RELEASE: %s — %s (%s) shot on %s has no signed release on file\n", shoot_id, client, shoot_type, shoot_date;
+      }
+    }
+  ' "{{shoots_csv_path}}"
+variables:
+  shoots_csv_path:
+    default: "./shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,client_name,shoot_date (YYYY-MM-DD),shoot_type (e.g. portrait, wedding, commercial, property),shoot_completed (yes/no),release_signed (yes/no)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not collect or store the release itself, only flags gaps in your records. Treat any flagged shoot as off-limits for commercial or marketing use (portfolio, ads, stock, website) until a signed release is actually on file, even if the client would probably say yes.

@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1225 jobs across 58 categories:
+1245 jobs across 59 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -150,6 +150,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 20 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
+| `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |

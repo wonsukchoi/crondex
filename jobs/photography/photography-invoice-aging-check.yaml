@@ -1,0 +1,39 @@
+id: photography-invoice-aging-check
+version: 1
+name: Photography Invoice Aging Check
+description: >
+  Checks invoices issued to clients for shoots (weddings, portraits,
+  commercial jobs) against your standard aging buckets and flags any
+  that are still unpaid past the threshold you set. Use this if a
+  client has ever taken delivery of their gallery or final edits
+  without paying, and the overdue invoice just quietly sat there
+  until you happened to notice.
+category: photography
+tags: [photography, invoicing, collections, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_overdue}}" '
+    NR==1 {next}
+    $4 == "unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= max_days) {
+        printf "AGING: invoice %s for %s — $%s, due %s (%d days overdue)\n", $1, $2, $5, $3, overdue_days;
+      }
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,client_name,due_date (YYYY-MM-DD),status (unpaid/paid),amount."
+  max_days_overdue:
+    default: 14
+    description: Days past the due date before an unpaid invoice is flagged (shoot invoices are often shorter-term than other trades, so this defaults lower than a 30-day bucket).
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only surfaces overdue invoices, it doesn't send a
+  reminder or contact the client — follow up manually once flagged.

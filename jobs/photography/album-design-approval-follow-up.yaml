@@ -1,0 +1,51 @@
+id: album-design-approval-follow-up
+version: 1
+name: Album Design Approval Follow-Up
+description: >
+  Flags clients who were sent an album design proof but haven't approved it
+  or responded within a target number of days, and drafts a gentle
+  follow-up message. Use this if an album proof has ever sat unopened in a
+  client's inbox for weeks, delaying printing and the final invoice.
+category: photography
+tags: [photography, albums, approvals, follow-up, customer-communication]
+schedule: "0 10 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{approval_window_days}}" '
+    NR==1 {next}
+    {
+      id=$1; name=$2; contact=$3; sent=$4; status=$5;
+      if (tolower(status) == "approved") { next; }
+      cmd = "date -d \"" sent "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" sent "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_since = (today - epoch) / 86400;
+      if (days_since > window) {
+        printf "AWAITING APPROVAL: %s (%s) — proof sent %s (%.0f days ago), status: %s\n", id, name, sent, days_since, status;
+      }
+    }
+  ' "{{album_proofs_csv_path}}"
+prompt: >
+  Read the album proofs at {{album_proofs_csv_path}} (columns: proof_id,
+  client_name, contact_info, proof_sent_date, status — one of "pending",
+  "viewed", or "approved"). Identify every proof whose status is not
+  "approved" and whose proof_sent_date is more than
+  {{approval_window_days}} days ago. For each one, draft a short, gentle
+  follow-up message checking in on the album design proof, offering to
+  walk through any requested changes, and asking for approval so the album
+  can go to print. Group the drafts by how long they've been waiting, most
+  overdue first — do not send anything.
+script_note: >
+  The command gives you a zero-token list of unapproved proofs past the
+  approval window with day counts; only the prompt drafts the personalized
+  gentle-nudge follow-up messages.
+variables:
+  album_proofs_csv_path:
+    default: "./album-proofs.csv"
+    description: "Path to a CSV with columns: proof_id,client_name,contact_info,proof_sent_date (YYYY-MM-DD),status (pending/viewed/approved)."
+  approval_window_days:
+    default: 10
+    description: How many days after a proof is sent before an unapproved proof is flagged for follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — review and personalize the follow-up messages before sending through your usual SMS/email tool.

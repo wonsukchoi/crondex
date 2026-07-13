@@ -1,0 +1,41 @@
+id: photography-referral-follow-up-drafts
+version: 1
+name: Photography Referral Follow-Up Drafts
+description: >
+  Flags clients who referred a new photography or videography booking but
+  haven't yet been thanked or rewarded, and drafts the thank-you message.
+  Use this if a client has ever sent you a great referral and you never got
+  around to acknowledging it, so they quietly stopped sending more.
+category: photography
+tags: [photography, referrals, client-communication]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    tolower($5) != "yes" {
+      printf "UNTHANKED REFERRAL: %s referred booking %s (client %s) on %s\n", $1, $3, $4, $2;
+    }
+  ' "{{referrals_csv_path}}"
+prompt: |
+  Run this job's shell command against {{referrals_csv_path}} to get the list
+  of referring clients who haven't been thanked yet. For each one, draft a
+  warm, personal thank-you message (mentioning the new client they referred
+  if appropriate) that also notes their referral reward per
+  {{referral_reward_description}}. Do NOT send anything — save each as a
+  draft and list who still needs a thank-you.
+script_note: >
+  The shell command gives you the raw list of unthanked referrers for free.
+  The prompt mode adds the actual personalized thank-you drafts, which need
+  natural phrasing and a connector to save as drafts — that's judgment a
+  generic script can't do.
+variables:
+  referrals_csv_path:
+    default: "./referrals.csv"
+    description: "Path to a CSV with columns: referring_client_name,referral_date (YYYY-MM-DD),new_booking_id,new_client_name,thanked (yes/no)."
+  referral_reward_description:
+    default: "10% off their next session"
+    description: Plain-language description of the referral reward to mention in the thank-you draft.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only job — the prompt mode drafts thank-you messages but never sends them automatically; review before sending. The shell-only command mode is purely read-only and never drafts anything.

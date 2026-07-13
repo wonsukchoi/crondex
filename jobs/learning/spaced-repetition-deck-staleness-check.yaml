@@ -15,7 +15,7 @@ runner: shell
 command: >
   file={{stats_export_path}};
   [ -f "$file" ] || { echo "ERROR: $file not found — export your deck's overdue-card count to this path first"; exit 1; };
-  overdue=$(cat "$file" | tr -d '[:space:]');
+  overdue=$(tr -d '[:space:]' < "$file");
   case "$overdue" in ''|*[!0-9]*) echo "ERROR: expected a plain integer in $file, got: $overdue"; exit 1;; esac;
   if [ "$overdue" -ge "{{overdue_limit}}" ]; then echo "WARNING: {{deck_name}} has $overdue overdue cards (limit {{overdue_limit}}) — your review pace is falling behind"; exit 1;
   else echo "OK: {{deck_name}} has $overdue overdue cards."; fi

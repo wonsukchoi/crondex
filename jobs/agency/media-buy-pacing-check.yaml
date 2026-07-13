@@ -1,0 +1,35 @@
+id: media-buy-pacing-check
+version: 1
+name: Media Buy Pacing Check
+description: >
+  For each active media flight, compares the percentage of the flight's
+  calendar duration that has elapsed against the percentage of the client's
+  approved budget spent so far, and flags any campaign pacing meaningfully
+  ahead or behind plan mid-flight. Use this if a campaign has ever blown
+  through half its budget in the first week, or sat barely spending with
+  ten days left, and nobody caught it until the flight was already over.
+  Distinct from media-buy-reconciliation-check, which compares planned
+  spend against what the platform actually billed after the fact — this
+  one watches an in-flight campaign's pace against the calendar, not the
+  final invoice.
+category: agency
+tags: [agency, media-buying, pacing, budgets]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, campaign, flight_start, flight_end, round(100.0 * (current_date - flight_start) / nullif(flight_end - flight_start, 0), 1) as pct_flight_elapsed, round(100.0 * spend_to_date / nullif(approved_budget, 0), 1) as pct_budget_spent from media_flights where current_date between flight_start and flight_end and abs((100.0 * spend_to_date / nullif(approved_budget, 0)) - (100.0 * (current_date - flight_start) / nullif(flight_end - flight_start, 0))) > {{pacing_variance_pct}} order by client;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's media planning/spend-tracking database.
+  pacing_variance_pct:
+    default: "15"
+    description: Percentage-point gap between flight-time-elapsed and budget-spent that triggers a pacing flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `media_flights` table with `client`, `campaign`, `flight_start`,
+  `flight_end`, `approved_budget`, and `spend_to_date` (pulled from the ad
+  platform's near-real-time spend export) — adjust to your media-buying
+  tool's schema. Read-only; it flags pacing drift for the media planner to
+  investigate, it does not pause or adjust any live campaign budget.

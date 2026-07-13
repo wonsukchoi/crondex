@@ -1,0 +1,45 @@
+id: boarding-closure-notification-check
+version: 1
+name: Boarding Closure Notification Check
+description: >
+  Cross-checks upcoming boarding reservations against planned facility
+  closure dates (holidays the business itself is closed, a scheduled
+  renovation) and drafts a heads-up message for any affected client who
+  hasn't been notified yet. Use this if a client has ever shown up for a
+  drop-off only to find out on arrival that the facility would be closed or
+  running limited hours during part of their pet's stay.
+category: petcare
+tags: [petcare, boarding, closure, notifications, scheduling]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read planned facility closure dates from {{closure_dates_csv_path}}
+  (columns: closure_date, reason) and the boarding reservation calendar
+  from {{reservations_csv_path}} (columns: pet_name, owner_name,
+  checkin_date, checkout_date, closure_notified).
+
+  1. Find every reservation whose stay (checkin_date through
+     checkout_date) overlaps a closure date within the next
+     {{lookahead_days}} days.
+  2. For each one where closure_notified is not "yes", draft a short,
+     clear message to the owner explaining the closure, what it means for
+     drop-off/pickup times or care during that window, and what (if
+     anything) they need to do.
+  3. List separately any closure date with no overlapping reservations, so
+     staff know it's already clear.
+  4. Do not send anything and do not mark closure_notified yourself — only
+     draft messages for a staff member to review, send, and then update
+     the record.
+variables:
+  closure_dates_csv_path:
+    default: "./facility-closure-dates.csv"
+    description: "Path to a CSV with columns: closure_date (YYYY-MM-DD),reason."
+  reservations_csv_path:
+    default: "./boarding-reservations.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date,checkout_date,closure_notified (yes/no)."
+  lookahead_days:
+    default: 30
+    description: How many days ahead to check for reservations overlapping a planned closure.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from holiday-boarding-overbooking-risk-check.yaml, which assesses capacity/staffing risk during high-demand periods — this tracks dates the facility itself is closed and whether affected clients have actually been told. Draft-only; a person sends the message and updates the notified flag.

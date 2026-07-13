@@ -1,0 +1,34 @@
+id: client-revenue-concentration-check
+version: 1
+name: Client Revenue Concentration Check
+description: >
+  Calculates what percentage of the agency's trailing revenue comes from
+  each client and flags any single client that has grown past a
+  concentration threshold of total billings. Use this if the agency has
+  ever realized, only after losing a big account, that it made up close to
+  a third of total revenue and nobody had been tracking that risk as it
+  grew quarter over quarter.
+category: agency
+tags: [agency, finance, revenue, risk, client-services]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "with totals as (select sum(amount) as total_revenue from invoices where invoice_date >= now() - interval '{{lookback_days}} days') select i.client, sum(i.amount) as client_revenue, round(100.0 * sum(i.amount) / t.total_revenue, 1) as pct_of_total from invoices i, totals t where i.invoice_date >= now() - interval '{{lookback_days}} days' group by i.client, t.total_revenue having round(100.0 * sum(i.amount) / t.total_revenue, 1) > {{concentration_threshold_pct}} order by pct_of_total desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's billing/finance database.
+  lookback_days:
+    default: "365"
+    description: Trailing window, in days, over which to compute each client's share of total revenue.
+  concentration_threshold_pct:
+    default: "20"
+    description: Percentage of total trailing revenue a single client can represent before it's flagged as a concentration risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `invoices` table with `client`, `amount`, and `invoice_date`
+  columns — adjust to your finance system's schema. Read-only and
+  informational; it surfaces concentration risk for leadership to weigh
+  in diversification and account-growth planning, it does not alter any
+  client relationship or billing itself.

@@ -1,0 +1,55 @@
+id: l2-sequencer-halt-watch
+version: 1
+name: L2 Sequencer Halt Watch
+description: >
+  Checks whether a layer-2 chain's block number is still advancing by
+  comparing it against the last check, and flags it if it looks stalled —
+  an early signal the sequencer may be down. Use this if an L2 you have
+  funds or open positions on has ever gone quiet and you had no idea
+  whether it was just slow or actually halted.
+category: crypto
+tags: [crypto, layer2, sequencer, monitoring]
+schedule: "*/10 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  data=$(curl -s "{{rpc_endpoint}}" -X POST -H "Content-Type: application/json" \
+    --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}');
+  block_hex=$(printf '%s' "$data" | grep -o '"result":"0x[0-9a-fA-F]*"' | grep -o '0x[0-9a-fA-F]*');
+  if [ -z "$block_hex" ]; then
+    echo "Could not fetch block number — check rpc_endpoint for {{chain_name}}.";
+  else
+    block=$((16#${block_hex#0x}));
+    now=$(date +%s);
+    echo "Current block for {{chain_name}}: $block";
+    state="{{state_file}}";
+    mkdir -p "$(dirname "$state")" 2>/dev/null;
+    if [ -f "$state" ]; then
+      prev_block=$(awk -F, 'NR==1{print $1}' "$state");
+      prev_ts=$(awk -F, 'NR==1{print $2}' "$state");
+      if [ -n "$prev_block" ] && [ -n "$prev_ts" ]; then
+        elapsed=$((now - prev_ts));
+        if [ "$block" = "$prev_block" ] && [ "$elapsed" -ge "{{stall_seconds_threshold}}" ]; then
+          echo "SEQUENCER HALT ALERT: block number hasn't advanced in $elapsed seconds (still at $block), past the {{stall_seconds_threshold}}s threshold.";
+        else
+          echo "Block advanced by $((block - prev_block)) over $elapsed seconds — chain appears live.";
+        fi
+      fi
+    fi
+    echo "$block,$now" > "$state";
+  fi
+variables:
+  rpc_endpoint:
+    default: "https://mainnet.base.org"
+    description: JSON-RPC endpoint for the L2 chain to query.
+  chain_name:
+    default: "Base"
+    description: Name of the L2 chain, for display only.
+  stall_seconds_threshold:
+    default: 900
+    description: Seconds without a block-number change that counts as a possible halt.
+  state_file:
+    default: "$HOME/.crondex/l2-sequencer-halt-watch/state.txt"
+    description: Where to persist the last-seen block number and timestamp between runs.
+compatible_agents: [generic, claude, codex]
+notes: Read-only RPC query. A stalled block number is a strong signal but not proof of a sequencer halt — the RPC endpoint itself could be lagging — so cross-check the chain's official status page before treating it as confirmed. Distinct from bridge-transaction-stuck-monitor, which tracks one specific cross-chain transfer rather than general chain liveness.

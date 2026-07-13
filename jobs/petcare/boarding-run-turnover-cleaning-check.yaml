@@ -1,0 +1,34 @@
+id: boarding-run-turnover-cleaning-check
+version: 1
+name: Boarding Run Turnover Cleaning Check
+description: >
+  Checks kennel/run turnover records for runs with a new pet checking in
+  soon and flags any where no cleaning has been logged since the previous
+  occupant checked out. Use this if a run has ever been assigned to a new
+  boarder before anyone confirmed it was actually cleaned after the last
+  guest left.
+category: petcare
+tags: [petcare, boarding, kennel, cleaning, turnover, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  ahead=$(date -d "+{{lookahead_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{lookahead_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v ahead="$ahead" '
+    NR==1 {next}
+    {
+      if ($3 >= today && $3 <= ahead && $4 == "") {
+        print "NOT CLEANED: run " $1 " — next check-in " $3 " (vacated " $2 "), no cleaning logged yet";
+      }
+    }
+  ' "{{turnover_log_csv_path}}"
+variables:
+  turnover_log_csv_path:
+    default: "./run-turnovers.csv"
+    description: "Path to a CSV with columns: run_id,checkout_date (YYYY-MM-DD, previous occupant),next_checkin_date (YYYY-MM-DD),cleaned_date (YYYY-MM-DD, blank until logged)."
+  lookahead_days:
+    default: 1
+    description: How many days ahead to check for a run with an upcoming check-in that hasn't been logged as cleaned.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from grooming-equipment-sanitation-log-check.yaml (daily grooming station cleaning) and safety-equipment-inspection-log-check.yaml (periodic equipment inspections) — this is specifically about a boarding run being clean before its very next occupant. Update cleaned_date the moment a run is actually cleaned, not on a schedule.

@@ -1,0 +1,49 @@
+id: pitch-win-rate-trend-check
+version: 1
+name: Pitch Win-Rate Trend Check
+description: >
+  Compares the agency's new-business win rate (opportunities won divided by
+  opportunities closed, won or lost) over the current period against the
+  trailing baseline, and flags a meaningful drop. Use this if the pitch team
+  has ever gone a whole quarter losing more often than usual before anyone
+  compared the numbers to prior quarters instead of just talking about the
+  latest loss. Distinct from new-business-pipeline-stale-check, which flags
+  individual opportunities that have gone quiet rather than the aggregate
+  win-rate trend across all closed pitches.
+category: agency
+tags: [agency, new-business, pitch, win-rate, trend]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "with current_period as (select count(*) filter (where stage = 'won') as won, count(*) filter (where stage in ('won','lost')) as closed from new_business_opportunities where closed_at >= now() - interval '{{period_days}} days'), baseline as (select count(*) filter (where stage = 'won') as won, count(*) filter (where stage in ('won','lost')) as closed from new_business_opportunities where closed_at >= now() - interval '{{baseline_days}} days' and closed_at < now() - interval '{{period_days}} days') select round(100.0 * c.won / nullif(c.closed,0), 1) as current_win_rate_pct, round(100.0 * b.won / nullif(b.closed,0), 1) as baseline_win_rate_pct from current_period c, baseline b;"
+prompt: >
+  Run the win-rate query for the current {{period_days}}-day period and the
+  prior {{baseline_days}}-day baseline against the agency's new-business
+  pipeline. If the current win rate has dropped by more than
+  {{drop_threshold_pct}} percentage points versus the baseline, pull the
+  list of individual pitches lost in the current period, look for a common
+  thread (same category of client, same competitor, same pitch lead, same
+  service line), and summarize the likely driver of the decline in a short
+  note for the new-business lead. If the drop is within normal range, just
+  report the two win-rate numbers with no further analysis.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's new-business/CRM database.
+  period_days:
+    default: "30"
+    description: Length of the current period to compute win rate over.
+  baseline_days:
+    default: "180"
+    description: How far back the trailing baseline window extends (including the current period).
+  drop_threshold_pct:
+    default: "15"
+    description: Percentage-point drop in win rate versus baseline that triggers the deeper agent analysis.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `new_business_opportunities` table with `stage` ('won', 'lost',
+  or open stages) and `closed_at` columns — adjust to your CRM schema. The
+  `command` gives you the two win-rate numbers for free; only the `prompt`
+  pass digs into what's driving a drop. Read-only; it does not touch any
+  CRM record.

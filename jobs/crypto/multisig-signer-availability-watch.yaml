@@ -1,0 +1,54 @@
+id: multisig-signer-availability-watch
+version: 1
+name: Multisig Signer Availability Watch
+description: >
+  Checks a locally maintained roster of your multisig's signers against
+  when each was last confirmed reachable, and flags it if too few signers
+  are currently available to reach quorum. Use this if a multisig
+  transaction has ever stalled because a co-signer turned out to be on
+  vacation or had gone quiet, and nobody knew that before it mattered.
+category: crypto
+tags: [crypto, multisig, wallet, signers]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  roster="{{signer_roster_file}}";
+  if [ ! -f "$roster" ]; then
+    echo "No signer roster found at $roster — create a CSV with columns: name,contact,last_confirmed_active_date (YYYY-MM-DD). Never put private keys or seed phrases in this file.";
+  else
+    today=$(date +%s);
+    available=0; total=0;
+    while IFS=, read -r name contact last_active; do
+      [ "$name" = "name" ] && continue;
+      [ -z "$name" ] && continue;
+      total=$((total+1));
+      last_ts=$(date -d "$last_active" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$last_active" +%s 2>/dev/null || echo "");
+      if [ -n "$last_ts" ]; then
+        days=$(( (today - last_ts) / 86400 ));
+        if [ "$days" -le "{{stale_days_threshold}}" ]; then
+          available=$((available+1));
+        else
+          echo "STALE: $name last confirmed active $days days ago (contact: $contact)";
+        fi
+      else
+        echo "Could not parse last_confirmed_active_date for $name — check the CSV date format.";
+      fi
+    done < "$roster";
+    echo "Signers recently active: $available / $total tracked (need at least {{min_required_signers}} reachable for quorum)";
+    if [ "$available" -lt "{{min_required_signers}}" ]; then
+      echo "SIGNER AVAILABILITY ALERT: fewer than {{min_required_signers}} signers confirmed active within {{stale_days_threshold}} days — a pending transaction could stall waiting on quorum.";
+    fi
+  fi
+variables:
+  signer_roster_file:
+    default: "$HOME/.crondex/multisig-signer-availability-watch/signers.csv"
+    description: Path to a CSV with columns name,contact,last_confirmed_active_date — maintained by you, never containing keys or secrets.
+  stale_days_threshold:
+    default: 14
+    description: Days since a signer's last confirmed activity before they're counted as unavailable.
+  min_required_signers:
+    default: 2
+    description: Minimum number of recently-active signers needed to comfortably reach quorum (usually the multisig threshold minus yourself).
+compatible_agents: [generic, claude, codex]
+notes: Reads only a local CSV you maintain yourself — never queries a wallet, key, or seed phrase, and never signs or executes anything. Distinct from multisig-pending-transaction-watch, which checks on-chain signature counts on an already-created transaction; this checks off-chain human availability proactively, before or independent of any specific pending transaction, so a quorum gap gets caught early.

@@ -1,0 +1,32 @@
+id: vendor-invoice-approval-backlog-check
+version: 1
+name: Vendor/Subcontractor Invoice Approval Backlog Check
+description: >
+  Checks vendor and subcontractor invoices sitting in an "awaiting approval"
+  queue and flags any that have been waiting longer than the target
+  turnaround, regardless of whether they're due yet. Use this if a vendor
+  invoice has ever sat unreviewed in someone's inbox for weeks, not because
+  it wasn't due, but because nobody was watching the approval queue itself.
+  Distinct from freelancer-contractor-payment-reminder, which tracks
+  invoices already approved and counting down to their due date.
+category: agency
+tags: [agency, vendors, subcontractors, invoicing, approvals]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select vendor_name, invoice_number, amount, submitted_at, current_date - submitted_at::date as days_pending from vendor_invoices where approval_status = 'pending' and submitted_at <= now() - interval '{{stale_days}} days' order by submitted_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's accounts-payable/vendor-management database.
+  stale_days:
+    default: "5"
+    description: How many days an invoice can sit awaiting approval before it's flagged as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `vendor_invoices` table with `vendor_name`, `invoice_number`,
+  `amount`, `submitted_at`, and an `approval_status` column ('pending',
+  'approved', 'rejected', etc.) — adjust to your AP or procurement tool's
+  schema. Read-only and informational; it does not approve, reject, or pay
+  any invoice itself.

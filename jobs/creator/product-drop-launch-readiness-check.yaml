@@ -1,0 +1,39 @@
+id: product-drop-launch-readiness-check
+version: 1
+name: Product Drop Launch Readiness Check
+description: >
+  Checks your pre-launch checklist for an upcoming merch or product drop
+  and flags anything still pending as the launch date closes in. Use this
+  if a drop has ever gone live with the listing unpublished, samples
+  never approved, or promo content never posted, because nobody re-checked
+  the checklist in the final days.
+category: creator
+tags: [creator, merch, product-drop, launch]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_launch}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline launch_ts; close(cmd);
+      days_left = (launch_ts - today) / 86400;
+      if (days_left <= warn) printf "PENDING: \"%s\" — \"%s\" still not done, launches in %d days (%s)\n", $1, $3, days_left, $2;
+    }
+  ' "{{drop_checklist_csv_path}}"
+variables:
+  drop_checklist_csv_path:
+    default: "./product-drop-checklist.csv"
+    description: "Path to a CSV with columns: drop_name,launch_date (YYYY-MM-DD),checklist_item,status (done/pending)."
+  warn_days_before_launch:
+    default: 7
+    description: Days before launch to start flagging incomplete checklist items.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers one-time pre-launch prep for a specific drop with a hard launch
+  date — inventory received, listing live, shipping configured, promo
+  content scheduled. Different from merch-inventory-sync-check, which
+  watches ongoing stock levels and sellout risk for merch that's already
+  live, not launch prep before it goes live.

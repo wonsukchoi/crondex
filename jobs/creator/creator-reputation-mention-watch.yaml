@@ -1,0 +1,48 @@
+id: creator-reputation-mention-watch
+version: 1
+name: Creator Reputation and Brand-Safety Mention Watch
+description: >
+  Scans press, forums, and social media for mentions of you outside your
+  own comment sections, and flags negative or brand-safety-relevant
+  ones. Use this if a controversy or callout thread has ever built up
+  about you for a day before you even knew it existed, or a sponsor's
+  ever asked about something you hadn't seen yet.
+category: creator
+tags: [creator, reputation, brand-safety, sentiment]
+schedule: "0 8,18 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Search for mentions of {{creator_name}} (or {{handle}}) across press,
+  forums (e.g. Reddit), and social media published in the last
+  {{lookback_hours}} hours, outside your own platform's comment sections.
+  1. List each mention with its source, a short quote or summary, and a
+     link if available.
+  2. Classify each as positive, neutral, negative, or a brand-safety
+     concern (accusation, controversy, misinformation about you).
+  3. For anything negative or brand-safety-flagged, note whether it looks
+     like it's gaining traction (multiple sources or replies) or is
+     isolated.
+  4. If several mentions in this window point at the same story, group
+     them and give a one-paragraph summary of what's actually being said.
+  5. If nothing notable came up, say so in one line.
+variables:
+  creator_name:
+    default: "your name or channel name"
+    description: The name to search mentions for.
+  handle:
+    default: "@yourhandle"
+    description: Your primary handle, as an alternate search term.
+  lookback_hours:
+    default: 24
+    description: How far back to search for new mentions.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Report-only — no reply is posted or account contacted automatically.
+  Different from social-mentions-watch (content category), which is
+  written for a generic brand/product/repo, and from
+  comment-toxicity-moderation-check, which only scans comments on your
+  own posts. This watches your personal reputation showing up elsewhere —
+  press, forums, other creators' videos or threads — the kind of thing a
+  sponsor might search before signing you. No script mode — judging
+  sentiment and traction in prose mentions needs an agent.

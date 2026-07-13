@@ -1,0 +1,39 @@
+id: ens-domain-expiration-watch
+version: 1
+name: ENS Domain Expiration Watch
+description: >
+  Checks an ENS (or similar blockchain naming service) name's expiration
+  date and warns before it lapses and becomes claimable by someone else.
+  Use this if you've ever let a web domain expire by accident and don't
+  want the same thing to happen to an ENS name tied to your wallet,
+  website, or on-chain identity.
+category: crypto
+tags: [crypto, ens, domain, expiration]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the expiration date for {{ens_name}} (via the ENS app at
+  app.ens.domains, or a block explorer's ENS lookup) and, if applicable,
+  its grace-period end date.
+  1. Report the expiration date and how many days remain.
+  2. Flag as urgent if fewer than {{urgent_days_threshold}} days remain
+     before expiration, and separately note it if the name has already
+     entered its grace period (still renewable, but no longer resolving
+     or listed).
+  3. Confirm the registered owner/controller address still matches
+     {{expected_owner_address}} — flag a mismatch as high priority, since
+     it could mean the name has already changed hands.
+  4. Do not renew, transfer, or sign anything — this is a check only.
+variables:
+  ens_name:
+    default: "yourname.eth"
+    description: ENS (or equivalent) name to check.
+  expected_owner_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: The address you expect to still control this name.
+  urgent_days_threshold:
+    default: 30
+    description: Days remaining before expiration that counts as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only lookup only — never initiates a renewal or transfer transaction. Renewing an ENS name requires a wallet transaction and gas; do that yourself via the official ENS app once warned, not via any link this job might produce.

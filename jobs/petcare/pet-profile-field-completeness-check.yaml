@@ -1,0 +1,36 @@
+id: pet-profile-field-completeness-check
+version: 1
+name: Client Pet Profile Field Completeness Check
+description: >
+  Scans your client-pet profile records for required fields (allergies,
+  medications, behavior notes, etc.) that were never actually filled in and
+  lists which pets are missing which fields. Use this if a pet has ever
+  started boarding or daycare with a blank allergy or medication field
+  because intake was rushed and nobody caught it was empty.
+category: petcare
+tags: [petcare, intake, records, completeness, allergies]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v fields="{{required_fields}}" '
+    NR==1 { for (i=1; i<=NF; i++) col[$i]=i; next }
+    {
+      n = split(fields, f, " ");
+      missing = "";
+      for (i=1; i<=n; i++) {
+        idx = col[f[i]];
+        if (idx == "" || $idx == "") missing = missing " " f[i];
+      }
+      if (missing != "") printf "INCOMPLETE PROFILE: %s (%s) — missing:%s\n", $1, $2, missing;
+    }
+  ' "{{profiles_csv_path}}"
+variables:
+  profiles_csv_path:
+    default: "./pet-profiles.csv"
+    description: "Path to a CSV whose header row includes pet_name, owner_name, and every field named in required_fields (e.g. allergies,medications,behavior_notes)."
+  required_fields:
+    default: "allergies medications behavior_notes"
+    description: Space-separated list of header column names that must be non-empty for a profile to count as complete.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from pet-care-instructions-staleness-check.yaml, which flags instructions that exist but haven't been reviewed recently — this flags fields that were never filled in at all, typically catching gaps before a pet's very first visit.

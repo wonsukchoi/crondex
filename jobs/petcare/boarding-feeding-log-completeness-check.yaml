@@ -1,0 +1,35 @@
+id: boarding-feeding-log-completeness-check
+version: 1
+name: Boarding Daily Feeding Log Completeness Check
+description: >
+  Compares today's list of pets currently boarding against the feeding log
+  and flags any pet with no feeding entry recorded for today. Use this if a
+  boarded pet's feeding has ever been missed or skipped during a busy shift
+  because nobody double-checked the log against who was actually still on
+  site.
+category: petcare
+tags: [petcare, boarding, feeding, care-log, safety]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==FNR { if (FNR>1) fed[$1","$2]=1; next }
+    FNR==1 { next }
+    {
+      if ($3 <= today && $4 >= today) {
+        key = $1","today;
+        if (!(key in fed)) print "FEEDING NOT LOGGED: " $1 " (" $2 ") — no feeding entry for " today;
+      }
+    }
+  ' "{{feeding_log_csv_path}}" "{{active_stays_csv_path}}"
+variables:
+  feeding_log_csv_path:
+    default: "./feeding-log.csv"
+    description: "Path to a CSV with columns: pet_name,date (YYYY-MM-DD),fed_by, one row per logged feeding."
+  active_stays_csv_path:
+    default: "./boarding-active-stays.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD),checkout_date (YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from pet-care-instructions-staleness-check.yaml, which checks whether the written feeding instructions themselves are current — this checks whether today's actual feeding was logged as done for every pet currently on site. Runs in the evening so same-day entries have had a chance to be logged; a missing entry means missing paperwork, not necessarily a missed meal, so confirm in person before assuming the worst.

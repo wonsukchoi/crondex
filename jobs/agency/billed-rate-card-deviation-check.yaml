@@ -1,0 +1,33 @@
+id: billed-rate-card-deviation-check
+version: 1
+name: Billed Rate Card Deviation Check
+description: >
+  Compares the hourly rate actually billed to clients for each staff
+  member's logged time against that role's standard rate card and flags
+  entries billed below the card rate without an approved discount on file.
+  Use this if a project manager has ever quietly billed a senior
+  strategist's hours at a junior rate to keep a client happy, and the
+  margin leak only showed up months later at the profitability review.
+category: agency
+tags: [agency, billing, rate-card, revenue-leakage]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select t.client, t.staff_name, t.role, t.billed_rate, r.card_rate, round(r.card_rate - t.billed_rate, 2) as shortfall_per_hour from time_entries t join rate_card r on r.role = t.role where t.billable and t.entry_date >= current_date - interval '{{lookback_days}} days' and t.billed_rate < r.card_rate and t.discount_approved is not true order by shortfall_per_hour desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's time-tracking and billing database.
+  lookback_days:
+    default: "30"
+    description: How many days of billable time entries to check against the rate card.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `time_entries` table with `client`, `staff_name`, `role`,
+  `billed_rate`, `entry_date`, a `billable` boolean, and a
+  `discount_approved` boolean (true when finance signed off on a below-card
+  rate for that engagement), plus a `rate_card` table with `role` and
+  `card_rate` — adjust to your PSA/billing tool's schema. Read-only; it
+  surfaces unapproved discounting for finance to review, it does not
+  change any billed rate itself.

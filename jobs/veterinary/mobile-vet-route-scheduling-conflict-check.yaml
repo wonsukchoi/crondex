@@ -1,0 +1,64 @@
+id: mobile-vet-route-scheduling-conflict-check
+version: 1
+name: Mobile/House-Call Vet Route Scheduling Conflict Check
+description: >
+  Scans tomorrow's house-call schedule for any veterinarian booked onto
+  two visits that overlap, or booked back-to-back with too little drive
+  time between addresses. Use this if a mobile vet has ever shown up
+  late to a house call (or had to rush an exam) because the schedule
+  quietly double-booked them or left no travel buffer between stops.
+category: veterinary
+tags: [veterinary, house-call, mobile, scheduling, conflict]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  tomorrow=$(date -d "+1 day" +%Y-%m-%d 2>/dev/null || date -v+1d +%Y-%m-%d);
+  awk -F',' -v tomorrow="$tomorrow" -v buffer="{{min_travel_buffer_minutes}}" '
+    NR==1 {next}
+    $2 == tomorrow {
+      vet = $1; start = $3; end = $4; addr = $5;
+      key = vet;
+      n = ++count[key];
+      starts[key, n] = start; ends[key, n] = end; addrs[key, n] = addr;
+    }
+    END {
+      for (v in count) {
+        for (i = 1; i <= count[v]; i++) {
+          for (j = i+1; j <= count[v]; j++) {
+            si = starts[v, i]; ei = ends[v, i]; sj = starts[v, j];
+            gap_min = (sj - ei) / 60;
+            if (sj < ei) {
+              print "OVERLAP: " v " has two visits overlapping — " addrs[v,i] " and " addrs[v,j];
+            } else if (gap_min < buffer) {
+              print "TIGHT TRAVEL WINDOW: " v " only has " gap_min " min between " addrs[v,i] " and " addrs[v,j] " (buffer target: " buffer " min)";
+            }
+          }
+        }
+      }
+    }
+  ' "{{house_call_schedule_csv}}"
+
+variables:
+  house_call_schedule_csv:
+    default: "./house_call_schedule.csv"
+    description: >
+      Path to a CSV with columns: vet_name, visit_date (YYYY-MM-DD),
+      start_epoch, end_epoch, address. Times as Unix epoch seconds so
+      the check needs no external geocoding or date parsing.
+  min_travel_buffer_minutes:
+    default: 20
+    description: >
+      Minimum minutes required between the end of one house call and
+      the start of the next for the same vet before it's flagged as too
+      tight.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only schedule check, distinct from surgical-schedule-utilization-check.yaml
+  (in-clinic OR time) and boarding-checkout-reminder.yaml (kennel
+  check-outs) — this is specific to a mobile/house-call vet's drive-time
+  conflicts. Travel buffer is a flat minutes threshold, not an actual
+  routing/traffic estimate; treat flags as a prompt to double-check
+  drive time, not a precise ETA.

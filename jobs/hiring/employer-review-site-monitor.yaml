@@ -1,0 +1,42 @@
+id: employer-review-site-monitor
+version: 1
+name: Employer Review Site Monitor
+description: >
+  Checks your employer review site profiles (like Glassdoor or Indeed
+  company reviews) for new reviews or a rating change and flags a
+  negative review or a rating drop worth a response. Use this if a
+  critical employer review has ever sat unanswered for months because
+  nobody outside comms was checking the reviews page, and it kept showing
+  up in candidates' pre-interview research.
+category: hiring
+tags: [hiring, employer-brand, reviews, candidate-experience]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{review_site_urls}} for new reviews or rating changes since the
+  last check, over the last {{lookback_days}} days.
+  1. List any new review scoring at or below {{negative_review_score_threshold}}
+     (out of 5), with a one-line summary of the complaint.
+  2. Note if the overall rating on any site dropped by more than
+     {{rating_drop_threshold}} points since last check.
+  3. Flag whether a pattern is emerging across reviews (e.g. multiple
+     reviews mentioning the same team, process, or manager) versus an
+     isolated complaint.
+  4. Draft a short, professional public response for each flagged review,
+     for whoever owns employer-brand responses to review before posting.
+variables:
+  review_site_urls:
+    default: "your company's Glassdoor/Indeed/Comparably review page URL(s)"
+    description: The employer review site profile page(s) to check.
+  lookback_days:
+    default: 7
+    description: How far back to check for new reviews or rating changes.
+  negative_review_score_threshold:
+    default: 2
+    description: Rating (out of 5) at or below which a new review is flagged as negative.
+  rating_drop_threshold:
+    default: 0.2
+    description: Point drop in overall site rating since the last check that's flagged as worth investigating.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — this job never posts a public response itself; that goes through whoever owns employer-brand/PR communications. No generic script mode since review-site access methods vary and most sites don't offer a stable public API.

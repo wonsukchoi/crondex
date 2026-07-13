@@ -1,0 +1,45 @@
+id: patient-grievance-aging-check
+version: 1
+name: Patient Grievance/Complaint Aging Check
+description: >
+  Checks logged formal patient complaints and grievances (billing disputes,
+  care-quality concerns, staff conduct) against your resolution-window
+  policy and flags anything aging past it. Use this if a formal complaint
+  has ever sat open for weeks with no resolution because it lived in one
+  person's inbox instead of a tracked log — distinct from
+  patient-satisfaction-survey-tracking, which covers routine post-visit
+  survey scores rather than a filed complaint that a practice's grievance
+  policy requires a documented response to.
+category: healthcare
+tags: [healthcare, complaints, grievances, compliance, patient-experience]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{resolution_window_days}}" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline filed_epoch; close(cmd);
+      age_days = (today - filed_epoch) / 86400;
+      if (age_days >= days) {
+        printf "UNRESOLVED GRIEVANCE: %s — %s filed %s (%d days open, category: %s)\n", $1, $2, $3, age_days, $4;
+      }
+    }
+  ' "{{grievances_csv_path}}"
+variables:
+  grievances_csv_path:
+    default: "./patient-grievances.csv"
+    description: "Path to a CSV with columns: patient_id,grievance_id,filed_date (YYYY-MM-DD),category (billing/care-quality/staff-conduct/other),resolved_date (blank if still open)."
+  resolution_window_days:
+    default: 14
+    description: Days a grievance can stay open before it's flagged as overdue against your practice's grievance-response policy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only aging check over already-logged grievance records — it does not
+  contact the patient, adjudicate the complaint, or replace your practice's
+  formal grievance procedure (which may have its own regulatory response-
+  time requirement); it just makes sure nothing quietly ages past the
+  window. Keyed by patient_id rather than name where possible.

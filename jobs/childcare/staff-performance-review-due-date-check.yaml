@@ -1,0 +1,39 @@
+id: staff-performance-review-due-date-check
+version: 1
+name: Staff Performance Review Due Date Check
+description: >
+  Checks each staff member's last performance review date against your
+  center's review cycle and flags anyone due or overdue. Use this if a
+  staff review has ever slipped a year or more because nobody was tracking
+  review dates outside of whenever a director happened to remember —
+  distinct from staff-annual-training-hours-tracking-check, which tracks
+  licensing-required continuing-education hours rather than an internal
+  HR performance review.
+category: childcare
+tags: [childcare, staff, performance-review, hr]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + ($3 * 86400);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days <= warn) {
+        printf "REVIEW DUE: %s — last reviewed %s, due in %d days\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{performance_review_csv_path}}"
+variables:
+  performance_review_csv_path:
+    default: "./staff-performance-reviews.csv"
+    description: "Path to a CSV with columns: staff_name,last_review_date (YYYY-MM-DD),review_interval_days (e.g. 365 for annual)."
+  warn_days_before:
+    default: 30
+    description: How many days before a review is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: This is an internal HR cadence check, not a licensing requirement — adjust the interval to match your center's own policy.

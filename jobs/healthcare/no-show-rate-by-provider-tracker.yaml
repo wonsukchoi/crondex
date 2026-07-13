@@ -1,0 +1,46 @@
+id: no-show-rate-by-provider-tracker
+version: 1
+name: No-Show Rate by Provider Tracker
+description: >
+  Calculates each provider's weekly no-show rate from logged appointment
+  history and flags anyone whose rate is running above threshold or
+  trending up. Use this if a specific provider's schedule has ever quietly
+  developed a chronic no-show problem — a scheduling-window mismatch, a
+  long wait for that provider, a demographic mismatch — that never showed
+  up as a single incident worth investigating.
+category: healthcare
+tags: [healthcare, no-show, appointments, analytics, provider-performance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{high_no_show_rate_pct}}" '
+    NR==1 {next}
+    {
+      total[$2]++;
+      if ($3 == "no-show") { noshow[$2]++; }
+    }
+    END {
+      for (p in total) {
+        rate = (total[p] > 0) ? (noshow[p] / total[p] * 100) : 0;
+        printf "%s: %d/%d no-shows (%.1f%%)", p, noshow[p]+0, total[p], rate;
+        if (rate >= threshold) { printf " -- ABOVE THRESHOLD (%.0f%%)", threshold; }
+        printf "\n";
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./appointments-history.csv"
+    description: "Path to a CSV with columns: patient_id,provider_name,status (completed/no-show/cancelled), covering the reporting week."
+  high_no_show_rate_pct:
+    default: 15
+    description: No-show rate (%) for a single provider above which it gets flagged for review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Aggregate rate analytics by provider over time, distinct from
+  appointment-no-show-follow-up (per-patient rebooking outreach for
+  yesterday's misses) and telehealth-session-issue-check (video-specific
+  session failures). Read-only reporting — does not change schedules or
+  contact patients or providers; a persistently high rate is a signal for a
+  human to look at that provider's scheduling template or reminder workflow.

@@ -1,0 +1,47 @@
+id: unsigned-encounter-note-check
+version: 1
+name: Unsigned Encounter Note Check
+description: >
+  Checks completed patient encounters for clinical notes that still haven't
+  been signed/closed by the provider and flags anything past a reasonable
+  turnaround. Use this if a chart has ever stayed open for weeks after the
+  visit because a note sat unsigned in a provider's queue, which can hold
+  up billing and leaves the record legally incomplete.
+category: healthcare
+tags: [healthcare, documentation, chart-closure, compliance, billing]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{escalate_after_days}}" '
+    NR==1 {next}
+    $4 == "unsigned" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      age_days = (today - visit_epoch) / 86400;
+      if (age_days >= days) {
+        printf "UNSIGNED NOTE: %s — encounter %s on %s (%d days open, provider: %s)\n", $1, $2, $3, age_days, $5;
+        count[$5]++;
+      }
+    }
+    END {
+      for (p in count) {
+        printf "PROVIDER TOTAL: %s has %d unsigned notes past %d days\n", p, count[p], days;
+      }
+    }
+  ' "{{encounters_csv_path}}"
+variables:
+  encounters_csv_path:
+    default: "./encounter-notes.csv"
+    description: "Path to a CSV with columns: patient_id,encounter_id,visit_date (YYYY-MM-DD),note_status (signed/unsigned),provider_name."
+  escalate_after_days:
+    default: 3
+    description: Days after the visit before an unsigned note gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only documentation-completeness check over an already-exported chart
+  status export — it does not open, edit, or sign any note itself; a
+  provider must do that in the EHR. Distinct from hipaa-access-log-audit
+  (who viewed a chart) and lab-result-followup-check (result review
+  turnaround) — this tracks the note-signing step of chart closure.

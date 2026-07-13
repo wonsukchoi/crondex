@@ -1,0 +1,47 @@
+id: advance-directive-documentation-gap-check
+version: 1
+name: Advance Directive Documentation Gap Check
+description: >
+  Checks a panel of eligible patients (e.g. age threshold or a chronic/
+  serious-illness flag) for a missing or expired advance directive/POLST
+  form on file. Use this if a care conversation has ever been delayed or
+  complicated in an urgent moment because nobody had confirmed ahead of
+  time whether the patient's advance directive was on file, current, and
+  actually in the chart.
+category: healthcare
+tags: [healthcare, advance-directive, documentation, care-planning, compliance]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v review_years="{{review_interval_years}}" '
+    NR==1 {next}
+    $2 != "eligible" {next}
+    {
+      if ($3 == "") {
+        printf "MISSING ADVANCE DIRECTIVE: %s — no directive on file\n", $1;
+        next;
+      }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline signed_epoch; close(cmd);
+      age_years = (today - signed_epoch) / 86400 / 365.25;
+      if (age_years >= review_years) {
+        printf "STALE ADVANCE DIRECTIVE: %s — signed %s (%.1f years ago, review interval %d years)\n", $1, $3, age_years, review_years;
+      }
+    }
+  ' "{{advance_directive_csv_path}}"
+variables:
+  advance_directive_csv_path:
+    default: "./advance-directive-status.csv"
+    description: "Path to a CSV with columns: patient_id,eligibility_status (eligible/not-eligible — e.g. based on age or a chronic/serious-illness flag),directive_signed_date (blank if none on file)."
+  review_interval_years:
+    default: 2
+    description: How many years since signing before an on-file advance directive is flagged for a re-confirmation conversation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only documentation-completeness check over an already-exported,
+  minimal-field export (patient_id and dates only, no clinical detail) — it
+  never initiates or drafts an end-of-life conversation itself, only flags
+  which charts are missing the paperwork so a clinician can raise it at the
+  next visit through your practice's normal care-planning process.

@@ -1,0 +1,41 @@
+id: candidate-withdrawal-reason-tracker
+version: 1
+name: Candidate Withdrawal Reason Tracker
+description: >
+  Reviews candidates who withdrew themselves from the process (not
+  rejected by you) and looks for recurring themes in why, like comp
+  expectations, timeline, or a competing offer. Use this if candidates
+  have ever quietly dropped out of your pipeline one at a time, each
+  looking like an isolated case, while the same underlying reason kept
+  costing you good candidates.
+category: hiring
+tags: [hiring, recruiting, candidates, pipeline, withdrawals]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review candidates marked as self-withdrawn (not company-rejected) in
+  {{ats_system}} over the last {{lookback_days}} days, including any
+  withdrawal-reason notes recorded.
+  1. Group withdrawals by reason category (compensation, timeline/process
+     speed, competing offer, role scope mismatch, communication/experience,
+     other/unspecified).
+  2. Flag any category with at least {{min_theme_count}} withdrawals in the
+     period as a pattern worth raising, not just noise.
+  3. For the largest pattern, note which stage of the pipeline it tends to
+     happen at (e.g. after the first screen vs. after the onsite) if that's
+     visible in the data.
+  4. If most withdrawals have no reason recorded at all, say so — that's
+     itself a process gap worth flagging.
+variables:
+  ats_system:
+    default: "your applicant tracking system"
+    description: Where candidate withdrawals and any reason notes are recorded.
+  lookback_days:
+    default: 14
+    description: How far back to check for self-withdrawn candidates.
+  min_theme_count:
+    default: 3
+    description: Minimum withdrawals sharing a reason category before it's flagged as a pattern rather than a one-off.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only synthesis — distinct from offer-acceptance-rate-trend-check, which covers declines at the offer stage; this covers candidates who dropped out earlier in the pipeline, before an offer was ever made.

@@ -1,0 +1,52 @@
+id: developmental-milestone-screening-due-check
+version: 1
+name: Developmental Milestone Screening Due Check
+description: >
+  Checks each enrolled child's developmental screening (like an ASQ-3) against
+  its required re-screening interval and flags anyone due or overdue. Use
+  this if a child has ever gone well past the interval between screenings
+  because nobody was tracking the schedule separately from the child's
+  regular file.
+category: childcare
+tags: [childcare, development, screening, health, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + ($4 * 86400);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days <= warn) {
+        printf "SCREENING DUE: %s — %s last screened %s, due in %d days\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{screening_schedule_csv_path}}"
+prompt: |
+  Review the developmental screening due list produced by the command
+  against {{screening_schedule_csv_path}} (columns: child_id, screening_type,
+  last_screening_date, interval_days).
+  1. Group the due/overdue children by how far past due they are.
+  2. For each, note whether this looks like a routine re-screen or one worth
+     prioritizing (e.g. already flagged as overdue by more than one interval).
+  3. Draft a short, careful note to the lead teacher recommending the
+     screening be scheduled — do not draft anything implying a diagnosis or
+     that goes directly to a family without staff review first.
+script_note: >
+  The command gives the due/overdue list with zero judgment. The prompt adds
+  prioritization and drafts the internal staff note — wording about a
+  child's development needs a careful, non-alarming tone that a script
+  can't produce on its own.
+variables:
+  screening_schedule_csv_path:
+    default: "./developmental-screenings.csv"
+    description: "Path to a CSV with columns: child_id,screening_type (e.g. ASQ-3),last_screening_date (YYYY-MM-DD),interval_days."
+  warn_days_before:
+    default: 14
+    description: How many days before a screening is due to start flagging it.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only and staff-facing only — never auto-send anything about a possible developmental concern to a family without a qualified staff member reviewing it first. Confirm your program's actual required screening tool and interval, which vary by funding source and state.

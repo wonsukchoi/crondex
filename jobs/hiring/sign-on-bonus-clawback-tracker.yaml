@@ -1,0 +1,35 @@
+id: sign-on-bonus-clawback-tracker
+version: 1
+name: Sign-On Bonus Clawback Tracker
+description: >
+  Checks employees who received a sign-on bonus against their repayment
+  commitment period and flags anyone who left before it was satisfied and
+  still shows an uncollected clawback. Use this if an employee has ever
+  left early with an unpaid sign-on-bonus clawback that nobody flagged to
+  finance before the exit was fully processed.
+category: hiring
+tags: [hiring, offers, sign-on-bonus, clawback, payroll]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $5 != "" && $6 != "collected" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      cmd2 = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd2 | getline term_epoch; close(cmd2);
+      days_employed = (term_epoch - start_epoch) / 86400;
+      if (days_employed < $4) {
+        printf "CLAWBACK OWED: %s — left after %d days (commitment %d days), $%s bonus, status: %s\n", $1, days_employed, $4, $2, $6;
+      }
+    }
+  ' "{{bonus_recipients_csv_path}}"
+variables:
+  bonus_recipients_csv_path:
+    default: "./sign-on-bonuses.csv"
+    description: "Path to a CSV with columns: employee_name,bonus_amount,start_date (YYYY-MM-DD),commitment_period_days,termination_date (blank if still employed),repayment_status (n/a/pending/collected)."
+compatible_agents: [generic, claude, codex]
+notes: Read-only flag for finance/HR follow-up — this job never initiates repayment collection, and clawback enforceability can depend on local employment law, so confirm with legal before acting on a flagged case.

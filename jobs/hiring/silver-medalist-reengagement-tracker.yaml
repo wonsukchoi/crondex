@@ -1,0 +1,58 @@
+id: silver-medalist-reengagement-tracker
+version: 1
+name: Silver-Medalist Re-engagement Tracker
+description: >
+  Matches strong runner-up candidates who were rejected in the past for
+  fit-of-role reasons (not for-cause) against newly open reqs in the same
+  role family, so they get a re-engagement outreach instead of being
+  forgotten. Use this if a great candidate you passed on for one role has
+  ever gone silent for months when a near-identical role opened up right
+  after.
+category: hiring
+tags: [hiring, recruiting, candidates, re-engagement, sourcing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v win="{{reengagement_window_days}}" '
+    NR==FNR { if (FNR>1 && $3=="open") openroles[$2]=openroles[$2] $1 "; "; next }
+    FNR==1 {next}
+    $4 == "runner-up" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline rej_epoch; close(cmd);
+      days = (today - rej_epoch) / 86400;
+      if (days <= win && ($3 in openroles)) {
+        printf "RE-ENGAGE: %s — rejected %s as runner-up for %s (%d days ago), matching open req(s): %s\n", $1, $2, $3, days, openroles[$3];
+      }
+    }
+  ' "{{open_reqs_csv_path}}" "{{silver_medalists_csv_path}}"
+prompt: |
+  Using {{silver_medalists_csv_path}} (rejected candidates tagged as
+  runner-up, with role family and rejection date) and
+  {{open_reqs_csv_path}} (currently open reqs with role family), find
+  runner-up candidates rejected within the last {{reengagement_window_days}}
+  days whose role family now has a matching open req.
+  1. List each match: candidate, prior role, matching open req.
+  2. Rank matches by urgency — a candidate nearing the end of the
+     {{reengagement_window_days}}-day window (their memory of your process
+     is fading, or they may have taken another job) is highest priority.
+  3. Draft a short, warm personalized re-engagement note per match that
+     references the specific matching role, for a recruiter to review and
+     send.
+script_note: >
+  `command` produces the raw list of runner-up-to-open-req matches for zero
+  tokens. `prompt` additionally ranks matches by urgency and drafts a
+  personalized outreach note per candidate — judgment `command` can't do.
+variables:
+  silver_medalists_csv_path:
+    default: "./rejected-candidates.csv"
+    description: "Path to a CSV with columns: candidate_name,rejected_date (YYYY-MM-DD),role_family,rejection_reason (runner-up for a for-cause/fit rejection to be excluded)."
+  open_reqs_csv_path:
+    default: "./open-reqs.csv"
+    description: "Path to a CSV with columns: req_title,role_family,status (open/filled/on-hold)."
+  reengagement_window_days:
+    default: 180
+    description: Days after a runner-up rejection during which the candidate is still considered worth re-engaging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — actually reaching out is a recruiter decision, and only candidates explicitly tagged runner-up (not for-cause rejections) should ever be surfaced here.

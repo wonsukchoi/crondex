@@ -1,0 +1,41 @@
+id: pre-visit-intake-form-completion-check
+version: 1
+name: Pre-Visit Intake and Consent Form Completion Check
+description: >
+  Checks upcoming appointments for patients who haven't completed required
+  intake paperwork or consent forms yet, so the front desk can chase it
+  down before the visit instead of during check-in. Use this if a visit has
+  ever run late, or a procedure got delayed, because a patient showed up
+  without a completed intake packet or a required consent form on file.
+category: healthcare
+tags: [healthcare, intake, consent, appointments, patient-experience]
+schedule: "0 14 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{lookahead_days}}" '
+    NR==1 {next}
+    $4 == "complete" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      days_out = (appt_epoch - today) / 86400;
+      if (days_out >= 0 && days_out <= days) {
+        printf "INCOMPLETE PAPERWORK: %s — appointment %s (%d days out), forms status: %s\n", $1, $2, days_out, $4;
+      }
+    }
+  ' "{{appointments_intake_csv_path}}"
+variables:
+  appointments_intake_csv_path:
+    default: "./appointments-intake-status.csv"
+    description: "Path to a CSV with columns: patient_id,appointment_date (YYYY-MM-DD),appointment_type,intake_status (complete/partial/not-started)."
+  lookahead_days:
+    default: 2
+    description: How many days ahead of the appointment to check for incomplete intake/consent forms.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only status check over an already-exported intake-tracking export —
+  it flags who still needs to complete paperwork, it does not send the
+  forms or reminders itself; wire that to your patient-portal or
+  scheduling-system notification feature separately.

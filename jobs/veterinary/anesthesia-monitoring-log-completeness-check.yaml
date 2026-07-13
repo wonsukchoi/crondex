@@ -1,0 +1,48 @@
+id: anesthesia-monitoring-log-completeness-check
+version: 1
+name: Anesthesia Monitoring Log Completeness Check
+description: >
+  Checks yesterday's anesthetic procedure logs for missing required
+  vitals entries (heart rate, respiration, temperature, blood pressure)
+  at the expected monitoring intervals. Use this if an anesthesia record
+  has ever come up incomplete during a case review or malpractice
+  inquiry because vitals were being watched in the room but not actually
+  written down every interval.
+category: veterinary
+tags: [veterinary, anesthesia, monitoring, compliance, audit]
+schedule: "0 7 * * 2-6"
+timezone: "UTC"
+runner: shell
+command: >
+  yesterday=$(date -d "-1 day" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d);
+  awk -F',' -v yesterday="$yesterday" '
+    NR==1 {next}
+    $2 == yesterday {
+      missing = "";
+      if ($4 == "" || $4 == "0") missing = missing " heart-rate";
+      if ($5 == "" || $5 == "0") missing = missing " respiration";
+      if ($6 == "" || $6 == "0") missing = missing " temperature";
+      if ($7 == "" || $7 == "0") missing = missing " blood-pressure";
+      if (missing != "") {
+        print "INCOMPLETE VITALS: " $1 " (" $2 " " $3 ") missing:" missing;
+      }
+    }
+  ' "{{anesthesia_log_csv}}"
+
+variables:
+  anesthesia_log_csv:
+    default: "./anesthesia_log.csv"
+    description: >
+      Path to a CSV with one row per recorded monitoring interval,
+      columns: patient_name, procedure_date (YYYY-MM-DD), time_recorded,
+      heart_rate, respiration_rate, temperature, blood_pressure.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only structural check — it flags a blank or zero vitals field at
+  a logged interval, it does not evaluate whether the vitals themselves
+  were normal or whether monitoring frequency met protocol. Missing
+  entries should prompt a same-day correction by the attending team
+  while the case is still fresh, per standard anesthesia record-keeping
+  practice.

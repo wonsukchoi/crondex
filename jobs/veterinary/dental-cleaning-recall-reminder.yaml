@@ -1,0 +1,50 @@
+id: dental-cleaning-recall-reminder
+version: 1
+name: Dental Cleaning Recall Reminder
+description: >
+  Checks which patients are due or overdue for a professional dental
+  cleaning based on their last recorded cleaning date and lists them for
+  outreach. Use this if a pet has ever gone years past the recommended
+  dental interval because nobody was tracking cleaning dates separately
+  from vaccine due dates — distinct from pet-vaccine-due-reminder.yaml,
+  which tracks vaccines, not periodontal care cadence.
+category: veterinary
+tags: [veterinary, dental, patients, recall, reminder]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval_days="{{recall_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (last_epoch == "") next;
+      days_since = (now_epoch - last_epoch) / 86400;
+      if (days_since >= interval_days) {
+        print "DENTAL RECALL DUE: " $1 " — last cleaning " $2 " (" int(days_since) " days ago)";
+      }
+    }
+  ' "{{dental_history_csv}}"
+
+variables:
+  dental_history_csv:
+    default: "./dental_history.csv"
+    description: >
+      Path to a CSV with columns: patient_name, last_cleaning_date
+      (YYYY-MM-DD). One row per patient with at least one recorded
+      dental cleaning.
+  recall_interval_days:
+    default: 365
+    description: >
+      Days since the last cleaning after which a patient is flagged as
+      due for recall outreach (default: annual).
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only report. Recall interval is a general default — actual
+  interval varies by breed, dental grade, and vet recommendation, so
+  treat flagged patients as candidates for outreach, not an automatic
+  booking. Requires GNU or BSD `date` on PATH.

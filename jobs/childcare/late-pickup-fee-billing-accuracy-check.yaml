@@ -1,0 +1,52 @@
+id: late-pickup-fee-billing-accuracy-check
+version: 1
+name: Late Pickup Fee Billing Accuracy Check
+description: >
+  Compares each late pickup's actual time against the grace period and fee
+  schedule, and flags any record where the fee charged doesn't match what
+  the policy says it should be. Use this if a late pickup has ever gone
+  unbilled, or been billed the wrong amount, because nobody cross-checked
+  the sign-out log against the fee schedule — distinct from
+  tuition-payment-late-check, which tracks overdue recurring tuition rather
+  than a per-incident late-pickup fee.
+category: childcare
+tags: [childcare, billing, pickup, fees, accuracy]
+schedule: "0 19 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{grace_minutes}}" -v inc="{{fee_increment_minutes}}" -v rate="{{fee_per_increment}}" '
+    function to_minutes(t,   parts) {
+      split(t, parts, ":");
+      return (parts[1] * 60) + parts[2];
+    }
+    NR==1 {next}
+    {
+      scheduled = to_minutes($3);
+      actual = to_minutes($4);
+      late_minutes = actual - scheduled - grace;
+      expected_fee = 0;
+      if (late_minutes > 0) {
+        expected_fee = int((late_minutes + inc - 1) / inc) * rate;
+      }
+      charged = $5 + 0;
+      if (expected_fee != charged) {
+        printf "FEE MISMATCH: %s — %s pickup at %s (scheduled %s), expected $%.2f, charged $%.2f\n", $1, $2, $4, $3, expected_fee, charged;
+      }
+    }
+  ' "{{pickup_log_csv_path}}"
+variables:
+  pickup_log_csv_path:
+    default: "./late-pickup-log.csv"
+    description: "Path to a CSV with columns: child_id,pickup_date (YYYY-MM-DD),scheduled_end_time (HH:MM),actual_pickup_time (HH:MM),fee_charged (numeric, 0 if none)."
+  grace_minutes:
+    default: 10
+    description: Minutes past the scheduled end time before a late fee applies.
+  fee_increment_minutes:
+    default: 15
+    description: Billing increment your fee schedule charges per (e.g. $10 per 15 minutes or part thereof).
+  fee_per_increment:
+    default: 10
+    description: Dollar amount charged per increment of lateness.
+compatible_agents: [generic, claude, codex]
+notes: Flags a billing discrepancy, not a policy decision — confirm with the family-facing biller before adjusting an invoice, especially if the mismatch favors the center.

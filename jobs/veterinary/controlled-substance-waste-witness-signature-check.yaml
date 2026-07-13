@@ -1,0 +1,43 @@
+id: controlled-substance-waste-witness-signature-check
+version: 1
+name: Controlled Substance Waste Witness Signature Check
+description: >
+  Checks logged controlled-substance waste/disposal entries (e.g. a
+  partial-dose discard) for a required second-witness signature and
+  flags any that only have one signer. Use this if a controlled-drug
+  waste entry has ever gone through with only one person's initials on
+  it, which is exactly the kind of gap a DEA or board inspection flags
+  — distinct from controlled-substance-log-audit.yaml, which checks
+  running-balance reconciliation and gaps rather than the specific
+  two-signature requirement on waste entries.
+category: veterinary
+tags: [veterinary, controlled-substances, compliance, waste, audit]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $1 == today && $2 == "waste" {
+      if ($5 == "" || $6 == "" || $5 == $6) {
+        print "MISSING/INVALID WITNESS: " $3 " (" $4 ") waste entry on " $1 " — signer1=\"" $5 "\" signer2=\"" $6 "\"";
+      }
+    }
+  ' "{{controlled_substance_log_csv}}"
+
+variables:
+  controlled_substance_log_csv:
+    default: "./controlled_substance_log.csv"
+    description: >
+      Path to a CSV with columns: date (YYYY-MM-DD), entry_type (e.g.
+      administer, waste, count), substance, patient_or_case, signer1,
+      signer2. Waste entries are expected to have two distinct signers.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only compliance check specifically for the two-witness
+  requirement on controlled-substance waste/disposal, separate from
+  overall log reconciliation. A flagged entry needs the second witness
+  signature obtained and backfilled the same day, not just noted.

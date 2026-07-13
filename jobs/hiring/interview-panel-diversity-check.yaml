@@ -1,0 +1,41 @@
+id: interview-panel-diversity-check
+version: 1
+name: Interview Panel Diversity Check
+description: >
+  Reviews upcoming interview panel assignments against your panel-diversity
+  guideline and flags panels that don't meet it, in time to add a
+  substitute panelist before the interview happens. Use this if an
+  interview panel has ever gone out the door with every seat filled by the
+  same small rotation of interviewers, undermining a stated commitment to
+  varied panel composition.
+category: hiring
+tags: [hiring, interviews, diversity, panel-composition, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review interview panels scheduled in {{ats_system}} for the next
+  {{lookahead_days}} days against this panel-composition guideline:
+  {{diversity_guideline}}.
+  1. For each panel, note the assigned panelists and whether the guideline
+     is met, using only the aggregate representation categories your
+     organization already collects for this purpose — never infer or
+     record demographic characteristics yourself.
+  2. Flag panels that don't meet the guideline, and suggest which
+     already-certified interviewer (see interviewer-certification-check)
+     could be swapped in to fix it, if the roster allows.
+  3. If sensitive categories aren't tracked at all for panelists, say so
+     plainly instead of guessing, and recommend flagging it to HR/DEI
+     rather than acting on incomplete data.
+variables:
+  ats_system:
+    default: "your applicant tracking system or interview scheduling tool"
+    description: Where interview panel assignments are recorded.
+  lookahead_days:
+    default: 7
+    description: How far ahead to check upcoming panel assignments.
+  diversity_guideline:
+    default: "no panel of 3+ interviewers should be drawn entirely from one represented group"
+    description: Your organization's stated panel-composition guideline, in plain language.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Handles sensitive demographic data — use only aggregate categories your organization has already chosen to collect for this purpose, confirm the approach with legal/DEI before enabling, and never let this job infer or record anyone's demographic characteristics. Read-only and suggestion-only; swapping a panelist is a human decision.

@@ -1,0 +1,49 @@
+id: breeder-kennel-bulk-vaccination-compliance-check
+version: 1
+name: Breeder/Kennel Bulk-Client Vaccination Compliance Check
+description: >
+  Reviews commercial breeder and kennel accounts with multiple animals
+  on file and checks whether every animal in the litter or kennel group
+  is current on core vaccines, not just the ones brought in individually.
+  Use this if a breeder's litter has ever had some puppies vaccinated
+  and others quietly missed because tracking happened per-visit instead
+  of per-account — distinct from puppy-kitten-vaccine-series-compliance-check.yaml,
+  which tracks one individual patient's multi-dose series rather than
+  compliance across an entire bulk-client group.
+category: veterinary
+tags: [veterinary, vaccine, breeder, kennel, bulk-client, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the bulk-client roster export from {{practice_management_system}}
+  for accounts tagged as breeder or kennel (group size >
+  {{min_group_size}} animals under one account).
+  1. For each such account, list every animal on file and its current
+     core-vaccine status (rabies, distemper/parvo combo, or the
+     applicable species core panel).
+  2. Flag any account where at least one animal is current but one or
+     more littermates/kennel-mates are overdue or have no vaccine record
+     at all — this is the pattern worth catching, since it usually means
+     partial tracking rather than a genuine owner decision.
+  3. Summarize by account: animal count, number compliant, number
+     overdue/missing, and the specific animal IDs or names that need
+     outreach.
+
+variables:
+  practice_management_system:
+    default: "practice management export (e.g. CSV/API pull)"
+    description: Where the bulk-client animal roster and vaccine records live.
+  min_group_size:
+    default: 3
+    description: >
+      Minimum number of animals under one account before it's treated
+      as a breeder/kennel bulk-client group rather than a household with
+      a couple of pets.
+
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+
+notes: >
+  Read-only report for outreach prioritization. Does not contact the
+  breeder/kennel directly — hand the flagged list to front desk or
+  account management for follow-up.

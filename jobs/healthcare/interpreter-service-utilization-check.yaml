@@ -1,0 +1,41 @@
+id: interpreter-service-utilization-check
+version: 1
+name: Interpreter Service Utilization Compliance Check
+description: >
+  Checks visits for patients with a documented non-English language
+  preference against whether a qualified interpreter (in-person, phone, or
+  video) was logged for that encounter. Use this if a language-access
+  requirement has ever been missed — a patient with limited English
+  proficiency seen without an interpreter logged — a compliance and
+  quality-of-care gap that's easy to lose track of visit by visit.
+category: healthcare
+tags: [healthcare, language-access, interpreter, compliance, patient-experience]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2 != "" && $2 != "english" && $3 == "no" {
+      printf "MISSING INTERPRETER LOG: %s — visit %s, preferred language: %s\n", $1, $4, $2;
+      missing++;
+    }
+    { total_lep++ }
+    END {
+      printf "SUMMARY: %d of %d limited-English-preference visits missing an interpreter log\n", missing+0, total_lep+0;
+    }
+  ' "{{visits_language_csv_path}}"
+variables:
+  visits_language_csv_path:
+    default: "./visits-language-preference.csv"
+    description: "Path to a CSV of visits for patients with a non-English language preference, columns: patient_id,preferred_language,interpreter_logged (yes/no),visit_date (YYYY-MM-DD)."
+  reporting_period_label:
+    default: "weekly"
+    description: Label only, for reference in output/logging — how often this job's window is expected to run (e.g. weekly, monthly).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance backstop over an already-filtered export limited to
+  patients with a documented non-English language preference — it does not
+  pull broader demographic data, contact patients, or book interpreter
+  services itself. A gap found here should route to whoever owns your
+  practice's language-access policy, not directly to the patient.

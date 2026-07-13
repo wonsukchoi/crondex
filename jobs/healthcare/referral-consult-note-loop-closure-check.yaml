@@ -1,0 +1,45 @@
+id: referral-consult-note-loop-closure-check
+version: 1
+name: Referral Consult Note Loop-Closure Check
+description: >
+  Checks referrals where the specialist visit already happened but no
+  consult note or report has come back to close the loop. Use this if a
+  patient has ever been referred out, actually seen the specialist, and the
+  referring practice never got the note back — leaving the primary chart
+  without follow-up findings and nobody noticing until the next visit.
+category: healthcare
+tags: [healthcare, referrals, care-coordination, consult-notes, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{stale_days_after_visit}}" '
+    NR==1 {next}
+    $4 == "" {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      days_since = (today - visit_epoch) / 86400;
+      if (days_since >= days) {
+        printf "MISSING CONSULT NOTE: %s -> %s — visit completed %s (%d days ago), no note received\n", $1, $2, $4, days_since;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./referrals.csv"
+    description: "Path to a CSV with columns: patient_id,specialist_name,referral_sent_date (YYYY-MM-DD),visit_completed_date (blank if visit hasn't happened),consult_note_received_date (blank if not yet received)."
+  stale_days_after_visit:
+    default: 10
+    description: Days since the specialist visit happened before a missing consult note gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from referral-pending-followup-check, which flags a referral that
+  was never even scheduled — this job only fires after the specialist visit
+  has already occurred, to catch the loop-closure step (getting the findings
+  back) that a scheduled-but-unread referral can otherwise hide. Assumes an
+  already-exported CSV keyed by patient_id rather than name, and read-only —
+  it does not fax, email, or otherwise request the note from the specialist
+  itself; that outreach is a separate human step.

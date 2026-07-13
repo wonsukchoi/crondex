@@ -1,0 +1,43 @@
+id: patient-safety-incident-report-followup-check
+version: 1
+name: Patient Safety Incident Report Follow-Up Check
+description: >
+  Reviews logged patient safety incidents (falls, medication errors, wrong-
+  site near-misses, equipment failures) for ones still missing a root-cause
+  review, corrective action, or required regulatory notification. Use this
+  if an incident report has ever sat "filed" in a binder with nobody
+  confirming the actual follow-up — a root-cause review, a corrective
+  action, a required notification — ever happened.
+category: healthcare
+tags: [healthcare, patient-safety, incident-report, risk-management, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the incident report log from {{incident_log_source}} for reports
+  logged in the last {{lookback_days}} days.
+  1. For each report, check whether it has: a documented root-cause review,
+     a corrective action or plan, and (for reportable severity levels) a
+     note that any required regulatory or insurer notification was made.
+  2. Flag any report missing one or more of those, and how many days it's
+     been open without them.
+  3. Sort by severity first (highest severity + missing follow-up at the
+     top), then by age.
+  4. Do not assess clinical fault or diagnose what caused the incident —
+     only report which administrative follow-up steps are missing.
+  5. If every open report has its follow-up steps documented, say so in one
+     line.
+variables:
+  incident_log_source:
+    default: "your incident/event reporting system"
+    description: Where patient safety incident reports are logged (e.g. a risk-management module, a shared incident log spreadsheet).
+  lookback_days:
+    default: 30
+    description: How many days back to review incident reports for missing follow-up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Administrative tracking only — not a clinical review or a substitute for
+  your practice's actual risk-management/patient-safety process, and it
+  never contacts a patient or family. Read-only over de-identified or
+  already-logged incident data; anything flagged should route to your risk
+  manager or compliance officer.

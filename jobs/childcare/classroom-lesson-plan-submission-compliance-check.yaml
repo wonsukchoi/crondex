@@ -1,0 +1,31 @@
+id: classroom-lesson-plan-submission-compliance-check
+version: 1
+name: Classroom Lesson Plan Submission Compliance Check
+description: >
+  Checks whether each classroom's weekly curriculum/lesson plan has been
+  submitted for the current week and flags any classroom still missing
+  one. Use this if a classroom has ever gone into a new week without a
+  posted lesson plan because it fell through the cracks during a busy
+  Friday — something licensing inspectors and accreditation reviewers
+  routinely check for.
+category: childcare
+tags: [childcare, curriculum, lesson-plan, classroom, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  week_start=$(date +%Y-%m-%d);
+  awk -F',' -v week="$week_start" '
+    NR==1 {next}
+    $1 == week {
+      if ($3 == "" ) {
+        printf "MISSING LESSON PLAN: %s — week of %s not yet submitted\n", $2, $1;
+      }
+    }
+  ' "{{lesson_plan_log_csv_path}}"
+variables:
+  lesson_plan_log_csv_path:
+    default: "./classroom-lesson-plans.csv"
+    description: "Path to a CSV with columns: week_start_date (YYYY-MM-DD),classroom,submitted_date_or_blank. Pre-create one row per classroom per week; leave submitted_date blank until turned in."
+compatible_agents: [generic, claude, codex]
+notes: Requires a row to already exist for each classroom for the current week (blank until submitted) — if your workflow only creates a row once a plan is turned in, adapt the check to compare against a separate classroom roster instead.

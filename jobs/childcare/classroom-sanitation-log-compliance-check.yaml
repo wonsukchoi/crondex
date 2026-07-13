@@ -1,0 +1,38 @@
+id: classroom-sanitation-log-compliance-check
+version: 1
+name: Classroom Sanitation Log Compliance Check
+description: >
+  Checks each classroom's daily toy, table, and surface cleaning log against
+  the required number of logged cleanings and flags any classroom that's
+  short today. Use this if a classroom has ever gone a full day without
+  toys or high-touch surfaces actually getting sanitized because a busy
+  shift meant the log — and the task — got skipped.
+category: childcare
+tags: [childcare, sanitation, cleaning, health, compliance]
+schedule: "0 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" -v required="{{required_cleanings_per_day}}" '
+    NR==1 {next}
+    $1 == today {
+      count[$2]++;
+    }
+    END {
+      for (room in count) {
+        if (count[room] < required) {
+          printf "INCOMPLETE: %s — %d of %d required sanitation log entries today\n", room, count[room], required;
+        }
+      }
+    }
+  ' "{{sanitation_log_csv_path}}"
+variables:
+  sanitation_log_csv_path:
+    default: "./classroom-sanitation-log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),classroom,area (toys, tables, bathroom, etc.),cleaned_time,staff_initials. One row per logged cleaning."
+  required_cleanings_per_day:
+    default: 3
+    description: How many logged sanitation entries are expected per classroom per day.
+compatible_agents: [generic, claude, codex]
+notes: This checks that the log was filled in, not that the cleaning itself happened — pair it with occasional in-person spot checks rather than relying on the log alone.

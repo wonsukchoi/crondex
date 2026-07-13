@@ -63,6 +63,82 @@ No install needed — `npx` always runs against the latest catalog.
 
 ---
 
+## Use as an MCP server
+
+Skip the shell-out entirely — register crondex as an MCP server and your
+agent gets `recommend`/`list`/`categories`/`show`/`next` as native tools
+instead of invoking a CLI. Read-only: no filesystem writes, no crontab
+access.
+
+Claude Code:
+
+```bash
+claude mcp add crondex -- npx -y @wonsukchoi/crondex mcp
+```
+
+Any other MCP client (e.g. `.mcp.json`, Claude Desktop's config):
+
+```json
+{
+  "mcpServers": {
+    "crondex": {
+      "command": "npx",
+      "args": ["-y", "@wonsukchoi/crondex", "mcp"]
+    }
+  }
+}
+```
+
+Tools exposed: `crondex_recommend`, `crondex_list`, `crondex_categories`,
+`crondex_show`, `crondex_next_runs` — each returns the same JSON shape as
+the matching CLI command's `--json` flag.
+
+### Running it from a local clone (before it's published)
+
+The `npx` commands above pull from npm — until this version is actually
+published, point your MCP client at your local clone instead. Works the
+same on macOS/Linux/WSL, just swap in your own path.
+
+```bash
+git clone https://github.com/wonsukchoi/crondex.git
+cd crondex
+npm install
+```
+
+Claude Code — point it straight at the local entrypoint (use the real
+absolute path; `$(pwd)/bin/crondex.js` works from inside the repo):
+
+```bash
+claude mcp add crondex -- node "$(pwd)/bin/crondex.js" mcp
+```
+
+Any other MCP client (`.mcp.json`, Claude Desktop's config — on macOS
+that's `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "crondex": {
+      "command": "node",
+      "args": ["/absolute/path/to/crondex/bin/crondex.js", "mcp"]
+    }
+  }
+}
+```
+
+Editing a job YAML or `lib/mcp-server.js` takes effect on the next server
+restart — no reinstall/relink needed, since the client is just running
+your working tree directly. Restart the server (or reconnect the client)
+after any change to pick it up.
+
+Prefer a plain `crondex` command instead of a hardcoded path? Run `npm
+link` once from the repo root — it symlinks a global `crondex` onto your
+`PATH` pointing at this clone — then use `claude mcp add crondex --
+crondex mcp` / `"command": "crondex", "args": ["mcp"]` instead. `npm
+unlink -g @wonsukchoi/crondex` undoes it.
+
+---
+
 ## What's in a job
 
 Every job is one YAML file:

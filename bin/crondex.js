@@ -79,6 +79,7 @@ Usage:
                       [--var name=value ...] [--dest <path>] [--install]
   crondex deploy --list-installed [--json]
   crondex uninstall <id>
+  crondex mcp
 
 Examples:
   crondex list --category devops
@@ -100,6 +101,13 @@ Examples:
   crondex deploy repo-health-check --target cloud-scheduler
   crondex deploy --list-installed
   crondex uninstall ssl-cert-expiry-check
+  crondex mcp
+
+mcp starts crondex as an MCP server over stdio, exposing recommend/list/
+categories/show/next as tools (crondex_recommend, crondex_list,
+crondex_categories, crondex_show, crondex_next_runs) — read-only, no
+filesystem writes, no crontab access. Configure your MCP client to run
+\`npx -y ${PKG.name} mcp\`. See the README for client config snippets.
 
 next prints the next N run times (default 5) for a job's schedule, in its
 declared timezone (or your system timezone if the job doesn't set one) —
@@ -506,6 +514,11 @@ switch (cmd) {
       process.exit(1);
     }
     update(args[0]);
+    break;
+  case "mcp":
+    // Dynamic import so @modelcontextprotocol/sdk/zod only load into memory for this
+    // command — every other command stays as fast/zero-token as it is today.
+    import("../lib/mcp-server.js").then((m) => m.startMcpServer());
     break;
   default:
     printHelp();

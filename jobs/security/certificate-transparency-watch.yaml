@@ -1,5 +1,5 @@
 id: certificate-transparency-watch
-version: 1
+version: 2
 name: Certificate Transparency Watch
 description: >
   Checks public Certificate Transparency logs for new TLS certs issued
@@ -13,7 +13,7 @@ timezone: "UTC"
 runner: shell
 command: >
   domain={{domain}}; state={{state_file}};
-  current=$(curl -s "https://crt.sh/?q=${domain}&output=json" | grep -o '"id":[0-9]*' | sort -u);
+  current=$(curl -s --max-time 30 "https://crt.sh/?q=${domain}&output=json" | grep -o '"id":[0-9]*' | sort -u);
   if [ ! -f "$state" ]; then echo "$current" > "$state"; echo "no baseline found — saved current cert IDs as the baseline ($(echo "$current" | wc -l | tr -d ' ') certs)"; exit 0; fi;
   new=$(comm -13 <(sort "$state") <(echo "$current" | sort));
   if [ -n "$new" ]; then echo "NEW CERT(S) issued for $domain since last check:"; echo "$new"; echo "$current" > "$state";

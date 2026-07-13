@@ -1,0 +1,39 @@
+id: cross-border-broker-fee-audit
+version: 1
+name: Cross-Border Customs Broker Fee Audit
+description: >
+  Compares a customs broker's billed entry fees against your contracted
+  fee schedule and flags overcharges. Use this if a customs broker has
+  ever quietly billed extra "disbursement" or "entry processing" line
+  items above the agreed schedule and it only got caught during an
+  annual trade-compliance review.
+category: logistics
+tags: [logistics, customs, broker, billing, audit, cross-border]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{overcharge_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      entry_id=$1; contracted=$2; billed=$3;
+      if (contracted <= 0) next;
+      pct_over = ((billed - contracted) / contracted) * 100;
+      if (pct_over > tolerance) {
+        printf "OVERCHARGE: entry %s — billed $%.2f vs contracted $%.2f (%.1f%% over, tolerance %d%%)\n", entry_id, billed, contracted, pct_over, tolerance;
+      }
+    }
+  ' "{{broker_invoices_csv_path}}"
+variables:
+  broker_invoices_csv_path:
+    default: "./customs-broker-invoices.csv"
+    description: "Path to a CSV with columns: entry_id,contracted_fee,billed_fee — one row per customs entry, export from your customs broker's invoice or your AP system."
+  overcharge_tolerance_pct:
+    default: 5
+    description: Percent above the contracted fee schedule allowed before flagging as an overcharge worth disputing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks customs broker fee billing (entry/disbursement/processing fees)
+  against your contracted fee schedule — distinct from
+  freight-invoice-rate-audit, which audits carrier linehaul freight
+  invoices rather than customs brokerage charges.

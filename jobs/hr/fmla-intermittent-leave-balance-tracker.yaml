@@ -1,0 +1,43 @@
+id: fmla-intermittent-leave-balance-tracker
+version: 1
+name: FMLA Intermittent Leave Balance Tracker
+description: >
+  Tracks each employee's intermittent or reduced-schedule FMLA hours used
+  against their certified 12-month allotment and flags anyone approaching
+  exhaustion. Use this if intermittent FMLA usage has ever crept past
+  someone's certified allotment without payroll or the manager noticing
+  until a timesheet dispute came up.
+category: hr
+tags: [hr, fmla, intermittent-leave, compliance, leave-of-absence]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v pct="{{warn_usage_pct}}" '
+    NR==1 {next}
+    {
+      allotment=$2+0; used=$3+0;
+      if (allotment <= 0) next;
+      usage_pct = (used/allotment)*100;
+      if (usage_pct >= pct) {
+        printf "FMLA HOURS NEARING EXHAUSTION: %s — %.1f of %.1f certified hours used (%.0f%%), certification ends %s\n", $1, used, allotment, usage_pct, $4;
+      }
+    }
+  ' "{{fmla_intermittent_csv_path}}"
+variables:
+  fmla_intermittent_csv_path:
+    default: "./fmla-intermittent-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,certified_hours_allotment,hours_used_ytd,certification_period_end_date (YYYY-MM-DD)."
+  warn_usage_pct:
+    default: 80
+    description: Percent of certified allotment used before an employee is flagged as approaching exhaustion.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from leave-of-absence-return-tracker, which covers continuous
+  block leave and expected return dates, not hour-by-hour intermittent
+  usage against a rolling entitlement. Assumes a maintained export of
+  certified intermittent FMLA allotments and hours used, commonly tracked
+  in a leave-administration platform or timesheet system. This is a
+  usage-threshold backstop, not a substitute for the legally required
+  FMLA certification/recertification process — route anyone nearing
+  exhaustion to HR/leave administration, not directly to the employee.

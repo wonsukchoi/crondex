@@ -1,0 +1,47 @@
+id: open-enrollment-exception-tracker
+version: 1
+name: Open Enrollment Exception Tracker
+description: >
+  Scans processed open-enrollment elections for exceptions — carrier
+  rejections or elections that never synced to payroll — that need manual
+  cleanup before the plan year starts. Use this if an enrollment election
+  has ever "gone through" on the employee's end but silently failed to
+  reach payroll or the carrier, and nobody found out until the first
+  paycheck or a denied claim.
+category: hr
+tags: [hr, benefits, open-enrollment, data-quality, payroll]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v stale="{{stale_days}}" '
+    NR==1 {next}
+    $3 == "rejected" {
+      printf "ENROLLMENT EXCEPTION: %s — %s election rejected (%s)\n", $1, $2, $4;
+      next;
+    }
+    $3 == "payroll-synced" || $3 == "carrier-confirmed" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline updated_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_stale = (now_epoch - updated_epoch) / 86400;
+      if (days_stale >= stale) {
+        printf "ENROLLMENT STALLED: %s — %s election status \"%s\" unchanged for %d day(s)\n", $1, $2, $3, days_stale;
+      }
+    }
+  ' "{{enrollment_status_csv_path}}"
+variables:
+  enrollment_status_csv_path:
+    default: "./open-enrollment-status.csv"
+    description: "Path to a CSV with columns: employee_name,plan,election_status (submitted/carrier-confirmed/rejected/payroll-synced),exception_reason (blank unless rejected),last_updated_date (YYYY-MM-DD). Adjust status values to match your platform's actual vocabulary."
+  stale_days:
+    default: 5
+    description: Days a submitted-but-not-yet-synced election can sit unchanged before it's flagged as stalled.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from benefits-enrollment-deadline-reminder, which chases
+  employees who haven't submitted elections at all before the deadline —
+  this checks elections that were already submitted for processing
+  exceptions afterward. Assumes a maintained export reconciling the
+  benefits platform, carrier feed, and payroll sync status per election.

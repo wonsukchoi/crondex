@@ -1,0 +1,42 @@
+id: salary-band-compression-check
+version: 1
+name: Salary Band Compression Check
+description: >
+  Flags cases where a newer or shorter-tenured employee's pay is at or
+  above a longer-tenured peer's pay within the same role. Use this if a
+  market-rate new hire has ever been paid more than a veteran on the same
+  team doing the same job, and it only became a retention problem after
+  the veteran found out from a coworker.
+category: hr
+tags: [hr, compensation, pay-compression, salary-bands, retention]
+schedule: "0 9 1 2,5,8,11 *"
+timezone: "UTC"
+runner: shell
+command: >
+  tail -n +2 "{{salary_csv_path}}" | sort -t',' -k2,2 -k3,3 | awk -F',' -v threshold="{{compression_threshold_pct}}" '
+    {
+      role=$2; hire=$3; salary=$4+0; name=$1;
+      if (role == prev_role && prev_salary > 0 && salary >= prev_salary * (1 - threshold/100)) {
+        printf "COMPRESSION: %s (hired %s, $%d) pay is within %d%% of more-tenured %s (hired %s, $%d) in role \"%s\"\n", name, hire, salary, threshold, prev_name, prev_hire, prev_salary, role;
+      }
+      prev_role=role; prev_salary=salary; prev_name=name; prev_hire=hire;
+    }
+  '
+variables:
+  salary_csv_path:
+    default: "./salary-tenure.csv"
+    description: "Path to a CSV with columns: employee_name,role,hire_date (YYYY-MM-DD),current_salary. Sorted by role then hire_date before comparing adjacent tenure pairs within each role."
+  compression_threshold_pct:
+    default: 5
+    description: How close (in percent) a junior person's pay can be to a more senior peer's pay before it's flagged as compression (0 would only flag equal-or-above pay).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Sorts hire_date as a plain string, which only sorts correctly if every
+  row uses the same YYYY-MM-DD format. Compares each employee only to the
+  next-most-tenured peer in the same role, not every pair, so it catches
+  the common case but not every possible compression relationship in a
+  large role group. This is a tenure-vs-pay signal, not a definitive
+  compensation ruling — distinct from pay-equity-band-outlier-check,
+  which flags pay outside a role's band min/max rather than pay ordering
+  by tenure. Route flagged pairs to a comp analyst before adjusting
+  anyone's pay.

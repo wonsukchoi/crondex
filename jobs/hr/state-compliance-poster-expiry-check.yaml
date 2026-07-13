@@ -1,0 +1,44 @@
+id: state-compliance-poster-expiry-check
+version: 1
+name: State Compliance Poster/Notice Expiry Check
+description: >
+  Checks your per-location labor-law poster and notice inventory for
+  postings that haven't been reviewed in a while, so a new state or
+  federal notice release doesn't sit unposted at a work site or
+  remote-hub mailing address. Use this if a required break-room poster or
+  state notice has ever gone stale for months because nobody was tracking
+  posting/update dates location by location.
+category: hr
+tags: [hr, compliance, labor-law-posters, multi-state]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_age="{{max_age_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline updated_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - updated_epoch) / 86400;
+      if (age_days >= max_age) {
+        printf "POSTER REVIEW DUE: %s (%s) — last updated %s (%d days ago), version %s\n", $1, $2, $4, age_days, $3;
+      }
+    }
+  ' "{{poster_tracking_csv_path}}"
+variables:
+  poster_tracking_csv_path:
+    default: "./labor-law-poster-tracking.csv"
+    description: "Path to a CSV with columns: location_name,state,poster_set_version,last_updated_date (YYYY-MM-DD). One row per physical location or mailing address required to post notices."
+  max_age_days:
+    default: 365
+    description: Days since a location's poster set was last reviewed/updated before it's flagged for a fresh check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This only flags postings that haven't been reviewed recently — it has
+  no way of knowing whether a state has actually released a new
+  mandatory poster. Pair it with a subscription to a poster-compliance
+  update service (many state labor departments also publish notice
+  changes directly) rather than relying solely on the max_age_days
+  default, since some states update requirements more or less often than
+  annually.

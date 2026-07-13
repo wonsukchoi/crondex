@@ -1,0 +1,46 @@
+id: security-log-retention-gap-check
+version: 1
+name: Security Log Retention Gap Check
+description: >
+  Checks that your security log exports (SIEM, CloudTrail, audit-trail
+  dumps) have a continuous daily file for every day in your required
+  retention window and flags any missing day. Use this if you've ever
+  needed logs from three months ago for an investigation or audit and
+  found a silent export-job gap right in the middle of the window.
+category: security
+tags: [security, audit-log, log-retention, compliance, siem]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  log_dir={{log_export_dir}}; retention_days={{required_retention_days}}; template={{file_name_template}};
+  [ -d "$log_dir" ] || { echo "ERROR: $log_dir not found"; exit 1; };
+  missing=0; i=0;
+  while [ "$i" -lt "$retention_days" ]; do
+    d=$(date -d "-$i days" +%Y-%m-%d 2>/dev/null || date -v-"${i}"d +%Y-%m-%d);
+    f=${template//\{date\}/$d};
+    if [ ! -f "$log_dir/$f" ]; then echo "GAP: no log export found for $d (expected $log_dir/$f)"; missing=$((missing+1)); fi;
+    i=$((i+1));
+  done;
+  if [ "$missing" -eq 0 ]; then echo "OK: no gaps found in the last $retention_days days of security log exports in $log_dir";
+  else echo "$missing day(s) missing out of the last $retention_days days — see GAP lines above"; exit 1; fi
+variables:
+  log_export_dir:
+    default: "/var/log/security-exports"
+    description: Directory containing daily security log export files (SIEM/CloudTrail/audit-log exports), one file per day.
+  required_retention_days:
+    default: 90
+    description: Number of days of continuous daily log exports required by your policy or compliance framework.
+  file_name_template:
+    default: "{date}.log"
+    description: Filename pattern for each day's export, with {date} as a YYYY-MM-DD placeholder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from public-records-retention-purge-check (government
+  category, which flags physical/document records past their retention
+  period for purge) — this checks technical security log continuity, i.e.
+  proving you have unbroken logs, not flagging old ones for deletion. Assumes
+  one export file per day named by date; adjust `file_name_template` to
+  match your actual export job's naming. This job only reports gaps for a
+  human to investigate; it does not regenerate or backfill any missing
+  export itself.

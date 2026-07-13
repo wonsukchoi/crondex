@@ -1,0 +1,44 @@
+id: badge-access-terminated-employee-check
+version: 1
+name: Badge Access Terminated Employee Check
+description: >
+  Compares your physical badge/door access export against your terminated
+  employee roster and flags any badge still marked active for someone who
+  has already left. Use this if a departed employee's badge has ever kept
+  working on the front door for weeks after their last day because
+  offboarding cleaned up their laptop and SSO but nobody told building
+  security.
+category: security
+tags: [security, physical-security, badge-access, offboarding]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  badges={{badge_export_csv}}; terminated={{terminated_roster_csv}};
+  [ -f "$badges" ] || { echo "ERROR: $badges not found"; exit 1; };
+  [ -f "$terminated" ] || { echo "ERROR: $terminated not found"; exit 1; };
+  hits=$(awk -F, 'NR==FNR { if (NR>1) term[tolower($2)]=$1; next }
+    FNR>1 {
+      email=tolower($2); status=$3;
+      if (email in term && status == "active") {
+        print "WARNING: badge for " $1 " (" $2 ") is still active — terminated per roster (" term[email] ")";
+      }
+    }' "$terminated" "$badges");
+  if [ -z "$hits" ]; then echo "OK: no active badges found for terminated employees"; else echo "$hits"; fi
+variables:
+  badge_export_csv:
+    default: "badge-access.csv"
+    description: "CSV export from your access-control/badge system, columns: badge_holder,email,status (active/inactive)."
+  terminated_roster_csv:
+    default: "terminated-employees.csv"
+    description: "CSV of terminated employees, columns: name,email,termination_date(YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Keep both CSVs updated from your actual badge system export
+  (Lenel, Verkada, Kisi, Brivo, etc.) and HR termination roster — this job
+  only compares files, it doesn't call any API. Distinct from
+  offboarded-employee-access-audit.yaml, which covers digital/system access
+  grants across IAM and SaaS apps — physical badge access is almost always
+  managed in a completely separate system and easy to forget during
+  offboarding. This job only flags active badges for a human to deactivate;
+  it does not disable any badge itself.

@@ -1,0 +1,37 @@
+id: corporate-relocation-contract-renewal-check
+version: 1
+name: Corporate Relocation Contract Renewal Check
+description: >
+  Checks corporate and relocation-management-company contracts against
+  their renewal or expiry date and flags any coming up within your notice
+  window. Use this if a corporate account has ever auto-lapsed or gotten
+  scooped up by a competitor bid simply because nobody reached out before
+  the contract expired.
+category: moving-relocation
+tags: [moving-relocation, corporate-accounts, contracts, renewals, account-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{notice_window_days}}" '
+    NR==1 {next}
+    {
+      account=$1; company=$2; expiry=$3; owner=$4;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline epoch; close(cmd);
+      days_left = (epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "RENEWAL DUE: %s (%s) — expires %s (%.0f days left), owner: %s\n", account, company, expiry, days_left, owner;
+      }
+    }
+  ' "{{contracts_csv_path}}"
+variables:
+  contracts_csv_path:
+    default: "./corporate-relocation-contracts.csv"
+    description: "Path to a CSV with columns: account_id,company_name,expiry_date (YYYY-MM-DD),account_owner — one row per corporate or relocation-management-company (RMC) contract."
+  notice_window_days:
+    default: 60
+    description: Flag a contract as due for renewal outreach when its expiry date is within this many days.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes contract expiry dates are exported or kept up to date in the CSV before this runs.

@@ -107,7 +107,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1245 jobs across 59 categories:
+1313 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -122,7 +122,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `creator` | 20 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
-| `ecommerce` | 20 | Storefront ops — carts, stock, returns, reviews. |
+| `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 20 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 20 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
@@ -136,16 +136,17 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hiring` | 20 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 20 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 20 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
-| `hr` | 20 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 20 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 20 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 20 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 20 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 20 | Shipping ops — customs, freight, delays, fees. |
+| `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
+| `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 20 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
@@ -158,7 +159,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 20 | Security posture — keys, certs, access, scans, firewalls. |
+| `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 20 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |

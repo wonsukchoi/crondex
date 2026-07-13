@@ -1,0 +1,46 @@
+id: immigration-case-renewal-tracker
+version: 1
+name: Immigration Case Renewal Tracker
+description: >
+  Tracks sponsored employees' visa/immigration case status (H-1B, TN,
+  OPT/STEM extension, green card stage, etc.) against upcoming expiration
+  dates and warns with enough lead time to start filing an extension. Use
+  this if a visa extension has ever gotten uncomfortably close to the
+  expiration date because nobody outside the employee and the immigration
+  attorney was watching the calendar.
+category: hr
+tags: [hr, immigration, visa, work-authorization, compliance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "IMMIGRATION CASE ACTION NEEDED: %s — %s status expires %s (%d days), status: %s\n", $1, $2, $3, diff_days, $4;
+      }
+    }
+  ' "{{immigration_case_csv_path}}"
+variables:
+  immigration_case_csv_path:
+    default: "./immigration-case-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,visa_type,expiration_date (YYYY-MM-DD),case_status (e.g. filed/pending/approved/needs-extension)."
+  warn_days_before:
+    default: 180
+    description: How many days before expiration to start warning — set generously since immigration petitions can take months to prepare and adjudicate.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from i9-reverification-deadline-check, which flags updating
+  the I-9 form itself when a work-authorization document expires — this
+  tracks the underlying immigration case/petition (an H-1B extension, TN
+  renewal, OPT/STEM extension, green card stage, etc.) that the I-9
+  reverification assumes is already resolved. Confirm actual filing lead
+  times with immigration counsel; USCIS processing times vary by visa
+  type and service center, so 180 days is a conservative default, not a
+  guarantee. Read-only — filing anything is for the employee and your
+  immigration attorney.

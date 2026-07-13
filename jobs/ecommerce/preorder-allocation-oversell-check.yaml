@@ -1,0 +1,43 @@
+id: preorder-allocation-oversell-check
+version: 1
+name: Preorder Allocation Oversell Check
+description: >
+  Compares preorders taken for a not-yet-arrived product against the
+  units your supplier has actually confirmed and allocated, and flags any
+  SKU that's oversold or getting close to it. Use this if a preorder
+  campaign has ever taken more orders than the incoming shipment could
+  actually cover, leaving you to cancel or delay orders after taking
+  people's money.
+category: ecommerce
+tags: [ecommerce, preorders, inventory, allocation, launch]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer="{{warn_buffer_pct}}" '
+    NR==1 {next}
+    {
+      sku=$1; preorders=$2; allocated=$3; arrival=$4;
+      if (allocated+0 <= 0) next;
+      pct = preorders / allocated * 100;
+      if (preorders+0 > allocated+0) {
+        printf "OVERSOLD: %s — %d preorders vs %d allocated units (%d short), expected %s\n", sku, preorders, allocated, preorders-allocated, arrival;
+      } else if (pct >= buffer) {
+        printf "APPROACHING LIMIT: %s — %d of %d allocated units preordered (%.0f%%), expected %s\n", sku, preorders, allocated, pct, arrival;
+      }
+    }
+  ' "{{preorder_allocation_csv_path}}"
+variables:
+  preorder_allocation_csv_path:
+    default: "./preorder-allocations.csv"
+    description: "Path to a CSV with columns: sku,preorders_taken,allocated_incoming_units,expected_arrival_date (YYYY-MM-DD) — update allocated_incoming_units whenever your supplier confirms a shipment quantity."
+  warn_buffer_pct:
+    default: 90
+    description: Percent of allocated units preordered at which to give an early warning before the SKU actually oversells.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `low-stock-reorder-alert` (existing on-hand stock
+  velocity) and `bundle-component-stock-mismatch-check` — this is
+  specifically about promised-but-not-yet-received allocation for
+  preorder/pre-launch products, where overselling means a broken promise
+  to a paying customer rather than just a stockout.

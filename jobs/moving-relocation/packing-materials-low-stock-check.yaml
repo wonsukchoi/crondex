@@ -1,0 +1,33 @@
+id: packing-materials-low-stock-check
+version: 1
+name: Packing Materials Low-Stock Check
+description: >
+  Checks packing supply inventory (boxes, tape, moving blankets, shrink
+  wrap) against each item's reorder threshold and flags what needs to be
+  reordered. Use this if a crew has ever shown up to load a truck and
+  found the warehouse was already low on wardrobe boxes or tape right
+  before a busy move week.
+category: moving-relocation
+tags: [moving-relocation, inventory, packing-supplies, reorder]
+schedule: "0 6 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v default_min="{{default_reorder_threshold}}" '
+    NR==1 {next}
+    {
+      min_qty = ($3 != "") ? $3 : default_min;
+      if ($2+0 <= min_qty+0) {
+        printf "LOW STOCK: %s — %s on hand (reorder threshold %s)\n", $1, $2, min_qty;
+      }
+    }
+  ' "{{packing_inventory_csv_path}}"
+variables:
+  packing_inventory_csv_path:
+    default: "./packing-materials-inventory.csv"
+    description: "Path to a CSV with columns: item_name,quantity_on_hand,reorder_threshold (blank to use the default)."
+  default_reorder_threshold:
+    default: 25
+    description: Default reorder threshold applied when an item has no per-row threshold, in whatever unit your inventory sheet uses (each, roll, bundle).
+compatible_agents: [generic, claude, codex]
+notes: Place the reorder with your supplier once flagged — this job only surfaces the shortage, it doesn't place orders.

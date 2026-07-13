@@ -1,0 +1,46 @@
+id: 401k-match-true-up-check
+version: 1
+name: 401(k) Employer Match True-Up Check
+description: >
+  Compares each employee's actual year-to-date employer 401(k) match
+  against what full-year match they'd be entitled to under your plan
+  formula, and flags anyone shorted — commonly employees who front-load
+  contributions, hit the IRS deferral limit early in the year, and
+  quietly stop getting per-paycheck match in later months. Use this if
+  your plan doesn't run an automatic true-up and a fast-maxing employee
+  has ever missed months of match they were otherwise entitled to.
+category: hr
+tags: [hr, 401k, retirement, payroll, benefits]
+schedule: "0 9 1 11,12,1 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      comp=$2+0; pct=$3+0; received=$4+0;
+      expected = comp * pct;
+      shortfall = expected - received;
+      if (expected > 0 && shortfall > expected * (tol/100)) {
+        printf "TRUE-UP OWED: %s — expected match $%.2f, received $%.2f, shortfall $%.2f\n", $1, expected, received, shortfall;
+      }
+    }
+  ' "{{match_tracking_csv_path}}"
+variables:
+  match_tracking_csv_path:
+    default: "./401k-match-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,eligible_compensation,match_formula_pct (decimal, e.g. 0.04 for 4%),match_received_ytd."
+  tolerance_pct:
+    default: 2
+    description: Percent of expected match allowed as rounding slack before a shortfall is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your plan document entitles employees to the full-year match
+  regardless of when contributions were made during the year — many
+  plans do, but some calculate match strictly per-pay-period with no
+  true-up at all. Confirm your specific plan's match computation method
+  with your recordkeeper/plan administrator before treating any flagged
+  shortfall as an actual true-up obligation. Distinct from
+  employer-match-capture-check, which is a personal-finance check on an
+  individual's own contribution rate, not a company-wide payroll
+  true-up audit.

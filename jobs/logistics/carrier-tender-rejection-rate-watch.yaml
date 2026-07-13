@@ -1,0 +1,49 @@
+id: carrier-tender-rejection-rate-watch
+version: 1
+name: Carrier Tender Rejection Rate Watch
+description: >
+  Aggregates how often each carrier has rejected load tenders over a
+  recent period and flags carriers rejecting more than your threshold.
+  Use this if a "reliable" core carrier has ever quietly started
+  rejecting a growing share of your loads, forcing you onto the spot
+  market at a worse rate, before a scorecard caught the trend.
+category: logistics
+tags: [logistics, carrier, tender, capacity, performance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_rejection_rate_pct}}" -v min_tenders="{{min_tenders_for_signal}}" '
+    NR==1 {next}
+    {
+      carrier=$1; response=$2;
+      total[carrier]++;
+      if (response == "rejected") rejected[carrier]++;
+    }
+    END {
+      for (c in total) {
+        if (total[c] < min_tenders) continue;
+        pct = (rejected[c] / total[c]) * 100;
+        if (pct > threshold) {
+          printf "HIGH REJECTION RATE: %s — %.1f%% of tenders rejected (%d of %d), threshold %d%%\n", c, pct, rejected[c], total[c], threshold;
+        }
+      }
+    }
+  ' "{{tender_log_csv_path}}"
+variables:
+  tender_log_csv_path:
+    default: "./carrier-tender-log.csv"
+    description: "Path to a CSV with columns: carrier_name,response (accepted or rejected) — one row per load tender sent in the reporting period, exported from your TMS."
+  max_rejection_rate_pct:
+    default: 15
+    description: Rejection rate percentage above which a carrier is flagged as unreliable capacity.
+  min_tenders_for_signal:
+    default: 5
+    description: Minimum number of tenders sent to a carrier in the period before its rejection rate is considered meaningful.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the aggregate rejection rate per carrier over a reporting
+  period to catch a capacity trend — distinct from
+  carrier-load-tender-acceptance-check, which flags a single tender still
+  sitting unacknowledged in near-real-time so it can be re-tendered
+  before a ship date slips.

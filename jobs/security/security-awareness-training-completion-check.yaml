@@ -1,0 +1,40 @@
+id: security-awareness-training-completion-check
+version: 1
+name: Security Awareness Training Completion Check
+description: >
+  Checks your security-awareness training records for employees whose
+  required course is past due with no completion on file, and flags them.
+  Use this if you want everyone to actually finish the annual security
+  training on schedule instead of it quietly sliding to "whenever I get to
+  it."
+category: security
+tags: [security, security-awareness, training-compliance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" '
+    NR>1 {
+      due=$4; completed=$3;
+      cmd="date -d \"" due "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" due "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      if (completed == "" && due_ts <= today) {
+        print "OVERDUE: " $1 " (" $2 ") — security awareness training due " due ", not completed";
+      }
+    }
+  ' {{training_records_csv}}
+variables:
+  training_records_csv:
+    default: "security-awareness-training.csv"
+    description: "CSV with header row, columns: employee_name,email,completed_at(YYYY-MM-DD or blank),due_date(YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Export from your LMS/training platform (KnowBe4, Proofpoint,
+  Curricula, or your HRIS's training module) into the CSV. Distinct from
+  compliance-training-completion-check (hr category, which tracks general
+  HR compliance training like harassment prevention or safety certs) and
+  phishing-simulation-failure-followup-check.yaml (which only tracks
+  remedial training assigned after someone fails a phishing test) — this
+  tracks the baseline annual/onboarding security-awareness course every
+  employee is required to complete, independent of any simulation outcome.

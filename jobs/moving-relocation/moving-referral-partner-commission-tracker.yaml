@@ -1,0 +1,36 @@
+id: moving-referral-partner-commission-tracker
+version: 1
+name: Moving Referral Partner Commission Tracker
+description: >
+  Tracks commissions owed to referral partners, like realtors and
+  relocation companies, for each completed move and flags any that are
+  still unpaid past the agreed payment terms. Use this if a referral
+  partner has ever had to chase you to find out why a commission from a
+  move weeks ago still hadn't shown up.
+category: moving-relocation
+tags: [moving-relocation, referral-partners, commission, accounts-payable]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v terms="{{payment_terms_days}}" '
+    NR==1 {next}
+    tolower($6) != "paid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline completed_epoch; close(cmd);
+      days_since = (today - completed_epoch) / 86400;
+      if (days_since > terms) {
+        printf "UNPAID COMMISSION: partner %s — move %s completed %s (%.0f days ago), amount owed %s, status %s\n", $1, $2, $3, days_since, $5, $6;
+      }
+    }
+  ' "{{referral_commissions_csv_path}}"
+variables:
+  referral_commissions_csv_path:
+    default: "./referral-commissions.csv"
+    description: "Path to a CSV with columns: partner_name,move_id,move_completed_date (YYYY-MM-DD),customer_name,commission_owed,payment_status (paid/pending)."
+  payment_terms_days:
+    default: 30
+    description: How many days after a move completes the partner's commission is due before it gets flagged as overdue, per your standard referral agreement.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only flags overdue commissions, it doesn't issue payments itself. Named with a moving- prefix to avoid colliding with the sales-category commission-payout-tracker and referral-followup-tracker jobs, which cover unrelated sales-rep and lead-followup workflows.

@@ -1,0 +1,50 @@
+id: incident-response-escalation-contact-check
+version: 1
+name: Incident Response Escalation Contact Check
+description: >
+  Reviews the incident-response escalation contact list and flags any
+  primary or backup contact who has left the company, changed teams, or
+  whose listed phone/paging info no longer matches the directory. Use this
+  if you've ever pulled up the on-call escalation doc during a real incident
+  and found the first two names on it no longer work here.
+category: security
+tags: [security, incident-response, escalation, on-call]
+schedule: "0 9 1 */3 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Open the incident-response escalation contact list at {{ir_contact_doc}}
+  (or the equivalent doc/wiki/on-call tool page). For each person listed as
+  a primary or backup contact for an escalation tier:
+
+  1. Confirm they're still an active employee and still in a role that
+     makes sense for that tier (e.g. an incident commander still on the
+     security or infra team) — check against {{directory_source}}.
+  2. Confirm the phone number, email, or paging contact listed for them
+     still matches what's on file in the directory. Don't call or page
+     anyone — just compare records.
+  3. Flag anyone in the escalation list who has left the company, moved off
+     the relevant team, or has contact info that doesn't match the
+     directory.
+
+  Report a short list of stale entries with what's wrong for each, or say
+  the list is current if nothing's stale. Do not edit the document or
+  contact anyone yourself — flag it for a human to update.
+variables:
+  ir_contact_doc:
+    default: "docs/incident-response-escalation.md"
+    description: Path or URL to the incident-response escalation/on-call contact list.
+  directory_source:
+    default: "the company's HR/IT directory (e.g. Workday, Okta, BambooHR)"
+    description: Where to verify current employment status and role.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Needs an agent because cross-referencing named contacts against a live HR
+  directory and judging whether a role still fits an escalation tier isn't
+  a fixed script call. Distinct from team-runbook-staleness-check.yaml
+  (which flags process docs whose last-reviewed date has aged out) — this
+  specifically verifies the people and contact info in the IR escalation
+  chain are still real and current, which a "last reviewed" date alone
+  won't catch if someone bumps the date without actually checking the
+  roster. Read-only — it flags stale entries for a human to fix, it does
+  not edit the document or contact anyone itself.

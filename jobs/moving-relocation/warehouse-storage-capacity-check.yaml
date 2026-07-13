@@ -1,0 +1,33 @@
+id: warehouse-storage-capacity-check
+version: 1
+name: Warehouse Storage Capacity Check
+description: >
+  Checks the moving company's warehouse or storage-in-transit facility
+  utilization against its total capacity and flags any facility approaching
+  full. Use this if you've ever accepted a new storage booking only to find
+  out at drop-off that the warehouse had no room left for it.
+category: moving-relocation
+tags: [moving-relocation, warehouse, storage, capacity]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{utilization_warning_pct}}" '
+    NR==1 {next}
+    {
+      facility=$1; used_cuft=$2; total_cuft=$3;
+      pct = (used_cuft / total_cuft) * 100;
+      if (pct >= threshold) {
+        printf "NEAR CAPACITY: %s is %.1f%% full (%s of %s cu ft used)\n", facility, pct, used_cuft, total_cuft;
+      }
+    }
+  ' "{{warehouse_capacity_csv_path}}"
+variables:
+  warehouse_capacity_csv_path:
+    default: "./warehouse-capacity.csv"
+    description: "Path to a CSV with columns: facility_name,used_cuft,total_cuft, one row per warehouse/storage facility, updated with current storage-in-transit (SIT) occupancy."
+  utilization_warning_pct:
+    default: 85
+    description: Utilization percentage at which a facility gets flagged as approaching full, so new SIT bookings can be redirected or capacity can be expanded ahead of time.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only reports facilities nearing capacity, it doesn't turn away bookings or reserve space itself. Route flagged facilities to whoever manages SIT booking and warehouse allocation.

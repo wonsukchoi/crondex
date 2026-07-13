@@ -1,0 +1,47 @@
+id: spot-rate-opportunity-watch
+version: 1
+name: Spot Rate Opportunity Watch
+description: >
+  Checks the current spot market rate for a lane against your contracted
+  rate and flags it when spot is cheap enough to be worth booking outside
+  the contract. Use this if you've ever kept paying a stale contracted
+  rate on a lane while the spot market quietly dropped well below it.
+category: logistics
+tags: [logistics, freight, rates, spot-market, savings]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  spot_rate=$(curl -s -H "Authorization: Bearer {{rate_api_token}}" "{{spot_rate_api_url}}" | grep -o '"spot_rate":[0-9.]*' | head -n1 | cut -d':' -f2);
+  if [ -z "$spot_rate" ]; then echo "ERROR: could not fetch spot rate data from {{spot_rate_api_url}}"; exit 1; fi;
+  if awk "BEGIN{exit !($spot_rate <= {{contract_rate}} * (1 - {{savings_threshold_pct}} / 100))}"; then
+    echo "OPPORTUNITY: {{lane_description}} spot rate is \$${spot_rate}/{{rate_unit}}, at least {{savings_threshold_pct}}% below contracted \$${contract_rate}/{{rate_unit}}";
+    exit 1;
+  else echo "OK: {{lane_description}} spot rate is \$${spot_rate}/{{rate_unit}}, not meaningfully below contracted \$${contract_rate}/{{rate_unit}}"; fi
+variables:
+  lane_description:
+    default: "Los Angeles, CA to Chicago, IL"
+    description: Origin/destination lane to check.
+  spot_rate_api_url:
+    default: "https://api.example-load-board.com/lanes/la-chicago/spot-rate"
+    description: Load board or rate index API endpoint returning spot_rate for the lane.
+  rate_api_token:
+    default: "your-api-token"
+    description: Bearer token for the load board/rate index API.
+  contract_rate:
+    default: 2.50
+    description: Your current contracted rate per unit for this lane.
+  rate_unit:
+    default: "mile"
+    description: Unit the rate is quoted in.
+  savings_threshold_pct:
+    default: 15
+    description: Percent below the contracted rate that spot must be before it's flagged as worth booking.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point spot_rate_api_url at your load board's
+  (DAT, Truckstop, Freightos) or broker's spot rate endpoint; adjust
+  field names to match its response shape. Watches for the opposite
+  signal to freight-rate-spike-watch: a cheap spot opportunity rather
+  than a rate spike, so decide per lane whether contract volume
+  commitments make diverting a load to spot worthwhile.

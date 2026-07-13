@@ -1,0 +1,47 @@
+id: duplicate-product-description-check
+version: 1
+name: Duplicate Product Description Check
+description: >
+  Scans your product catalog export for SKUs that share identical, lengthy
+  description text across different products instead of just variants of
+  the same item. Use this if you've ever copy-pasted a manufacturer's
+  boilerplate description across a dozen unrelated SKUs and later
+  wondered why none of them rank in search.
+category: ecommerce
+tags: [ecommerce, seo, content-quality, product-descriptions, catalog]
+schedule: "0 4 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minwords="{{min_word_count}}" '
+    NR==1 {next}
+    {
+      sku=$1; desc=$2; family=$3;
+      n=split(desc, words, " ");
+      if (n < minwords) next;
+      key = desc;
+      if (key in seen_family) {
+        if (family == "" || seen_family[key] == "" || seen_family[key] != family) {
+          printf "DUPLICATE DESCRIPTION: %s and %s share identical description text (%d words) across different products\n", seen_sku[key], sku, n;
+        }
+      } else {
+        seen_family[key] = family;
+        seen_sku[key] = sku;
+      }
+    }
+  ' "{{product_descriptions_csv_path}}"
+variables:
+  product_descriptions_csv_path:
+    default: "./product-descriptions.csv"
+    description: "Path to a CSV with columns: sku,description,product_family — product_family groups real variants (e.g. sizes/colors of the same item) that are expected to share a description; leave blank for standalone products."
+  min_word_count:
+    default: 15
+    description: Minimum description word count before a match counts, to avoid flagging short boilerplate phrases as duplicates.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `product-feed-health-check`, which flags missing/broken
+  feed fields rather than duplicate content, and from `duplicate-content-check`
+  / `thin-content-word-count-check` in the content category, which crawl
+  live published pages generically — this compares your own product
+  catalog export directly and is family-aware, so real variants of the
+  same product sharing a description on purpose aren't flagged.

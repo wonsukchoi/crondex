@@ -1,0 +1,39 @@
+id: vendor-security-review-recertification-check
+version: 1
+name: Vendor Security Review Recertification Check
+description: >
+  Checks how long it's been since each third-party vendor's security review
+  was last completed and flags any past your recertification window. Use
+  this if a vendor's SOC 2 report or security questionnaire has ever sat
+  unreviewed for years after the initial onboarding check because nobody
+  was tracking the review date.
+category: security
+tags: [security, vendor-risk, third-party, recertification]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v interval={{review_interval_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline reviewed_ts; close(cmd);
+      days_since = int((today - reviewed_ts) / 86400);
+      if (days_since >= interval) print "OVERDUE: vendor \"" $1 "\" last reviewed " days_since " days ago (last: " $2 ")";
+    }
+  ' {{vendors_csv}}
+variables:
+  vendors_csv:
+    default: "vendors.csv"
+    description: "CSV with header row, columns: vendor_name,last_reviewed_date(YYYY-MM-DD)."
+  review_interval_days:
+    default: 365
+    description: Number of days a vendor's security review is valid before it's flagged as overdue for recertification.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Keep vendors.csv as a lightweight registry of third-party
+  vendors/subprocessors and when their security review (SOC 2 report check,
+  security questionnaire, pen-test summary) was last completed — export it
+  from a vendor-risk platform (Vanta, Drata, OneTrust) or maintain it by
+  hand. This job only flags overdue reviews for a human to chase; it does
+  not contact vendors or change any review status itself.

@@ -1,0 +1,51 @@
+id: post-purchase-upsell-email-performance-watch
+version: 1
+name: Post-Purchase Upsell Email Performance Watch
+description: >
+  Checks your automated post-purchase upsell/cross-sell email flow's
+  recent performance against its own baseline and digs into whether a
+  drop is a broken template or stale recommendation logic rather than
+  waning customer interest. Use this if that flow has ever quietly
+  under-performed for months because nobody looked past the "it's still
+  sending" status.
+category: ecommerce
+tags: [ecommerce, email, upsell, post-purchase, marketing, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{esp_platform}} for the post-purchase upsell/cross-sell email
+  flow sent over the last {{lookback_days}} days.
+  1. Pull send count, open rate, click rate, and attributed revenue for
+     the flow.
+  2. Compare against the trailing {{baseline_days}}-day average for the
+     same flow.
+  3. Flag if attributed revenue per email or click rate has dropped by
+     {{drop_threshold_pct}}% or more.
+  4. If flagged, spot-check the current email as actually rendered and
+     check whether the recommended products vary per order or are stuck
+     recommending the same handful of items regardless of what was
+     bought.
+  5. Summarize whether this looks like a template/rendering issue, stale
+     recommendation logic, or a genuine demand drop.
+variables:
+  esp_platform:
+    default: "your email platform (e.g. Klaviyo, Mailchimp)"
+    description: Name of the email platform running the post-purchase upsell flow.
+  lookback_days:
+    default: 7
+    description: Days of recent flow performance to evaluate.
+  baseline_days:
+    default: 30
+    description: Days of history used to establish the normal performance baseline.
+  drop_threshold_pct:
+    default: 20
+    description: Percentage drop in revenue-per-email or click rate below baseline that counts as worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `abandoned-cart-recovery-check` and
+  `wishlist-abandonment-check`, which target pre-purchase or stalled
+  intent — this watches a specific automated flow that fires right after
+  an order to sell a second item, and treats a performance drop as a
+  debugging prompt (broken logic or template) rather than immediately
+  assuming a marketing-performance issue.

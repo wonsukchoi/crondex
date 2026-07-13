@@ -1,0 +1,46 @@
+id: freight-claim-filing-deadline-tracker
+version: 1
+name: Freight Loss/Damage Claim Filing Deadline Tracker
+description: >
+  Checks freight loss or damage claims filed directly against a carrier
+  and warns before an unfiled claim hits its filing deadline. Use this
+  if a damaged-freight claim against a carrier has ever gone unfiled past
+  the contractual or Carmack Amendment filing window, so the claim
+  became uncollectible over a paperwork deadline rather than the facts.
+category: logistics
+tags: [logistics, freight, claims, deadline, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      claim=$1; carrier=$2; deadline=$3; status=$4;
+      if (status == "filed") next;
+      cmd = "date -d \"" deadline "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" deadline "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "CLAIM DEADLINE RISK: claim %s vs carrier %s — unfiled, deadline %s (%d days)\n", claim, carrier, deadline, diff_days;
+      }
+    }
+  ' "{{freight_claims_csv_path}}"
+variables:
+  freight_claims_csv_path:
+    default: "./freight-loss-damage-claims.csv"
+    description: "Path to a CSV with columns: claim_id,carrier_name,filing_deadline_date (YYYY-MM-DD),status (filed/unfiled) — one row per loss/damage claim against a carrier."
+  warn_days_before:
+    default: 10
+    description: How many days before the filing deadline to start warning on an unfiled claim.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to claims filed directly against the carrier for freight
+  loss/damage (e.g. under the Carmack Amendment or the carrier's tariff),
+  not a claim against a cargo insurance policy — distinct from
+  cargo-insurance-claim-status-check, which tracks follow-up on claims
+  already filed with an insurer/broker rather than the initial filing
+  deadline against the carrier. Verify the applicable filing window for
+  your contract/jurisdiction; deadlines and defaults here are a backstop,
+  not legal advice.

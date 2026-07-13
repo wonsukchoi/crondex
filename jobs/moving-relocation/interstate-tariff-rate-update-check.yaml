@@ -1,0 +1,34 @@
+id: interstate-tariff-rate-update-check
+version: 1
+name: Interstate Tariff Rate Update Check
+description: >
+  Checks how long it's been since your published interstate moving
+  tariff/rate sheet was last updated against a review interval, and flags
+  it as stale if federal or state rate rules may have changed since then.
+  Use this if your tariff has ever sat unreviewed for so long that a quote
+  went out based on rules or rates that were no longer current.
+category: moving-relocation
+tags: [moving-relocation, tariff, compliance, rates, interstate]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  last_updated="{{tariff_last_updated_date}}";
+  cmd="date -d \"$last_updated\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"$last_updated\" +%s 2>/dev/null";
+  epoch=$(eval "$cmd");
+  days_since=$(( (today - epoch) / 86400 ));
+  if [ "$days_since" -gt "{{review_interval_days}}" ]; then
+    echo "STALE TARIFF: last updated $last_updated ($days_since days ago) — exceeds review interval of {{review_interval_days}} days, re-check current federal/state rate rules";
+  else
+    echo "OK: tariff last updated $last_updated ($days_since days ago), within review interval";
+  fi
+variables:
+  tariff_last_updated_date:
+    default: "2026-01-01"
+    description: "The date (YYYY-MM-DD) your published interstate tariff/rate sheet was last reviewed and updated. Update this variable whenever you actually revise the tariff."
+  review_interval_days:
+    default: 180
+    description: How many days may pass since the tariff was last reviewed before it's flagged as potentially stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only date check based on a manually maintained variable — it does not fetch or verify actual federal/state rate rules, it only reminds you to go re-check them against your published tariff.

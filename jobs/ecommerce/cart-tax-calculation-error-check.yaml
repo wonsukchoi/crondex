@@ -1,0 +1,42 @@
+id: cart-tax-calculation-error-check
+version: 1
+name: Cart Tax Calculation Error Check
+description: >
+  Recomputes expected sales tax for recent orders from the subtotal and
+  rate that should have applied, and flags any order where what was
+  actually charged doesn't match. Use this if a stale tax rate table or a
+  rounding bug has ever quietly over- or under-charged customers for
+  weeks before anyone reconciled it.
+category: ecommerce
+tags: [ecommerce, checkout, tax, billing, data-quality]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_usd}}" '
+    NR==1 {next}
+    {
+      order=$1; subtotal=$2; rate=$3; charged=$4; region=$5;
+      expected = subtotal * rate;
+      diff = expected - charged; if (diff < 0) diff = -diff;
+      if (diff > tol) {
+        printf "TAX MISMATCH: order %s (%s) — expected $%.2f (%.2f%% of $%.2f), charged $%.2f, diff $%.2f\n", order, region, expected, rate*100, subtotal, charged, diff;
+      }
+    }
+  ' "{{orders_tax_csv_path}}"
+variables:
+  orders_tax_csv_path:
+    default: "./orders-tax.csv"
+    description: "Path to a CSV with columns: order_id,subtotal_usd,expected_tax_rate (decimal, e.g. 0.0825),charged_tax_usd,region — one row per completed order with the rate that should have applied for its shipping region."
+  tolerance_usd:
+    default: 0.05
+    description: Dollar tolerance between expected and charged tax before a mismatch is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  expected_tax_rate should come from your tax engine/rate table, exported
+  alongside what was actually charged at checkout, so this compares the
+  two independently. A real mismatch usually points to a stale rate
+  table, a rounding bug, or a region misclassification rather than fraud.
+  Distinct from `economic-nexus-threshold-check`, which tracks whether you
+  owe tax registration in a state at all, not whether an individual
+  order's tax was computed correctly.

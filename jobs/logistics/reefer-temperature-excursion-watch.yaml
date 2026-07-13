@@ -1,0 +1,35 @@
+id: reefer-temperature-excursion-watch
+version: 1
+name: Reefer Temperature Excursion Watch
+description: >
+  Scans logged temperature readings for a refrigerated (reefer) shipment
+  and flags any reading outside the required range for that load. Use
+  this if a temperature-sensitive shipment has ever arrived spoiled
+  because a reefer unit drifted out of range for hours before anyone
+  looked at the data logger.
+category: logistics
+tags: [logistics, reefer, temperature, cold-chain, food-safety]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      shipment=$1; reading_time=$2; temp=$3; min_temp=$4; max_temp=$5;
+      if (temp < min_temp || temp > max_temp) {
+        printf "TEMPERATURE EXCURSION: shipment %s at %s — reading %.1fF, required range %.1fF to %.1fF\n", shipment, reading_time, temp, min_temp, max_temp;
+      }
+    }
+  ' "{{reefer_readings_csv_path}}"
+variables:
+  reefer_readings_csv_path:
+    default: "./reefer-temperature-readings.csv"
+    description: "Path to a CSV with columns: shipment_id,reading_time,temp_f,min_temp_f,max_temp_f — export from your reefer telematics/data logger."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes reefer unit temperature readings are exported or streamed to a
+  CSV from telematics (e.g. Carrier, Thermo King, ORBCOMM) — this is the
+  excursion-detection backstop, not a substitute for the reefer's own
+  in-transit alarm. An excursion on a food or pharma load may require
+  immediate quality-hold action, not just a next-morning review.

@@ -1,0 +1,45 @@
+id: ada-accommodation-request-tracker
+version: 1
+name: ADA Accommodation Request Tracker
+description: >
+  Checks open workplace accommodation requests against a target
+  response window and flags any request that's gone stale with no
+  documented next step. Use this if an accommodation request has ever
+  stalled in someone's inbox past a reasonable response time because it
+  wasn't visible outside the requester and one HR contact.
+category: hr
+tags: [hr, ada, accommodation, disability, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_stale}}" '
+    NR==1 {next}
+    $4 == "resolved" || $4 == "denied" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline last_update_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_stale = (now_epoch - last_update_epoch) / 86400;
+      if (days_stale >= warn) {
+        printf "ACCOMMODATION REQUEST STALE: %s (request %s) — status \"%s\", no update in %d day(s)\n", $2, $1, $4, days_stale;
+      }
+    }
+  ' "{{accommodation_tracking_csv_path}}"
+variables:
+  accommodation_tracking_csv_path:
+    default: "./accommodation-requests.csv"
+    description: "Path to a CSV with columns: request_id,employee_name,date_requested (YYYY-MM-DD),status (open/interactive-process/resolved/denied),last_update_date (YYYY-MM-DD)."
+  warn_days_stale:
+    default: 7
+    description: Days without an update before an open or in-process request is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Highly sensitive data — restrict this job's output and any log/channel
+  it posts to the small group of people who already handle accommodation
+  requests (typically HR/legal), not a general HR or team channel. This
+  is a staleness/visibility backstop only: it never decides, denies, or
+  grants an accommodation, and it never contacts the employee directly —
+  a person runs the actual interactive process. Assumes a maintained
+  tracker; treat blank or ambiguous rows conservatively (as open) rather
+  than silently dropping them.

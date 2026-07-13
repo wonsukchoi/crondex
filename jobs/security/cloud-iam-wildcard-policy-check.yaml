@@ -1,0 +1,41 @@
+id: cloud-iam-wildcard-policy-check
+version: 1
+name: AWS IAM Wildcard Policy Check
+description: >
+  Scans your customer-managed AWS IAM policies for statements that grant
+  Action:* on Resource:* and flags them. Use this if a policy has ever been
+  written as a quick "just make it work" wildcard during a deploy and never
+  got tightened up afterward.
+category: security
+tags: [security, aws, iam, cloud-posture, wildcard-policy]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v aws >/dev/null 2>&1 || { echo "ERROR: aws CLI not installed"; exit 1; };
+  command -v jq >/dev/null 2>&1 || { echo "ERROR: jq not installed"; exit 1; };
+  for policy_arn in $(aws iam list-policies --scope {{policy_scope}} --query 'Policies[].Arn' --output text); do
+    version=$(aws iam get-policy --policy-arn "$policy_arn" --query 'Policy.DefaultVersionId' --output text);
+    doc=$(aws iam get-policy-version --policy-arn "$policy_arn" --version-id "$version" --query 'PolicyVersion.Document' --output json);
+    hits=$(echo "$doc" | jq -r '
+      (.Statement | if type=="array" then .[] else . end) |
+      select(.Effect=="Allow") |
+      select( ((.Action|type)=="string" and .Action=="*") or ((.Action|type)=="array" and (.Action|index("*")) != null) ) |
+      select( ((.Resource|type)=="string" and .Resource=="*") or ((.Resource|type)=="array" and (.Resource|index("*")) != null) ) |
+      "wildcard"
+    ' 2>/dev/null);
+    [ -n "$hits" ] && echo "WARNING: $policy_arn (version $version) grants Action:* on Resource:*";
+  done;
+  echo "done checking IAM policies (scope: {{policy_scope}}) for Action:*/Resource:* wildcards"
+variables:
+  policy_scope:
+    default: "Local"
+    description: IAM policy scope to check — "Local" (customer-managed only, quieter) or "All" (also includes AWS-managed policies, much noisier since e.g. AdministratorAccess is intentionally a wildcard).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires AWS CLI with iam:ListPolicies, iam:GetPolicy, and
+  iam:GetPolicyVersion permissions. Read-only. Only checks the policy's
+  default version — a policy version history could still contain a
+  wildcard statement that isn't currently active. This job only reports
+  matching policies for a human to tighten; it does not edit or detach any
+  policy itself.

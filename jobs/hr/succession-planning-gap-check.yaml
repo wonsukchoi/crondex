@@ -1,0 +1,48 @@
+id: succession-planning-gap-check
+version: 1
+name: Succession Planning Gap Check
+description: >
+  Checks a list of critical roles against your succession-planning
+  tracker and flags roles with no named ready-now or ready-soon
+  successor. Use this if a critical leader has ever left, or nearly left,
+  and only then did anyone realize there was no succession plan on file
+  for that role.
+category: hr
+tags: [hr, succession-planning, talent, leadership, risk]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $3 != "yes" {next}
+    $4 == "" || $4 == "none" {
+      printf "NO SUCCESSOR: %s (incumbent: %s) — flagged critical, no successor identified\n", $1, $2;
+    }
+  ' "{{succession_tracking_csv_path}}"
+prompt: |
+  Run the check above against {{succession_tracking_csv_path}} (columns:
+  role_title, incumbent_name, is_critical, successor_status). Using the
+  NO SUCCESSOR lines it produces, plus the full roster:
+  1. Group gaps by function/department to see if risk clusters in one
+     area (e.g. all of engineering leadership has no bench).
+  2. Note any role where the only "ready-now" successor listed for
+     another critical role is also the incumbent of a gapped role — a
+     single-point-of-failure chain.
+  3. Summarize as a short, prioritized list for leadership: which gaps
+     are most urgent to address this quarter, and why.
+script_note: >
+  The command gives you the raw list of critical roles with no successor
+  on file for free. The prompt adds cross-role pattern analysis
+  (clustering by department, single-point-of-failure chains) that a flat
+  single-pass script can't derive from one CSV.
+variables:
+  succession_tracking_csv_path:
+    default: "./succession-planning.csv"
+    description: "Path to a CSV with columns: role_title,incumbent_name,is_critical (yes/no),successor_status (ready-now/ready-1-2-years/none, blank if not assessed)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Assumes a maintained succession-tracker export. This is a coverage-gap
+  check, not a substitute for an actual talent-review or succession
+  planning discussion — treat flagged roles as a prompt to schedule one,
+  not a finished plan.

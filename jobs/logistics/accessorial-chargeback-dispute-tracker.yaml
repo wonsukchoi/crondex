@@ -1,0 +1,44 @@
+id: accessorial-chargeback-dispute-tracker
+version: 1
+name: Accessorial Chargeback Dispute Tracker
+description: >
+  Checks open disputes over accessorial fees (detention, liftgate,
+  residential, reweigh/reclass) billed by a carrier and flags ones that
+  have gone stale or are nearing the carrier's response deadline. Use
+  this if a disputed accessorial charge has ever just sat open until the
+  dispute window closed and you ended up paying it by default.
+category: logistics
+tags: [logistics, accessorial, chargeback, dispute, billing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{dispute_tracker_hint}} for open accessorial fee disputes filed
+  against carrier invoices.
+  1. List each open dispute: dispute reference, carrier, accessorial
+     type (detention, liftgate, residential delivery, reweigh/reclass,
+     etc.), disputed amount, and date filed.
+  2. Flag any dispute with no status update in the last
+     {{stale_days}} days, or within {{deadline_warn_days}} days of the
+     carrier's response/appeal deadline if one is stated.
+  3. Suggest the follow-up action for each flagged dispute (resubmit
+     supporting documentation, escalate to the carrier's billing
+     contact, or accept the charge if the evidence doesn't support the
+     dispute).
+variables:
+  dispute_tracker_hint:
+    default: "your freight audit vendor's dispute portal or TMS billing module"
+    description: Where open accessorial fee disputes and their status are tracked.
+  stale_days:
+    default: 10
+    description: Days without a status update before a dispute is flagged as stale.
+  deadline_warn_days:
+    default: 5
+    description: Days before a carrier's dispute response deadline to start warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Scoped to accessorial fee line items specifically (detention, liftgate,
+  reweigh, reclass) once a dispute has been filed with the carrier —
+  distinct from freight-invoice-rate-audit, which is the zero-token CSV
+  scan that first catches the overcharge on the base linehaul rate before
+  any dispute exists.

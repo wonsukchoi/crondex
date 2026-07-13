@@ -1,0 +1,38 @@
+id: protocol-treasury-runway-watch
+version: 1
+name: Protocol/DAO Treasury Runway Watch
+description: >
+  Calculates how many months of runway a DAO or protocol treasury has left
+  given its current balance and monthly burn rate, and flags it once
+  runway drops below a threshold. Use this if a project you're invested in
+  or contribute to has ever announced a sudden funding crunch that, in
+  hindsight, the numbers had been signaling for months.
+category: crypto
+tags: [crypto, dao, treasury, runway]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  balance="{{treasury_balance_usd}}";
+  burn="{{monthly_burn_usd}}";
+  if [ -z "$balance" ] || [ -z "$burn" ] || [ "$burn" = "0" ]; then
+    echo "Set treasury_balance_usd and a nonzero monthly_burn_usd (from the DAO's own treasury dashboard/accounting) to compute runway.";
+  else
+    awk -v bal="$balance" -v burn="$burn" -v warn="{{runway_months_threshold}}" 'BEGIN{
+      months = bal / burn;
+      printf "Treasury balance: $%.0f | Monthly burn: $%.0f | Estimated runway: %.1f months\n", bal, burn, months;
+      if (months <= warn+0) print "RUNWAY ALERT: estimated runway is at or below " warn " months — time to plan fundraising, grants, or spend cuts.";
+    }';
+  fi
+variables:
+  treasury_balance_usd:
+    default: 0
+    description: Current total treasury value in USD — update from the DAO's own treasury dashboard (e.g. its multisig balance, DeepDAO, or Llama) before each run.
+  monthly_burn_usd:
+    default: 0
+    description: Average monthly spend in USD — update from the DAO's own accounting/budget reporting.
+  runway_months_threshold:
+    default: 6
+    description: Months of runway at or below which to flag an alert.
+compatible_agents: [generic, claude, codex]
+notes: This is a calculator/reminder, not a live feed — burn rate isn't something a public API can give reliably, so keep treasury_balance_usd and monthly_burn_usd updated from your own treasury dashboard or accounting. Read-only, never moves funds. Distinct from defi-tvl-drop-alert, which tracks a protocol's locked deposits, not its own operating treasury.

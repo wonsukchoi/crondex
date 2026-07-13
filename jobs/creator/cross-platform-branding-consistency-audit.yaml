@@ -1,0 +1,44 @@
+id: cross-platform-branding-consistency-audit
+version: 1
+name: Cross-Platform Branding Consistency Audit
+description: >
+  Checks your handle, profile picture, bio, and bio link across all your
+  platform profiles for drift. Use this if you've ever updated your
+  profile picture or bio link everywhere except one app, and a fan or
+  brand found the stale one first.
+category: creator
+tags: [creator, branding, consistency, profile]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check your public profile on each of {{platform_urls}} for branding
+  consistency.
+  1. Compare the display name/handle, profile picture, and bio text
+     across all listed profiles.
+  2. Flag any platform where the handle differs meaningfully from your
+     primary handle {{primary_handle}}, the profile picture looks
+     outdated or mismatched from the others, or the bio contains stale
+     info (an old link, wrong location, outdated tagline).
+  3. Check that each profile's "link in bio" / website link actually
+     points to {{expected_link_destination}} (or a current landing page),
+     not a dead or outdated URL.
+  4. Summarize as a per-platform list: what's consistent, what's off, and
+     a one-line fix for each mismatch.
+  5. If everything is consistent, say so in one line.
+variables:
+  platform_urls:
+    default: "https://youtube.com/@yourchannel, https://instagram.com/yourhandle, https://tiktok.com/@yourhandle, https://x.com/yourhandle"
+    description: Comma-separated list of your platform profile URLs to check.
+  primary_handle:
+    default: "@yourhandle"
+    description: The handle you treat as canonical, for comparison against each platform.
+  expected_link_destination:
+    default: "https://yourlinkinbio.example.com"
+    description: The URL your bio link should currently point to.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Catches drift that piles up slowly — a profile picture updated
+  everywhere except one app, a bio link still pointing at a dead campaign
+  page. No script mode — reading rendered profile pages and judging what
+  counts as "outdated" needs an agent, not a fixed diff.

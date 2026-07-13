@@ -1,0 +1,31 @@
+id: client-status-report-delivery-check
+version: 1
+name: Client Status Report Delivery Check
+description: >
+  Checks each active account's contracted status-report cadence (weekly,
+  biweekly, or monthly) against when the last report was actually sent, and
+  flags any account that's overdue. Use this if a client has ever asked
+  "where's our monthly report?" before anyone on the account team realized
+  it hadn't gone out, because sending it lived in someone's memory instead
+  of a tracked schedule.
+category: agency
+tags: [agency, client-services, reporting, account-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client, account_lead, report_cadence_days, last_sent_at, current_date - last_sent_at::date as days_since_last_report from client_status_reports where status = 'active' and last_sent_at <= now() - (report_cadence_days || ' days')::interval order by days_since_last_report desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's client/account-management database.
+  grace_days:
+    default: "2"
+    description: Extra days of buffer beyond the contracted cadence before a report is considered overdue (informational; fold into your cadence data or query as needed).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `client_status_reports` table with `client`, `account_lead`,
+  `report_cadence_days` (contracted reporting frequency in days),
+  `last_sent_at`, and `status` columns — adjust to your account-management
+  or reporting tool's schema. Read-only; it flags accounts overdue for a
+  status update, it does not draft or send any report itself.

@@ -1,0 +1,56 @@
+id: algorithm-update-impact-correlation-check
+version: 1
+name: Algorithm Update Impact Correlation Check
+description: >
+  Checks whether a recent drop in your reach or engagement lines up in
+  time with a platform algorithm or recommendation-system change. Use
+  this if your numbers have ever dipped and you spent weeks guessing
+  whether it was the algorithm, your content, or nothing at all, with no
+  way to actually check.
+category: creator
+tags: [creator, algorithm, analytics, platform]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check whether a recent drop in reach/engagement on {{platform}} lines up
+  with a known platform algorithm or recommendation-system update.
+  1. Compare your average reach or engagement rate for content published
+     in the last {{recent_days}} days against the prior {{baseline_days}}-day
+     baseline.
+  2. If it dropped {{drop_threshold_pct}}% or more, check {{platform}}'s
+     official changelog/creator-update blog for any algorithm,
+     recommendation, or ranking-related update announced within
+     {{update_window_days}} days before the drop started.
+  3. If a plausible matching update is found, name it, summarize what
+     changed, and note how closely the timing lines up with your drop.
+  4. If the drop doesn't line up with any announced update, say so
+     explicitly — that's a useful signal the cause is something else (a
+     format change, a topic shift, a possible shadow-restriction) rather
+     than a platform-wide shift.
+  5. If there's no meaningful drop at all this week, say so in one line
+     and skip the rest.
+variables:
+  platform:
+    default: "YouTube"
+    description: Platform whose analytics and changelog to check.
+  recent_days:
+    default: 7
+    description: Recent window to evaluate for a drop.
+  baseline_days:
+    default: 30
+    description: Prior window used as the baseline for comparison.
+  drop_threshold_pct:
+    default: 20
+    description: Percent drop in reach/engagement that's worth checking against an algorithm update.
+  update_window_days:
+    default: 21
+    description: How many days before the drop started to look back for a matching platform update.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Different from engagement-drop-watch, which flags a drop without
+  checking for a cause, and platform-policy-change-monitor, which lists
+  algorithm updates without checking whether your own numbers actually
+  moved. This job is specifically the correlation between the two. No
+  script mode — matching the timing of an analytics dip to a prose
+  changelog announcement needs judgment, not a fixed query.

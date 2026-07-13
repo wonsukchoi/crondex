@@ -183,11 +183,11 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1507 jobs across 60 categories:
+1555 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
-| `agency` | 20 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
+| `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
@@ -195,8 +195,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 20 | Shared-workspace membership ops — desks, room booking, community, amenities. |
-| `creator` | 20 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
+| `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
@@ -225,7 +225,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
-| `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
+| `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |

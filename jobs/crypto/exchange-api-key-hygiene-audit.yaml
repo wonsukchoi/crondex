@@ -1,0 +1,61 @@
+id: exchange-api-key-hygiene-audit
+version: 1
+name: Exchange API Key Hygiene Audit
+description: >
+  Reviews a locally maintained inventory of your exchange API keys for
+  risky permission scopes, upcoming expirations, or keys that haven't
+  been rotated in a while. Use this if you've ever set up a trading bot's
+  API key with more permissions than it needed and forgotten it was still
+  sitting there, live, months later.
+category: crypto
+tags: [crypto, exchange, api-key, security]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  inv="{{api_key_inventory_file}}";
+  if [ ! -f "$inv" ]; then
+    echo "No API key inventory found at $inv — create a CSV with columns: label,exchange,permissions,created_date,expires_date. NEVER put the actual key or secret in this file.";
+  else
+    today=$(date +%s);
+    while IFS=, read -r label exchange perms created expires; do
+      [ "$label" = "label" ] && continue;
+      [ -z "$label" ] && continue;
+      echo "Key: $label ($exchange) — permissions: $perms";
+      case "$perms" in
+        *ithdraw*)
+          echo "  WARNING: withdrawal permission is enabled on $label — most bots/tools only need read/trade permissions.";
+          ;;
+      esac
+      if [ -n "$created" ]; then
+        created_ts=$(date -d "$created" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$created" +%s 2>/dev/null || echo "");
+        if [ -n "$created_ts" ]; then
+          age_days=$(( (today - created_ts) / 86400 ));
+          if [ "$age_days" -gt "{{max_age_days}}" ]; then
+            echo "  STALE: $label created $age_days days ago — consider rotating it.";
+          fi
+        fi
+      fi
+      if [ -n "$expires" ]; then
+        expires_ts=$(date -d "$expires" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$expires" +%s 2>/dev/null || echo "");
+        if [ -n "$expires_ts" ]; then
+          days_left=$(( (expires_ts - today) / 86400 ));
+          if [ "$days_left" -le "{{expiry_warn_days}}" ]; then
+            echo "  EXPIRING: $label expires in $days_left days.";
+          fi
+        fi
+      fi
+    done < "$inv";
+  fi
+variables:
+  api_key_inventory_file:
+    default: "$HOME/.crondex/exchange-api-key-hygiene-audit/keys.csv"
+    description: Path to a CSV with columns label,exchange,permissions,created_date,expires_date — maintained by you, never containing the actual key or secret.
+  max_age_days:
+    default: 90
+    description: Days since creation after which an un-rotated key is flagged as stale.
+  expiry_warn_days:
+    default: 14
+    description: Days before an expiring key's expiry date to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: NEVER store the actual API key or secret in this inventory file — only a label, permission scope, and dates. This job never authenticates to any exchange; it only reviews your own local metadata record. Treat any key with withdrawal permission as high risk and scope it down at the exchange unless truly required.

@@ -1,0 +1,34 @@
+id: vendor-certificate-of-insurance-expiration-check
+version: 1
+name: Vendor Certificate of Insurance Expiration Check
+description: >
+  Checks the certificates of insurance on file for freelancers, production
+  vendors, and subcontractors doing on-site or client-facing work, and
+  flags anyone whose coverage is expiring soon or missing entirely. Use
+  this if a freelance photographer or production crew has ever shown up
+  to a client shoot on a certificate of insurance that had already
+  quietly lapsed, leaving the agency exposed if something went wrong.
+  Distinct from subcontractor-nda-compliance-check, which tracks signed
+  NDAs and vendor agreements, not liability insurance coverage.
+category: agency
+tags: [agency, vendors, insurance, compliance, risk]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select vendor_name, coverage_type, coi_expires_at from vendor_insurance where currently_engaged and (coi_expires_at is null or coi_expires_at <= now() + interval '{{expiry_warning_days}} days') order by coi_expires_at nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding vendor/freelancer insurance records.
+  expiry_warning_days:
+    default: "21"
+    description: How many days ahead of certificate expiration to start flagging a vendor.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `vendor_insurance` table with `vendor_name`, `coverage_type`
+  (e.g. general liability, equipment), a `currently_engaged` boolean, and
+  a nullable `coi_expires_at` (null meaning no certificate on file at
+  all) — adjust to your vendor-management system's schema. Read-only and
+  informational; it flags gaps for ops/legal to chase down, it does not
+  request or renew any certificate itself.

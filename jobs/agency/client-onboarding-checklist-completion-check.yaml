@@ -1,0 +1,35 @@
+id: client-onboarding-checklist-completion-check
+version: 1
+name: Client Onboarding Checklist Completion Check
+description: >
+  Checks recently signed clients against the standard onboarding checklist
+  (kickoff call scheduled, contracts countersigned, brand assets received,
+  billing contact confirmed, platform/account access granted) and flags
+  anyone still missing a step past the target window. Use this if a new
+  client has ever reached their first deliverable deadline before the team
+  realized nobody ever got ad-account access or a signed brand style guide.
+category: agency
+tags: [agency, onboarding, new-clients, client-services]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select c.client_name, c.signed_at, count(i.item_name) filter (where i.completed_at is null) as items_remaining, string_agg(i.item_name, ', ') filter (where i.completed_at is null) as open_items from clients c join onboarding_checklist_items i on i.client_id = c.client_id where c.signed_at >= now() - interval '{{lookback_days}} days' group by c.client_name, c.signed_at having count(i.item_name) filter (where i.completed_at is null) > 0 and c.signed_at <= now() - interval '{{grace_period_days}} days' order by c.signed_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the agency's client/onboarding-tracking database.
+  lookback_days:
+    default: "60"
+    description: How far back to look for recently signed clients still in the onboarding window.
+  grace_period_days:
+    default: "5"
+    description: How many business days a new client gets before an incomplete checklist item is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `clients` table with `client_id`, `client_name`, `signed_at`,
+  and an `onboarding_checklist_items` table with `client_id`, `item_name`,
+  and a nullable `completed_at` — adjust to your onboarding tracker or
+  project-management tool's schema. Read-only and informational; it does
+  not check off items or send anything itself, it only surfaces gaps for
+  the account lead to close.

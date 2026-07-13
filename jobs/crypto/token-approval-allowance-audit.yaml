@@ -1,0 +1,39 @@
+id: token-approval-allowance-audit
+version: 1
+name: Token Approval Allowance Audit
+description: >
+  Checks a wallet's active ERC-20 token spending approvals for unlimited
+  or unusually broad allowances granted to contracts, especially ones you
+  no longer use. Use this if you've ever approved a dapp for "unlimited"
+  spending to save a click and forgotten to revoke it once you stopped
+  using the dapp.
+category: crypto
+tags: [crypto, wallet, approvals, security]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check wallet {{wallet_address}} on {{chain_name}} for active ERC-20
+  token spending approvals (via a reputable approval-checking tool such as
+  revoke.cash or a block explorer's token-approval checker for this
+  address).
+  1. List each active approval: token, spender contract, and whether the
+     allowance is unlimited or a specific capped amount.
+  2. Flag any unlimited approval to a contract/dapp not in
+     {{actively_used_dapps}} as worth reviewing for revocation.
+  3. Flag any approval to a spender address with no verified contract
+     name/source, since that's a common wallet-drainer pattern.
+  4. Do not revoke anything — this is a read-only report; revoking
+     requires a signed transaction from the wallet owner.
+variables:
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Wallet address to check approvals for.
+  chain_name:
+    default: "Ethereum"
+    description: Chain the wallet's approvals should be checked on.
+  actively_used_dapps:
+    default: "list the dapps you actually still use"
+    description: Comma-separated list of dapps/contracts you're still actively using, so approvals to them aren't flagged unnecessarily.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only lookup only — never signs or submits a revoke transaction, and never touches a private key or seed phrase. If you decide to revoke an approval, do it yourself directly through the wallet's own interface or a reputable tool like revoke.cash, not through this job.

@@ -1,0 +1,34 @@
+id: kennel-headcount-reconciliation-check
+version: 1
+name: Kennel Headcount Reconciliation Check
+description: >
+  Compares the expected number of pets on site today (based on checked-in
+  reservations) against the end-of-day physical headcount staff logged, and
+  flags a mismatch. Use this if the numbers on the reservation calendar
+  have ever quietly drifted from who's actually in the building, a gap that
+  matters most in an evacuation or a lost-pet scare.
+category: petcare
+tags: [petcare, boarding, headcount, reconciliation, safety]
+schedule: "0 21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  expected=$(awk -F',' -v today="$today" 'NR==1{next} { if ($2<=today && $3>=today) c++ } END{print c+0}' "{{active_stays_csv_path}}");
+  actual=$(awk -F',' -v today="$today" 'NR==1{next} { if ($1==today) v=$2 } END{print v}' "{{headcount_log_csv_path}}");
+  if [ -z "$actual" ]; then
+    echo "WARNING: no headcount logged for $today yet — expected $expected pet(s) on site";
+  elif [ "$actual" -ne "$expected" ]; then
+    echo "MISMATCH: expected $expected pet(s) on site, actual headcount logged as $actual — reconcile before locking up";
+  else
+    echo "OK: headcount matches expected occupancy ($expected)";
+  fi
+variables:
+  active_stays_csv_path:
+    default: "./boarding-active-stays.csv"
+    description: "Path to a CSV with columns: pet_name,checkin_date (YYYY-MM-DD),checkout_date (YYYY-MM-DD)."
+  headcount_log_csv_path:
+    default: "./kennel-headcount-log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),counted_present, one row per day's manual physical headcount."
+compatible_agents: [generic, claude, codex]
+notes: A mismatch only says the numbers don't agree, not which pet is unaccounted for — treat it as a trigger for an immediate physical recount, not the recount itself. Distinct from pickup-authorization-mismatch-check.yaml (who's allowed to pick up a specific pet) and boarding-facility-temperature-log-check.yaml (environmental conditions, not occupancy).

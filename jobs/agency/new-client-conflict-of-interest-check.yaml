@@ -1,0 +1,43 @@
+id: new-client-conflict-of-interest-check
+version: 1
+name: New-Client Conflict of Interest Check
+description: >
+  When a new-business opportunity is added to the pipeline, checks it
+  against the agency's current client roster for a competitive conflict
+  (same industry category, direct competitor already under contract) and
+  flags the opportunity for legal/leadership review before the pitch team
+  invests time. Use this if the agency has ever gotten well into a pitch
+  before someone realized the prospect directly competes with an existing
+  client, and the client relations conversation happened after the fact
+  instead of before.
+category: agency
+tags: [agency, new-business, conflict-of-interest, client-services]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull new-business opportunities added to the pipeline in the last
+  {{lookback_days}} days from the CRM, along with their listed industry
+  category and named competitors (if provided). Pull the agency's current
+  active client roster with each client's industry category. For each new
+  opportunity, check whether its industry category or named competitors
+  overlap with an existing active client's category. Flag any opportunity
+  with a plausible conflict, note which existing client it conflicts with
+  and why, and suggest whether it needs a conflict waiver, a different
+  account team wall, or should be declined. Do not flag opportunities in
+  clearly unrelated categories just because they share a broad sector
+  (e.g. two clients both loosely "consumer goods" isn't automatically a
+  conflict) — use judgment about direct competition, not category labels
+  alone.
+variables:
+  lookback_days:
+    default: "7"
+    description: How many days back to check for newly added new-business opportunities.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires an agent with read access to the new-business/CRM pipeline and
+  the client roster; matching "competes with" is a judgment call the model
+  makes from category and competitor fields, so this is agent-prompt
+  rather than shell. Read-only and informational; it flags potential
+  conflicts for a human decision-maker, it does not decline or advance any
+  opportunity itself.

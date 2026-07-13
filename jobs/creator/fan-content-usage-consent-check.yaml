@@ -1,0 +1,43 @@
+id: fan-content-usage-consent-check
+version: 1
+name: Fan and UGC Content Usage Consent Check
+description: >
+  Checks fan-made or user-generated content you've reposted against your
+  record of permission to use it, and flags anything missing consent or
+  whose permission is expiring. Use this if you've ever reposted a fan
+  edit, duet, or piece of fan art and only afterward wondered whether you
+  actually had their okay, or for how long.
+category: creator
+tags: [creator, ugc, fan-content, usage-rights, consent]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      fan=$1; desc=$2; platform=$3; consent_date=$4; expiry=$5;
+      if (consent_date == "") { printf "MISSING CONSENT: %s — \"%s\" reposted to %s has no recorded consent\n", fan, desc, platform; next; }
+      if (expiry != "") {
+        cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+        cmd | getline exp_ts; close(cmd);
+        days_left = (exp_ts - today) / 86400;
+        if (days_left <= warn) printf "EXPIRING: %s — consent for \"%s\" on %s expires in %d days (%s)\n", fan, desc, platform, days_left, expiry;
+      }
+    }
+  ' "{{fan_content_csv_path}}"
+variables:
+  fan_content_csv_path:
+    default: "./fan-content-usage.csv"
+    description: "Path to a CSV with columns: fan_handle,content_description,platform_reposted_to,consent_date (YYYY-MM-DD, blank if not yet obtained),consent_expiry_date (YYYY-MM-DD, blank if no expiry)."
+  warn_days:
+    default: 14
+    description: Days before a time-limited consent expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks permission fans or UGC creators gave you to repost their content
+  (a duet, reaction clip, screenshot, or fan art) — the reverse direction
+  of usage-rights-license-expiry-check, which tracks rights you granted a
+  brand to reuse your content. Log every piece of reposted fan content
+  here as soon as you get a yes, even if it's just a screenshot of a DM.

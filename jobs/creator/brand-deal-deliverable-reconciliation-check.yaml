@@ -1,0 +1,71 @@
+id: brand-deal-deliverable-reconciliation-check
+version: 1
+name: Brand Deal Deliverable Reconciliation Check
+description: >
+  Compares what you actually posted for a brand deal against the
+  quantity and type negotiated in the contract, not just whether a due
+  date passed. Use this if a sponsor has ever quietly gotten fewer posts
+  than they paid for because each individual deliverable technically
+  "went out eventually" and nobody ever added them up against the deal.
+category: creator
+tags: [creator, sponsorship, brand-deal, reconciliation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) { key=$1"|"$2; required[key]=$3; enddate[key]=$4 }; next }
+    FNR==1 { next }
+    { key=$1"|"$2; actual[key]++ }
+    END {
+      for (k in required) {
+        split(k, parts, "|");
+        got = actual[k] + 0;
+        need = required[k] + 0;
+        if (got < need) printf "SHORTFALL: %s — %s: %d of %d posted (campaign ends %s)\n", parts[1], parts[2], got, need, enddate[k];
+        else if (got > need) printf "SURPLUS: %s — %s: %d posted, only %d required\n", parts[1], parts[2], got, need;
+      }
+    }
+  ' "{{contracted_deliverables_csv_path}}" "{{posted_content_log_csv_path}}"
+prompt: |
+  Reconcile brand-deal deliverables actually posted against what was
+  contracted.
+  1. Read {{contracted_deliverables_csv_path}} (columns: brand_name,
+     deliverable_type, quantity_required, campaign_end_date) and
+     {{posted_content_log_csv_path}} (columns: brand_name,
+     deliverable_type, post_date, post_url).
+  2. For each brand/deliverable_type pair, compare quantity posted to
+     quantity required.
+  3. For any shortfall, especially where campaign_end_date has passed or
+     is within {{warn_days_before_end}} days, flag it clearly — this is a
+     contract compliance risk, not just a scheduling nudge.
+  4. For posted items, spot-check (from the URL or description if
+     available) whether the required disclosure (e.g. #ad, paid
+     partnership tag) and correct brand tag/handle look present; flag any
+     that look non-compliant.
+  5. Summarize as a short list per brand: contracted vs. actual, and any
+     compliance concerns.
+script_note: >
+  `command` computes contracted-vs-actual counts per brand/deliverable
+  type from the two CSVs, zero tokens — a fast shortfall/surplus check.
+  `prompt` additionally judges disclosure/tagging compliance on
+  individual posts and prioritizes by how close the campaign is to
+  ending, which the raw count can't do.
+variables:
+  contracted_deliverables_csv_path:
+    default: "./brand-deal-contracted-deliverables.csv"
+    description: "Path to a CSV with columns: brand_name,deliverable_type,quantity_required,campaign_end_date (YYYY-MM-DD)."
+  posted_content_log_csv_path:
+    default: "./brand-deal-posted-content-log.csv"
+    description: "Path to a CSV with columns: brand_name,deliverable_type,post_date (YYYY-MM-DD),post_url."
+  warn_days_before_end:
+    default: 5
+    description: Days before campaign_end_date to treat a shortfall as urgent.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Different from sponsorship-deliverable-tracker, which only warns as a
+  single due date approaches, and from the marketing category's
+  influencer-campaign-deliverable-tracker, which is written for the
+  brand/agency side querying a database. This is the creator's own
+  reconciliation of contracted quantity vs. what actually got posted,
+  run periodically through a campaign's flight window.

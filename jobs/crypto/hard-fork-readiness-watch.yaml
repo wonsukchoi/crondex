@@ -1,0 +1,53 @@
+id: hard-fork-readiness-watch
+version: 1
+name: Hard Fork Client Readiness Watch
+description: >
+  Checks a self-run node's client version against publicly announced
+  hard-fork or network-upgrade requirements, and flags it if the node
+  isn't upgraded before activation. Use this if you run your own node or
+  validator and have ever learned about a required upgrade only after the
+  fork already happened and your node forked off the network.
+category: crypto
+tags: [crypto, node, hard-fork, client-version]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  current=$({{node_version_command}} 2>&1) || current="could not run node_version_command — check it's the right command for this client";
+  echo "Locally reported client version for {{network_name}}: $current";
+  echo "Last recorded required minimum version: {{required_min_version}}"
+prompt: |
+  Check {{network_name}}'s official upgrade/hard-fork announcements (the
+  core client team's release notes/blog, or a tracker like ethnodes.org or
+  the network's core-devs coordination channel) for any upcoming hard fork
+  or mandatory client-version bump.
+  1. Report the next announced hard fork/upgrade name and activation date
+     (block height or timestamp) if one is scheduled, and the minimum
+     client version it requires.
+  2. Get the locally running client version by running
+     {{node_version_command}} (or asking for its output) and compare it
+     against the required minimum.
+  3. Flag as urgent if the local version is below the required minimum and
+     the fork activates within {{urgent_days_threshold}} days.
+  4. If no fork is scheduled, or the node is already compliant, say so in
+     one line.
+script_note: >
+  `command` only reports the locally running client version and your last
+  manually-recorded minimum version — it can't tell you what the actual
+  current requirement is or when the next fork activates. `prompt` looks
+  up the live fork schedule/requirement and does the comparison.
+variables:
+  node_version_command:
+    default: "geth version"
+    description: Local command that prints your node client's version (e.g. "geth version", "besu --version", "lighthouse --version"). Never point this at anything that could echo secrets.
+  network_name:
+    default: "Ethereum"
+    description: Network the node runs on.
+  required_min_version:
+    default: "unknown — update after checking the network's fork announcements"
+    description: Your last manually-recorded minimum required client version, for the shell command's quick reference.
+  urgent_days_threshold:
+    default: 14
+    description: Days before fork activation at which a non-compliant node is flagged as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — never restarts, upgrades, or reconfigures the node, and never handles keys/secrets. Actually upgrading client software should go through your own tested deployment process, not this job.

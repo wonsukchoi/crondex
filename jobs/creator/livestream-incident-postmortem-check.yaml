@@ -1,0 +1,40 @@
+id: livestream-incident-postmortem-check
+version: 1
+name: Livestream Technical Incident Post-mortem Check
+description: >
+  Checks your log of livestream technical issues (dropped feed, audio
+  failure, overlay glitch, platform outage) and flags any that still
+  don't have a post-mortem or fix marked done. Use this if the same
+  stream hiccup has ever happened three streams in a row because nobody
+  ever circled back after the first one to actually fix it.
+category: creator
+tags: [creator, livestream, streaming, incidents]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_days}}" '
+    NR==1 {next}
+    ($4 == "no" || $5 == "no") {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline stream_ts; close(cmd);
+      age_days = (today - stream_ts) / 86400;
+      if (age_days >= grace) printf "OPEN: %s incident on %s (%s) — postmortem:%s resolved:%s, %d days old\n", $3, $1, $2, $4, $5, age_days;
+    }
+  ' "{{livestream_incidents_csv_path}}"
+variables:
+  livestream_incidents_csv_path:
+    default: "./livestream-incidents.csv"
+    description: "Path to a CSV with columns: stream_date (YYYY-MM-DD),incident_description,severity (low/medium/high),postmortem_done (yes/no),resolved (yes/no)."
+  grace_days:
+    default: 3
+    description: Days after the stream date before an open incident is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Log anything that went wrong on stream — audio dropout, dropped feed,
+  wrong overlay, mod-tool failure, platform-side outage — as soon as it
+  happens. Different from livestream-schedule-reminder, which only
+  reminds you before a stream starts; this tracks what went wrong
+  afterward so a recurring tech problem doesn't get shrugged off every
+  time it repeats.

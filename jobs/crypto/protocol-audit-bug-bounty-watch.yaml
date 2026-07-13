@@ -1,0 +1,32 @@
+id: protocol-audit-bug-bounty-watch
+version: 1
+name: Protocol Audit & Bug Bounty Status Watch
+description: >
+  Checks whether a DeFi protocol you use still has an active bug bounty
+  program and no newly published audit findings of concern, and flags it
+  if the bounty lapsed or a new audit surfaced an unresolved issue. Use
+  this if you've ever picked a protocol partly for its audit/bounty
+  reputation and never checked again whether that was still true.
+category: crypto
+tags: [crypto, defi, audit, bug-bounty, security]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{protocol_name}}'s current security posture: whether it has an
+  active bug bounty program (e.g. on Immunefi or the protocol's own site)
+  and whether any new audit report has been published recently (via the
+  protocol's docs/GitHub security page or a public audit aggregator).
+  1. Report whether a bug bounty program is currently active, its
+     maximum payout, and the platform hosting it.
+  2. Report the date and firm of the most recent audit, and whether it
+     lists any unresolved high/critical findings.
+  3. Flag as urgent if a previously active bug bounty is now inactive or
+     expired, or if a new audit lists an unresolved high/critical finding.
+  4. If nothing notable changed, say so in one line.
+variables:
+  protocol_name:
+    default: "the protocol you're tracking"
+    description: Name of the DeFi protocol to check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never moves funds or changes anything. An audit or bounty program reduces but never eliminates risk; treat a clean report as a data point, not a guarantee. Distinct from protocol-exploit-news-monitor, which watches for an active/ongoing exploit, and smart-contract-upgrade-watch, which watches for on-chain code changes rather than audit/bounty program status.

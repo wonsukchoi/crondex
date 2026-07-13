@@ -1,0 +1,43 @@
+id: nft-royalty-enforcement-watch
+version: 1
+name: NFT Royalty Enforcement Watch
+description: >
+  Checks whether a tracked NFT collection's creator royalty is still being
+  honored across major marketplaces, and flags any marketplace that has
+  gone optional or zero-royalty on it. Use this if you rely on ongoing
+  royalty income from a collection and want to know when a marketplace
+  quietly stops paying it, not months later when revenue looks off.
+category: crypto
+tags: [crypto, nft, royalty, marketplace]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the configured creator royalty for NFT collection
+  {{collection_name}} ({{collection_contract_address}} on {{chain_name}}),
+  and check royalty enforcement across {{marketplaces_list}} (via each
+  marketplace's collection page/fee settings, plus any royalty-enforcement
+  registry such as the collection's on-chain royalty standard or
+  Manifold/OpenSea configuration).
+  1. Report the collection's configured royalty percentage and recipient.
+  2. For each marketplace listed, report whether it currently enforces
+     that royalty in full, makes it optional, or pays 0%.
+  3. Flag any marketplace paying less than the configured royalty as
+     worth noting, especially if it changed recently.
+  4. If every marketplace listed enforces the royalty as configured, say
+     so in one line.
+variables:
+  collection_name:
+    default: "the collection you're tracking"
+    description: NFT collection name.
+  collection_contract_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: NFT collection's contract address.
+  chain_name:
+    default: "Ethereum"
+    description: Chain the collection is deployed on.
+  marketplaces_list:
+    default: "OpenSea, Blur, Magic Eden, LooksRare"
+    description: Comma-separated list of marketplaces to check enforcement on.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never lists, delists, or changes any on-chain royalty setting. Royalty enforcement policy varies by marketplace and changes without notice; treat this as a periodic heads-up, not a real-time feed. Distinct from nft-floor-price-watch, which tracks sale price rather than royalty payout behavior.

@@ -1,0 +1,47 @@
+id: payment-stream-balance-watch
+version: 1
+name: On-Chain Payment Stream Balance Watch
+description: >
+  Checks a real-time token payment stream (e.g. a Superfluid or Sablier
+  stream) for its remaining runway and flags it before the sender's
+  deposit buffer runs out and the stream stalls or gets force-closed. Use
+  this if you've ever been on either end of a streamed payment and found
+  out it had stopped only after checking your balance days later.
+category: crypto
+tags: [crypto, payment-stream, defi, superfluid]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the payment stream {{stream_id_or_flow}} on {{protocol_name}}
+  ({{chain_name}}) between sender {{sender_address}} and receiver
+  {{receiver_address}} (via the protocol's app, dashboard, or subgraph).
+  1. Report the current flow rate and the sender's remaining deposit
+     buffer for this stream.
+  2. Estimate how many hours/days remain before the buffer runs out at the
+     current flow rate.
+  3. Flag as urgent if the remaining runway is under
+     {{urgent_hours_threshold}} hours — running the buffer to zero can
+     auto-close or liquidate the stream.
+  4. If the stream is healthy or already closed, say so in one line.
+variables:
+  stream_id_or_flow:
+    default: "the stream/flow identifier you're tracking"
+    description: Identifier for the specific payment stream (varies by protocol — a flow ID, NFT stream ID, or the sender/receiver/token tuple).
+  protocol_name:
+    default: "Superfluid"
+    description: Streaming-payment protocol name (e.g. "Superfluid", "Sablier").
+  chain_name:
+    default: "Polygon"
+    description: Chain the stream lives on.
+  sender_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Address funding/sending the stream.
+  receiver_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Address receiving the stream.
+  urgent_hours_threshold:
+    default: 48
+    description: Hours of remaining buffer below which to flag as urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only — never tops up, adjusts, or closes a stream on your behalf. If you're the sender, top up the deposit yourself via the protocol's own app well before this alert's threshold.

@@ -1,0 +1,42 @@
+id: back-catalog-repromotion-finder
+version: 1
+name: Podcast Back-Catalog Re-Promotion Finder
+description: >
+  Reviews your episode catalog for evergreen episodes that haven't been
+  re-shared in a while and are newly relevant again. Use this if you've
+  ever realized months later that a news event or trending topic made an
+  old episode timely again, right when you could've been driving new
+  listens to it.
+category: podcast
+tags: [podcast, back-catalog, promotion, growth]
+schedule: "0 9 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the episode catalog in {{episodes_csv}} (columns: episode_title,
+  publish_date, topic, evergreen(yes/no), last_repromoted_date).
+  1. Shortlist episodes marked evergreen=yes whose last_repromoted_date is
+     more than {{min_days_since_repromotion}} days ago (or blank, meaning
+     never repromoted).
+  2. From that shortlist, flag any whose topic looks newly relevant given
+     current events, trends, or a recent episode you've published on a
+     related subject — note why it's timely now, not just that it's old.
+  3. For each flagged episode, suggest one concrete way to resurface it
+     (a social post, a "throwback" segment, a link in a related new
+     episode's show notes).
+  4. If nothing in the shortlist looks newly relevant, say so in one line
+     rather than forcing a recommendation.
+variables:
+  episodes_csv:
+    default: "episodes.csv"
+    description: "CSV with header row, columns: episode_title,publish_date(YYYY-MM-DD),topic,evergreen(yes/no),last_repromoted_date(YYYY-MM-DD or blank)."
+  min_days_since_repromotion:
+    default: 90
+    description: Minimum days since an evergreen episode was last repromoted before it's eligible to be shortlisted again.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Update last_repromoted_date in episodes.csv whenever you resurface an
+  episode, so the same one doesn't get suggested every run. Quality of
+  suggestions depends on the agent having some sense of current events or
+  trends relevant to your topic — treat flagged picks as candidates to
+  sanity-check, not auto-publish.

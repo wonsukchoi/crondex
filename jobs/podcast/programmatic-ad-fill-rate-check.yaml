@@ -1,0 +1,46 @@
+id: programmatic-ad-fill-rate-check
+version: 1
+name: Podcast Programmatic Ad Fill Rate Check
+description: >
+  Checks your ad network's impression fill rate from its delivery report
+  and flags a run of underdelivery. Use this if you've ever assumed
+  programmatic ad revenue was steady only to find out weeks later the
+  network had been leaving a chunk of your ad inventory unsold.
+category: podcast
+tags: [podcast, monetization, ads, revenue]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F, -v thresh={{min_fill_rate_pct}} '
+    NR>1 {
+      req=$3+0; fill=$4+0;
+      if (req > 0) {
+        rate = (fill/req)*100;
+        if (rate < thresh) printf "WARNING: %s network %s fill rate %.1f%% below minimum %.1f%% (requested %d, filled %d)\n", $1, $2, rate, thresh, req, fill;
+      }
+    }
+  ' {{ad_fill_report_csv}}
+script_note: >
+  The script gives a per-row pass/fail against a flat threshold. It won't
+  tell you whether a low-fill week is a one-off blip or a trend worth
+  raising with the network — an LLM pass across multiple weeks of this
+  report adds that trend read.
+prompt: |
+  Review the ad fill report in {{ad_fill_report_csv}} (columns: date,
+  network, impressions_requested, impressions_filled).
+  1. Calculate fill rate per row and flag any below {{min_fill_rate_pct}}%.
+  2. Look across the recent rows for a trend — is fill rate declining over
+     multiple periods for one network, or was it a single bad day?
+  3. If there's a multi-period decline, call it out explicitly as worth
+     raising with the ad network.
+  4. If fill rate is healthy throughout, report the range in one line.
+variables:
+  ad_fill_report_csv:
+    default: "ad-fill-report.csv"
+    description: "CSV with header row, columns: date(YYYY-MM-DD),network,impressions_requested,impressions_filled."
+  min_fill_rate_pct:
+    default: 85
+    description: Minimum acceptable fill rate percentage before a row is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Export this report from your ad network's dashboard (most programmatic podcast ad networks offer a CSV export) into ad-fill-report.csv before each run.

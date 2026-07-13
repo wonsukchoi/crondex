@@ -1,0 +1,35 @@
+id: duplicate-episode-audio-check
+version: 1
+name: Podcast Duplicate Episode Audio Check
+description: >
+  Checks a new episode's audio checksum against every previously published
+  episode's checksum before it goes out. Use this if you've ever nearly
+  published (or actually published) the wrong export — the same audio file
+  as an earlier episode — because two similarly-named files got mixed up
+  during upload.
+category: podcast
+tags: [podcast, audio, quality-control, publishing]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if ! command -v md5sum >/dev/null 2>&1; then echo "WARNING: md5sum not installed, cannot check for duplicate audio"; exit 1; fi;
+  if [ ! -f "{{new_episode_audio_file}}" ]; then echo "WARNING: {{new_episode_audio_file}} not found"; exit 1; fi;
+  if [ ! -f "{{published_checksums_csv}}" ]; then echo "WARNING: checksums file {{published_checksums_csv}} not found"; exit 1; fi;
+  new_sum=$(md5sum "{{new_episode_audio_file}}" | awk '{print $1}');
+  match=$(awk -F, -v sum="$new_sum" 'NR>1 && $2 == sum {print $1}' "{{published_checksums_csv}}");
+  if [ -n "$match" ]; then echo "WARNING: {{new_episode_audio_file}} checksum matches already-published episode(s): $match"; exit 1;
+  else echo "OK: {{new_episode_audio_file}} checksum does not match any previously published episode"; fi
+variables:
+  new_episode_audio_file:
+    default: "episode-final.mp3"
+    description: Path to the new episode's final exported audio file, about to be published.
+  published_checksums_csv:
+    default: "published-checksums.csv"
+    description: "CSV with header row, columns: episode_title,md5_checksum, one row per previously published episode."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Append each episode's title and md5 checksum to published-checksums.csv
+  right after it publishes, so future runs have something to compare
+  against. A match is a strong signal of an upload mix-up, not a false
+  positive to dismiss lightly — verify before publishing.

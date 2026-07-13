@@ -1,0 +1,51 @@
+id: physician-order-verification-lag-check
+version: 1
+name: Physician Order Verification Lag Check
+description: >
+  Checks new physician orders (medication changes, new treatments,
+  diet or care-level changes) for ones that haven't been countersigned
+  or verified by a licensed nurse within the required window, and flags
+  the ones running behind. Use this if a physician order has ever sat
+  unverified for days because a verbal or faxed order got logged but
+  nobody circled back to formally sign off on it.
+category: senior-living
+tags: [senior-living, physician-orders, medication, compliance, resident-care]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{verification_sla_hours}}" '
+    NR==1 {next}
+    $3 == "" || $3 == "unverified" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M %2 +%s 2>/dev/null";
+      cmd | getline order_epoch; close(cmd);
+      hours_waiting = (today - order_epoch) / 3600;
+      if (hours_waiting >= sla) {
+        printf "UNVERIFIED: %s — order type %s placed %s (%.1f hours ago, still unverified)\n", $1, $4, $2, hours_waiting;
+      }
+    }
+  ' "{{physician_orders_csv_path}}"
+variables:
+  physician_orders_csv_path:
+    default: "./physician-orders.csv"
+    description: >
+      Path to a CSV with columns: resident_id,order_datetime (YYYY-MM-DD
+      or an ISO timestamp your `date` command can parse),verified_status
+      (verified/unverified, blank means unverified),order_type. Use
+      resident_id, not a resident's full name.
+  verification_sla_hours:
+    default: 24
+    description: >
+      Number of hours after an order is placed before an unverified
+      order is flagged — adjust to your facility's policy or state
+      regulation for countersigning verbal/telephone orders.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an orders log where a licensed nurse marks `verified_status`
+  once they've reviewed and countersigned an order — adjust the query to
+  your EHR's actual field names. Read-only: this only flags which orders
+  are past the verification window for a nurse to review and sign off
+  on, it does not itself verify, transcribe, or act on any physician
+  order, and every flagged item should be treated as needing prompt
+  licensed-staff attention, not just eventual paperwork cleanup.

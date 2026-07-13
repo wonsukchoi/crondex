@@ -1,0 +1,35 @@
+id: evergreen-intro-outro-freshness-check
+version: 1
+name: Podcast Evergreen Intro/Outro Freshness Check
+description: >
+  Reviews your show's reused intro and outro script for details that have
+  gone stale. Use this if you've ever kept using the same recorded intro
+  for months and only noticed it still named a sponsor you dropped, an old
+  publish schedule, or a co-host who's since left.
+category: podcast
+tags: [podcast, production, branding, accuracy]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the intro/outro script text in {{intro_outro_script_file}}.
+  Compare it against these current facts about the show:
+  {{current_show_facts}}
+  1. Flag any line in the script that contradicts or is out of date
+     relative to the current facts (wrong sponsor, wrong schedule, a
+     co-host or segment no longer part of the show, an outdated URL or
+     handle).
+  2. Quote the specific stale line alongside what it should say instead.
+  3. If nothing is out of date, confirm in one line.
+variables:
+  intro_outro_script_file:
+    default: "intro-outro-script.txt"
+    description: Path to the plain-text script of your standard recorded intro and outro.
+  current_show_facts:
+    default: "current sponsor: none; publish schedule: weekly on Tuesdays; hosts: [list current hosts]; social handle: [current handle]"
+    description: A short, current list of facts (sponsor, schedule, hosts, handles) to check the script against — keep this updated as things change.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This only catches what's in current_show_facts — keep that variable
+  updated whenever something the intro/outro references changes, or the
+  check will miss it.

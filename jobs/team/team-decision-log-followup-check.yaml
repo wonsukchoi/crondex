@@ -1,0 +1,44 @@
+id: team-decision-log-followup-check
+version: 1
+name: Team Decision Log Follow-up Check
+description: >
+  Checks a running log of team decisions and flags any that have no
+  owner assigned, or that have sat open past a target window without
+  being resolved. Use this if a decision has ever been made out loud
+  in a meeting, wound up in nobody's notes with nobody clearly on the
+  hook for it, and then quietly got re-litigated a month later because
+  nobody remembered it had "already been decided."
+category: team
+tags: [team, decisions, planning, documentation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_open}}" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline logged_epoch; close(cmd);
+      age_days = (today - logged_epoch) / 86400;
+      if ($2 == "") {
+        printf "NO OWNER: \"%s\" logged %s (%d day(s) ago) — needs an owner assigned\n", $1, $4, age_days;
+      } else if (age_days >= max_days) {
+        printf "STALE OPEN: \"%s\" (owner: %s) logged %s (%d day(s) ago, still open)\n", $1, $2, $4, age_days;
+      }
+    }
+  ' "{{decision_log_csv_path}}"
+variables:
+  decision_log_csv_path:
+    default: "./team-decision-log.csv"
+    description: "Path to a CSV with columns: decision_name,owner_name (blank if unassigned),status (open/resolved),logged_date (YYYY-MM-DD)."
+  max_days_open:
+    default: 21
+    description: Flag an open decision as stale once it's been open this many days, even if it has an owner.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from team-retro-followup-tracker (retro action
+  items) — this covers standalone decisions logged outside of retros
+  (planning calls, ADRs, one-off calls) that need an owner or an
+  actual resolution. Assumes decisions get logged to this file as
+  they're made; it doesn't capture verbal-only decisions.

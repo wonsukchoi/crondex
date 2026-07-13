@@ -1,0 +1,40 @@
+id: erp-wms-stock-sync-drift-check
+version: 1
+name: ERP/WMS Stock Sync Drift Check
+description: >
+  Compares each SKU's on-hand quantity as recorded in your ERP against the
+  quantity recorded in your warehouse management system and flags any SKU
+  where the two disagree. Use this if a sync job between your ERP and WMS
+  has ever silently failed or fallen behind, so one system kept showing
+  stock the other had already sold or received.
+category: inventory
+tags: [inventory, data-integrity, sync, systems]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v units="{{drift_threshold_units}}" -v pct="{{drift_threshold_pct}}" '
+    NR==1 {next}
+    {
+      sku=$1; erp=$2+0; wms=$3+0;
+      diff = erp - wms;
+      absdiff = diff < 0 ? -diff : diff;
+      base = (erp > wms) ? erp : wms;
+      diffpct = (base>0) ? (absdiff/base)*100 : 0;
+      if (absdiff >= units || diffpct >= pct) {
+        printf "SYNC DRIFT: %s — ERP says %d, WMS says %d (diff %d, %.1f%%)\n", sku, erp, wms, diff, diffpct;
+      }
+    }
+  ' "{{system_stock_comparison_csv_path}}"
+variables:
+  system_stock_comparison_csv_path:
+    default: "./erp-wms-stock-comparison.csv"
+    description: "Path to a CSV with columns: sku,erp_qty,wms_qty — quantities pulled from each system for the same SKU at roughly the same point in time."
+  drift_threshold_units:
+    default: 5
+    description: Absolute unit difference between the two systems' quantities that triggers a flag.
+  drift_threshold_pct:
+    default: 5
+    description: Percent difference between the two systems' quantities that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Pull both quantities as close to simultaneously as possible — normal in-flight transactions (a sale mid-sync) can create a false positive if the two exports are minutes apart. Distinct from `bin-location-mismatch-check` (location, not quantity) and `inventory-count-discrepancy-check` (system vs a physical count, not two systems disagreeing with each other).

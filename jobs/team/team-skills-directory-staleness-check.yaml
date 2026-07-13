@@ -1,0 +1,41 @@
+id: team-skills-directory-staleness-check
+version: 1
+name: Team Skills Directory Staleness Check
+description: >
+  Checks your team's skills/expertise directory against each entry's
+  last-confirmed date and flags anything overdue for a recheck. Use
+  this if you've ever pinged someone as "the expert on X" only to
+  learn they moved teams, forgot that tool, or never actually owned
+  it, because the directory nobody kept up to date.
+category: team
+tags: [team, skills, expertise, documentation]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_confirmed}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "STALE: %s listed for \"%s\" — last confirmed %s (%d day(s) ago)\n", $1, $2, $3, days_since;
+      }
+    }
+  ' "{{skills_directory_csv_path}}"
+variables:
+  skills_directory_csv_path:
+    default: "./team-skills-directory.csv"
+    description: "Path to a CSV with columns: person_name,skill_area,last_confirmed_date (YYYY-MM-DD) — when the person or their manager last confirmed they still hold/use this skill or area of expertise."
+  max_days_since_confirmed:
+    default: 270
+    description: Flag an entry if it hasn't been reconfirmed in this many days (roughly nine months).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from team-runbook-staleness-check, which tracks
+  process docs — this tracks who-knows-what, so a "who owns X" search
+  doesn't point at someone who left the team or forgot the tool two
+  years ago. Doesn't verify actual skill level, only recency of
+  self/manager confirmation.

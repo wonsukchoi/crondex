@@ -1,0 +1,61 @@
+id: cohost-talk-time-balance-check
+version: 1
+name: Podcast Co-Host Talk Time Balance Check
+description: >
+  Computes each speaker's share of words in a diarized episode transcript
+  and flags a lopsided split. Use this if a co-host or guest has ever
+  listened back to an episode and realized they barely got a word in,
+  and nobody noticed until the episode was already out.
+category: podcast
+tags: [podcast, cohosts, production, quality]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ ! -f "{{diarized_transcript_file}}" ]; then echo "WARNING: transcript file {{diarized_transcript_file}} not found"; exit 1; fi;
+  awk -F: -v maximb={{max_imbalance_pct}} '
+    /^[A-Za-z0-9_ ]+:/ {
+      speaker=$1; sub(/^ */,"",speaker); sub(/ *$/,"",speaker);
+      line=$0; sub(/^[^:]+:/,"",line);
+      n=split(line,tmp," ");
+      words[speaker]+=n;
+      total+=n;
+    }
+    END {
+      if (total == 0) { print "WARNING: no \"Speaker: text\" lines found"; exit 1; }
+      for (s in words) printf "%s: %d words (%.1f%%)\n", s, words[s], (words[s]/total)*100;
+      max=0; min=100;
+      for (s in words) { pct=(words[s]/total)*100; if (pct>max) max=pct; if (pct<min) min=pct; }
+      if ((max-min) > maximb) print "WARNING: talk-time spread of " (max-min) " percentage points exceeds threshold of " maximb;
+    }
+  ' "{{diarized_transcript_file}}"
+script_note: >
+  The script gives an objective per-speaker word-count percentage. It
+  can't tell you whether an imbalance is expected (an interview format
+  where the host talks less on purpose) or a sign a co-host is being
+  crowded out — an LLM pass adds that context.
+prompt: |
+  Review the per-speaker talk-time percentages computed from
+  {{diarized_transcript_file}}, alongside the show's format
+  ({{show_format}}).
+  1. Note which speaker(s) dominated and by how much.
+  2. Judge whether that split is expected for this format (e.g. a host
+     interviewing a guest naturally talks less) or looks like a co-host or
+     guest wasn't given enough room.
+  3. If it looks like a genuine imbalance worth a note to the hosts, say
+     so plainly; if it's expected for the format, say that instead.
+variables:
+  diarized_transcript_file:
+    default: "episode-transcript-diarized.txt"
+    description: 'Path to a transcript with speaker-labeled lines in "Speaker Name: text" format (e.g. output from a diarizing transcription tool).'
+  max_imbalance_pct:
+    default: 40
+    description: Maximum acceptable spread, in percentage points, between the highest- and lowest-talking speaker before it's flagged.
+  show_format:
+    default: "co-host banter"
+    description: Short description of the show's format (e.g. "co-host banter", "one-on-one interview", "panel"), used to judge whether an imbalance is expected.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires a diarized transcript with per-line speaker labels — a plain,
+  unlabeled transcript won't work. Word count is a rough proxy for talk
+  time, not a substitute for actual audio duration per speaker.

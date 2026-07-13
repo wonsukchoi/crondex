@@ -1,0 +1,39 @@
+id: unit-of-measure-conversion-mismatch-check
+version: 1
+name: Unit of Measure Conversion Mismatch Check
+description: >
+  Compares each SKU's purchase-to-stocking unit conversion factor (e.g.
+  units per case) as recorded in two systems and flags any SKU where they
+  disagree. Use this if a receiving quantity or on-hand count has ever come
+  out wrong because one system thought a case held 24 units and the other
+  thought it held 12, with nothing ever raising an error about it.
+category: inventory
+tags: [inventory, uom, data-integrity, procurement]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      sku=$1; erp=$4+0; wms=$5+0;
+      if (erp <= 0 || wms <= 0) {
+        printf "MISSING/INVALID FACTOR: %s — erp=%s wms=%s\n", sku, $4, $5;
+        next;
+      }
+      diff_pct = ((erp - wms) / erp) * 100;
+      if (diff_pct < 0) diff_pct = -diff_pct;
+      if (diff_pct >= tol) {
+        printf "UOM MISMATCH: %s — %s per %s: ERP says %.4f, WMS says %.4f (%.1f%% apart)\n", sku, $3, $2, erp, wms, diff_pct;
+      }
+    }
+  ' "{{uom_conversion_csv_path}}"
+variables:
+  uom_conversion_csv_path:
+    default: "./uom-conversions.csv"
+    description: "Path to a CSV with columns: sku,purchase_uom,stocking_uom,conversion_factor_erp (stocking units per purchase unit as recorded in your ERP),conversion_factor_wms (the same, as recorded in your WMS)."
+  tolerance_pct:
+    default: 1
+    description: Percent difference between the two systems' conversion factors before it's flagged; small rounding differences under this are ignored.
+compatible_agents: [generic, claude, codex]
+notes: A silent case-vs-each conversion mismatch between systems throws off receiving quantities and on-hand counts without ever producing an obvious error on its own — pull both factors from a system export rather than typing them in by hand, so the check reflects what each system actually has configured.

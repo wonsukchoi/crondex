@@ -1,0 +1,44 @@
+id: new-hire-buddy-assignment-check
+version: 1
+name: New Hire Buddy Assignment Check
+description: >
+  Checks recent new hires against whether an onboarding buddy has been
+  assigned yet, and flags anyone still unassigned once they've been
+  started for a few days. Use this if a new hire has ever spent their
+  first two weeks with no one to ask "dumb" questions because assigning
+  a buddy fell through the cracks along with everything else in a busy
+  onboarding.
+category: team
+tags: [team, onboarding, new-hire, buddy, mentorship]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v flag_after="{{days_after_start_to_flag}}" -v cap="{{lookback_window_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      days_since = (today - start_epoch) / 86400;
+      if (days_since >= flag_after && days_since <= cap && $3 == "") {
+        printf "NO BUDDY: %s started %s (%d day(s) ago) — no onboarding buddy assigned yet\n", $1, $2, days_since;
+      }
+    }
+  ' "{{new_hires_csv_path}}"
+variables:
+  new_hires_csv_path:
+    default: "./new-hires.csv"
+    description: "Path to a CSV with columns: new_hire_name,start_date (YYYY-MM-DD),buddy_name (blank if not yet assigned)."
+  days_after_start_to_flag:
+    default: 5
+    description: Flag a new hire with no buddy assigned once this many days have passed since their start date.
+  lookback_window_days:
+    default: 90
+    description: Stop checking hires older than this many days, on the assumption the onboarding window is over.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from new-hire-onboarding-task-check (equipment
+  and paperwork logistics) and new-manager-30-60-90-check (a
+  manager's own plan milestones) — this checks one specific, easy-to-
+  forget onboarding step: whether a peer buddy actually got assigned.

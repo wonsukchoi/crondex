@@ -1,0 +1,40 @@
+id: po-receiving-quantity-discrepancy-check
+version: 1
+name: PO Receiving Quantity Discrepancy Check
+description: >
+  Compares the quantity ordered on each purchase order line against the
+  quantity actually logged as received and flags shortages or overages past
+  a threshold. Use this if a supplier has ever shorted or over-shipped a PO
+  and it only got noticed weeks later when a count came up wrong.
+category: inventory
+tags: [inventory, purchase-orders, receiving, discrepancy]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v pct="{{discrepancy_threshold_pct}}" -v units="{{discrepancy_threshold_units}}" '
+    NR==1 {next}
+    $5 == "" {next}
+    {
+      po=$1; sku=$2; supplier=$3; ordered=$4+0; received=$5+0;
+      diff = received - ordered;
+      absdiff = diff < 0 ? -diff : diff;
+      pctdiff = (ordered>0) ? (absdiff/ordered)*100 : 0;
+      if (absdiff >= units || pctdiff >= pct) {
+        label = (diff < 0) ? "SHORT" : "OVER";
+        printf "%s: PO %s / %s from %s — ordered %d, received %d (%.1f%% %s)\n", label, po, sku, supplier, ordered, received, pctdiff, label;
+      }
+    }
+  ' "{{po_receiving_csv_path}}"
+variables:
+  po_receiving_csv_path:
+    default: "./po-receiving.csv"
+    description: "Path to a CSV with columns: po_number,sku,supplier_name,ordered_qty,received_qty. Rows with a blank received_qty (not yet received) are skipped."
+  discrepancy_threshold_units:
+    default: 2
+    description: Absolute unit difference between ordered and received quantity that triggers a flag.
+  discrepancy_threshold_pct:
+    default: 5
+    description: Percent difference between ordered and received quantity that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Complements `purchase-order-receiving-delay-check`, which watches for POs that are late or never received — this checks the accuracy of what actually showed up once it's marked received, since an on-time PO can still arrive short or over.

@@ -1,0 +1,40 @@
+id: cross-team-stakeholder-update-cadence-check
+version: 1
+name: Cross-Team Stakeholder Update Cadence Check
+description: >
+  Checks a log of status updates your team owes to other stakeholders
+  and flags any project where the last update sent is older than your
+  cadence allows. Use this if a stakeholder has ever had to ping you
+  first asking "so what's the status?" because a recurring update your
+  team was supposed to send quietly stopped going out.
+category: team
+tags: [team, stakeholders, cross-team, communication]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_update}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "OVERDUE: update to %s on \"%s\" — last sent %s (%d day(s) ago)\n", $1, $2, $3, days_since;
+      }
+    }
+  ' "{{stakeholder_updates_csv_path}}"
+variables:
+  stakeholder_updates_csv_path:
+    default: "./stakeholder-updates-log.csv"
+    description: "Path to a CSV with columns: stakeholder_name,project_name,last_update_sent_date (YYYY-MM-DD)."
+  max_days_since_update:
+    default: 14
+    description: Flag a stakeholder/project pair if the last update was sent this many days ago or longer.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from cross-team-dependency-checkin, which
+  tracks deliverables your team is waiting ON from other teams — this
+  tracks status updates your team owes OUT to stakeholders, regardless
+  of whether any work is currently blocked.

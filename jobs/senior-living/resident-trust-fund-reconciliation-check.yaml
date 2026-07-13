@@ -1,0 +1,50 @@
+id: resident-trust-fund-reconciliation-check
+version: 1
+name: Resident Trust Fund Reconciliation Check
+description: >
+  Compares each resident's personal-funds/trust account ledger balance
+  against the facility's reconciled bank balance for that account and
+  flags any mismatch. Use this if you want an early warning when a
+  resident trust fund ledger has drifted from the actual bank balance,
+  before it turns into a resident-funds compliance finding.
+category: senior-living
+tags: [senior-living, trust-fund, resident-funds, billing, compliance]
+schedule: "0 7 1,15 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_cents}}" '
+    NR==1 {next}
+    {
+      ledger = $2 + 0; bank = $3 + 0;
+      diff = ledger - bank;
+      if (diff < 0) diff = -diff;
+      if ((diff * 100) > tol) {
+        printf "MISMATCH: %s — ledger balance %.2f vs bank balance %.2f (diff %.2f)\n", $1, ledger, bank, (ledger - bank);
+      }
+    }
+  ' "{{trust_fund_ledger_csv_path}}"
+variables:
+  trust_fund_ledger_csv_path:
+    default: "./resident-trust-fund-ledger.csv"
+    description: >
+      Path to a CSV with columns: resident_id,ledger_balance,
+      bank_reconciled_balance, one row per resident personal-funds
+      account. Use resident_id, not a resident's full name.
+  tolerance_cents:
+    default: 100
+    description: >
+      Maximum allowed difference, in cents, between the ledger and bank
+      balance before an account is flagged as a mismatch (default $1.00,
+      to absorb rounding, not to hide real discrepancies).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your bookkeeping system can export both the internal
+  resident-funds ledger balance and the bank-reconciled balance per
+  resident account — many states require quarterly resident trust fund
+  reconciliation and a surety bond, so confirm this matches your actual
+  regulatory cadence. Read-only and safety-critical: it only flags
+  balances that don't match for a bookkeeper or administrator to
+  investigate, it never moves funds, adjusts a ledger, or contacts a
+  resident or family member itself. Any mismatch involving resident
+  money should be treated as urgent and reviewed by a human right away.

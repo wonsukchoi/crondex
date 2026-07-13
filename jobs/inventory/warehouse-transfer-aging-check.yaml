@@ -1,0 +1,37 @@
+id: warehouse-transfer-aging-check
+version: 1
+name: Warehouse Transfer Aging Check
+description: >
+  Flags inter-location stock transfers that shipped but haven't been marked
+  received after a set number of days, a sign a shipment is stuck, lost, or
+  just never logged in. Use this if a transfer has ever quietly vanished
+  between two locations because nobody was tracking how long it had been
+  in transit.
+category: inventory
+tags: [inventory, transfers, multi-location, aging]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_transit_days}}" '
+    NR==1 {next}
+    $6 != "" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline shipped_epoch; close(cmd);
+      days_in_transit = (today - shipped_epoch) / 86400;
+      if (days_in_transit >= max_days) {
+        printf "STUCK TRANSFER: %s — %s from %s to %s, shipped %s (%d days in transit, not received)\n", $1, $2, $3, $4, $5, days_in_transit;
+      }
+    }
+  ' "{{stock_transfers_csv_path}}"
+variables:
+  stock_transfers_csv_path:
+    default: "./stock-transfers.csv"
+    description: "Path to a CSV with columns: transfer_id,sku,from_location,to_location,shipped_date (YYYY-MM-DD),received_date (blank if not yet received)."
+  max_transit_days:
+    default: 5
+    description: Days since shipped_date before an unreceived transfer is flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a maintained transfer log exported from your WMS/ERP. Distinct from `multi-location-stock-imbalance-check` (which flags transfer opportunities that haven't happened yet) and `purchase-order-receiving-delay-check` (external supplier POs) — this tracks internal transfers already in motion that are taking too long to arrive.

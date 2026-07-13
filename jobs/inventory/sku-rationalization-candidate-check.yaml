@@ -1,0 +1,61 @@
+id: sku-rationalization-candidate-check
+version: 1
+name: SKU Rationalization Candidate Check
+description: >
+  Scans sales history for SKUs that have sat with stock on hand and no
+  meaningful sales for a long stretch, and drafts a ranked list of
+  discontinuation candidates with the dollar value they're tying up. Use
+  this if a SKU has ever kept getting reordered out of habit long after it
+  effectively stopped selling, quietly eating warehouse space and cash.
+category: inventory
+tags: [inventory, sku-rationalization, dead-stock, discontinuation]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min_days="{{min_days_since_last_sale}}" -v min_value="{{min_inventory_value_threshold}}" -v min_launch_age="{{min_days_since_launch}}" '
+    NR==1 {next}
+    {
+      sku=$1; name=$2; qty=$3+0; cost=$4+0; dslsale=$5+0; dslaunch=$6+0;
+      value = qty*cost;
+      if (dslsale >= min_days && qty > 0 && value >= min_value && dslaunch >= min_launch_age) {
+        printf "CANDIDATE: %s (%s) — %d units idle %d days, $%.2f tied up\n", sku, name, qty, dslsale, value;
+      }
+    }
+  ' "{{sku_movement_csv_path}}"
+prompt: |
+  Run the idle-stock scan above against {{sku_movement_csv_path}} (or query
+  {{data_source}}), then for each flagged candidate:
+  1. Cross-check it against {{seasonal_sku_list}} (if provided) and drop any
+     SKU that's simply between seasons rather than genuinely dead.
+  2. Rank the remaining candidates by dollar value tied up, highest first.
+  3. For each, recommend one action — discontinue, deep-discount/liquidate,
+     bundle with a mover, or return to the supplier if returnable — and note
+     the total capital that would be freed if every recommendation were
+     followed.
+script_note: >
+  The command gives the raw list of long-idle, high-value SKUs with no
+  judgment about seasonality, bundling options, or supplier return terms —
+  the prompt filters out seasonal false positives and adds a ranked action
+  recommendation per SKU.
+variables:
+  sku_movement_csv_path:
+    default: "./sku-movement.csv"
+    description: "Path to a CSV with columns: sku,name,quantity_on_hand,unit_cost,days_since_last_sale,days_since_launch."
+  min_days_since_last_sale:
+    default: 180
+    description: Minimum days since the last recorded sale before a SKU (with stock still on hand) is eligible to be flagged.
+  min_inventory_value_threshold:
+    default: 100
+    description: Minimum dollar value tied up (quantity_on_hand times unit_cost) before a candidate is worth flagging.
+  min_days_since_launch:
+    default: 90
+    description: Minimum SKU age in days before it's eligible to be flagged, so a brand-new SKU that just hasn't had a chance to sell yet doesn't get caught.
+  seasonal_sku_list:
+    default: "./seasonal-skus.csv"
+    description: Optional file listing SKU codes known to be seasonal, one per line, to exclude from candidates during the prompt pass.
+  data_source:
+    default: "your inventory/sales system"
+    description: Fallback system of record if a flat-file export isn't available.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This flags review candidates, not an automatic discontinue action — confirm supplier return terms and check for open customer commitments before acting. Distinct from `overstock-slow-mover-check`, which flags stock above a normal par level regardless of whether it's still selling; this flags stock that has effectively stopped selling at all, regardless of par.

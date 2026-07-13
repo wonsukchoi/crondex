@@ -1,0 +1,50 @@
+id: state-survey-readiness-checklist-tracker
+version: 1
+name: State Survey Readiness Checklist Tracker
+description: >
+  Reviews a facility's self-audit checklist across the areas state
+  surveyors typically inspect (posted staffing, life-safety, kitchen
+  sanitation, medication storage, resident rights postings, and similar)
+  and summarizes which items are unresolved and how urgent each one is.
+  Use this if you want a standing rehearsal for an unannounced state
+  survey instead of a scramble the week you hear one might be coming.
+category: senior-living
+tags: [senior-living, state-survey, inspection, compliance, regulatory]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Using the facility self-audit checklist in {{checklist_csv_path}}, one
+  row per checklist item with columns: area, item, status
+  (pass/fail/not-checked), last_checked_date, and notes. Group the open
+  items (fail or not-checked) by area, and for each one give a one-line
+  read on how likely it is to draw a citation if a surveyor walked in
+  today and how urgent it is to fix (e.g. an expired posting is a quick
+  fix; a life-safety fail is urgent). Also call out any "pass" result
+  whose last_checked_date is older than {{stale_after_days}} days as
+  stale and worth rechecking rather than trusted as current. End with a
+  short prioritized punch list ordered by urgency. Do not invent findings
+  that aren't in the data, and do not claim any item is resolved unless
+  its status says so.
+variables:
+  checklist_csv_path:
+    default: "./survey-readiness-checklist.csv"
+    description: >
+      Path to a CSV with columns: area,item,status (pass/fail/not-checked),
+      last_checked_date (YYYY-MM-DD),notes. Populate it from whatever
+      internal mock-survey or QA checklist your facility already uses.
+  stale_after_days:
+    default: 30
+    description: >
+      Age, in days, after which a "pass" result on an item should be
+      called out as stale and worth rechecking rather than trusted as
+      current.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This job needs judgment (grouping findings, weighing citation risk,
+  prioritizing) that a fixed script can't do well, so it's agent-prompt
+  only rather than shell. It only reads and summarizes an existing
+  self-audit checklist — it does not perform the audit itself, correct
+  any finding, or file anything with a state agency. Treat the output as
+  a prioritized to-do list for an administrator, not a substitute for an
+  actual mock survey walk-through.

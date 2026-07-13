@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1459 jobs across 60 categories:
+1507 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -214,7 +214,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
-| `inventory` | 20 | Stock accuracy — counts, shrinkage, expiry, overstock. |
+| `inventory` | 32 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 20 | Personal learning — certs, courses, flashcards, reading. |
@@ -228,7 +228,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `petcare` | 20 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
-| `podcast` | 20 | Show ops — publish cadence, guests, sponsors, ratings. |
+| `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
@@ -237,11 +237,11 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
-| `senior-living` | 20 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
+| `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
-| `team` | 20 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `team` | 32 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 20 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 20 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |

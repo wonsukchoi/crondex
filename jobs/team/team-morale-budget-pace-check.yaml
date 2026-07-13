@@ -1,0 +1,56 @@
+id: team-morale-budget-pace-check
+version: 1
+name: Team Morale/Event Budget Pace Check
+description: >
+  Compares how much of your team's discretionary morale/event/swag
+  budget has been spent against how far through the budget period you
+  are, and flags it if spending is running well ahead of or well
+  behind that pace. Use this if a team fun budget has ever gone
+  completely unused until someone scrambled to spend it in the last
+  week of the year, or run dry by month six with nothing left for the
+  rest of the period.
+category: team
+tags: [team, budget, morale, events, spend]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  start_epoch=$(date -d "{{period_start_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{period_start_date}}" +%s);
+  end_epoch=$(date -d "{{period_end_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{period_end_date}}" +%s);
+  total_days=$(( (end_epoch-start_epoch)/86400 ));
+  elapsed_days=$(( (today-start_epoch)/86400 ));
+  if [ "$elapsed_days" -lt 0 ]; then elapsed_days=0; fi;
+  if [ "$elapsed_days" -gt "$total_days" ]; then elapsed_days=$total_days; fi;
+  spent=$(awk -F',' 'NR==1{next}{sum+=$2}END{printf "%.2f", sum+0}' "{{team_budget_csv_path}}");
+  expected_pct=$(awk -v e="$elapsed_days" -v t="$total_days" 'BEGIN{ if (t>0) printf "%.0f", (e/t)*100; else print 0 }');
+  actual_pct=$(awk -v s="$spent" -v b="{{allocated_budget}}" 'BEGIN{ if (b>0) printf "%.0f", (s/b)*100; else print 0 }');
+  echo "Budget: \$${spent} of \${{allocated_budget}} spent (${actual_pct}%). Period ${expected_pct}% elapsed.";
+  diff=$(( actual_pct - expected_pct ));
+  absdiff=$diff; if [ "$absdiff" -lt 0 ]; then absdiff=$(( -absdiff )); fi;
+  if [ "$absdiff" -ge {{pace_variance_pct}} ]; then
+    if [ "$diff" -gt 0 ]; then echo "AHEAD OF PACE: spending is outrunning the period — may run out before the period ends.";
+    else echo "BEHIND PACE: underspending versus the elapsed period — budget may go unused if this continues."; fi
+  fi
+variables:
+  team_budget_csv_path:
+    default: "./team-morale-budget.csv"
+    description: "Path to a CSV with columns: expense_date,amount,description — one row per team morale/event/swag expense."
+  allocated_budget:
+    default: 2000
+    description: Total discretionary team morale/event budget allocated for the period.
+  period_start_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the budget period starts.
+  period_end_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) the budget period ends.
+  pace_variance_pct:
+    default: 20
+    description: Flag if actual-spend percentage differs from elapsed-period percentage by more than this many percentage points.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from headcount-budget-drift-check (headcount,
+  not discretionary spend) and expense-report-deadline-reminder
+  (individual reimbursement deadline) — this tracks a team's own
+  event/morale/swag budget pacing against the calendar.

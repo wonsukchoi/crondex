@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1459,
+  "count": 1507,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1839,6 +1839,58 @@
       "path": "jobs/events/av-equipment-rental-return-reminder.yaml"
     },
     {
+      "id": "available-to-promise-oversell-check",
+      "version": 1,
+      "name": "Available-to-Promise Oversell Check",
+      "description": "Compares each SKU's on-hand quantity against everything already reserved or committed against it and flags any SKU where promises exceed physical stock. Use this if a customer order has ever failed to ship because the system let it be promised on top of stock that was already spoken for.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "allocation",
+        "oversell",
+        "fulfillment"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/available-to-promise-oversell-check.yaml"
+    },
+    {
+      "id": "back-catalog-repromotion-finder",
+      "version": 1,
+      "name": "Podcast Back-Catalog Re-Promotion Finder",
+      "description": "Reviews your episode catalog for evergreen episodes that haven't been re-shared in a while and are newly relevant again. Use this if you've ever realized months later that a news event or trending topic made an old episode timely again, right when you could've been driving new listens to it.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "back-catalog",
+        "promotion",
+        "growth"
+      ],
+      "schedule": "0 9 1,15 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/podcast/back-catalog-repromotion-finder.yaml"
+    },
+    {
       "id": "back-in-stock-notification-backlog-check",
       "version": 1,
       "name": "Back-in-Stock Notification Backlog Check",
@@ -2345,6 +2397,31 @@
         "codex"
       ],
       "path": "jobs/agency/billable-utilization-rate-check.yaml"
+    },
+    {
+      "id": "bin-capacity-overflow-check",
+      "version": 1,
+      "name": "Bin Capacity Overflow Check",
+      "description": "Compares units stored in each bin against that bin's rated capacity and flags any bin holding more than it's supposed to. Use this if a bin has ever been packed past what it can safely or physically hold because nobody was checking stored quantity against the bin's own rating, only against the SKU's stock level.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "bin",
+        "warehouse",
+        "capacity"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/bin-capacity-overflow-check.yaml"
     },
     {
       "id": "bin-location-mismatch-check",
@@ -4646,6 +4723,35 @@
       "path": "jobs/support/chat-abandonment-rate-check.yaml"
     },
     {
+      "id": "chat-channel-sprawl-audit",
+      "version": 1,
+      "name": "Chat Channel Sprawl Audit",
+      "description": "Scans a chat/Slack channel activity export and flags channels whose message volume has dropped below a threshold, so quiet channels get noticed for archiving instead of piling up forever. Use this if your workspace has ever grown to hundreds of channels and nobody could tell which ones were actually still in use versus abandoned relics from a project that ended a year ago.",
+      "category": "team",
+      "tags": [
+        "team",
+        "chat",
+        "slack",
+        "channels",
+        "sprawl"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/chat-channel-sprawl-audit.yaml"
+    },
+    {
       "id": "cheat-report-triage",
       "version": 1,
       "name": "Cheat/Exploit Report Triage",
@@ -5863,6 +5969,32 @@
         "generic"
       ],
       "path": "jobs/podcast/cohost-recording-availability-conflict-check.yaml"
+    },
+    {
+      "id": "cohost-talk-time-balance-check",
+      "version": 1,
+      "name": "Podcast Co-Host Talk Time Balance Check",
+      "description": "Computes each speaker's share of words in a diarized episode transcript and flags a lopsided split. Use this if a co-host or guest has ever listened back to an episode and realized they barely got a word in, and nobody noticed until the episode was already out.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "cohosts",
+        "production",
+        "quality"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/cohost-talk-time-balance-check.yaml"
     },
     {
       "id": "cold-wallet-firmware-update-check",
@@ -7321,6 +7453,34 @@
       "path": "jobs/pharmacy/counseling-offer-documentation-check.yaml"
     },
     {
+      "id": "count-discrepancy-resolution-aging-check",
+      "version": 1,
+      "name": "Count Discrepancy Resolution Aging Check",
+      "description": "Tracks previously identified inventory count discrepancies that still have no adjustment posted, and flags any sitting open past a set number of days. Use this if a discrepancy has ever gotten logged during a count and then just... sat there, never actually corrected in the system.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "discrepancy",
+        "backlog",
+        "audit"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/inventory/count-discrepancy-resolution-aging-check.yaml"
+    },
+    {
       "id": "counter-offer-renege-tracker",
       "version": 1,
       "name": "Counter-Offer Renege Tracker",
@@ -8018,6 +8178,60 @@
       "path": "jobs/team/cross-team-dependency-checkin.yaml"
     },
     {
+      "id": "cross-team-meeting-attendance-decline-check",
+      "version": 1,
+      "name": "Cross-Team Meeting Attendance Decline Check",
+      "description": "Scans attendance history for recurring cross-team meetings and flags ones whose turnout has dropped, either falling below a floor or declining sharply since the meeting started. Use this if a cross-team sync has ever kept running on the calendar for a year after everyone quietly stopped showing up, because nobody looked at attendance trends, only whether the invite still existed.",
+      "category": "team",
+      "tags": [
+        "team",
+        "meetings",
+        "cross-team",
+        "attendance"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/cross-team-meeting-attendance-decline-check.yaml"
+    },
+    {
+      "id": "cross-team-stakeholder-update-cadence-check",
+      "version": 1,
+      "name": "Cross-Team Stakeholder Update Cadence Check",
+      "description": "Checks a log of status updates your team owes to other stakeholders and flags any project where the last update sent is older than your cadence allows. Use this if a stakeholder has ever had to ping you first asking \"so what's the status?\" because a recurring update your team was supposed to send quietly stopped going out.",
+      "category": "team",
+      "tags": [
+        "team",
+        "stakeholders",
+        "cross-team",
+        "communication"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/cross-team-stakeholder-update-cadence-check.yaml"
+    },
+    {
       "id": "crosspost-lag-check",
       "version": 1,
       "name": "Crosspost Lag Check",
@@ -8530,6 +8744,31 @@
         "generic"
       ],
       "path": "jobs/security/cve-watch.yaml"
+    },
+    {
+      "id": "cycle-count-accuracy-by-counter-check",
+      "version": 1,
+      "name": "Cycle Count Accuracy by Counter Check",
+      "description": "Aggregates recent cycle counts by who performed them and flags any counter whose mismatch rate against system quantity is well above the rest, a sign of a training gap or a genuinely harder zone to count. Use this if a cycle count program has ever tracked overall accuracy but never broken it down by counter, so a consistently sloppy count kept passing as just normal variance.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "cycle-count",
+        "accuracy",
+        "training"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/cycle-count-accuracy-by-counter-check.yaml"
     },
     {
       "id": "cycle-count-schedule-check",
@@ -9383,6 +9622,32 @@
         "codex"
       ],
       "path": "jobs/utilities/demand-response-event-participation-check.yaml"
+    },
+    {
+      "id": "dementia-care-staff-certification-renewal-check",
+      "version": 1,
+      "name": "Dementia Care Staff Certification Renewal Check",
+      "description": "Checks memory-care and dementia-care specialized training certifications for direct-care staff and flags anyone whose certification is expiring soon. Use this if a staff member has ever kept working a memory-care unit past the point their required dementia-care credential lapsed, separate from their general CPR or first-aid card.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "memory-care",
+        "dementia-care",
+        "staff-certification",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/dementia-care-staff-certification-renewal-check.yaml"
     },
     {
       "id": "dental-cleaning-recall-reminder",
@@ -10628,6 +10893,31 @@
       "path": "jobs/publishing/duplicate-content-spot-check.yaml"
     },
     {
+      "id": "duplicate-episode-audio-check",
+      "version": 1,
+      "name": "Podcast Duplicate Episode Audio Check",
+      "description": "Checks a new episode's audio checksum against every previously published episode's checksum before it goes out. Use this if you've ever nearly published (or actually published) the wrong export — the same audio file as an earlier episode — because two similarly-named files got mixed up during upload.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "audio",
+        "quality-control",
+        "publishing"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/duplicate-episode-audio-check.yaml"
+    },
+    {
       "id": "duplicate-payment-detection",
       "version": 1,
       "name": "Duplicate Payment Detection",
@@ -11782,6 +12072,31 @@
       "path": "jobs/podcast/episode-backlog-buffer-check.yaml"
     },
     {
+      "id": "episode-leading-dead-air-check",
+      "version": 1,
+      "name": "Podcast Episode Leading Dead Air Check",
+      "description": "Scans the start of a newly exported episode file for a stretch of silence and flags it before publish. Use this if an episode has ever gone out with several seconds of dead air at the top because the intro music cue or a trim step got missed during export.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "audio",
+        "quality",
+        "production"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/episode-leading-dead-air-check.yaml"
+    },
+    {
       "id": "episode-publish-gap-check",
       "version": 1,
       "name": "Podcast Episode Publish Gap Check",
@@ -11979,6 +12294,31 @@
         "codex"
       ],
       "path": "jobs/fieldservice/equipment-warranty-status-flagging.yaml"
+    },
+    {
+      "id": "erp-wms-stock-sync-drift-check",
+      "version": 1,
+      "name": "ERP/WMS Stock Sync Drift Check",
+      "description": "Compares each SKU's on-hand quantity as recorded in your ERP against the quantity recorded in your warehouse management system and flags any SKU where the two disagree. Use this if a sync job between your ERP and WMS has ever silently failed or fallen behind, so one system kept showing stock the other had already sold or received.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "data-integrity",
+        "sync",
+        "systems"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/erp-wms-stock-sync-drift-check.yaml"
     },
     {
       "id": "error-rate-spike-watch",
@@ -12382,6 +12722,33 @@
       "path": "jobs/events/event-staffing-shortfall-check.yaml"
     },
     {
+      "id": "evergreen-intro-outro-freshness-check",
+      "version": 1,
+      "name": "Podcast Evergreen Intro/Outro Freshness Check",
+      "description": "Reviews your show's reused intro and outro script for details that have gone stale. Use this if you've ever kept using the same recorded intro for months and only noticed it still named a sponsor you dropped, an old publish schedule, or a co-host who's since left.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "production",
+        "branding",
+        "accuracy"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/podcast/evergreen-intro-outro-freshness-check.yaml"
+    },
+    {
       "id": "eviction-notice-deadline-tracker",
       "version": 1,
       "name": "Eviction / Notice-to-Quit Deadline Tracker",
@@ -12665,6 +13032,32 @@
       "path": "jobs/inventory/expiring-perishable-stock-check.yaml"
     },
     {
+      "id": "explicit-content-tag-accuracy-check",
+      "version": 1,
+      "name": "Podcast Explicit Content Tag Accuracy Check",
+      "description": "Scans a newly published episode's transcript for language that would warrant an explicit tag and compares that against the feed's current tag setting. Use this if you've ever mismarked an episode explicit when it wasn't, or shipped one with the explicit tag off when it should've been on.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "compliance",
+        "metadata",
+        "content-rating"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/explicit-content-tag-accuracy-check.yaml"
+    },
+    {
       "id": "facility-cleaning-log-check",
       "version": 1,
       "name": "Facility Cleaning Log Check",
@@ -12891,6 +13284,32 @@
         "codex"
       ],
       "path": "jobs/senior-living/fall-incident-report-followup-check.yaml"
+    },
+    {
+      "id": "fall-risk-assessment-schedule-compliance-check",
+      "version": 1,
+      "name": "Fall Risk Assessment Schedule Compliance Check",
+      "description": "Checks each resident's most recent standardized fall-risk assessment (e.g. Morse Fall Scale) against the required reassessment interval and flags anyone whose assessment is due or overdue. Use this if you want to catch a stale fall-risk score before it's relied on to set care interventions, separate from investigating a fall that already happened.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "falls",
+        "risk-assessment",
+        "resident-care",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/fall-risk-assessment-schedule-compliance-check.yaml"
     },
     {
       "id": "family-communication-log-staleness-check",
@@ -15336,6 +15755,31 @@
       "path": "jobs/hospitality/guest-satisfaction-score-monitor.yaml"
     },
     {
+      "id": "guest-social-share-fulfillment-check",
+      "version": 1,
+      "name": "Podcast Guest Social Share Fulfillment Check",
+      "description": "Flags guests who agreed to share their episode on social media but haven't yet, past a grace period. Use this if a guest's promised \"I'll post about it\" has ever quietly never happened, leaving free cross-promotion on the table because nobody tracked it.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "guests",
+        "promotion",
+        "social"
+      ],
+      "schedule": "0 9 * * 3",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/guest-social-share-fulfillment-check.yaml"
+    },
+    {
       "id": "guest-wifi-tech-complaint-pattern-check",
       "version": 1,
       "name": "Guest Wi-Fi and In-Room Tech Complaint Pattern Watch",
@@ -15905,6 +16349,35 @@
         "codex"
       ],
       "path": "jobs/home/home-insurance-renewal-reminder.yaml"
+    },
+    {
+      "id": "hospice-transition-coordination-tracker",
+      "version": 1,
+      "name": "Hospice Transition Coordination Tracker",
+      "description": "Checks residents newly enrolled in hospice care for the coordination steps that typically need to happen at transition (updated code status, hospice agency contact on file, care plan updated to reflect comfort-focused goals) and flags anyone missing a step past a grace period. Use this if a resident has ever started hospice while the facility's own care plan and contact records still lagged days behind the actual change in their care.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "hospice",
+        "care-coordination",
+        "end-of-life",
+        "resident-care"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/senior-living/hospice-transition-coordination-tracker.yaml"
     },
     {
       "id": "hot-desk-overbooking-check",
@@ -16547,6 +17020,35 @@
       "path": "jobs/security/incident-response-escalation-contact-check.yaml"
     },
     {
+      "id": "infection-control-outbreak-line-listing-tracker",
+      "version": 1,
+      "name": "Infection Control Outbreak Line-Listing Tracker",
+      "description": "Reviews recently logged resident illness symptoms (respiratory, GI, or other infection-control-tracked symptoms) by unit and time window, and flags clusters that look like they could meet an outbreak threshold so infection-control staff can review sooner. Use this if a handful of residents on the same unit have ever come down with similar symptoms within a few days of each other and nobody connected the dots until it had spread further.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "infection-control",
+        "outbreak",
+        "illness-tracking",
+        "safety"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/senior-living/infection-control-outbreak-line-listing-tracker.yaml"
+    },
+    {
       "id": "influencer-campaign-deliverable-tracker",
       "version": 1,
       "name": "Influencer Campaign Deliverable Tracker",
@@ -16724,6 +17226,31 @@
         "codex"
       ],
       "path": "jobs/realestate/insurance-policy-renewal-reminder.yaml"
+    },
+    {
+      "id": "inter-location-transfer-receiving-discrepancy-check",
+      "version": 1,
+      "name": "Inter-Location Transfer Receiving Discrepancy Check",
+      "description": "Compares the quantity shipped on an internal stock transfer against the quantity actually logged as received at the destination and flags shortages or overages past a threshold. Use this if a transfer between two of your own locations has ever arrived short or over and nobody noticed until the next count came up wrong at both ends.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "transfers",
+        "multi-location",
+        "discrepancy"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/inter-location-transfer-receiving-discrepancy-check.yaml"
     },
     {
       "id": "intercompany-balance-reconciliation-check",
@@ -17064,6 +17591,31 @@
         "codex"
       ],
       "path": "jobs/hiring/interviewer-load-balance-check.yaml"
+    },
+    {
+      "id": "inventory-audit-trail-gap-check",
+      "version": 1,
+      "name": "Inventory Audit Trail Gap Check",
+      "description": "Scans your inventory adjustment log for missing transaction IDs in an otherwise sequential run, and for adjustments logged without a reason code, both signs that a change was made outside the normal audit process. Use this if an inventory adjustment has ever gone through with no record of who did it or why, and nobody noticed until an auditor asked.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "audit-trail",
+        "data-integrity",
+        "compliance"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/inventory-audit-trail-gap-check.yaml"
     },
     {
       "id": "inventory-count-discrepancy-check",
@@ -19632,6 +20184,31 @@
       "path": "jobs/ecommerce/marketplace-listing-sync-drift-check.yaml"
     },
     {
+      "id": "master-audio-backup-verification-check",
+      "version": 1,
+      "name": "Podcast Master Audio Backup Verification Check",
+      "description": "Confirms every episode's master audio file has a matching, checksum-equal backup copy. Use this if you've ever lost (or nearly lost) an unreleased or unedited master file because the only copy lived on one laptop and nobody had verified the backup was actually current.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "backup",
+        "audio",
+        "production"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/master-audio-backup-verification-check.yaml"
+    },
+    {
       "id": "matching-gift-claim-backlog-check",
       "version": 1,
       "name": "Matching Gift Claim Backlog Check",
@@ -20315,6 +20892,33 @@
         "generic"
       ],
       "path": "jobs/learning/mentor-1on1-followup-reminder.yaml"
+    },
+    {
+      "id": "mentor-mentee-checkin-cadence-tracker",
+      "version": 1,
+      "name": "Mentor/Mentee Check-in Cadence Tracker",
+      "description": "Checks every active mentorship pairing's last check-in date against a shared cadence and flags pairs that have gone quiet. Use this if your mentorship program has ever had pairs \"matched\" at kickoff and then never actually met again, because nobody but the two people involved would have any way of knowing.",
+      "category": "team",
+      "tags": [
+        "team",
+        "mentorship",
+        "checkin",
+        "program"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/mentor-mentee-checkin-cadence-tracker.yaml"
     },
     {
       "id": "menu-86-frequency-tracker",
@@ -21466,6 +22070,34 @@
       "path": "jobs/fleet/new-driver-onboarding-training-check.yaml"
     },
     {
+      "id": "new-hire-buddy-assignment-check",
+      "version": 1,
+      "name": "New Hire Buddy Assignment Check",
+      "description": "Checks recent new hires against whether an onboarding buddy has been assigned yet, and flags anyone still unassigned once they've been started for a few days. Use this if a new hire has ever spent their first two weeks with no one to ask \"dumb\" questions because assigning a buddy fell through the cracks along with everything else in a busy onboarding.",
+      "category": "team",
+      "tags": [
+        "team",
+        "onboarding",
+        "new-hire",
+        "buddy",
+        "mentorship"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/new-hire-buddy-assignment-check.yaml"
+    },
+    {
       "id": "new-hire-equipment-order-check",
       "version": 1,
       "name": "New Hire Equipment Order Check",
@@ -22229,6 +22861,33 @@
         "codex"
       ],
       "path": "jobs/team/oncall-handoff-reminder.yaml"
+    },
+    {
+      "id": "oncall-stipend-payout-check",
+      "version": 1,
+      "name": "On-Call Stipend Payout Check",
+      "description": "Checks a log of on-call stipends against payout status and flags any that are still marked pending well after the shift happened. Use this if someone has ever covered an on-call rotation and had to personally chase down payroll weeks later because their stipend quietly never got processed.",
+      "category": "team",
+      "tags": [
+        "team",
+        "oncall",
+        "compensation",
+        "payroll"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/oncall-stipend-payout-check.yaml"
     },
     {
       "id": "open-data-portal-publication-sla-check",
@@ -23703,6 +24362,33 @@
       "path": "jobs/pharmacy/pbm-rejection-reason-trend-watch.yaml"
     },
     {
+      "id": "peer-feedback-cycle-completion-tracker",
+      "version": 1,
+      "name": "Peer Feedback Cycle Completion Tracker",
+      "description": "Checks a performance-review cycle's peer/360 feedback requests and flags reviewers who still haven't submitted as the cycle deadline closes in. Use this if a performance review has ever gone out missing peer input because one reviewer's feedback request sat ignored in their inbox until it was too late to chase.",
+      "category": "team",
+      "tags": [
+        "team",
+        "performance-review",
+        "peer-feedback",
+        "360"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/peer-feedback-cycle-completion-tracker.yaml"
+    },
+    {
       "id": "peer-to-peer-fundraiser-performance-check",
       "version": 1,
       "name": "Peer-to-Peer Fundraiser Performance Check",
@@ -24428,6 +25114,32 @@
       "path": "jobs/photography/photography-shoot-day-reminder-drafts.yaml"
     },
     {
+      "id": "physician-order-verification-lag-check",
+      "version": 1,
+      "name": "Physician Order Verification Lag Check",
+      "description": "Checks new physician orders (medication changes, new treatments, diet or care-level changes) for ones that haven't been countersigned or verified by a licensed nurse within the required window, and flags the ones running behind. Use this if a physician order has ever sat unverified for days because a verbal or faxed order got logged but nobody circled back to formally sign off on it.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "physician-orders",
+        "medication",
+        "compliance",
+        "resident-care"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/physician-order-verification-lag-check.yaml"
+    },
+    {
       "id": "piano-specialty-item-insurance-check",
       "version": 1,
       "name": "Piano & Specialty Item Insurance Check",
@@ -24848,6 +25560,31 @@
         "codex"
       ],
       "path": "jobs/hospitality/pms-channel-inventory-sync-drift-check.yaml"
+    },
+    {
+      "id": "po-receiving-quantity-discrepancy-check",
+      "version": 1,
+      "name": "PO Receiving Quantity Discrepancy Check",
+      "description": "Compares the quantity ordered on each purchase order line against the quantity actually logged as received and flags shortages or overages past a threshold. Use this if a supplier has ever shorted or over-shipped a PO and it only got noticed weeks later when a count came up wrong.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "purchase-orders",
+        "receiving",
+        "discrepancy"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/po-receiving-quantity-discrepancy-check.yaml"
     },
     {
       "id": "poc-trial-conversion-tracker",
@@ -25568,6 +26305,32 @@
       "path": "jobs/marketing/press-release-pickup-tracking.yaml"
     },
     {
+      "id": "pressure-ulcer-risk-assessment-due-check",
+      "version": 1,
+      "name": "Pressure Ulcer Risk Assessment Due Check",
+      "description": "Checks each resident's most recent standardized skin/pressure-injury risk assessment (e.g. Braden Scale) against the required reassessment interval and flags anyone whose assessment is due or overdue. Use this if you want a standing check that skin-risk scores stay current instead of being assumed accurate months after they were last done.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "pressure-ulcer",
+        "skin-integrity",
+        "risk-assessment",
+        "resident-care"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/pressure-ulcer-risk-assessment-due-check.yaml"
+    },
+    {
       "id": "preventive-maintenance-due-check",
       "version": 1,
       "name": "Preventive Maintenance Due Check",
@@ -26084,6 +26847,32 @@
       "path": "jobs/nonprofit/program-outcome-data-collection-reminder.yaml"
     },
     {
+      "id": "programmatic-ad-fill-rate-check",
+      "version": 1,
+      "name": "Podcast Programmatic Ad Fill Rate Check",
+      "description": "Checks your ad network's impression fill rate from its delivery report and flags a run of underdelivery. Use this if you've ever assumed programmatic ad revenue was steady only to find out weeks later the network had been leaving a chunk of your ad inventory unsold.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "monetization",
+        "ads",
+        "revenue"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/programmatic-ad-fill-rate-check.yaml"
+    },
+    {
       "id": "project-budget-variance-check",
       "version": 1,
       "name": "Project Budget vs. Actual Cost Variance Check",
@@ -26341,6 +27130,32 @@
         "codex"
       ],
       "path": "jobs/pharmacy/pseudoephedrine-sales-log-compliance-check.yaml"
+    },
+    {
+      "id": "psychotropic-medication-gradual-dose-reduction-review-check",
+      "version": 1,
+      "name": "Psychotropic Medication Gradual Dose Reduction Review Check",
+      "description": "Checks residents on an ongoing psychotropic medication (antipsychotic, antianxiety, antidepressant, or sedative/hypnotic) for the required periodic gradual-dose-reduction (GDR) or clinical-necessity review and flags anyone whose review is due or overdue. Use this if you want to catch a psychotropic order that's been on autopilot past its required review point, a common focus of state and federal unnecessary-drug-use surveys.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "psychotropic-medication",
+        "medication",
+        "clinical-review",
+        "compliance"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/psychotropic-medication-gradual-dose-reduction-review-check.yaml"
     },
     {
       "id": "pto-balance-check",
@@ -28024,6 +28839,32 @@
       "path": "jobs/senior-living/resident-care-conference-scheduling-reminder.yaml"
     },
     {
+      "id": "resident-council-grievance-followup-tracker",
+      "version": 1,
+      "name": "Resident Council Grievance Follow-Up Tracker",
+      "description": "Scans the logged resident/family grievances filed through resident council meetings or the facility's grievance process and flags any that don't have a documented resolution or response within your required turnaround window. Use this if a grievance raised at a resident council meeting has ever quietly gone unanswered because it only lived in someone's meeting notes instead of a tracked log.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "resident-council",
+        "grievance",
+        "resident-rights",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/resident-council-grievance-followup-tracker.yaml"
+    },
+    {
       "id": "resident-elopement-risk-reassessment-reminder",
       "version": 1,
       "name": "Resident Elopement Risk Reassessment Reminder",
@@ -28050,6 +28891,58 @@
       "path": "jobs/senior-living/resident-elopement-risk-reassessment-reminder.yaml"
     },
     {
+      "id": "resident-immunization-consent-tracking-check",
+      "version": 1,
+      "name": "Resident Immunization Consent Tracking Check",
+      "description": "Checks the seasonal influenza and other offered-vaccine consent log for residents who are missing a recorded consent decision (accept or decline) as the vaccination clinic date approaches. Use this if a resident has ever been skipped during a vaccination clinic, or given a vaccine without one, simply because their consent form was never logged either way.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "immunization",
+        "vaccination",
+        "consent",
+        "resident-care"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/resident-immunization-consent-tracking-check.yaml"
+    },
+    {
+      "id": "resident-leave-of-absence-return-check",
+      "version": 1,
+      "name": "Resident Leave-of-Absence Return Check",
+      "description": "Checks the resident sign-out log for day passes and overnight leaves-of-absence and flags anyone whose expected return time has passed with no logged return. Use this if a resident has ever been off-site on an approved outing or family visit and the facility didn't notice they were overdue to come back until someone asked where they were.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "leave-of-absence",
+        "day-pass",
+        "safety",
+        "resident-care"
+      ],
+      "schedule": "*/30 8-22 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/resident-leave-of-absence-return-check.yaml"
+    },
+    {
       "id": "resident-move-in-assessment-deadline-check",
       "version": 1,
       "name": "Resident Move-In Assessment Deadline Check",
@@ -28074,6 +28967,32 @@
         "codex"
       ],
       "path": "jobs/senior-living/resident-move-in-assessment-deadline-check.yaml"
+    },
+    {
+      "id": "resident-trust-fund-reconciliation-check",
+      "version": 1,
+      "name": "Resident Trust Fund Reconciliation Check",
+      "description": "Compares each resident's personal-funds/trust account ledger balance against the facility's reconciled bank balance for that account and flags any mismatch. Use this if you want an early warning when a resident trust fund ledger has drifted from the actual bank balance, before it turns into a resident-funds compliance finding.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "trust-fund",
+        "resident-funds",
+        "billing",
+        "compliance"
+      ],
+      "schedule": "0 7 1,15 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/senior-living/resident-trust-fund-reconciliation-check.yaml"
     },
     {
       "id": "resident-weight-loss-trend-check",
@@ -30558,6 +31477,34 @@
       "path": "jobs/inventory/sku-barcode-data-quality-check.yaml"
     },
     {
+      "id": "sku-rationalization-candidate-check",
+      "version": 1,
+      "name": "SKU Rationalization Candidate Check",
+      "description": "Scans sales history for SKUs that have sat with stock on hand and no meaningful sales for a long stretch, and drafts a ranked list of discontinuation candidates with the dollar value they're tying up. Use this if a SKU has ever kept getting reordered out of habit long after it effectively stopped selling, quietly eating warehouse space and cash.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "sku-rationalization",
+        "dead-stock",
+        "discontinuation"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/inventory/sku-rationalization-candidate-check.yaml"
+    },
+    {
       "id": "sku-without-primary-supplier-check",
       "version": 1,
       "name": "SKU Without Primary Supplier Check",
@@ -31122,6 +32069,32 @@
       "path": "jobs/telecom/spectrum-license-renewal-check.yaml"
     },
     {
+      "id": "sponsor-ad-read-compliance-check",
+      "version": 1,
+      "name": "Podcast Sponsor Ad-Read Compliance Check",
+      "description": "Checks the sponsor read that actually aired in a published episode's transcript against the contracted word count and required disclosure phrase. Use this if a sponsor has ever come back after an episode went live saying the read was too short or missing the \"paid partnership\" disclosure they contracted for.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "sponsorship",
+        "compliance",
+        "ad-read"
+      ],
+      "schedule": "0 10 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/sponsor-ad-read-compliance-check.yaml"
+    },
+    {
       "id": "sponsor-deliverable-fulfillment-tracker",
       "version": 1,
       "name": "Sponsor Deliverable Fulfillment Tracker",
@@ -31171,6 +32144,31 @@
         "codex"
       ],
       "path": "jobs/podcast/sponsor-deliverable-tracker.yaml"
+    },
+    {
+      "id": "sponsor-exclusivity-conflict-check",
+      "version": 1,
+      "name": "Podcast Sponsor Category Exclusivity Conflict Check",
+      "description": "Checks upcoming sponsor bookings for two sponsors in the same product category airing too close together. Use this if you've ever signed a mattress company for one episode and a competing mattress company for the next, breaking an exclusivity clause neither sponsor should have had to discover on their own.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "sponsorship",
+        "contracts",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/podcast/sponsor-exclusivity-conflict-check.yaml"
     },
     {
       "id": "sponsorship-deliverable-tracker",
@@ -31763,6 +32761,31 @@
       "path": "jobs/devops/stale-dependency-pr-nudge.yaml"
     },
     {
+      "id": "stale-inventory-reservation-release-check",
+      "version": 1,
+      "name": "Stale Inventory Reservation Release Check",
+      "description": "Flags inventory reservations still holding stock against an order that's already cancelled or expired, which quietly locks that stock away from everyone else. Use this if a customer has ever been told an item is out of stock when it was really just sitting reserved against an order that fell through weeks ago and never got released.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "reservations",
+        "allocation",
+        "cleanup"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/stale-inventory-reservation-release-check.yaml"
+    },
+    {
       "id": "stale-post-audit",
       "version": 1,
       "name": "Stale Post Audit",
@@ -31886,6 +32909,34 @@
         "codex"
       ],
       "path": "jobs/hr/state-compliance-poster-expiry-check.yaml"
+    },
+    {
+      "id": "state-survey-readiness-checklist-tracker",
+      "version": 1,
+      "name": "State Survey Readiness Checklist Tracker",
+      "description": "Reviews a facility's self-audit checklist across the areas state surveyors typically inspect (posted staffing, life-safety, kitchen sanitation, medication storage, resident rights postings, and similar) and summarizes which items are unresolved and how urgent each one is. Use this if you want a standing rehearsal for an unannounced state survey instead of a scramble the week you hear one might be coming.",
+      "category": "senior-living",
+      "tags": [
+        "senior-living",
+        "state-survey",
+        "inspection",
+        "compliance",
+        "regulatory"
+      ],
+      "schedule": "0 8 1,15 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/senior-living/state-survey-readiness-checklist-tracker.yaml"
     },
     {
       "id": "sterile-compounding-environmental-monitoring-check",
@@ -33109,6 +34160,33 @@
       "path": "jobs/team/team-anniversary-reminder.yaml"
     },
     {
+      "id": "team-decision-log-followup-check",
+      "version": 1,
+      "name": "Team Decision Log Follow-up Check",
+      "description": "Checks a running log of team decisions and flags any that have no owner assigned, or that have sat open past a target window without being resolved. Use this if a decision has ever been made out loud in a meeting, wound up in nobody's notes with nobody clearly on the hook for it, and then quietly got re-litigated a month later because nobody remembered it had \"already been decided.\"",
+      "category": "team",
+      "tags": [
+        "team",
+        "decisions",
+        "planning",
+        "documentation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/team-decision-log-followup-check.yaml"
+    },
+    {
       "id": "team-meeting-load-audit",
       "version": 1,
       "name": "Team Meeting Load Audit",
@@ -33133,6 +34211,61 @@
         "codex"
       ],
       "path": "jobs/team/team-meeting-load-audit.yaml"
+    },
+    {
+      "id": "team-morale-budget-pace-check",
+      "version": 1,
+      "name": "Team Morale/Event Budget Pace Check",
+      "description": "Compares how much of your team's discretionary morale/event/swag budget has been spent against how far through the budget period you are, and flags it if spending is running well ahead of or well behind that pace. Use this if a team fun budget has ever gone completely unused until someone scrambled to spend it in the last week of the year, or run dry by month six with nothing left for the rest of the period.",
+      "category": "team",
+      "tags": [
+        "team",
+        "budget",
+        "morale",
+        "events",
+        "spend"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/team-morale-budget-pace-check.yaml"
+    },
+    {
+      "id": "team-offboarding-knowledge-transfer-tracker",
+      "version": 1,
+      "name": "Team Offboarding Knowledge Transfer Tracker",
+      "description": "Checks handoff tasks for a departing team member against their last day and flags anything still open as it approaches. Use this if someone has ever left the team and taken undocumented context with them — a credential nobody knew about, a process only they ran — because knowledge transfer got squeezed out by exit paperwork and a farewell lunch.",
+      "category": "team",
+      "tags": [
+        "team",
+        "offboarding",
+        "knowledge-transfer",
+        "handoff"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/team-offboarding-knowledge-transfer-tracker.yaml"
     },
     {
       "id": "team-offsite-planning-checklist",
@@ -33186,6 +34319,34 @@
       "path": "jobs/team/team-okr-checkin-reminder.yaml"
     },
     {
+      "id": "team-recognition-gap-check",
+      "version": 1,
+      "name": "Team Recognition Gap Check",
+      "description": "Scans a team recognition/kudos log and flags anyone who hasn't received public recognition in a while. Use this if praise on your team tends to cluster on the same few loud wins while quieter, steady contributors go months without ever being acknowledged.",
+      "category": "team",
+      "tags": [
+        "team",
+        "recognition",
+        "kudos",
+        "morale",
+        "engagement"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/team-recognition-gap-check.yaml"
+    },
+    {
       "id": "team-retro-followup-tracker",
       "version": 1,
       "name": "Team Retro Follow-up Tracker",
@@ -33234,6 +34395,33 @@
         "codex"
       ],
       "path": "jobs/team/team-runbook-staleness-check.yaml"
+    },
+    {
+      "id": "team-skills-directory-staleness-check",
+      "version": 1,
+      "name": "Team Skills Directory Staleness Check",
+      "description": "Checks your team's skills/expertise directory against each entry's last-confirmed date and flags anything overdue for a recheck. Use this if you've ever pinged someone as \"the expert on X\" only to learn they moved teams, forgot that tool, or never actually owned it, because the directory nobody kept up to date.",
+      "category": "team",
+      "tags": [
+        "team",
+        "skills",
+        "expertise",
+        "documentation"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/team/team-skills-directory-staleness-check.yaml"
     },
     {
       "id": "team-survey-nudge",
@@ -34097,6 +35285,32 @@
       "path": "jobs/manufacturing/tooling-die-wear-check.yaml"
     },
     {
+      "id": "topic-cannibalization-check",
+      "version": 1,
+      "name": "Podcast Topic Cannibalization Check",
+      "description": "Reviews your upcoming episode lineup for two episodes covering nearly the same topic too close together. Use this if you've ever published an episode only to realize it covers almost the same ground as one from a few weeks earlier, splitting listener interest and search relevance between them instead of building on it.",
+      "category": "podcast",
+      "tags": [
+        "podcast",
+        "planning",
+        "content-strategy"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/podcast/topic-cannibalization-check.yaml"
+    },
+    {
       "id": "tournament-registration-deadline-check",
       "version": 1,
       "name": "Tournament Registration Deadline Check",
@@ -34912,6 +36126,31 @@
         "codex"
       ],
       "path": "jobs/self-storage/unit-auction-listing-deadline-reminder.yaml"
+    },
+    {
+      "id": "unit-of-measure-conversion-mismatch-check",
+      "version": 1,
+      "name": "Unit of Measure Conversion Mismatch Check",
+      "description": "Compares each SKU's purchase-to-stocking unit conversion factor (e.g. units per case) as recorded in two systems and flags any SKU where they disagree. Use this if a receiving quantity or on-hand count has ever come out wrong because one system thought a case held 24 units and the other thought it held 12, with nothing ever raising an error about it.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "uom",
+        "data-integrity",
+        "procurement"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/unit-of-measure-conversion-mismatch-check.yaml"
     },
     {
       "id": "unit-size-waitlist-aging-check",
@@ -36543,6 +37782,31 @@
         "generic"
       ],
       "path": "jobs/moving-relocation/warehouse-storage-capacity-check.yaml"
+    },
+    {
+      "id": "warehouse-transfer-aging-check",
+      "version": 1,
+      "name": "Warehouse Transfer Aging Check",
+      "description": "Flags inter-location stock transfers that shipped but haven't been marked received after a set number of days, a sign a shipment is stuck, lost, or just never logged in. Use this if a transfer has ever quietly vanished between two locations because nobody was tracking how long it had been in transit.",
+      "category": "inventory",
+      "tags": [
+        "inventory",
+        "transfers",
+        "multi-location",
+        "aging"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/inventory/warehouse-transfer-aging-check.yaml"
     },
     {
       "id": "warranty-claim-deadline-check",

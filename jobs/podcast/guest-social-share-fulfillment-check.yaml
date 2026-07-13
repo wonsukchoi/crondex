@@ -1,0 +1,36 @@
+id: guest-social-share-fulfillment-check
+version: 1
+name: Podcast Guest Social Share Fulfillment Check
+description: >
+  Flags guests who agreed to share their episode on social media but
+  haven't yet, past a grace period. Use this if a guest's promised
+  "I'll post about it" has ever quietly never happened, leaving free
+  cross-promotion on the table because nobody tracked it.
+category: podcast
+tags: [podcast, guests, promotion, social]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_since = int((today - pub_ts) / 86400);
+      if (days_since >= warn) print "WARNING: " $1 " episode published " days_since " days ago, agreed social share still pending";
+    }
+  ' {{guest_shares_csv}}
+variables:
+  guest_shares_csv:
+    default: "guest-social-shares.csv"
+    description: "CSV with header row, columns: guest_name,episode_publish_date(YYYY-MM-DD),share_status(pending/done)."
+  warn_days:
+    default: 7
+    description: Days after publish to allow before flagging an agreed-but-unfulfilled guest share.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update share_status to "done" in guest-social-shares.csv once you see the
+  guest's post, so the row stops flagging. Distinct from
+  `guest-followup-reminder`, which tracks whether the episode itself has
+  been published/thanked, not a guest's own promotion commitment.

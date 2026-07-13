@@ -1,0 +1,44 @@
+id: cycle-count-accuracy-by-counter-check
+version: 1
+name: Cycle Count Accuracy by Counter Check
+description: >
+  Aggregates recent cycle counts by who performed them and flags any
+  counter whose mismatch rate against system quantity is well above the
+  rest, a sign of a training gap or a genuinely harder zone to count. Use
+  this if a cycle count program has ever tracked overall accuracy but never
+  broken it down by counter, so a consistently sloppy count kept passing
+  as just normal variance.
+category: inventory
+tags: [inventory, cycle-count, accuracy, training]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v err_pct="{{error_rate_threshold_pct}}" -v min_counts="{{min_counts_required}}" '
+    NR==1 {next}
+    {
+      counter=$2; total[counter]++;
+      if ($4+0 != $5+0) mismatches[counter]++;
+    }
+    END {
+      for (c in total) {
+        if (total[c] < min_counts) continue;
+        rate = ((mismatches[c]+0) / total[c]) * 100;
+        if (rate >= err_pct) {
+          printf "HIGH ERROR RATE: %s — %d of %d counts mismatched (%.1f%%)\n", c, mismatches[c]+0, total[c], rate;
+        }
+      }
+    }
+  ' "{{cycle_count_log_csv_path}}"
+variables:
+  cycle_count_log_csv_path:
+    default: "./cycle-count-log.csv"
+    description: "Path to a CSV with columns: count_id,counter_name,sku,system_qty,counted_qty — one row per individual cycle count performed over the window you want to review (e.g. the trailing month)."
+  error_rate_threshold_pct:
+    default: 15
+    description: Mismatch rate (mismatched counts divided by total counts) that triggers a flag for a counter.
+  min_counts_required:
+    default: 10
+    description: Minimum number of counts logged for a counter before their error rate is considered meaningful enough to flag.
+compatible_agents: [generic, claude, codex]
+notes: A high mismatch rate for one counter can mean they need retraining, or that they're covering a genuinely harder zone (fast-moving small parts) — treat this as a prompt to look closer, not a verdict. Distinct from `cycle-count-schedule-check` (warehousing — whether counts happened at all) and `inventory-count-discrepancy-check` (a single count's result) — this looks for a pattern across many counts tied to who performed them.

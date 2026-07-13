@@ -1,0 +1,36 @@
+id: topic-cannibalization-check
+version: 1
+name: Podcast Topic Cannibalization Check
+description: >
+  Reviews your upcoming episode lineup for two episodes covering nearly the
+  same topic too close together. Use this if you've ever published an
+  episode only to realize it covers almost the same ground as one from a
+  few weeks earlier, splitting listener interest and search relevance
+  between them instead of building on it.
+category: podcast
+tags: [podcast, planning, content-strategy]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the upcoming episode lineup in {{episode_lineup_csv}} (columns:
+  episode_title, topic, scheduled_date).
+  1. Compare each pair of episodes scheduled within
+     {{min_gap_weeks}} week(s) of each other.
+  2. Flag any pair whose topics substantially overlap — not just a shared
+     broad category, but genuinely similar angle or thesis such that a
+     listener would feel like they already heard this.
+  3. For each flagged pair, suggest a fix: differentiate the angle, merge
+     into one stronger episode, or space them further apart.
+  4. If nothing overlaps meaningfully, say so in one line.
+variables:
+  episode_lineup_csv:
+    default: "episode-lineup.csv"
+    description: "CSV with header row, columns: episode_title,topic,scheduled_date(YYYY-MM-DD), covering upcoming/planned episodes."
+  min_gap_weeks:
+    default: 4
+    description: Only compare episode pairs scheduled within this many weeks of each other — topics further apart are less likely to feel repetitive.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Overlap judgment is inherently subjective — treat flags as a prompt to
+  double-check the outline, not a hard block on publishing either episode.

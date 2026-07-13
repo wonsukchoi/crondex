@@ -1,0 +1,41 @@
+id: mentor-mentee-checkin-cadence-tracker
+version: 1
+name: Mentor/Mentee Check-in Cadence Tracker
+description: >
+  Checks every active mentorship pairing's last check-in date against
+  a shared cadence and flags pairs that have gone quiet. Use this if
+  your mentorship program has ever had pairs "matched" at kickoff and
+  then never actually met again, because nobody but the two people
+  involved would have any way of knowing.
+category: team
+tags: [team, mentorship, checkin, program]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_checkin}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "DUE: %s <-> %s — last check-in %s (%d day(s) ago)\n", $1, $2, $3, days_since;
+      }
+    }
+  ' "{{mentorship_log_csv_path}}"
+variables:
+  mentorship_log_csv_path:
+    default: "./mentorship-checkins.csv"
+    description: "Path to a CSV with columns: mentor_name,mentee_name,last_checkin_date (YYYY-MM-DD), one row per active mentorship pairing."
+  max_days_since_checkin:
+    default: 30
+    description: Flag a pairing if they haven't checked in within this many days.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Zero-token. Distinct from 1on1-prep-reminder (a single fixed
+  relationship, usually manager-report) and skip-level-meeting-
+  reminder — this tracks an entire mentorship program's pairings
+  against one shared cadence, not a single relationship. You (or a
+  program coordinator) update the log after each check-in.

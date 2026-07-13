@@ -1,0 +1,34 @@
+id: available-to-promise-oversell-check
+version: 1
+name: Available-to-Promise Oversell Check
+description: >
+  Compares each SKU's on-hand quantity against everything already reserved
+  or committed against it and flags any SKU where promises exceed physical
+  stock. Use this if a customer order has ever failed to ship because the
+  system let it be promised on top of stock that was already spoken for.
+category: inventory
+tags: [inventory, allocation, oversell, fulfillment]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_gap="{{min_oversell_units}}" '
+    NR==1 {next}
+    {
+      sku=$1; onhand=$2+0; reserved=$3+0; committed=$4+0;
+      allocated = reserved+committed;
+      gap = allocated - onhand;
+      if (gap >= min_gap) {
+        printf "OVERSELL RISK: %s — on hand %d, allocated %d (reserved %d + committed %d), short by %d\n", sku, onhand, allocated, reserved, committed, gap;
+      }
+    }
+  ' "{{atp_snapshot_csv_path}}"
+variables:
+  atp_snapshot_csv_path:
+    default: "./atp-snapshot.csv"
+    description: "Path to a CSV with columns: sku,on_hand_qty,reserved_qty (held for specific orders or holds),committed_qty (open sales order lines not yet formally reserved) — a point-in-time export of allocation state."
+  min_oversell_units:
+    default: 1
+    description: Minimum unit shortfall (allocated minus on-hand) before a SKU is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `negative-inventory-check`, which only catches on-hand itself going negative — this catches the earlier warning sign where promises already exceed what's physically on hand, before a sale actually pushes on-hand negative or an order fails to ship.

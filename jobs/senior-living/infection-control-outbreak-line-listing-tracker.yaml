@@ -1,0 +1,86 @@
+id: infection-control-outbreak-line-listing-tracker
+version: 1
+name: Infection Control Outbreak Line-Listing Tracker
+description: >
+  Reviews recently logged resident illness symptoms (respiratory, GI, or
+  other infection-control-tracked symptoms) by unit and time window, and
+  flags clusters that look like they could meet an outbreak threshold so
+  infection-control staff can review sooner. Use this if a handful of
+  residents on the same unit have ever come down with similar symptoms
+  within a few days of each other and nobody connected the dots until
+  it had spread further.
+category: senior-living
+tags: [senior-living, infection-control, outbreak, illness-tracking, safety]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{lookback_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline onset_epoch; close(cmd);
+      hours_ago = (today - onset_epoch) / 3600;
+      if (hours_ago <= window && hours_ago >= 0) {
+        key = $3 "|" $4;
+        count[key]++;
+        list[key] = list[key] $1 "(" $2 ") ";
+      }
+    }
+    END {
+      for (k in count) {
+        if (count[k] >= 1) {
+          split(k, parts, "|");
+          printf "UNIT %s / SYMPTOM %s: %d case(s) in window — %s\n", parts[1], parts[2], count[k], list[k];
+        }
+      }
+    }
+  ' "{{illness_log_csv_path}}"
+script_note: >
+  The script gives a free, deterministic count of same-unit, same-symptom
+  cases within the lookback window, but deciding whether a given cluster
+  actually meets a recognized outbreak definition (e.g. 3+ residents
+  with new GI symptoms on one unit within 72 hours) and what
+  infection-control response it warrants needs clinical judgment the
+  script output alone can't apply — that's what the prompt mode adds.
+prompt: >
+  Using the resident illness log at {{illness_log_csv_path}} (columns:
+  resident_id, symptom_onset_datetime, unit, symptom_category), look at
+  cases within the last {{lookback_hours}} hours and group them by unit
+  and symptom_category. For any group with {{outbreak_case_threshold}}
+  or more residents, flag it as a possible outbreak cluster worth an
+  infection-preventionist's review today, note which unit and symptom
+  type, and list the affected resident_ids and onset times. For groups
+  below that threshold, just note the count without calling it a
+  possible outbreak. Do not diagnose any specific illness or recommend a
+  treatment — only summarize the pattern in the data for a clinician to
+  evaluate.
+variables:
+  illness_log_csv_path:
+    default: "./resident-illness-log.csv"
+    description: >
+      Path to a CSV with columns: resident_id,symptom_onset_datetime (an
+      ISO-ish timestamp your `date` command can parse),unit,
+      symptom_category (e.g. respiratory, gi, skin). Use resident_id,
+      not a resident's full name.
+  lookback_hours:
+    default: 72
+    description: How many hours back to look for same-unit, same-symptom clusters.
+  outbreak_case_threshold:
+    default: 3
+    description: >
+      Minimum number of residents on the same unit with the same
+      symptom category within the lookback window before a cluster is
+      called out as a possible outbreak (adjust to your infection-control
+      policy's actual outbreak definition).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This job surfaces resident health information — restrict access to
+  the underlying log and job output to staff involved in infection
+  control. Read-only and summary-only: it only flags patterns worth a
+  clinician's review, it never diagnoses an illness, initiates isolation
+  precautions, notifies a health department, or contacts any family
+  member itself; any suspected outbreak should be escalated to your
+  facility's infection preventionist immediately, not held for the next
+  scheduled run.

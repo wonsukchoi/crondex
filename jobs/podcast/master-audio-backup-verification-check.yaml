@@ -1,0 +1,36 @@
+id: master-audio-backup-verification-check
+version: 1
+name: Podcast Master Audio Backup Verification Check
+description: >
+  Confirms every episode's master audio file has a matching, checksum-equal
+  backup copy. Use this if you've ever lost (or nearly lost) an unreleased
+  or unedited master file because the only copy lived on one laptop and
+  nobody had verified the backup was actually current.
+category: podcast
+tags: [podcast, backup, audio, production]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ ! -f "{{backup_manifest_csv}}" ]; then echo "WARNING: manifest file {{backup_manifest_csv}} not found"; exit 1; fi;
+  tail -n +2 "{{backup_manifest_csv}}" | while IFS=, read -r title master backup; do
+    if [ ! -f "$master" ]; then echo "WARNING: master file missing for $title: $master"; continue; fi;
+    if [ ! -f "$backup" ]; then echo "WARNING: backup missing for $title: $backup"; continue; fi;
+    if command -v md5sum >/dev/null 2>&1; then
+      m=$(md5sum "$master" | awk '{print $1}');
+      b=$(md5sum "$backup" | awk '{print $1}');
+      if [ "$m" != "$b" ]; then echo "WARNING: checksum mismatch for $title between $master and $backup"; else echo "OK: $title backup verified"; fi
+    else
+      echo "OK: $title master and backup both present (md5sum unavailable, skipped checksum compare)";
+    fi
+  done
+variables:
+  backup_manifest_csv:
+    default: "audio-backup-manifest.csv"
+    description: "CSV with header row, columns: episode_title,master_file_path,backup_file_path."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Add a row to audio-backup-manifest.csv for each episode as soon as its
+  master file exists — don't wait until publish. Requires `md5sum` for a
+  true integrity check; without it, this only confirms both files exist,
+  not that they're identical.

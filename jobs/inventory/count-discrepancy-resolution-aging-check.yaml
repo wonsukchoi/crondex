@@ -1,0 +1,52 @@
+id: count-discrepancy-resolution-aging-check
+version: 1
+name: Count Discrepancy Resolution Aging Check
+description: >
+  Tracks previously identified inventory count discrepancies that still
+  have no adjustment posted, and flags any sitting open past a set number
+  of days. Use this if a discrepancy has ever gotten logged during a count
+  and then just... sat there, never actually corrected in the system.
+category: inventory
+tags: [inventory, discrepancy, backlog, audit]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_open}}" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline identified_epoch; close(cmd);
+      days_open = (today - identified_epoch) / 86400;
+      if (days_open >= max_days) {
+        printf "UNRESOLVED: %s — %s, qty %s, identified %s (%d days open, no adjustment posted)\n", $1, $2, $4, $3, days_open;
+      }
+    }
+  ' "{{discrepancy_log_csv_path}}"
+prompt: |
+  Run the aging scan above against {{discrepancy_log_csv_path}}, then for
+  the unresolved discrepancies it lists:
+  1. Rank them by absolute discrepancy_qty (times an estimated unit value if
+     available), so the highest-dollar-impact gaps surface first.
+  2. Group by whoever owns resolving each one, if an owner or location
+     column is present, and call out anyone sitting on more than
+     {{owner_backlog_alert_count}} unresolved items.
+  3. Draft a short status summary suitable for a weekly ops review.
+script_note: >
+  The command gives the raw list of discrepancies still open past the SLA
+  with no ranking or ownership grouping — the prompt adds prioritization by
+  dollar impact and flags any one owner sitting on an outsized backlog.
+variables:
+  discrepancy_log_csv_path:
+    default: "./discrepancy-log.csv"
+    description: "Path to a CSV with columns: discrepancy_id,sku,identified_date (YYYY-MM-DD),discrepancy_qty,adjustment_posted_date (blank if not yet resolved)."
+  max_days_open:
+    default: 14
+    description: Days a discrepancy can sit open before it's flagged as overdue for a resolving adjustment.
+  owner_backlog_alert_count:
+    default: 5
+    description: Number of unresolved items assigned to one owner before the prompt calls out that owner specifically.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `inventory-count-discrepancy-check`, which finds a discrepancy in the first place by comparing a physical count to system records — this tracks whether discrepancies that were already found actually got resolved within a reasonable time, so "we found it" doesn't quietly become "and then everyone forgot about it."

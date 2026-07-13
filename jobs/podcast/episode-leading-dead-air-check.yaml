@@ -1,0 +1,42 @@
+id: episode-leading-dead-air-check
+version: 1
+name: Podcast Episode Leading Dead Air Check
+description: >
+  Scans the start of a newly exported episode file for a stretch of silence
+  and flags it before publish. Use this if an episode has ever gone out
+  with several seconds of dead air at the top because the intro music cue
+  or a trim step got missed during export.
+category: podcast
+tags: [podcast, audio, quality, production]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if ! command -v ffmpeg >/dev/null 2>&1; then echo "WARNING: ffmpeg not installed, cannot check for dead air"; exit 1; fi;
+  if [ ! -f "{{episode_audio_file}}" ]; then echo "WARNING: {{episode_audio_file}} not found"; exit 1; fi;
+  first_start=$(ffmpeg -i "{{episode_audio_file}}" -af silencedetect=noise={{silence_threshold_db}}dB:d={{min_silence_duration_sec}} -f null - 2>&1 | grep "silence_start" | head -1 | awk '{print $NF}');
+  if [ -z "$first_start" ]; then echo "OK: no silence of {{min_silence_duration_sec}}s+ detected near the start of {{episode_audio_file}}"; exit 0; fi;
+  first_start_int=$(echo "$first_start" | awk '{print int($1)}');
+  if [ "$first_start_int" -le "{{lead_window_seconds}}" ]; then
+    echo "WARNING: possible leading dead air starting at ~${first_start}s in {{episode_audio_file}} (within the first {{lead_window_seconds}}s)"; exit 1;
+  else
+    echo "OK: first silence gap of {{min_silence_duration_sec}}s+ starts at ~${first_start}s, outside the {{lead_window_seconds}}s lead-in window"; fi
+variables:
+  episode_audio_file:
+    default: "episode-final.mp3"
+    description: Path to the final exported episode audio file to check.
+  silence_threshold_db:
+    default: -50
+    description: Noise floor (in dB) below which audio is considered silence, passed to ffmpeg's silencedetect filter.
+  min_silence_duration_sec:
+    default: 2
+    description: Minimum duration of silence (in seconds) to count as a detected gap.
+  lead_window_seconds:
+    default: 5
+    description: How many seconds from the start of the file count as the "lead-in" window for flagging dead air.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `ffmpeg` with the silencedetect filter on PATH. Only checks the
+  start of the file for accidental dead air, not trailing silence or gaps
+  in the middle — distinct from `audio-loudness-spot-check`, which measures
+  overall loudness rather than silence gaps.

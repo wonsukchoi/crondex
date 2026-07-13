@@ -357,36 +357,23 @@ function deploy(id) {
   } else if (target === "github-actions") {
     const workflow = buildGithubActionsWorkflow(doc, { command, prompt, mode });
     const dest = flag("dest") ?? join(".github/workflows", `${id}.yml`);
-    if (existsSync(dest)) {
-      console.error(`${dest} already exists — refusing to overwrite. Pass --dest to choose another path.`);
-      process.exit(1);
-    }
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, workflow);
-    console.log(`wrote ${dest}`);
+    writeArtifacts([[dest, workflow]], `wrote ${dest}`);
   } else if (target === "systemd") {
     const { service, timer } = buildSystemdUnits(doc, mode === "prompt" ? prompt : command, mode === "prompt");
     const destDir = flag("dest") ?? "./systemd";
     const serviceDest = join(destDir, `${id}.service`);
     const timerDest = join(destDir, `${id}.timer`);
-    if (existsSync(serviceDest) || existsSync(timerDest)) {
-      console.error(`${serviceDest} or ${timerDest} already exists — refusing to overwrite. Pass --dest to choose another directory.`);
-      process.exit(1);
-    }
-    mkdirSync(destDir, { recursive: true });
-    writeFileSync(serviceDest, service);
-    writeFileSync(timerDest, timer);
-    console.log(`wrote ${serviceDest} and ${timerDest} — enable with:\n  systemctl --user enable --now ${id}.timer`);
+    writeArtifacts(
+      [
+        [serviceDest, service],
+        [timerDest, timer],
+      ],
+      `wrote ${serviceDest} and ${timerDest} — enable with:\n  systemctl --user enable --now ${id}.timer`
+    );
   } else if (target === "k8s-cronjob") {
     const manifest = buildK8sCronJob(doc, mode === "prompt" ? prompt : command, mode === "prompt");
     const dest = flag("dest") ?? join("./k8s", `${id}.cronjob.yaml`);
-    if (existsSync(dest)) {
-      console.error(`${dest} already exists — refusing to overwrite. Pass --dest to choose another path.`);
-      process.exit(1);
-    }
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, manifest);
-    console.log(`wrote ${dest} — apply with:\n  kubectl apply -f ${dest}`);
+    writeArtifacts([[dest, manifest]], `wrote ${dest} — apply with:\n  kubectl apply -f ${dest}`);
   } else if (target === "eventbridge") {
     console.log(buildEventBridgeCommand(doc, mode === "prompt" ? prompt : command, mode === "prompt"));
   } else if (target === "cloud-scheduler") {
@@ -396,14 +383,13 @@ function deploy(id) {
     const destDir = flag("dest") ?? join("./docker", id);
     const dockerfileDest = join(destDir, "Dockerfile");
     const crontabDest = join(destDir, "crontab");
-    if (existsSync(dockerfileDest) || existsSync(crontabDest)) {
-      console.error(`${dockerfileDest} or ${crontabDest} already exists — refusing to overwrite. Pass --dest to choose another directory.`);
-      process.exit(1);
-    }
-    mkdirSync(destDir, { recursive: true });
-    writeFileSync(dockerfileDest, dockerfile);
-    writeFileSync(crontabDest, crontab);
-    console.log(`wrote ${dockerfileDest} and ${crontabDest} — build with:\n  docker build -t ${id} ${destDir}`);
+    writeArtifacts(
+      [
+        [dockerfileDest, dockerfile],
+        [crontabDest, crontab],
+      ],
+      `wrote ${dockerfileDest} and ${crontabDest} — build with:\n  docker build -t ${id} ${destDir}`
+    );
   } else {
     console.error(`unknown --target "${target}" — use "crontab", "github-actions", "systemd", "docker", "k8s-cronjob", "eventbridge", or "cloud-scheduler".`);
     process.exit(1);
@@ -429,6 +415,22 @@ function next(id) {
   for (const d of runs) {
     console.log(`  ${d.toLocaleString("en-US", { timeZone: timezone, dateStyle: "medium", timeStyle: "short" })}`);
   }
+}
+
+// Shared by every deploy target that writes one or more files to disk: refuses to
+// overwrite an existing file, creates the destination directory(ies), writes every
+// file, then prints successMsg. `files` is an array of [path, content] pairs.
+function writeArtifacts(files, successMsg) {
+  const clash = files.find(([path]) => existsSync(path));
+  if (clash) {
+    const paths = files.map(([path]) => path).join(" or ");
+    const noun = files.length > 1 ? "directory" : "path";
+    console.error(`${paths} already exists — refusing to overwrite. Pass --dest to choose another ${noun}.`);
+    process.exit(1);
+  }
+  for (const [path] of files) mkdirSync(dirname(path), { recursive: true });
+  for (const [path, content] of files) writeFileSync(path, content);
+  console.log(successMsg);
 }
 
 function add(id) {

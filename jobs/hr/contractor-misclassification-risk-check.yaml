@@ -1,0 +1,54 @@
+id: contractor-misclassification-risk-check
+version: 1
+name: Contractor Misclassification Risk Check
+description: >
+  Scans a contractor roster export for common worker-misclassification
+  risk signals — long tenure, high weekly hours, a company-set schedule,
+  company-provided equipment, or an exclusive engagement — and flags
+  contractors worth a closer legal look. Use this if a long-running 1099
+  contractor relationship has ever quietly drifted into looking like
+  employment without anyone re-checking the classification factors.
+category: hr
+tags: [hr, contractors, misclassification, compliance, "1099"]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tenure_warn="{{tenure_warn_months}}" -v hours_warn="{{hours_warn_per_week}}" -v score_threshold="{{risk_score_threshold}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      tenure_months = (now_epoch - start_epoch) / 86400 / 30;
+      score = 0;
+      if (tenure_months >= tenure_warn) score++;
+      if ($3+0 >= hours_warn) score++;
+      if ($4 == "yes") score++;
+      if ($5 == "yes") score++;
+      if ($6 == "yes") score++;
+      if (score >= score_threshold) {
+        printf "MISCLASSIFICATION RISK: %s — %.1f months engaged, %s hrs/wk, schedule_set_by_company=%s, equipment_provided=%s, exclusive_engagement=%s (risk score %d/5)\n", $1, tenure_months, $3, $4, $5, $6, score;
+      }
+    }
+  ' "{{contractor_roster_csv_path}}"
+variables:
+  contractor_roster_csv_path:
+    default: "./contractor-roster.csv"
+    description: "Path to a CSV with columns: contractor_name,engagement_start_date (YYYY-MM-DD),avg_hours_per_week,schedule_set_by_company (yes/no),equipment_provided_by_company (yes/no),exclusive_engagement (yes/no)."
+  tenure_warn_months:
+    default: 12
+    description: Months engaged before long tenure counts as a risk factor.
+  hours_warn_per_week:
+    default: 30
+    description: Average weekly hours at or above which the engagement looks more like full-time employment.
+  risk_score_threshold:
+    default: 3
+    description: Minimum number of risk factors (out of 5) present before a contractor is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a rough heuristic screen, not a legal determination — the IRS
+  common-law test, DOL economic-realities test, and state ABC tests (e.g.
+  California) weigh factors differently and this script approximates none
+  of them precisely. Route anything flagged to employment counsel before
+  changing anyone's classification, pay, or engagement terms.

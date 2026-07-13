@@ -1,0 +1,39 @@
+id: empty-mile-deadhead-percentage-watch
+version: 1
+name: Empty-Mile (Deadhead) Percentage Watch
+description: >
+  Compares each unit's empty/deadhead miles against its loaded miles and
+  flags anything running an unusually high empty-mile percentage. Use
+  this if a truck or lane has ever quietly bled money running empty
+  between loads and nobody noticed until the fuel and cost-per-mile
+  numbers came in bad for the whole quarter.
+category: logistics
+tags: [logistics, deadhead, empty-miles, fleet, cost]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_deadhead_pct}}" '
+    NR==1 {next}
+    {
+      unit=$1; loaded=$2; deadhead=$3;
+      total = loaded + deadhead;
+      if (total <= 0) next;
+      pct = (deadhead / total) * 100;
+      if (pct > threshold) {
+        printf "HIGH DEADHEAD: %s — %.1f%% empty miles (%.0f empty / %.0f loaded), threshold %d%%\n", unit, pct, deadhead, loaded, threshold;
+      }
+    }
+  ' "{{mileage_csv_path}}"
+variables:
+  mileage_csv_path:
+    default: "./unit-mileage-log.csv"
+    description: "Path to a CSV with columns: unit_id (tractor or driver),loaded_miles,deadhead_miles — one row per unit for the period, exported from your ELD/telematics or dispatch system."
+  max_deadhead_pct:
+    default: 20
+    description: Empty-mile percentage above which a unit is flagged as running too much deadhead.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Aggregate cost-efficiency metric per tractor/driver over a reporting
+  period — distinct from route-load-optimization-check, which flags an
+  individual planned load that's under-filled before it even dispatches.

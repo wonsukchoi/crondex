@@ -1,0 +1,38 @@
+id: site-search-zero-results-query-watch
+version: 1
+name: Site Search Zero-Results Query Watch
+description: >
+  Scans your on-site search log for queries customers typed often that
+  returned zero results, and lists them ranked by how many people hit the
+  dead end. Use this if you've ever discovered — months late — that
+  hundreds of shoppers searched for a product you actually sell, just
+  under a name your catalog didn't recognize.
+category: ecommerce
+tags: [ecommerce, site-search, merchandising, catalog-gaps, conversion]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minsearches="{{min_search_count}}" '
+    NR==1 {next}
+    {
+      query=$1; searches=$2; results=$3;
+      if (results+0 == 0 && searches+0 >= minsearches) {
+        printf "%05d|ZERO RESULTS: \"%s\" searched %d times, 0 results\n", searches, query, searches;
+      }
+    }
+  ' "{{site_search_log_csv_path}}" | sort -t'|' -k1,1nr | cut -d'|' -f2
+variables:
+  site_search_log_csv_path:
+    default: "./site-search-queries.csv"
+    description: "Path to a CSV with columns: query,search_count,result_count — an aggregated export from your on-site search platform for the period you're reviewing."
+  min_search_count:
+    default: 5
+    description: Minimum number of times a query must have been searched before a zero-result outcome is worth flagging, to filter out one-off typos.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `checkout-conversion-drop-watch`, which is funnel-based —
+  this catches merchandising and catalog-naming gaps (real demand with
+  nothing shown for it) that only show up in on-site search logs. Export
+  the log from whatever powers your site search (native platform search,
+  Algolia, Klevu, etc.); results are only as fresh as that export.

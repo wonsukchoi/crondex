@@ -1,0 +1,41 @@
+id: hazmat-documentation-compliance-check
+version: 1
+name: Hazmat Shipment Documentation Compliance Check
+description: >
+  Reviews upcoming hazardous materials shipments for missing shipping
+  papers, placarding, or emergency response information before they're
+  due to dispatch. Use this if a hazmat load has ever gotten pulled at a
+  roadside inspection because the shipping papers or placards didn't
+  match what was actually on the truck.
+category: logistics
+tags: [logistics, hazmat, compliance, documentation, safety]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{shipment_system_hint}} for hazmat shipments scheduled to
+  dispatch within the next {{lookahead_hours}} hours.
+  1. For each shipment, verify the required elements are present and
+     consistent: proper shipping name, hazard class/division, UN/NA
+     number, packing group, emergency response telephone number, and
+     that the vehicle placarding called for matches the hazard class
+     being shipped.
+  2. Flag any shipment with a missing or inconsistent element (e.g. a
+     shipping paper that lists a different UN number than the placard
+     ordered, or no 24-hour emergency contact listed).
+  3. For each flagged shipment, note what's missing/inconsistent and
+     whether it should hold dispatch until corrected.
+variables:
+  shipment_system_hint:
+    default: "your TMS or hazmat shipping documentation system"
+    description: Where upcoming hazmat shipments and their paperwork can be reviewed.
+  lookahead_hours:
+    default: 24
+    description: How many hours ahead to check for hazmat shipments needing documentation review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — matching shipping-paper hazard class/UN number
+  against required placarding needs judgment against DOT 49 CFR (or the
+  applicable jurisdiction's) hazmat rules, not a fixed CSV comparison.
+  Read-only review; a flagged shipment should be held for a qualified
+  hazmat compliance review before it dispatches, not auto-corrected.

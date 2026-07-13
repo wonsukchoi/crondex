@@ -1,0 +1,41 @@
+id: review-response-backlog-check
+version: 1
+name: Review Response Backlog Check
+description: >
+  Checks all product reviews, not just negative ones, for any that have
+  gone past your response SLA without a public reply. Use this if a
+  perfectly fine 3-star review has ever sat unanswered for months because
+  your team only ever triages the 1-star ones.
+category: ecommerce
+tags: [ecommerce, reviews, reputation, backlog, customer-service]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{response_sla_days}}" '
+    NR==1 {next}
+    $5 == "no" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline posted_epoch; close(cmd);
+      days_open = (today - posted_epoch) / 86400;
+      if (days_open >= sla) {
+        printf "NO RESPONSE: review %s on %s — %s stars, posted %s (%d days, no response)\n", $1, $2, $3, $4, days_open;
+      }
+    }
+  ' "{{reviews_csv_path}}"
+variables:
+  reviews_csv_path:
+    default: "./product-reviews.csv"
+    description: "Path to a CSV with columns: review_id,product_sku,rating,posted_date (YYYY-MM-DD),responded (yes/no)."
+  response_sla_days:
+    default: 5
+    description: Days a review can sit without a public response before it counts as backlog.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `negative-review-alert`, which flags only new low-star
+  reviews same-day for urgent triage — this tracks the full backlog of
+  reviews at any rating that never got a public response, which still
+  matters for trust and SEO even on middling reviews. Mark a review
+  "responded: yes" as soon as your reply posts so this only ever flags a
+  genuine backlog.

@@ -1,0 +1,47 @@
+id: employee-engagement-survey-action-tracker
+version: 1
+name: Employee Engagement Survey Action-Item Tracker
+description: >
+  Reviews the latest employee engagement/pulse survey results and checks
+  whether the follow-up action items assigned to low-scoring drivers are
+  still open past their target date. Use this if a survey has ever
+  produced a great readout deck that nobody looked at again three months
+  later.
+category: hr
+tags: [hr, engagement, survey, culture, action-items]
+schedule: "0 9 1 2,5,8,11 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the most recent results from {{survey_platform}}.
+  1. List any question/driver scoring below {{low_score_threshold}} on
+     whatever scale your survey uses.
+  2. Cross-reference {{action_tracker_source}} for whether an owner and
+     an action item exist for each low-scoring driver.
+  3. For any low-scoring driver with no action item at all, flag it as a
+     gap needing one assigned.
+  4. For existing action items older than {{target_completion_days}} days
+     with no completion marked, flag as overdue and note the owner.
+  5. Summarize as two short lists for HR/leadership: drivers with no
+     action item, and overdue action items by owner.
+variables:
+  survey_platform:
+    default: "your engagement/pulse survey tool (e.g. Culture Amp, Glint, Officevibe)"
+    description: Where survey results live.
+  action_tracker_source:
+    default: "the survey action-item tracker (spreadsheet or project tool)"
+    description: Where action items and their owners/due dates/completion status are recorded.
+  low_score_threshold:
+    default: 3.5
+    description: Score below which a driver/question is treated as needing a follow-up action item.
+  target_completion_days:
+    default: 60
+    description: Days after an action item is assigned before it's considered overdue if not marked complete.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only synthesis — assigning owners or messaging managers is a
+  separate step for HR/leadership. Distinct from team/team-survey-nudge,
+  which chases individual non-responders before a survey closes; this
+  runs after results are in and tracks whether the resulting action plan
+  actually got worked. No generic script mode because survey platforms
+  and action-tracking tools vary too widely for one command.

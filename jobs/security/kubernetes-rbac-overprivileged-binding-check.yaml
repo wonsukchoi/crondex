@@ -1,0 +1,35 @@
+id: kubernetes-rbac-overprivileged-binding-check
+version: 1
+name: Kubernetes RBAC Overprivileged Binding Check
+description: >
+  Scans a Kubernetes cluster's RoleBindings and ClusterRoleBindings for
+  subjects bound to cluster-admin or other high-privilege roles and lists
+  them. Use this if a ClusterRoleBinding has ever been created "temporarily"
+  during a debugging session and quietly stayed in place for months.
+category: security
+tags: [security, kubernetes, rbac, container]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl not installed"; exit 1; };
+  command -v jq >/dev/null 2>&1 || { echo "ERROR: jq not installed"; exit 1; };
+  kubectl get clusterrolebindings,rolebindings --all-namespaces -o json 2>/dev/null |
+  jq -r --arg pattern "{{risky_role_pattern}}" '
+    .items[] |
+    select(.roleRef.name | test($pattern)) |
+    "\(.kind) \(.metadata.namespace // "cluster-wide")/\(.metadata.name): role=\(.roleRef.name) subjects=" +
+    ((.subjects // []) | map(.kind + "/" + .name) | join(","))
+  '
+variables:
+  risky_role_pattern:
+    default: "cluster-admin|-admin$"
+    description: Extended-regex pattern (matched against roleRef.name) identifying roles considered high-privilege in your cluster.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `kubectl` configured against the target cluster (run
+  `kubectl config use-context <cluster>` first — this job uses whatever
+  context is currently active, it doesn't switch contexts itself) and `jq`.
+  Read-only — it lists matching bindings for a human to review and revoke,
+  it does not delete or modify any RBAC object itself. No output means no
+  bindings matched the pattern.

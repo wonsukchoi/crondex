@@ -1,0 +1,36 @@
+id: unencrypted-storage-volume-check
+version: 1
+name: AWS Unencrypted Storage Volume Check
+description: >
+  Checks your AWS EBS volumes and RDS instances for ones without
+  encryption at rest enabled and flags them. Use this if a volume or
+  database has ever been spun up quickly without encryption because it
+  wasn't the default at the time and nobody circled back to fix it.
+category: security
+tags: [security, aws, encryption, cloud-posture, data-at-rest]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v aws >/dev/null 2>&1 || { echo "ERROR: aws CLI not installed"; exit 1; };
+  region={{aws_region}};
+  unencrypted_vols=$(aws ec2 describe-volumes --region "$region" --filters "Name=encrypted,Values=false" --query 'Volumes[].[VolumeId,State]' --output text);
+  if [ -n "$unencrypted_vols" ]; then echo "WARNING: unencrypted EBS volume(s) found in $region:"; echo "$unencrypted_vols";
+  else echo "OK: no unencrypted EBS volumes in $region"; fi;
+  unencrypted_dbs=$(aws rds describe-db-instances --region "$region" --query "DBInstances[?StorageEncrypted==\`false\`].DBInstanceIdentifier" --output text);
+  if [ -n "$unencrypted_dbs" ]; then echo "WARNING: unencrypted RDS instance(s) found in $region: $unencrypted_dbs";
+  else echo "OK: no unencrypted RDS instances in $region"; fi
+variables:
+  aws_region:
+    default: "us-east-1"
+    description: AWS region to check. Run once per region you use — this job doesn't aggregate across all regions automatically.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires AWS CLI with ec2:DescribeVolumes and rds:DescribeDBInstances
+  permissions. Read-only. Complements s3-public-bucket-check.yaml, which
+  covers public exposure rather than encryption — this checks whether data
+  at rest is encrypted regardless of access exposure. Covers EBS and RDS
+  only; extend similarly for EFS/DynamoDB if those matter to you. This job
+  only reports findings for a human to remediate — encrypting an existing
+  unencrypted volume typically requires a snapshot-and-recreate, which this
+  job does not do itself.

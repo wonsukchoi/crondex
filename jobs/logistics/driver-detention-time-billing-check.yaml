@@ -1,0 +1,46 @@
+id: driver-detention-time-billing-check
+version: 1
+name: Driver Detention Time Billing Check
+description: >
+  Compares logged arrival and departure times at a pickup or delivery
+  stop against the free-time allowance and flags stops that generated
+  billable detention time. Use this if a driver has ever sat waiting at
+  a shipper's dock for hours and the detention charge never made it onto
+  an invoice because nobody added up the minutes.
+category: logistics
+tags: [logistics, detention, drivers, billing, accessorial]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v free_min="{{free_time_minutes}}" '
+    NR==1 {next}
+    {
+      shipment=$1; carrier=$2; arrival=$3; departure=$4;
+      cmd_a = "date -d \"" arrival "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" arrival "\" +%s 2>/dev/null";
+      cmd_a | getline arrival_epoch; close(cmd_a);
+      cmd_d = "date -d \"" departure "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" departure "\" +%s 2>/dev/null";
+      cmd_d | getline departure_epoch; close(cmd_d);
+      if (arrival_epoch == "" || departure_epoch == "") next;
+      onsite_min = (departure_epoch - arrival_epoch) / 60;
+      billable_min = onsite_min - free_min;
+      if (billable_min > 0) {
+        printf "BILLABLE DETENTION: shipment %s (carrier %s) — %.0f min on-site, %d min free time, %.0f min billable\n", shipment, carrier, onsite_min, free_min, billable_min;
+      }
+    }
+  ' "{{stop_times_csv_path}}"
+variables:
+  stop_times_csv_path:
+    default: "./stop-arrival-departure-log.csv"
+    description: "Path to a CSV with columns: shipment_id,carrier_name,arrival_time (YYYY-MM-DD HH:MM),departure_time (YYYY-MM-DD HH:MM) — one row per pickup/delivery stop."
+  free_time_minutes:
+    default: 120
+    description: Minutes a driver can be on-site before detention time starts accruing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags minutes that should be billed as detention on a carrier invoice
+  or, if you're the carrier, minutes you're owed by the shipper —
+  distinct from yard-trailer-detention-watch (warehousing), which tracks
+  a trailer parked in your own yard, and cross-dock-dwell-time-watch,
+  which tracks freight dwelling mid-transit at a cross-dock rather than a
+  driver waiting on-site at a single stop.

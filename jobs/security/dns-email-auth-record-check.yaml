@@ -1,0 +1,43 @@
+id: dns-email-auth-record-check
+version: 1
+name: DNS Email Authentication Record Check
+description: >
+  Checks that your domain has valid SPF, DKIM, and DMARC records published
+  and flags any that are missing or not enforcing a policy. Use this if
+  you've ever had a spoofed email pretending to be from your domain land in
+  a customer's inbox because one of these records was never set up or quietly
+  disappeared during a DNS migration.
+category: security
+tags: [security, dns, email, spf, dkim, dmarc]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v dig >/dev/null 2>&1 || { echo "ERROR: dig not installed"; exit 1; };
+  domain={{domain}}; selector={{dkim_selector}}; fail=0;
+  spf=$(dig +short TXT "$domain" | grep "v=spf1");
+  if [ -z "$spf" ]; then echo "MISSING: no SPF record found for $domain"; fail=1;
+  else echo "OK: SPF record found: $spf"; fi;
+  dkim=$(dig +short TXT "${selector}._domainkey.${domain}" | grep "v=DKIM1");
+  if [ -z "$dkim" ]; then echo "MISSING: no DKIM record found at ${selector}._domainkey.${domain} (check your provider's actual selector)"; fail=1;
+  else echo "OK: DKIM record found for selector $selector"; fi;
+  dmarc=$(dig +short TXT "_dmarc.${domain}" | grep "v=DMARC1");
+  if [ -z "$dmarc" ]; then echo "MISSING: no DMARC record found for $domain"; fail=1;
+  else
+    echo "OK: DMARC record found: $dmarc";
+    echo "$dmarc" | grep -q "p=reject" || echo "$dmarc" | grep -q "p=quarantine" || echo "WARNING: DMARC policy is not enforcing (p=none or unset) for $domain";
+  fi;
+  exit $fail
+variables:
+  domain:
+    default: "example.com"
+    description: Domain to check SPF/DKIM/DMARC records for.
+  dkim_selector:
+    default: "default"
+    description: DKIM selector to look up (varies by provider, e.g. "google", "selector1", "s1" — check your mail provider's DKIM setup docs for yours).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Requires the `dig` CLI. Read-only DNS lookups only — it does
+  not modify any DNS records. A missing DKIM hit may just mean the selector
+  guess is wrong rather than DKIM being truly absent; confirm with your mail
+  provider before treating that line as a real gap.

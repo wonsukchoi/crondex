@@ -1,0 +1,68 @@
+id: map-violation-watch
+version: 1
+name: MAP Violation Watch
+description: >
+  Fetches each tracked reseller's product page and checks whether they're
+  listing your product below your minimum advertised price (MAP), then
+  drafts a factual notice for any violation found. Use this if an
+  authorized reseller has ever quietly undercut your MAP policy for
+  months before a competitor or another reseller complained about it.
+category: ecommerce
+tags: [ecommerce, pricing, map-policy, resellers, brand-protection]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  while IFS=',' read -r sku map_price reseller_url; do
+    [ "$sku" = "sku" ] && continue;
+    [ -z "$reseller_url" ] && continue;
+    page=$(curl -s -A "Mozilla/5.0" --max-time {{timeout_seconds}} "$reseller_url");
+    listed_price=$(echo "$page" | grep -oE "{{price_regex}}" | head -n1 | grep -oE "[0-9]+\.[0-9]{2}");
+    if [ -z "$listed_price" ]; then
+      echo "UNPARSED: $sku — could not extract a price from $reseller_url";
+      continue;
+    fi;
+    below=$(awk -v l="$listed_price" -v m="$map_price" 'BEGIN{print (l < m) ? "yes" : "no"}');
+    if [ "$below" = "yes" ]; then
+      echo "MAP VIOLATION: $sku — MAP \$$map_price, listed \$$listed_price at $reseller_url";
+    fi;
+  done < "{{map_tracked_resellers_csv_path}}"
+prompt: |
+  The script above checked each tracked reseller listing against your
+  minimum advertised price (MAP) and reported any listed below MAP, plus
+  any it couldn't parse.
+  1. For any "UNPARSED" line, open the reseller URL yourself and read the
+     actual listed price (the page may render price via JavaScript or use
+     a layout the regex missed).
+  2. For any "MAP VIOLATION" line, note how far below MAP the listing is
+     and whether this reseller has been flagged before (repeat vs.
+     first-time).
+  3. Draft a short, factual notice to send the reseller citing your MAP
+     policy and the specific listing/price — not an accusatory tone,
+     since pricing bugs happen.
+  4. Summarize which resellers need a notice this week, ranked by how far
+     below MAP they're listed.
+script_note: >
+  `command` gives a fast, zero-token scrape-and-compare pass using a
+  regex — it will miss JS-rendered prices and unusual page layouts.
+  `prompt` catches what the regex missed and turns raw violations into a
+  prioritized, ready-to-send notice list.
+variables:
+  map_tracked_resellers_csv_path:
+    default: "./map-tracked-resellers.csv"
+    description: "Path to a CSV with columns: sku,map_price,reseller_product_url — one row per authorized reseller listing you want MAP-watched."
+  price_regex:
+    default: "\\$[0-9]+\\.[0-9]{2}"
+    description: Regex used to extract a dollar price from the reseller's raw page HTML; adjust per site if it isn't matching.
+  timeout_seconds:
+    default: 10
+    description: Seconds to wait for each reseller page before giving up.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Respect the target site's robots.txt/terms before scraping. Distinct
+  from `competitor-price-watch`, which compares your own price against a
+  competitor to gauge your own competitiveness — this checks whether
+  third-party resellers of your own products are honoring your
+  minimum-advertised-price policy, a contract/agreement concern rather
+  than a pricing-strategy one. Any notice sent to a reseller should still
+  be reviewed by whoever owns that relationship before sending.

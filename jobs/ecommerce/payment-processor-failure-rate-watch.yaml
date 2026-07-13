@@ -1,0 +1,52 @@
+id: payment-processor-failure-rate-watch
+version: 1
+name: Payment Processor Failure Rate Watch
+description: >
+  Groups recent checkout transactions by payment processor and flags any
+  single processor whose failure rate has spiked well above the others.
+  Use this if a gateway outage or a broken integration has ever quietly
+  eaten a chunk of a day's sales before anyone realized the failures were
+  all landing on one processor.
+category: ecommerce
+tags: [ecommerce, checkout, payments, processors, uptime]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v thresh="{{failure_rate_threshold_pct}}" -v minTx="{{min_transactions}}" '
+    NR==1 {next}
+    {
+      proc=$2; status=$3;
+      total[proc]++;
+      if (status == "failed") failed[proc]++;
+    }
+    END {
+      for (p in total) {
+        if (total[p] >= minTx) {
+          rate = (failed[p]+0) / total[p] * 100;
+          if (rate >= thresh) {
+            printf "HIGH FAILURE RATE: %s — %.1f%% failed (%d of %d transactions)\n", p, rate, failed[p]+0, total[p];
+          }
+        }
+      }
+    }
+  ' "{{transactions_csv_path}}"
+variables:
+  transactions_csv_path:
+    default: "./checkout-transactions.csv"
+    description: "Path to a CSV with columns: transaction_id,processor,status (success/failed),timestamp — export covering the lookback window you want checked (e.g. the last 2 hours)."
+  failure_rate_threshold_pct:
+    default: 8
+    description: Failure rate percent per processor at or above which it's worth flagging as an outage or integration problem rather than normal decline noise.
+  min_transactions:
+    default: 20
+    description: Minimum transaction volume for a processor in the window before its failure rate is meaningful enough to flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A spike isolated to one processor (versus an even failure rate across
+  all of them) usually points to a gateway outage or a broken
+  integration, not customers' cards — that's what segmenting by processor
+  catches and an aggregate checkout-failure number wouldn't. Distinct
+  from `failed-payment-dunning-check` (subscription retry status over
+  days) and `chargeback-fraud-risk-order-review` (pre-fulfillment fraud
+  scoring) — this is real-time processor health.

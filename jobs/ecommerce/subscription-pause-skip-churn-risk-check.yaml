@@ -1,0 +1,49 @@
+id: subscription-pause-skip-churn-risk-check
+version: 1
+name: Subscription Pause/Skip Churn Risk Check
+description: >
+  Reviews active, currently-paying subscribers for a pattern of repeated
+  cycle skips or pauses and drafts retention outreach for the highest-risk
+  ones. Use this if a subscriber has ever cancelled outright after
+  quietly skipping three cycles in a row, with nobody on your side
+  noticing the pattern until the cancellation email arrived.
+category: ecommerce
+tags: [ecommerce, subscriptions, churn, retention, recurring-revenue]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{subscription_platform}} for subscribers with a currently active
+  (not cancelled, not in payment-failure/dunning status) subscription who
+  have skipped or paused at least {{min_skip_count}} of their last
+  {{lookback_cycles}} billing cycles.
+  1. List each: subscriber, product, skip/pause count out of cycles
+     reviewed, and date of the most recent skip.
+  2. Note any reinforcing signal you can see — an open support ticket, a
+     recent downgrade, or a changed shipping address — that adds to the
+     churn risk.
+  3. Draft a short, specific retention message for the top
+     {{outreach_limit}} highest-risk subscribers, offering something
+     concrete (skip a future cycle free, swap products, change frequency)
+     rather than a generic "we miss you."
+  4. Report total active subscribers reviewed and how many were flagged.
+variables:
+  subscription_platform:
+    default: "your subscription/recurring-order platform"
+    description: Name of the platform holding subscription and cycle history (e.g. "Recharge", "Shopify Subscriptions", "Bold Subscriptions").
+  min_skip_count:
+    default: 2
+    description: Minimum number of skipped/paused cycles within the lookback window before a subscriber counts as churn risk.
+  lookback_cycles:
+    default: 4
+    description: How many of the subscriber's most recent billing cycles to review for skip/pause behavior.
+  outreach_limit:
+    default: 10
+    description: Maximum number of highest-risk subscribers to draft outreach for in one run.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `failed-payment-dunning-check`, which targets subscribers
+  already stuck on a failed charge — this looks at active, paying
+  subscribers whose skip/pause behavior is an earlier churn signal, before
+  any payment ever fails. Draft-only — review outreach messages before
+  sending.

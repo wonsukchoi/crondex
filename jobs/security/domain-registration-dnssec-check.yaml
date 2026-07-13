@@ -1,0 +1,49 @@
+id: domain-registration-dnssec-check
+version: 1
+name: Domain Registration & DNSSEC Check
+description: >
+  Checks a core domain's registration expiry date and whether DNSSEC is
+  enabled, and flags either a soon-to-lapse registration or a missing DS
+  record. Use this if you want an early warning against domain hijacking —
+  a lapsed registration or a domain with no DNSSEC chain of trust is exactly
+  what an attacker looks for to take over your domain or spoof your DNS.
+category: security
+tags: [security, dns, dnssec, domain, hijack-prevention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  domain={{domain}}; warn_days={{warn_days}};
+  command -v whois >/dev/null 2>&1 || { echo "ERROR: whois not installed"; exit 1; };
+  command -v dig >/dev/null 2>&1 || { echo "ERROR: dig not installed"; exit 1; };
+  expiry_raw=$(whois "$domain" 2>/dev/null | grep -iE '^(Registry Expiry Date|Expiration Date|paid-till)' | head -1 | sed -E 's/^[^:]+:[[:space:]]*//');
+  if [ -z "$expiry_raw" ]; then
+    echo "WARNING: could not parse a registration expiry date from whois for $domain (registrar/TLD whois format may differ — check manually)";
+  else
+    exp_ts=$(date -d "$expiry_raw" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%SZ" "$expiry_raw" +%s 2>/dev/null);
+    if [ -n "$exp_ts" ]; then
+      days_left=$(( (exp_ts - $(date +%s)) / 86400 ));
+      if [ "$days_left" -le "$warn_days" ]; then echo "WARNING: $domain registration expires in $days_left days ($expiry_raw)";
+      else echo "OK: $domain registration expires in $days_left days"; fi;
+    else echo "WARNING: found expiry text but could not parse it: $expiry_raw"; fi;
+  fi;
+  ds=$(dig +short DS "$domain");
+  if [ -z "$ds" ]; then echo "WARNING: no DS record found for $domain — DNSSEC does not appear to be enabled at the registrar/parent zone";
+  else echo "OK: DNSSEC DS record present for $domain"; fi
+variables:
+  domain:
+    default: "example.com"
+    description: Core domain to check registration expiry and DNSSEC status for.
+  warn_days:
+    default: 30
+    description: Days before registration expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `whois` and `dig` CLIs. Distinct from storefront-ssl-domain-expiry-check
+  (ecommerce category, which bundles SSL certificate + domain expiry for a
+  storefront specifically) and certificate-transparency-watch.yaml (which
+  watches for newly issued TLS certs, not registration or DNSSEC status) —
+  this job is about the domain-hijacking risk of a lapsed registration or a
+  broken/missing DNSSEC chain, for any org's core domain. whois output
+  format varies by registrar and TLD; the expiry-date grep covers common
+  formats but may need adjusting for yours.

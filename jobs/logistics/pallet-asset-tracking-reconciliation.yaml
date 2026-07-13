@@ -1,0 +1,39 @@
+id: pallet-asset-tracking-reconciliation
+version: 1
+name: Pallet/Asset Tracking Reconciliation
+description: >
+  Compares pooled or company-owned pallets (or other reusable shipping
+  assets) shipped out against the count returned or exchanged, and flags
+  a location losing more than your threshold. Use this if lost pallets
+  have ever quietly turned into a five-figure annual replacement bill
+  that nobody traced back to a specific dock or lane.
+category: logistics
+tags: [logistics, pallets, assets, reconciliation, cost]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_loss_pct}}" '
+    NR==1 {next}
+    {
+      location=$1; period=$2; shipped=$3; returned=$4;
+      if (shipped <= 0) next;
+      loss_pct = ((shipped - returned) / shipped) * 100;
+      if (loss_pct > threshold) {
+        printf "PALLET LOSS: %s (%s) — %.1f%% not returned (%d shipped, %d returned), threshold %d%%\n", location, period, loss_pct, shipped, returned, threshold;
+      }
+    }
+  ' "{{pallet_log_csv_path}}"
+variables:
+  pallet_log_csv_path:
+    default: "./pallet-shipped-returned-log.csv"
+    description: "Path to a CSV with columns: location,period,pallets_shipped,pallets_returned — one row per location per reporting period, from your pallet pool provider (CHEP, PECO) statement or internal asset tracking."
+  max_loss_pct:
+    default: 10
+    description: Percent of pallets not returned/exchanged before a location is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Location-level reconciliation of pooled/reusable shipping assets over a
+  reporting period, not live GPS/RFID asset tracking — pair with your
+  pallet pool provider's exchange statement or a manual dock log to keep
+  the CSV current.

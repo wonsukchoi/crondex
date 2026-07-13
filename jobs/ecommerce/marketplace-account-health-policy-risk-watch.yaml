@@ -1,0 +1,46 @@
+id: marketplace-account-health-policy-risk-watch
+version: 1
+name: Marketplace Account Health & Policy Risk Watch
+description: >
+  Checks your marketplace seller account's health metrics and any open
+  policy or IP complaints against that marketplace's suspension
+  thresholds, and flags what's actually at risk this week. Use this if a
+  seller account has ever gotten suspended and the warning signs — a
+  climbing defect rate, an unanswered complaint — had been sitting in the
+  account health dashboard for weeks first.
+category: ecommerce
+tags: [ecommerce, marketplace, compliance, account-health, risk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{marketplace_name}} seller/account health dashboard for
+  {{seller_account_id}}.
+  1. Pull current values for order defect rate, late shipment rate,
+     cancellation rate, and any open policy violation, intellectual
+     property complaint, or listing suspension against your account.
+  2. Compare each metric to that marketplace's stated suspension
+     threshold (look it up if you don't already have it) and flag any
+     metric within {{warn_margin_pct}}% of triggering suspension.
+  3. For each open policy violation or complaint, summarize what's being
+     alleged and the deadline to respond or appeal.
+  4. Prioritize the findings into what needs a response today versus
+     what's just worth watching this week.
+variables:
+  marketplace_name:
+    default: "your marketplace (e.g. Amazon Seller Central, eBay, Etsy)"
+    description: Name of the marketplace whose seller account health you're checking.
+  seller_account_id:
+    default: "your seller account"
+    description: Identifier for the seller account to check, if the marketplace requires one.
+  warn_margin_pct:
+    default: 20
+    description: How close (in percent) a metric can get to its suspension threshold before it's flagged as worth acting on now.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `marketplace-listing-sync-drift-check`, which compares
+  price/stock accuracy on individual listings — this watches
+  account-standing metrics that can get your entire seller account
+  suspended regardless of whether any single listing is correct. Read-only
+  research; any appeal or policy response should still go through a human
+  before submission.

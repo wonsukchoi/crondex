@@ -1,0 +1,49 @@
+id: soc2-evidence-collection-reminder
+version: 1
+name: SOC 2 Evidence Collection Reminder
+description: >
+  Walks through the standard control areas a SOC 2 (or similar framework)
+  audit expects evidence for, checks what's already collected and dated for
+  this period, and flags what's still missing. Use this if evidence
+  gathering has ever turned into a last-minute scramble the week the auditor
+  actually asks for it instead of being kept current throughout the period.
+category: security
+tags: [security, soc2, compliance, audit-evidence]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  It's time to prepare recurring {{framework}} evidence for the
+  {{evidence_period}} collection window. For each control area below,
+  check whether the standard evidence an auditor would expect is already
+  gathered and dated within this window, and list what's missing:
+
+  - Access review: most recent user access review / recertification sign-off
+  - Change management: sample of recent production changes with an approval trail
+  - Vulnerability management: most recent vulnerability scan report and remediation status
+  - Incident response: any incidents this period and their post-incident review docs
+  - Backup/DR: evidence of the most recent backup restore test
+  - Vendor management: current vendor risk assessments for critical vendors
+  - Security awareness: training completion records for this period
+  - Access control: current org chart / access matrix showing least-privilege is intact
+
+  Record findings and gathered evidence links/paths in {{evidence_tracker}}.
+  Report a short checklist of what's collected and dated, and what's still
+  missing so someone can chase it down before the audit window closes.
+variables:
+  framework:
+    default: "SOC 2 Type II"
+    description: Compliance framework this evidence collection is for (e.g. SOC 2 Type II, ISO 27001) — adjust the control list in the prompt if yours differs.
+  evidence_period:
+    default: "current quarter"
+    description: The period this evidence collection run covers.
+  evidence_tracker:
+    default: "the shared evidence-collection tracker (e.g. a spreadsheet, Vanta/Drata evidence library, or Notion doc) — update this to your org's actual tracker"
+    description: Where gathered evidence and findings should be recorded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Needs an agent since gathering evidence spans several unrelated systems
+  (IAM, ticketing, LMS, vendor-risk tooling) and judging whether something
+  "counts" as valid evidence for a control isn't a fixed script call. This
+  job only compiles and flags what's present vs. missing — it does not
+  submit anything to an auditor or mark any control as passed itself.

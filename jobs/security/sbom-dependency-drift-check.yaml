@@ -1,0 +1,50 @@
+id: sbom-dependency-drift-check
+version: 1
+name: SBOM Dependency Drift Check
+description: >
+  Compares your current software bill of materials against the last
+  snapshot and flags any package that was added or removed, regardless of
+  whether it has a known vulnerability. Use this if you want to notice an
+  unexpected new dependency show up in a build the same week it lands,
+  instead of only hearing about it later from a vulnerability scanner.
+category: security
+tags: [security, sbom, supply-chain, dependency-drift]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  manifest={{manifest_path}}; state={{state_file}};
+  [ -f "$manifest" ] || { echo "ERROR: $manifest not found"; exit 1; };
+  sorted_current=$(sort "$manifest");
+  if [ ! -f "$state" ]; then
+    echo "$sorted_current" > "$state";
+    echo "no baseline found — saved current manifest as the baseline ($(wc -l < "$manifest" | tr -d ' ') entries)";
+    exit 0;
+  fi;
+  added=$(comm -13 <(sort "$state") <(echo "$sorted_current"));
+  removed=$(comm -23 <(sort "$state") <(echo "$sorted_current"));
+  if [ -z "$added" ] && [ -z "$removed" ]; then echo "OK: no dependency changes since last snapshot";
+  else
+    [ -n "$added" ] && { echo "ADDED since last snapshot:"; echo "$added"; };
+    [ -n "$removed" ] && { echo "REMOVED since last snapshot:"; echo "$removed"; };
+  fi;
+  echo "$sorted_current" > "$state"
+variables:
+  manifest_path:
+    default: "sbom.txt"
+    description: >-
+      Path to a plain-text software bill of materials, one package[@version] per
+      line. Generate it with your ecosystem's tool, e.g. `npm ls --all > sbom.txt`,
+      `pip freeze > sbom.txt`, or `syft dir:. -o table > sbom.txt`.
+  state_file:
+    default: "./.sbom-drift-state"
+    description: File this job uses to remember the last snapshot it saw, so it only reports what changed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, diff-based. Distinct from cve-watch.yaml and
+  dependabot-alert-digest.yaml, which check for known vulnerabilities in
+  existing dependencies — this flags any new or removed package at all,
+  since an unexpected addition is itself a supply-chain signal worth a
+  human glance even before a CVE ever gets filed against it. Requires bash
+  (process substitution) and that you regenerate `manifest_path` before
+  each run so it reflects the current build, not a stale file.

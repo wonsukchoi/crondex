@@ -1,0 +1,44 @@
+id: return-rate-quality-signal-watch
+version: 1
+name: Return Rate Quality Signal Watch
+description: >
+  Compares each SKU's return rate for the period against a threshold and
+  flags any product returning far more than normal, a signal worth
+  investigating as a quality, sizing, or listing-accuracy problem. Use
+  this if a defective batch or a misleading size chart has ever kept
+  selling for months because nobody looked at returns broken out by
+  product.
+category: ecommerce
+tags: [ecommerce, returns, quality, product, analytics]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v thresh="{{return_rate_threshold_pct}}" -v minShipped="{{min_units_shipped}}" '
+    NR==1 {next}
+    {
+      sku=$1; shipped=$2; returned=$3;
+      if (shipped+0 < minShipped) next;
+      rate = returned / shipped * 100;
+      if (rate >= thresh) {
+        printf "HIGH RETURN RATE: %s — %.1f%% returned (%d of %d units)\n", sku, rate, returned+0, shipped+0;
+      }
+    }
+  ' "{{sku_returns_csv_path}}"
+variables:
+  sku_returns_csv_path:
+    default: "./sku-return-rates.csv"
+    description: "Path to a CSV with columns: sku,units_shipped,units_returned — totals for the period you're reviewing (e.g. trailing 30 days)."
+  return_rate_threshold_pct:
+    default: 15
+    description: Return rate percent at or above which a SKU is worth investigating as a possible quality, sizing, or listing problem.
+  min_units_shipped:
+    default: 20
+    description: Minimum units shipped in the period before a SKU's return rate is statistically meaningful enough to flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A high SKU-level return rate is usually a product-quality, sizing-chart,
+  or listing-accuracy problem worth fixing at the source. Distinct from
+  `return-refund-backlog-check` (processing turnaround, not rate) and
+  `return-fraud-pattern-check` in the retail category (abuse patterns by
+  customer, not by product).

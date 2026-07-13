@@ -1,0 +1,53 @@
+id: harassment-complaint-sla-tracker
+version: 1
+name: Harassment Complaint SLA Tracker
+description: >
+  Checks open harassment/EEO complaint investigations against your
+  policy's resolution SLA and flags any case running late. Use this if a
+  harassment complaint investigation has ever quietly run past your own
+  policy's timeline because it only lived in one investigator's inbox,
+  not a shared tracker anyone else could see was slipping.
+category: hr
+tags: [hr, harassment, eeo, complaints, compliance, sla]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{resolution_sla_days}}" -v warn="{{warn_days_before_sla}}" '
+    NR==1 {next}
+    $3 == "closed" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline filed_epoch; close(cmd);
+      days_open = (today - filed_epoch) / 86400;
+      days_left = sla - days_open;
+      if (days_left < 0) {
+        printf "SLA BREACHED: case %s — open %d day(s), %d day(s) past the %d-day resolution SLA\n", $1, days_open, -days_left, sla;
+      } else if (days_left <= warn) {
+        printf "SLA AT RISK: case %s — open %d day(s), %d day(s) left of the %d-day resolution SLA\n", $1, days_open, days_left, sla;
+      }
+    }
+  ' "{{complaint_tracking_csv_path}}"
+variables:
+  complaint_tracking_csv_path:
+    default: "./harassment-complaint-tracking.csv"
+    description: "Path to a CSV with columns: case_id,date_filed (YYYY-MM-DD),status (open/investigating/closed). Deliberately no employee/accused names — cross-reference case_id against your confidential case file separately."
+  resolution_sla_days:
+    default: 30
+    description: Days from filing to resolution under your internal policy or handbook.
+  warn_days_before_sla:
+    default: 5
+    description: How many days before the SLA deadline to flag a case as at risk rather than already breached.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Deliberately keyed on case_id only, not employee or accused names, so
+  identifying details of a harassment complaint never end up in cron job
+  output or logs. Restrict wherever this job's output lands to
+  HR/legal/the investigator — never a general channel. Summary-only: it
+  never auto-contacts the complainant, witnesses, or accused, and never
+  makes findings — it just flags aging. Distinct from
+  whistleblower-complaint-sla-check, which covers general ethics-hotline
+  complaints with different (often broader, less time-bound) SLAs; this
+  one is specific to harassment/EEO investigations, which typically carry
+  tighter, legally-informed response expectations.

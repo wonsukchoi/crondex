@@ -1,0 +1,34 @@
+id: multi-stop-route-sequence-deviation-check
+version: 1
+name: Multi-Stop Route Sequence Deviation Check
+description: >
+  Compares the planned stop order for a multi-stop route against the
+  order stops were actually completed and flags routes that ran out of
+  sequence. Use this if a driver has ever gone off the planned stop order
+  on a multi-drop route and it quietly added miles and blew a delivery
+  window without anyone reviewing it after the fact.
+category: logistics
+tags: [logistics, routing, multi-stop, dispatch]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      route=$1; planned=$2; actual=$3;
+      if (planned != actual) {
+        printf "SEQUENCE DEVIATION: route %s — planned order [%s], actual order [%s]\n", route, planned, actual;
+      }
+    }
+  ' "{{route_sequence_csv_path}}"
+variables:
+  route_sequence_csv_path:
+    default: "./route-stop-sequence-log.csv"
+    description: "Path to a CSV with columns: route_id,planned_sequence,actual_sequence — stop IDs joined with a semicolon in each field (e.g. stop-1;stop-2;stop-3), one row per completed route, exported from your routing/dispatch system."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags that a route ran out of planned order at all; it doesn't
+  diagnose why (traffic reroute, driver judgment call, a late add-on
+  stop) — pair with dispatch notes if you need the reason before deciding
+  whether the planning tool or the driver needs adjusting.

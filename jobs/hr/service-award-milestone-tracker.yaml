@@ -1,0 +1,56 @@
+id: service-award-milestone-tracker
+version: 1
+name: Service Award Milestone Tracker
+description: >
+  Checks the employee roster against your tenure-milestone schedule
+  (5/10/15/20 years, etc.) and flags upcoming or overdue work
+  anniversaries that qualify for a service award, so the gift or bonus
+  actually gets ordered in time. Use this if a 10-year anniversary has
+  ever passed with no award because nobody cross-checked hire dates
+  against the award tiers until the employee mentioned it themselves.
+category: hr
+tags: [hr, service-awards, tenure, recognition, retention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v milestones="{{milestone_years}}" -v lookahead="{{lookahead_days}}" '
+    BEGIN { n = split(milestones, arr, ","); }
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline hire_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      tenure_years = (now_epoch - hire_epoch) / 86400 / 365.25;
+      fulfilled_through = $3 + 0;
+      for (i = 1; i <= n; i++) {
+        m = arr[i] + 0;
+        if (m <= fulfilled_through) continue;
+        days_to_milestone = (m - tenure_years) * 365.25;
+        if (days_to_milestone >= 0 && days_to_milestone <= lookahead) {
+          printf "AWARD DUE: %s — reaching %d-year milestone in %d day(s), hired %s\n", $1, m, days_to_milestone, $2;
+        } else if (days_to_milestone < 0) {
+          printf "AWARD OVERDUE: %s — passed %d-year milestone %d day(s) ago, not yet marked fulfilled\n", $1, m, -days_to_milestone;
+        }
+      }
+    }
+  ' "{{roster_csv_path}}"
+variables:
+  roster_csv_path:
+    default: "./service-award-roster.csv"
+    description: "Path to a CSV with columns: employee_name,hire_date (YYYY-MM-DD),award_fulfilled_through_year (integer — the last milestone year already awarded, 0 if none)."
+  milestone_years:
+    default: "5,10,15,20,25"
+    description: Comma-separated tenure years (no spaces) that trigger a service award.
+  lookahead_days:
+    default: 30
+    description: How many days before a milestone anniversary to start flagging it as coming up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from team/team-anniversary-reminder, which is a lightweight
+  personal/social reminder about any teammate's birthday or anniversary;
+  this is a company-wide fulfillment tracker tied only to your formal
+  award tiers, and it tracks whether the award was actually ordered
+  (award_fulfilled_through_year), not just whether the date happened.
+  Also distinct from referral-bonus-payout-reminder, which tracks a
+  one-time hiring-referral bonus milestone, not recurring tenure awards.

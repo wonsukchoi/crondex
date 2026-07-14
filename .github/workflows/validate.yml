@@ -30,10 +30,10 @@ jobs:
       - name: check for near-duplicate jobs
         run: npm run check-duplicates
 
-      - name: check catalog.json is up to date
+      - name: check catalog.json, README.md, and ROADMAP.md are up to date
         run: |
           npm run build-catalog
-          git diff --exit-code catalog.json || {
-            echo "::error::catalog.json is stale — run 'npm run build-catalog' and commit the result.";
+          git diff --exit-code catalog.json README.md ROADMAP.md || {
+            echo "::error::catalog.json, README.md, or ROADMAP.md is stale — run 'npm run build-catalog' and commit the result.";
             exit 1;
           }

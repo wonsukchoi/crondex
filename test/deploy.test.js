@@ -125,6 +125,14 @@ test("cronToSystemdCalendar: comma weekday list maps to comma day names", () => 
   assert.equal(cronToSystemdCalendar("0 7 * * 1,3"), "Mon,Wed *-*-* 7:0:00");
 });
 
+test("cronToSystemdCalendar: a-b/n step-in-range day-of-week throws a clear error", () => {
+  assert.throws(() => cronToSystemdCalendar("0 7 * * 1-5/2"), /unsupported day-of-week step-in-range syntax/);
+});
+
+test("cronToSystemdCalendar: step-in-range inside a comma list still throws", () => {
+  assert.throws(() => cronToSystemdCalendar("0 7 * * 0,1-5/2"), /unsupported day-of-week step-in-range syntax/);
+});
+
 test("buildSystemdUnits: timer OnCalendar matches the job schedule, service embeds the command", () => {
   const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *" };
   const { service, timer } = buildSystemdUnits(job, 'echo "hello"', false);
@@ -189,6 +197,14 @@ test("cronToAwsCron: unrestricted weekday sets day-of-week to ? and keeps day-of
 
 test("cronToAwsCron: */n step becomes 0/n", () => {
   assert.equal(cronToAwsCron("*/15 * * * *"), "cron(0/15 * * * ? *)");
+});
+
+test("cronToAwsCron: a-b/n step-in-range day-of-week throws a clear error", () => {
+  assert.throws(() => cronToAwsCron("0 14 * * 1-5/2"), /unsupported day-of-week step-in-range syntax/);
+});
+
+test("cronToAwsCron: step-in-range inside a comma list still throws", () => {
+  assert.throws(() => cronToAwsCron("0 14 * * 0,1-5/2"), /unsupported day-of-week step-in-range syntax/);
 });
 
 test("buildEventBridgeCommand: embeds the AWS cron expression and leaves the target as a TODO", () => {

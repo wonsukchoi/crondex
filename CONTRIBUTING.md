@@ -73,6 +73,14 @@ or [file a bug](../../issues/new?template=bug-report.yml) instead.
    flagged; only real crashes (unbound variable, command not found, timeout,
    syntax error) are.
 
+   The default per-job timeout is 8 seconds (`CRONDEX_SMOKE_TIMEOUT` env var).
+   That's too tight for `jobs/security/certificate-transparency-watch.yaml`,
+   which calls the public crt.sh API (`--max-time 30` on its own `curl`) — run
+   that one (or the full suite, if it's in the batch) with a longer budget:
+   ```bash
+   CRONDEX_SMOKE_TIMEOUT=35 node scripts/smoke-test.js certificate-transparency-watch
+   ```
+
 6. Open a PR. CI re-runs all checks and fails if `catalog.json` is stale, a
    job doesn't match the schema, a shell command doesn't pass shellcheck, or
    a job looks like a near-duplicate of an existing one. That last one is a

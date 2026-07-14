@@ -2,9 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const catalog = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
 
 test("every category in the catalog has a description", () => {

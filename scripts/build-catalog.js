@@ -2,11 +2,19 @@
 // Scans jobs/**/*.yaml and regenerates catalog.json at the repo root.
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
-import { modesForRunner, findMissingDescriptions, buildSummaryLines, spliceReadmeSummary } from "../lib/catalog-summary.js";
+import {
+  modesForRunner,
+  findMissingDescriptions,
+  buildSummaryLines,
+  spliceReadmeSummary,
+  spliceMarkedSection,
+  buildRoadmapStatsLine,
+} from "../lib/catalog-summary.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
 
 function walk(dir) {
@@ -68,4 +76,18 @@ if (updated === null) {
 } else {
   writeFileSync(README_PATH, updated);
   console.log(`synced README.md job summary (${categories.length} categories)`);
+}
+
+const PKG = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const ROADMAP_PATH = join(ROOT, "ROADMAP.md");
+const roadmap = readFileSync(ROADMAP_PATH, "utf8");
+const statsLine = buildRoadmapStatsLine(jobs, categories.length, PKG.version);
+const updatedRoadmap = spliceMarkedSection(roadmap, "<!-- BEGIN CATALOG STATS -->", "<!-- END CATALOG STATS -->", [
+  statsLine,
+]);
+if (updatedRoadmap === null) {
+  console.warn("could not find BEGIN/END CATALOG STATS markers in ROADMAP.md — skipped stats sync");
+} else {
+  writeFileSync(ROADMAP_PATH, updatedRoadmap);
+  console.log(`synced ROADMAP.md catalog stats (${jobs.length} jobs, ${categories.length} categories)`);
 }

@@ -11,11 +11,12 @@
 import { readFileSync, readdirSync, statSync, mkdtempSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { resolveJobCommand, buildSandboxScript } from "../lib/smoke-test.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
 const TIMEOUT_SECONDS = Number(process.env.CRONDEX_SMOKE_TIMEOUT) || 8;
 const onlyId = process.argv[2];

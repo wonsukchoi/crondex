@@ -7,12 +7,13 @@
 // rather than failing outright on any overlap.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { tokenize, stem } from "../lib/recommend.js";
 import { findDuplicates } from "../lib/duplicates.js";
 import { isAllowedPair } from "../lib/duplicates-allowlist.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
 
 // Tune via env vars without editing this file.

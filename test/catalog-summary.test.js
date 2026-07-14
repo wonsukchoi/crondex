@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { modesForRunner, countByCategory, findMissingDescriptions, buildSummaryLines, spliceReadmeSummary } from "../lib/catalog-summary.js";
+import {
+  modesForRunner,
+  countByCategory,
+  findMissingDescriptions,
+  buildSummaryLines,
+  spliceReadmeSummary,
+  spliceMarkedSection,
+  buildRoadmapStatsLine,
+} from "../lib/catalog-summary.js";
 
 test("modesForRunner: maps each runner to its modes", () => {
   assert.deepEqual(modesForRunner("shell"), ["script"]);
@@ -61,4 +69,20 @@ test("spliceReadmeSummary: replaces content between markers", () => {
 
 test("spliceReadmeSummary: returns null when markers are missing", () => {
   assert.equal(spliceReadmeSummary("no markers here", ["x"]), null);
+});
+
+test("spliceMarkedSection: works with an arbitrary marker pair, not just the README ones", () => {
+  const text = "before\n<!-- BEGIN CATALOG STATS -->\nold\n<!-- END CATALOG STATS -->\nafter";
+  const updated = spliceMarkedSection(text, "<!-- BEGIN CATALOG STATS -->", "<!-- END CATALOG STATS -->", ["new"]);
+  assert.match(updated, /new/);
+  assert.doesNotMatch(updated, /old/);
+});
+
+test("spliceMarkedSection: returns null when markers are missing", () => {
+  assert.equal(spliceMarkedSection("no markers here", "<!-- BEGIN X -->", "<!-- END X -->", ["x"]), null);
+});
+
+test("buildRoadmapStatsLine: formats jobs/categories/version into one line", () => {
+  const line = buildRoadmapStatsLine([{ id: "a" }, { id: "b" }], 2, "0.56.0");
+  assert.equal(line, "- **Catalog**: 2 jobs across 2 categories, as of 0.56.0.");
 });

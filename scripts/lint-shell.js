@@ -3,12 +3,13 @@
 // See lib/shellcheck-prep.js for how a command gets turned into a checkable script.
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { buildShellcheckScript } from "../lib/shellcheck-prep.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
 
 // SC2269 (self-assignment), SC2016 (no expansion in single quotes), and SC2034
@@ -40,6 +41,7 @@ try {
 
 const tmp = mkdtempSync(join(tmpdir(), "crondex-shellcheck-"));
 let failed = 0;
+let seq = 0;
 
 try {
   for (const file of walk(JOBS_DIR)) {
@@ -49,7 +51,10 @@ try {
 
     const rel = relative(ROOT, file);
     const script = buildShellcheckScript(doc.command);
-    const scriptPath = join(tmp, "check.sh");
+    // Unique filename per job (not a single reused "check.sh") — avoids transient
+    // ENOENT races when this script is invoked alongside other tooling that touches
+    // the same temp path, or if this loop is ever parallelized.
+    const scriptPath = join(tmp, `check-${seq++}.sh`);
     writeFileSync(scriptPath, script);
 
     try {

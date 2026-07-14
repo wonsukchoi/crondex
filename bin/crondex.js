@@ -2,6 +2,7 @@
 // CLI over catalog.json — browse jobs, read one, or pull one into your project.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { tokenize, rankJobs } from "../lib/recommend.js";
@@ -21,7 +22,7 @@ import {
 import { formatDiff } from "../lib/diff.js";
 import { nextRuns } from "../lib/cron.js";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CATALOG = JSON.parse(readFileSync(join(ROOT, "catalog.json"), "utf8"));
 const PKG = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 

@@ -1,0 +1,53 @@
+id: author-advance-recoupment-progress-tracker
+version: 1
+name: Author Advance Recoupment Progress Tracker
+description: >
+  Calculates how much of an author's advance has been earned back through
+  royalties and flags titles that are far from recouping as their next
+  statement period approaches, then gets an LLM pass to summarize what
+  it means for renewal or contract decisions. Use this if an advance's
+  recoupment status has ever been a surprise at renewal time instead of
+  something tracked the whole way through.
+category: publishing
+tags: [publishing, royalties, advances, author-relations]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v lowpct={{low_recoupment_flag_pct}} '
+    NR>1 {
+      advance=$2+0; earned=$3+0;
+      pct = (advance > 0 ? (earned/advance)*100 : 100);
+      status = (pct >= 100 ? "RECOUPED" : "IN PROGRESS");
+      printf "%s: \"%s\" %.1f%% recouped ($%.2f of $%.2f)\n", status, $1, pct, earned, advance;
+      if (pct < lowpct+0) print "LOW RECOUPMENT FLAG: \"" $1 "\" below " lowpct "% at statement time";
+    }
+  ' "{{advance_recoupment_csv}}"
+prompt: >
+  Read {{advance_recoupment_csv}} (columns: title, advance_amount,
+  royalties_earned_to_date, one row per title). For each title below
+  {{low_recoupment_flag_pct}}% recouped, summarize the recoupment gap in
+  plain terms and suggest what it might mean heading into the next
+  contract or advance decision for that author (e.g. reconsider next
+  advance size, extend marketing push, or it's simply early in the
+  title's sales life and not yet a concern). Do not recommend contract
+  terms definitively — flag it as a discussion point for the editor or
+  agent conversation.
+script_note: >
+  The shell command computes exact recoupment percentages and flags
+  low performers. The prompt version adds context on what a low
+  recoupment percentage might mean for upcoming author/contract
+  decisions, which the raw numbers don't convey on their own.
+variables:
+  advance_recoupment_csv:
+    default: "./author-advance-recoupment.csv"
+    description: "CSV with header row, columns: title,advance_amount,royalties_earned_to_date."
+  low_recoupment_flag_pct:
+    default: 40
+    description: Recoupment percentage below which a title is flagged for a closer look at statement time.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update author-advance-recoupment.csv from your royalty accounting
+  system each statement period. A title being under the threshold is not
+  automatically a problem for a book early in its sales window — use
+  judgment alongside pub date.

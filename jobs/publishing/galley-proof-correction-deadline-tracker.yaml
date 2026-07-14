@@ -1,0 +1,35 @@
+id: galley-proof-correction-deadline-tracker
+version: 1
+name: Galley Proof Correction Deadline Tracker
+description: >
+  Flags galleys or page proofs still awaiting author or editor corrections
+  as their return deadline approaches, so the title doesn't slip its print
+  date. Use this if a proof has ever sat unreturned until it was too late
+  to hit the scheduled press date.
+category: publishing
+tags: [publishing, proofs, galleys, production-schedule]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "returned" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "PROOF DUE: \"" $1 "\" (" $2 ") due in " days_left " days (" $3 "), status=" $4;
+    }
+  ' "{{proof_tracking_csv}}"
+variables:
+  proof_tracking_csv:
+    default: "./galley-proofs.csv"
+    description: "CSV with header row, columns: title,proof_stage(first-pass|second-pass|final),due_date(YYYY-MM-DD),status(pending|with-author|with-editor|returned)."
+  warn_days:
+    default: 5
+    description: Days before a proof's correction due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update galley-proofs.csv whenever a proof stage moves or a correction
+  round completes. Rows with status "returned" are skipped so cleared
+  proofs stop appearing.

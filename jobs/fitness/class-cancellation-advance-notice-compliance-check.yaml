@@ -1,0 +1,37 @@
+id: class-cancellation-advance-notice-compliance-check
+version: 1
+name: Class Cancellation Advance-Notice Compliance Check
+description: >
+  Checks logged class cancellations against the time they were actually
+  announced and flags any cancellation that went out with less than the
+  required advance notice to enrolled members. Use this if a class has
+  ever been cancelled same-day with members finding out only when they
+  showed up at the studio door.
+category: fitness
+tags: [fitness, classes, compliance, member-experience, communication]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_hrs="{{min_notice_hours}}" '
+    NR==1 {next}
+    {
+      class_cmd = "date -d \"" $2 " " $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 " " $3 "\" +%s 2>/dev/null";
+      class_cmd | getline class_epoch; close(class_cmd);
+      notice_cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $4 "\" +%s 2>/dev/null";
+      notice_cmd | getline notice_epoch; close(notice_cmd);
+      notice_hrs = (class_epoch - notice_epoch) / 3600;
+      if (notice_hrs < min_hrs) {
+        printf "SHORT NOTICE: %s on %s at %s — announced only %.1f hours ahead (min %d)\n", $1, $2, $3, notice_hrs, min_hrs;
+      }
+    }
+  ' "{{class_cancellations_csv_path}}"
+variables:
+  class_cancellations_csv_path:
+    default: "./class-cancellations.csv"
+    description: "Path to a CSV with columns: class_name,class_date (YYYY-MM-DD),class_time (HH:MM),notice_sent_at (YYYY-MM-DD HH:MM)."
+  min_notice_hours:
+    default: 12
+    description: Minimum hours of advance notice a cancellation should give enrolled members before it's flagged as non-compliant.
+compatible_agents: [generic, claude, codex]
+notes: Log notice_sent_at from the actual email/SMS/app-push timestamp, not when the decision was made internally, so this reflects what members actually experienced.

@@ -1,0 +1,38 @@
+id: exhibitor-booth-assignment-conflict-check
+version: 1
+name: Exhibitor Booth Assignment Conflict Check
+description: >
+  Scans the exhibitor floor plan assignments for double-booked booth
+  numbers or exhibitors assigned a booth smaller than their contracted
+  size. Use this if two exhibitors have ever shown up to set up and found
+  they were both assigned booth 214.
+category: events
+tags: [events, exhibitors, booths, floor-plan]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, '
+    NR==1 {next}
+    {
+      booth=$2; exhibitor=$1; contracted=$3; assigned=$4;
+      count[booth]++;
+      holder[booth] = (holder[booth] == "" ? exhibitor : holder[booth] "; " exhibitor);
+      if (assigned < contracted) {
+        printf "UNDERSIZED: %s contracted %s sqft booth, assigned %s sqft (booth %s)\n", exhibitor, contracted, assigned, booth;
+      }
+    }
+    END {
+      for (b in count) {
+        if (count[b] > 1) {
+          printf "DOUBLE-BOOKED: booth %s assigned to multiple exhibitors: %s\n", b, holder[b];
+        }
+      }
+    }
+  ' "{{booth_assignments_csv}}"
+variables:
+  booth_assignments_csv:
+    default: "exhibitor-booth-assignments.csv"
+    description: "CSV with header row, columns: exhibitor_name,booth_number,contracted_sqft,assigned_sqft."
+compatible_agents: [generic, claude, codex]
+notes: Run this again after any last-minute floor plan change — double-booked booths are almost always introduced by manual edits, not the original layout.

@@ -1,0 +1,37 @@
+id: subsidiary-rights-option-window-tracker
+version: 1
+name: Subsidiary Rights Option Window Tracker
+description: >
+  Warns before an unexercised option window on subsidiary rights (audio,
+  film/TV, merchandise, or similar) closes, so a decision to exercise or
+  let it lapse gets made deliberately rather than by default. Use this if
+  an option holder has ever missed the window to exercise or you've
+  missed the deadline to shop an option elsewhere once it expired.
+category: publishing
+tags: [publishing, subsidiary-rights, options, contracts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 == "unexercised" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "OPTION CLOSING: " $2 " option on \"" $1 "\" closes in " days_left " days (" $3 ")";
+    }
+  ' "{{subsidiary_options_csv}}"
+variables:
+  subsidiary_options_csv:
+    default: "./subsidiary-rights-options.csv"
+    description: "CSV with header row, columns: title,rights_type(audio|film-tv|merchandise|other),option_window_close_date(YYYY-MM-DD),status(unexercised|exercised|lapsed)."
+  warn_days:
+    default: 21
+    description: Days before an option window's close date to start warning for still-unexercised options.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from a signed rights deal's expiry (see rights-license-expiry-check)
+  — this tracks the earlier decision window to exercise an option at all.
+  Update subsidiary-rights-options.csv when an option is exercised or
+  allowed to lapse.

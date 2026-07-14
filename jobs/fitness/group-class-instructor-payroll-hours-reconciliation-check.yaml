@@ -1,0 +1,47 @@
+id: group-class-instructor-payroll-hours-reconciliation-check
+version: 1
+name: Group Class Instructor Payroll Hours Reconciliation Check
+description: >
+  Compares the classes an instructor was scheduled to teach against the
+  classes they actually clocked in and taught, and flags any mismatch
+  before payroll runs. Use this if an instructor has ever been paid for
+  a class they didn't teach, or not paid for a sub they covered, because
+  the schedule and the actual clock-in log were never reconciled before
+  payroll went out.
+category: fitness
+tags: [fitness, instructors, payroll, operations, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR > 1) { scheduled[$1 "|" $2 "|" $3] = 1; }
+      next;
+    }
+    FNR==1 { next }
+    {
+      key = $1 "|" $2 "|" $3;
+      taught[key] = 1;
+      if (!(key in scheduled)) {
+        printf "UNSCHEDULED TEACH: %s taught %s on %s at %s — not on the published schedule\n", $1, $4, $2, $3;
+      }
+    }
+    END {
+      for (k in scheduled) {
+        if (!(k in taught)) {
+          split(k, parts, "|");
+          printf "SCHEDULED NOT TAUGHT: %s scheduled on %s at %s — no clock-in recorded\n", parts[1], parts[2], parts[3];
+        }
+      }
+    }
+  ' "{{class_schedule_csv_path}}" "{{instructor_clockin_csv_path}}"
+variables:
+  class_schedule_csv_path:
+    default: "./class-schedule.csv"
+    description: "Path to a CSV with columns: instructor_name,class_date (YYYY-MM-DD),class_time (HH:MM)."
+  instructor_clockin_csv_path:
+    default: "./instructor-clockins.csv"
+    description: "Path to a CSV with columns: instructor_name,class_date (YYYY-MM-DD),class_time (HH:MM),class_name."
+compatible_agents: [generic, claude, codex]
+notes: Run this before each payroll cutoff so mismatches get resolved with the instructor while the week is still fresh, not weeks later during a dispute.

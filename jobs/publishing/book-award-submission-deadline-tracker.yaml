@@ -1,0 +1,36 @@
+id: book-award-submission-deadline-tracker
+version: 1
+name: Book Award Submission Deadline Tracker
+description: >
+  Warns you before a book award's entry deadline closes for titles you
+  planned to submit but haven't yet, including entry fee and required
+  materials status. Use this if an eligible title has ever missed an
+  awards submission window because nobody was watching the entry
+  deadline against the marketing calendar.
+category: publishing
+tags: [publishing, awards, submissions, marketing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "submitted" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "AWARD DEADLINE: \"" $1 "\" for " $2 " closes in " days_left " days (" $3 "), status=" $4;
+    }
+  ' "{{award_submissions_csv}}"
+variables:
+  award_submissions_csv:
+    default: "./book-award-submissions.csv"
+    description: "CSV with header row, columns: title,award_name,entry_deadline(YYYY-MM-DD),status(planned|materials-ready|submitted|skipped)."
+  warn_days:
+    default: 14
+    description: Days before an award's entry deadline to start warning for titles not yet submitted.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update book-award-submissions.csv as titles are entered for consideration
+  or a deadline is deliberately skipped. Rows marked "submitted" or
+  "skipped" stop triggering warnings.

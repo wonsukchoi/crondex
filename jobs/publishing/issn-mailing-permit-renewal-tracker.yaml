@@ -1,0 +1,38 @@
+id: issn-mailing-permit-renewal-tracker
+version: 1
+name: ISSN and Periodical Mailing Permit Renewal Tracker
+description: >
+  Warns before a periodical's ISSN registration confirmation or postal
+  mailing permit (e.g. periodicals-class permit) needs renewal or annual
+  statement filing, so mailing eligibility never lapses. Use this if a
+  magazine or newsletter mailing has ever been held up or bumped to a
+  higher postage class because a permit renewal or annual filing was
+  missed.
+category: publishing
+tags: [publishing, issn, mailing-permit, compliance]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "PERMIT RENEWAL: " $1 " (" $2 ") due in " days_left " days (" $3 ")";
+    }
+  ' "{{permits_csv}}"
+variables:
+  permits_csv:
+    default: "./issn-mailing-permits.csv"
+    description: "CSV with header row, columns: publication_name,permit_type(issn-renewal|periodicals-mailing-permit|annual-statement-of-ownership),due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a permit or filing due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers recurring periodical compliance items (ISSN registration
+  confirmations, mailing permit renewals, statement-of-ownership filings)
+  distinct from book-specific ISBN registration. Keep
+  issn-mailing-permits.csv updated as filings are completed.

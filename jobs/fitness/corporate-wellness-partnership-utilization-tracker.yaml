@@ -1,0 +1,51 @@
+id: corporate-wellness-partnership-utilization-tracker
+version: 1
+name: Corporate Wellness Partnership Utilization Tracker
+description: >
+  Tracks how many employees from each corporate wellness partner are
+  actually using their gym access and drafts a short utilization summary
+  for renewal conversations. Use this if a corporate partnership has ever
+  come up for renewal and nobody could say whether the employees who
+  signed up for it were actually showing up, only that the contract
+  existed.
+category: fitness
+tags: [fitness, corporate-wellness, partnerships, utilization, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      total[$1] += 1;
+      if ($3 + 0 > 0) { active[$1] += 1; }
+    }
+    END {
+      for (p in total) {
+        pct = (active[p] + 0) / total[p] * 100;
+        printf "%s — %d/%d enrolled employees active this month (%.0f%%)\n", p, active[p]+0, total[p], pct;
+      }
+    }
+  ' "{{corporate_partner_usage_csv_path}}"
+prompt: >
+  Read the corporate wellness usage data at
+  {{corporate_partner_usage_csv_path}} (columns: partner_company,
+  employee_name, visits_this_month). For each partner company, summarize
+  what share of enrolled employees actually visited this month, call out
+  any partner whose utilization has dropped low enough to put the
+  partnership renewal at risk, and draft a short talking-point summary
+  usable in a renewal conversation with that partner's HR contact —
+  including one concrete idea to boost engagement for underused
+  partnerships.
+script_note: >
+  The shell command gives a raw utilization percentage per partner with
+  zero tokens. The LLM pass adds the judgment a script can't: deciding
+  which utilization levels are actually renewal-risk territory and
+  turning the numbers into renewal-ready talking points and engagement
+  ideas.
+variables:
+  corporate_partner_usage_csv_path:
+    default: "./corporate-partner-usage.csv"
+    description: "Path to a CSV with columns: partner_company,employee_name,visits_this_month."
+compatible_agents: [claude, codex, generic]
+notes: Pull visits_this_month from your access-control or check-in system rather than self-reported logs for accuracy.

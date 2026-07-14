@@ -1,0 +1,30 @@
+id: event-registration-page-uptime-check
+version: 1
+name: Event Registration Page Uptime Check
+description: >
+  Pings the event registration/ticketing page and flags it if it's down,
+  timing out, or returning an error status. Use this if your registration
+  page has ever gone down during a promo email blast and nobody noticed
+  until ticket sales mysteriously stalled.
+category: events
+tags: [events, registration, uptime, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time {{timeout_seconds}} "{{registration_page_url}}");
+  if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+    echo "OK: {{registration_page_url}} returned $code";
+  else
+    echo "DOWN: {{registration_page_url}} returned $code (or timed out after {{timeout_seconds}}s)";
+    exit 1;
+  fi
+variables:
+  registration_page_url:
+    default: "https://example.com/register"
+    description: URL of the event registration or ticketing page to check.
+  timeout_seconds:
+    default: 10
+    description: Max seconds to wait for a response before treating the page as down.
+compatible_agents: [generic, claude, codex]
+notes: Point this at the exact registration URL used in marketing links, not just the homepage — a working homepage doesn't guarantee a working registration flow.

@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1843 jobs across 60 categories:
+1889 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -200,10 +200,10 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
-| `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `events` | 32 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 32 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 36 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
-| `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fitness` | 32 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
@@ -230,11 +230,11 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `photography` | 32 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 32 | Work habits — inbox, standups, focus, meetings, reports. |
-| `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
+| `publishing` | 32 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 32 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 32 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
-| `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `sales` | 32 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |

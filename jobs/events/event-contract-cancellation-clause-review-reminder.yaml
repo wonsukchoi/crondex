@@ -1,0 +1,48 @@
+id: event-contract-cancellation-clause-review-reminder
+version: 1
+name: Event Contract Cancellation/Force Majeure Clause Review Reminder
+description: >
+  Reviews vendor and venue contracts as key deadlines approach (final
+  payment date, force majeure notice window, cancellation penalty
+  thresholds) and flags any clause deadline coming up that someone should
+  read closely before it passes. Use this if you've ever discovered a
+  cancellation penalty jumped from 25% to 100% the day after nobody
+  noticed the deadline in the contract.
+category: events
+tags: [events, contracts, cancellation, force-majeure, legal]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the vendor/venue contracts tracked at {{contracts_source}} for
+  the event on {{event_date}}.
+  1. For each contract, identify cancellation and force majeure clauses:
+     notice windows, penalty escalation thresholds/dates, and any deadline
+     within {{warn_days}} days from today ({{today_date}}).
+  2. Flag any clause deadline that is approaching, explaining in plain
+     language what happens if it passes unaddressed (e.g. "cancellation
+     penalty rises from 25% to 100% of contract value after this date").
+  3. Call out any contract missing a force majeure clause entirely, since
+     that's a gap worth flagging even without an approaching date.
+  4. Summarize as a list: vendor, clause type, deadline, plain-language
+     consequence, and recommended next action (review with legal, confirm
+     go/no-go, no action needed).
+variables:
+  contracts_source:
+    default: "vendor-venue-contracts.csv"
+    description: Path or connector for the contracts tracker (columns like vendor_name, contract_file, cancellation_deadline, notes).
+  event_date:
+    default: "2026-10-01"
+    description: Date of the event.
+  today_date:
+    default: "2026-08-01"
+    description: Today's date (YYYY-MM-DD), for judging which deadlines are approaching.
+  warn_days:
+    default: 21
+    description: Days before a contract deadline to start flagging it for review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No script mode: interpreting contract clause language and explaining the
+  practical consequence of a missed deadline requires reading comprehension
+  a generic date-diff script can't provide. This is a heads-up, not legal
+  advice — have counsel review anything flagged as high-stakes.

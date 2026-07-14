@@ -1,0 +1,35 @@
+id: member-goal-progress-milestone-celebration-nudge
+version: 1
+name: Member Goal Progress Milestone Celebration Nudge
+description: >
+  Reviews members' tracked progress toward their stated goals (weight,
+  strength benchmarks, class-attendance streaks) and drafts a short
+  celebration message for anyone who's just crossed a meaningful
+  milestone. Use this if a member has ever hit a real milestone — a
+  strength PR, a goal weight, a 20-class streak — and nobody at the gym
+  acknowledged it because there was no process for noticing.
+category: fitness
+tags: [fitness, members, retention, engagement, goals]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the member progress log at {{progress_log_csv_path}} (columns:
+  member_name, goal_type, baseline_value, current_value, target_value,
+  last_updated). For each member whose current_value has just crossed a
+  milestone worth celebrating — reaching or passing the target_value,
+  crossing a round-number threshold, or closing more than
+  {{milestone_progress_pct}} percent of the distance from baseline to
+  target since the last update — draft a short, specific, genuinely
+  encouraging congratulations message that names the actual number they
+  hit, not a generic "great job." Skip members with no meaningful change
+  since last_updated.
+variables:
+  progress_log_csv_path:
+    default: "./member-goal-progress.csv"
+    description: "Path to a CSV with columns: member_name,goal_type,baseline_value,current_value,target_value,last_updated (YYYY-MM-DD)."
+  milestone_progress_pct:
+    default: 75
+    description: Percentage of the way from baseline to target that counts as a milestone worth flagging.
+compatible_agents: [claude, codex, generic]
+notes: Works best when trainers log progress updates weekly — stale data will miss milestones or celebrate ones that happened a month ago.

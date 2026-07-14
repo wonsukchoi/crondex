@@ -1,0 +1,28 @@
+id: multi-threading-gap-check
+version: 1
+name: Multi-Threading Gap Check
+description: >
+  Flags open deals above a minimum size that are tied to only a single
+  contact, a classic single-threaded deal risk. Use this if a deal has
+  ever stalled or died because your only contact went dark and there was
+  nobody else at the account to fall back on.
+category: sales
+tags: [sales, multi-threading, deal-risk, pipeline]
+schedule: "0 8 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select d.name, d.owner, d.amount, count(c.id) as contact_count from deals d join deal_contacts c on c.deal_id = d.id where d.stage not in ('closed_won','closed_lost') and d.amount >= {{min_deal_amount}} group by d.id, d.name, d.owner, d.amount having count(c.id) <= 1 order by d.amount desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  min_deal_amount:
+    default: 10000
+    description: Minimum deal amount to include; smaller deals are excluded from the multi-threading requirement.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `deal_contacts` join table linking deals to CRM contact
+  records. Distinct from `champion-departure-watch` (which checks if a
+  known champion has left); this flags deals that never had more than one
+  contact engaged in the first place.

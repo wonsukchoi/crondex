@@ -1,0 +1,31 @@
+id: forecast-call-field-completeness-audit
+version: 1
+name: Forecast Call Field Completeness Audit
+description: >
+  Ahead of the weekly forecast call, checks that every deal in the
+  forecast category (commit, best case) has a filled-in close date,
+  amount, and forecast category field set by the rep, not a stale
+  default. Use this if a forecast call has ever run long because half
+  the meeting was spent asking reps to fill in fields live, instead of
+  reviewing numbers.
+category: sales
+tags: [sales, forecasting, crm-hygiene, data-quality]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select name, owner, forecast_category, (case when amount is null then 'missing amount ' else '' end) || (case when close_date is null then 'missing close_date ' else '' end) || (case when forecast_category is null or forecast_category = '' then 'missing forecast_category' else '' end) as issues from deals where stage not in ('closed_won','closed_lost') and forecast_category in ({{forecast_categories}}) and (amount is null or close_date is null or forecast_category is null or forecast_category = '');"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  forecast_categories:
+    default: "'commit','best_case'"
+    description: Comma-separated, quoted forecast_category values to include in the audit.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `forecast_category` column on the deals table. Distinct from
+  `forecast-submission-compliance-check` (which checks whether reps
+  submitted a forecast at all) and `pipeline-hygiene-audit` (which covers
+  all open pipeline); this narrows to deals already in the forecast that
+  are missing fields the forecast call itself depends on.

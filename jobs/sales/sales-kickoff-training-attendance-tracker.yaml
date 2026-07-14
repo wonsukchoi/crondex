@@ -1,0 +1,32 @@
+id: sales-kickoff-training-attendance-tracker
+version: 1
+name: Sales Kickoff Training Attendance Tracker
+description: >
+  Cross-references the sales roster against kickoff or training session
+  attendance records and flags reps who missed a required session. Use
+  this if a rep has ever been unaware of a new pricing model or process
+  rolled out at kickoff simply because nobody checked whether they
+  actually attended.
+category: sales
+tags: [sales, training, kickoff, enablement, attendance]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  comm -23 <(psql "{{database_url}}" -t -c "select name from reps where team = '{{team_name}}' order by name;" | sed '/^$/d' | sed 's/^ *//;s/ *$//') <(psql "{{database_url}}" -t -c "select attendee_name from training_attendance where session_name = '{{session_name}}' order by attendee_name;" | sed '/^$/d' | sed 's/^ *//;s/ *$//')
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the reps/training-attendance database.
+  team_name:
+    default: "AE"
+    description: Sales team/role to check attendance for.
+  session_name:
+    default: "Q3 Sales Kickoff"
+    description: Name of the required kickoff or training session to check attendance against.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `training_attendance` table with `session_name` and
+  `attendee_name`, and a `reps` table with `team`. Uses `comm` to diff the
+  roster against attendees, so both queries must be sorted the same way;
+  adjust names to match exactly between systems.

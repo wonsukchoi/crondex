@@ -1,0 +1,36 @@
+id: event-accessibility-accommodation-tracker
+version: 1
+name: Event Accessibility Accommodation Tracker
+description: >
+  Reviews attendee accessibility and accommodation requests (wheelchair
+  access, ASL interpreters, dietary medical needs, service animals) against
+  what's actually been arranged, and flags anything unconfirmed as the
+  event approaches. Use this if an attendee has ever arrived to find their
+  accommodation request never made it past the RSVP form.
+category: events
+tags: [events, accessibility, accommodations, attendees]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, -v warn="{{warn_days}}" -v today="{{today_date}}" '
+    NR==1 {next}
+    {
+      status=$4;
+      if (status != "confirmed") {
+        print "UNCONFIRMED: " $1 " requested \"" $2 "\" (logged " $3 "), status: " status;
+      }
+    }
+  ' "{{accommodation_requests_csv}}"
+variables:
+  accommodation_requests_csv:
+    default: "accessibility-requests.csv"
+    description: "CSV with header row, columns: attendee_name,request_type,requested_date,status."
+  warn_days:
+    default: 7
+    description: Days before the event to start escalating unconfirmed requests.
+  today_date:
+    default: "2026-08-01"
+    description: Today's date (YYYY-MM-DD), used for reference in output.
+compatible_agents: [generic, claude, codex]
+notes: Status column should move to "confirmed" only once the accommodation is actually arranged with a vendor or venue, not just acknowledged.

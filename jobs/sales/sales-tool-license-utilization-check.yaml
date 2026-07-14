@@ -1,0 +1,30 @@
+id: sales-tool-license-utilization-check
+version: 1
+name: Sales Tool License Utilization Check
+description: >
+  Compares purchased seat counts for sales tools (CRM, dialer, sales
+  engagement platform, etc.) against active-user counts to surface unused
+  or underused licenses. Use this if your team has ever kept paying for
+  seats belonging to reps who left months ago or never logged in after
+  onboarding.
+category: sales
+tags: [sales, sales-ops, licenses, tooling, cost-control]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 20 "{{tool_admin_api}}/users?status=active" -H "Authorization: Bearer {{api_token}}" | grep -o '"email":"[^"]*","last_login":"[^"]*"' | awk -F'"' '{print $4, $8}'
+variables:
+  tool_admin_api:
+    default: "https://example.com/api/v1"
+    description: Base admin API base URL for the sales tool whose licenses you're auditing.
+  api_token:
+    default: "your-api-token"
+    description: Admin/bearer token for the sales tool's API.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a sales tool with an admin API exposing per-user active status
+  and last-login timestamp; adjust the endpoint and JSON fields to your
+  specific vendor (CRM, dialer, sales engagement platform, etc.). Compare
+  the output against total purchased seats (from your vendor invoice) to
+  compute unused-seat cost.

@@ -1,0 +1,32 @@
+id: battlecard-usage-tracker
+version: 1
+name: Battlecard Usage Tracker
+description: >
+  Checks which competitive battlecards and sales decks in the enablement
+  library have actually been opened by reps in the last period, versus
+  ones nobody has touched. Use this if enablement has ever spent weeks
+  building a battlecard that turned out nobody on the sales team knew
+  existed.
+category: sales
+tags: [sales, enablement, battlecards, content-usage]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 20 "{{content_platform_api}}/assets/usage?tag=battlecard&since_days={{lookback_days}}" -H "Authorization: Bearer {{api_token}}" | grep -o '"asset_name":"[^"]*","view_count":[0-9]*'
+variables:
+  content_platform_api:
+    default: "https://example.com/api/v1"
+    description: Base URL of the sales enablement/content platform's usage API.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the content platform API.
+  lookback_days:
+    default: 30
+    description: Rolling window, in days, of asset view activity to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an enablement platform (e.g. a content/sales-asset management
+  tool) exposing a usage-by-asset API; adjust the endpoint and field
+  names to your provider. Zero-view battlecards older than one enablement
+  cycle are candidates for retiring or re-launching with training.

@@ -1,0 +1,40 @@
+id: preorder-campaign-milestone-tracker
+version: 1
+name: Pre-Order Campaign Milestone Tracker
+description: >
+  Checks pre-order counts against the campaign's milestone targets ahead
+  of publication day, so a lagging campaign can get an extra marketing
+  push while there's still time. Use this if a pre-order push has ever
+  quietly underperformed and nobody noticed until launch week, when it
+  was too late to course-correct.
+category: publishing
+tags: [publishing, pre-orders, marketing, launch]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{days_before_pub_to_warn}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline pub_ts; close(cmd);
+      days_to_pub = int((pub_ts - today) / 86400);
+      current=$3+0; target=$4+0;
+      if (days_to_pub >= 0 && days_to_pub <= warn && current < target) {
+        pct = (target > 0 ? (current/target)*100 : 0);
+        printf "PRE-ORDER LAGGING: \"%s\" %d of %d target (%.0f%%), %d days to pub (%s)\n", $1, current, target, pct, days_to_pub, $2;
+      }
+    }
+  ' "{{preorder_campaigns_csv}}"
+variables:
+  preorder_campaigns_csv:
+    default: "./preorder-campaigns.csv"
+    description: "CSV with header row, columns: title,pub_date(YYYY-MM-DD),current_preorders,milestone_target."
+  days_before_pub_to_warn:
+    default: 30
+    description: Only flag titles within this many days of pub date whose pre-orders are still below the milestone target.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update preorder-campaigns.csv from retailer/distributor pre-order
+  reporting on a regular cadence. milestone_target should reflect the
+  number expected by this point in the campaign, not the final goal.

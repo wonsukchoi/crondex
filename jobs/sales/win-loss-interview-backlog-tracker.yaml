@@ -1,0 +1,32 @@
+id: win-loss-interview-backlog-tracker
+version: 1
+name: Win-Loss Interview Backlog Tracker
+description: >
+  Flags recently closed-won and closed-lost deals above a minimum size
+  that haven't had a win-loss interview scheduled or completed yet. Use
+  this if your win-loss program has ever quietly stopped happening
+  because reps were busy and nobody was tracking which deals still
+  needed a call.
+category: sales
+tags: [sales, win-loss, closed-lost, closed-won, interviews]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select d.name, d.owner, d.stage, d.amount, d.closed_at from deals d left join win_loss_interviews w on w.deal_id = d.id where d.stage in ('closed_won','closed_lost') and d.amount >= {{min_deal_amount}} and d.closed_at >= now() - interval '{{lookback_days}} days' and w.deal_id is null order by d.closed_at desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  min_deal_amount:
+    default: 15000
+    description: Minimum deal amount to require a win-loss interview for.
+  lookback_days:
+    default: 30
+    description: Rolling window, in days, of recently closed deals to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `win_loss_interviews` table logging one row per deal once an
+  interview is scheduled or completed. Distinct from
+  `closed-lost-reason-audit` (a quick reason-code check at close time);
+  this tracks the deeper, scheduled win-loss interview process.

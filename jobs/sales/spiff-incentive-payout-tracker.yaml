@@ -1,0 +1,33 @@
+id: spiff-incentive-payout-tracker
+version: 1
+name: Spiff Incentive Payout Tracker
+description: >
+  Checks which reps have hit the qualifying criteria for an active spiff
+  or incentive program and cross-checks whether the payout has actually
+  been recorded, separate from regular commission runs. Use this if a
+  rep has ever hit a spiff target and then had to chase finance for
+  weeks to actually get paid because the one-off incentive fell outside
+  the normal commission process.
+category: sales
+tags: [sales, spiff, incentives, payouts, sales-comp]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select p.rep_name, p.program_name, p.qualifying_amount, p.qualified_at, pay.paid_at from spiff_qualifications p left join spiff_payouts pay on pay.qualification_id = p.id where p.program_name = '{{program_name}}' and p.qualified_at >= now() - interval '{{lookback_days}} days' and pay.paid_at is null order by p.qualified_at;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the sales-comp/incentives database.
+  program_name:
+    default: "Q3 New Logo Spiff"
+    description: Name of the active spiff/incentive program to check.
+  lookback_days:
+    default: 45
+    description: How far back to look for qualifications that should have a recorded payout by now.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes `spiff_qualifications` and `spiff_payouts` tables separate from
+  the standard commission pipeline. Distinct from
+  `commission-payout-tracker` (regular, recurring commission on closed
+  deals); this covers one-off or time-boxed incentive programs.

@@ -1,0 +1,48 @@
+id: event-emergency-medical-plan-readiness-check
+version: 1
+name: Event Emergency Medical Plan Readiness Check
+description: >
+  Reviews the event's emergency and medical readiness checklist (first aid
+  staffing, AED location, nearest hospital route, EMS notification, severe
+  weather shelter plan) and flags anything still unconfirmed as the event
+  date closes in. Use this if an event has ever gone live without anyone
+  actually confirming who's staffing first aid or where the AED is.
+category: events
+tags: [events, safety, emergency-plan, readiness]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the emergency/medical readiness checklist at
+  {{readiness_checklist_source}} for the event on {{event_date}} at
+  {{venue_name}}.
+  1. List every item still marked incomplete or unconfirmed (first aid
+     staffing, AED location, nearest hospital and route, EMS/venue security
+     notification, severe weather or evacuation plan, communication plan
+     for staff).
+  2. Prioritize items that are safety-critical and hard to arrange last
+     minute (e.g. certified first aid staff, EMS pre-notification) over
+     paperwork-only items.
+  3. Note if the event size ({{expected_attendance}} attendees) suggests a
+     given item is under-scoped, e.g. a single first aider for a
+     multi-thousand-person crowd.
+  4. Summarize as a short punch list: item, why it matters, who should
+     close it out if an owner is listed.
+variables:
+  readiness_checklist_source:
+    default: "emergency-readiness-checklist.csv"
+    description: Path or connector for the emergency/medical readiness checklist (columns like item, status, owner, notes).
+  event_date:
+    default: "2026-09-12"
+    description: Date of the event.
+  venue_name:
+    default: "Main Convention Hall"
+    description: Venue name, for context when judging what's realistic to arrange.
+  expected_attendance:
+    default: 500
+    description: Expected attendee count, used to judge whether staffing/coverage levels are adequate.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No script mode: judging whether coverage is adequate for the expected
+  crowd size and venue, and which gaps are safety-critical versus
+  paperwork, requires judgment a generic checklist scan can't provide.

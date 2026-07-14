@@ -1,0 +1,29 @@
+id: rep-ramp-milestone-tracker
+version: 1
+name: Rep Ramp Milestone Tracker
+description: >
+  Checks new sales reps against expected ramp milestones (first meeting
+  booked, first opportunity created, first deal closed) by days since
+  their start date, and flags anyone falling behind. Use this if a new
+  hire has ever reached the end of their ramp period with nobody having
+  noticed they were behind pace until the quota conversation.
+category: sales
+tags: [sales, onboarding, ramp, rep-performance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select r.name, r.start_date, (current_date - r.start_date) as days_since_start, (select count(*) from deals d where d.owner = r.name) as opps_created, (select count(*) from deals d where d.owner = r.name and d.stage = 'closed_won') as deals_closed from reps r where (current_date - r.start_date) <= {{ramp_period_days}} order by r.start_date;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the reps/deals database.
+  ramp_period_days:
+    default: 90
+    description: Length of the ramp period, in days, to include reps for.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `reps` table with `name` and `start_date`. Prints raw counts;
+  comparing them against your specific ramp milestones (e.g. "5 opps by
+  day 30") is left for you or your agent to interpret since expectations
+  vary by team.

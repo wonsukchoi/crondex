@@ -1,0 +1,40 @@
+id: cover-design-revision-round-deadline-tracker
+version: 1
+name: Cover Design Revision Round Deadline Tracker
+description: >
+  Tracks how many revision rounds a book cover has gone through against
+  its contracted or budgeted limit, and warns when a feedback deadline for
+  the current round is close. Use this if a cover has ever quietly burned
+  through more revision rounds than the designer's contract allows, or a
+  round sat waiting on feedback until it blew the cover deadline.
+category: publishing
+tags: [publishing, cover-design, production-schedule, design]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} -v maxrounds={{max_revision_rounds}} '
+    NR>1 {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if ($3+0 > maxrounds+0) print "OVER ROUND LIMIT: \"" $1 "\" at round " $3 " (limit " maxrounds ")";
+      else if (days_left <= warn) print "FEEDBACK DUE: \"" $1 "\" round " $3 " feedback due in " days_left " days (" $4 "), status=" $2;
+    }
+  ' "{{cover_revisions_csv}}"
+variables:
+  cover_revisions_csv:
+    default: "./cover-design-revisions.csv"
+    description: "CSV with header row, columns: title,status(awaiting-feedback|in-revision|approved),revision_round,feedback_due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 3
+    description: Days before a revision round's feedback due date to start warning.
+  max_revision_rounds:
+    default: 3
+    description: Contracted or budgeted maximum number of revision rounds before extra rounds cost more.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update cover-design-revisions.csv each time a round of cover art is sent
+  for feedback or approved. Rows already at "approved" status still get
+  checked against the round limit but won't need a feedback nudge.

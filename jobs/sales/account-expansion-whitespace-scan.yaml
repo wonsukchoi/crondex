@@ -1,0 +1,52 @@
+id: account-expansion-whitespace-scan
+version: 1
+name: Account Expansion Whitespace Scan
+description: >
+  Reviews existing customer accounts against your product/module catalog
+  to surface whitespace: products they don't have, seats below their
+  headcount, or usage suggesting they've outgrown their current plan.
+  Use this if an account has ever churned or renewed flat when it could
+  have expanded, simply because nobody on the account team looked for
+  the upsell opportunity.
+category: sales
+tags: [sales, expansion, upsell, account-management, whitespace]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the customer account data in {{crm_source}} and usage data in
+  {{usage_source}} for accounts with a signed contract and no upcoming
+  renewal within {{renewal_exclusion_days}} days.
+  1. For each account, compare products/modules owned against the full
+     catalog in {{product_catalog}} and note which ones they don't have.
+  2. Flag accounts where seat count or usage volume appears close to or
+     over their current plan limit, based on {{usage_source}}.
+  3. Rank the top {{top_n}} accounts by estimated expansion opportunity
+     size (unowned modules likely to fit their use case, or plan-limit
+     overages), with a one-line reason for each.
+  4. For each ranked account, suggest a specific expansion angle the
+     account owner can raise (a module, a seat increase, or a plan tier)
+     and who to talk to if a contact is on file.
+variables:
+  crm_source:
+    default: "your CRM's account and contract records"
+    description: Where account ownership, contracts, and contacts are recorded.
+  usage_source:
+    default: "your product usage/analytics platform"
+    description: Where seat count and product usage volume per account are tracked.
+  product_catalog:
+    default: "a products.csv or your CRM's product catalog"
+    description: List of all sellable products/modules to compare account ownership against.
+  renewal_exclusion_days:
+    default: 60
+    description: Exclude accounts with a renewal inside this many days, since expansion conversations there are handled by the renewal process.
+  top_n:
+    default: 15
+    description: Number of top-ranked expansion opportunities to return.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — ranked opportunities and suggested angles are starting
+  points for the account owner, not commitments to the customer. Distinct
+  from `contract-renewal-opportunity-tracker` (which is about the
+  existing contract renewing as-is); this looks for room to grow the
+  account beyond its current footprint.

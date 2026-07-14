@@ -1,0 +1,36 @@
+id: print-vendor-quality-claim-tracker
+version: 1
+name: Print Vendor Quality Claim Tracker
+description: >
+  Tracks open quality-control claims filed against a print vendor (binding
+  defects, color mismatch, damaged stock) and flags ones nearing the
+  vendor's response or credit deadline unresolved. Use this if a printing
+  defect claim has ever gone stale and the vendor's claim window closed
+  before you got a credit or reprint commitment.
+category: publishing
+tags: [publishing, print-vendor, quality-control, claims]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "resolved" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "CLAIM UNRESOLVED: \"" $1 "\" (" $2 ") vendor deadline in " days_left " days (" $3 "), status=" $4;
+    }
+  ' "{{print_quality_claims_csv}}"
+variables:
+  print_quality_claims_csv:
+    default: "./print-vendor-quality-claims.csv"
+    description: "CSV with header row, columns: title,defect_type(binding|color|damaged-stock|other),vendor_response_deadline(YYYY-MM-DD),status(filed|vendor-reviewing|resolved)."
+  warn_days:
+    default: 5
+    description: Days before a claim's vendor response/credit deadline to start warning if still unresolved.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update print-vendor-quality-claims.csv when a claim is filed, the vendor
+  responds, or it's resolved with a credit or reprint. Vendor deadline
+  terms vary by contract; use the date specified in your printing agreement.

@@ -1,0 +1,30 @@
+id: contract-redline-legal-queue-aging-check
+version: 1
+name: Contract Redline Legal Queue Aging Check
+description: >
+  Flags contracts sitting in legal review with redlines past a maximum
+  turnaround threshold, so deals don't quietly slip a quarter waiting on
+  paperwork nobody is chasing. Use this if a deal has ever gone from
+  "verbally agreed" to "lost to no-decision" purely because a redline sat
+  in someone's legal review queue for weeks.
+category: sales
+tags: [sales, contracts, legal-review, deal-risk]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select deal_name, owner, legal_reviewer, submitted_at, (current_date - submitted_at::date) as days_in_review from contract_reviews where status = 'in_review' and (current_date - submitted_at::date) > {{max_review_days}} order by days_in_review desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the contracts/legal-review tracking database.
+  max_review_days:
+    default: 5
+    description: Maximum acceptable business days a redline can sit in legal review before it's flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `contract_reviews` table with `status`, `submitted_at`, and
+  `legal_reviewer` columns tracking redline turnaround — adjust to your
+  CLM or legal ticketing tool's schema. Distinct from
+  `discount-approval-pending-check` (internal pricing/discount sign-off);
+  this tracks the legal redline exchange with the customer's counsel.

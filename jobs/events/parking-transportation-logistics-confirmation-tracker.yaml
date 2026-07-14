@@ -1,0 +1,30 @@
+id: parking-transportation-logistics-confirmation-tracker
+version: 1
+name: Parking/Transportation Logistics Confirmation Tracker
+description: >
+  Checks that parking arrangements, shuttle schedules, and rideshare
+  drop-off/valet logistics are confirmed with the venue and vendors as the
+  event date closes in, and flags anything still unconfirmed. Use this if
+  attendees have ever arrived to a full parking lot because nobody
+  confirmed the overflow lot arrangement until the morning of.
+category: events
+tags: [events, parking, transportation, logistics]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, '
+    NR==1 {next}
+    {
+      item=$1; owner=$2; status=$3;
+      if (status != "confirmed") {
+        print "UNCONFIRMED: " item " (owner: " owner ") — status: " status;
+      }
+    }
+  ' "{{transportation_logistics_csv}}"
+variables:
+  transportation_logistics_csv:
+    default: "transportation-logistics.csv"
+    description: "CSV with header row, columns: item,owner,status. Rows might include: main lot capacity, overflow lot, shuttle schedule, valet staffing, rideshare drop-off zone, accessible parking spots."
+compatible_agents: [generic, claude, codex]
+notes: Confirm accessible parking spot count separately, it's often the first thing overlooked when a lot fills up and overflow parking gets activated.

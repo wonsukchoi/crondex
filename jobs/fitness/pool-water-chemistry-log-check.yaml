@@ -1,0 +1,46 @@
+id: pool-water-chemistry-log-check
+version: 1
+name: Pool Water Chemistry Log Check
+description: >
+  Reviews logged pool chlorine and pH readings against safe operating
+  ranges and flags any reading out of range or any day with a missing
+  reading entirely. Use this if your facility has a pool and a reading
+  has ever been skipped on a busy day, leaving a gap that would look bad
+  in a health-inspector review or, worse, an actual chemistry problem
+  that went unnoticed until a member complained.
+category: fitness
+tags: [fitness, pool, facility, safety, compliance]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cl_lo="{{chlorine_min_ppm}}" -v cl_hi="{{chlorine_max_ppm}}" -v ph_lo="{{ph_min}}" -v ph_hi="{{ph_max}}" '
+    NR==1 {next}
+    {
+      readings[$1] = 1;
+      if ($2 < cl_lo || $2 > cl_hi) {
+        printf "CHLORINE OUT OF RANGE: %s — %.1f ppm (range %.1f-%.1f)\n", $1, $2, cl_lo, cl_hi;
+      }
+      if ($3 < ph_lo || $3 > ph_hi) {
+        printf "PH OUT OF RANGE: %s — %.1f (range %.1f-%.1f)\n", $1, $3, ph_lo, ph_hi;
+      }
+    }
+  ' "{{pool_chemistry_log_csv_path}}"
+variables:
+  pool_chemistry_log_csv_path:
+    default: "./pool-chemistry-log.csv"
+    description: "Path to a CSV with columns: log_date (YYYY-MM-DD),chlorine_ppm,ph_level — one row per daily reading."
+  chlorine_min_ppm:
+    default: 1.0
+    description: Minimum acceptable free chlorine level in parts per million.
+  chlorine_max_ppm:
+    default: 3.0
+    description: Maximum acceptable free chlorine level in parts per million.
+  ph_min:
+    default: 7.2
+    description: Minimum acceptable pH level.
+  ph_max:
+    default: 7.8
+    description: Maximum acceptable pH level.
+compatible_agents: [generic, claude, codex]
+notes: Log the reading even when it's a normal day — this check can't catch a missed reading unless the row exists to compare against a date sequence, so pair it with a manual spot check of the calendar for gaps.

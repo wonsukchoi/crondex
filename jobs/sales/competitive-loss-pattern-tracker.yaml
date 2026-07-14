@@ -1,0 +1,46 @@
+id: competitive-loss-pattern-tracker
+version: 1
+name: Competitive Loss Pattern Tracker
+description: >
+  Aggregates deals lost to a named competitor over a rolling window and
+  summarizes which competitors are winning, on what deal size, and in
+  which segment. Use this if leadership has ever asked "who are we
+  losing to and why" and the honest answer was "nobody's counted."
+category: sales
+tags: [sales, competitive-intel, closed-lost, win-loss]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select competitor, count(*) as deals_lost, coalesce(sum(amount),0) as total_amount from deals where stage = 'closed_lost' and competitor is not null and competitor <> '' and closed_at >= now() - interval '{{lookback_days}} days' group by competitor order by deals_lost desc;"
+script_note: >
+  The query gives you a ranked count and dollar total per competitor for
+  free. It doesn't explain why deals were lost against each competitor or
+  suggest a positioning fix — that synthesis needs the prompt/LLM pass
+  reading the closed-lost notes.
+prompt: |
+  Using the competitor loss counts from the query below and the closed-lost
+  notes in {{crm_source}} for deals lost in the last {{lookback_days}} days:
+  1. For the top 3 competitors by deals lost, summarize the recurring
+     reasons prospects cited (price, feature gap, relationship,
+     implementation speed, etc.).
+  2. Note any segment or deal-size pattern (e.g. "losing mid-market deals
+     to Competitor X on price").
+  3. Suggest one concrete talk-track or positioning adjustment per
+     competitor for sales-enablement to act on.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  crm_source:
+    default: "your CRM's closed-lost reason/notes field"
+    description: Where closed-lost competitor and reason notes are recorded.
+  lookback_days:
+    default: 90
+    description: Rolling window, in days, of closed-lost deals to include.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Assumes a `competitor` column on the deals table populated at
+  closed-lost time. Distinct from `closed-lost-reason-audit` (which checks
+  whether a reason was logged at all); this aggregates competitor-specific
+  loss patterns once reasons exist.

@@ -1,0 +1,30 @@
+id: catering-dietary-restriction-accommodation-tracker
+version: 1
+name: Catering Dietary Restriction Accommodation Tracker
+description: >
+  Compares attendee-submitted dietary restrictions and allergies against
+  what the caterer has confirmed they can accommodate, and flags any
+  request the caterer hasn't signed off on. Use this if an attendee with
+  a severe allergy has ever been handed a plate nobody actually checked
+  against the kitchen.
+category: events
+tags: [events, catering, dietary-restrictions, attendees]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, '
+    NR==1 {next}
+    {
+      attendee=$1; restriction=$2; caterer_status=$3;
+      if (caterer_status != "confirmed") {
+        print "UNCONFIRMED: " attendee " needs \"" restriction "\" — caterer status: " caterer_status;
+      }
+    }
+  ' "{{dietary_requests_csv}}"
+variables:
+  dietary_requests_csv:
+    default: "dietary-restriction-requests.csv"
+    description: "CSV with header row, columns: attendee_name,restriction,caterer_status."
+compatible_agents: [generic, claude, codex]
+notes: Treat severe allergies (not just preferences) as needing explicit caterer confirmation in writing, not just a checkbox on the RSVP form.

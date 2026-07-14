@@ -1,0 +1,36 @@
+id: group-fitness-instructor-sub-request-coverage-check
+version: 1
+name: Group Fitness Instructor Sub-Request Coverage Check
+description: >
+  Scans open substitute requests for upcoming classes and flags any class
+  that's still uncovered as it gets close to start time. Use this if a
+  class has ever shown up on the schedule with no instructor because a
+  sub request sat in a group chat unanswered and nobody escalated it in
+  time to cancel or find a fill-in.
+category: fitness
+tags: [fitness, classes, staffing, instructors, scheduling]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hrs="{{escalate_hours_before}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 " " $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 " " $3 "\" +%s 2>/dev/null";
+      cmd | getline class_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_left = (class_epoch - now_epoch) / 3600;
+      if (hours_left <= hrs && hours_left >= 0) {
+        printf "UNCOVERED: %s on %s at %s — %.1f hours to start, no sub confirmed\n", $1, $2, $3, hours_left;
+      }
+    }
+  ' "{{sub_requests_csv_path}}"
+variables:
+  sub_requests_csv_path:
+    default: "./class-sub-requests.csv"
+    description: "Path to a CSV with columns: class_name,class_date (YYYY-MM-DD),class_time (HH:MM),status (open/filled)."
+  escalate_hours_before:
+    default: 12
+    description: How many hours before class start an unfilled sub request should be escalated.
+compatible_agents: [generic, claude, codex]
+notes: Update the sub-request sheet the moment a request is filled so covered classes don't get flagged as still open.

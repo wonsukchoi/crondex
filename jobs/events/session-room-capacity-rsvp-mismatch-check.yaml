@@ -1,0 +1,40 @@
+id: session-room-capacity-rsvp-mismatch-check
+version: 1
+name: Session Room Capacity vs. RSVP Mismatch Check
+description: >
+  Compares RSVP counts for each breakout session against the assigned
+  room's seated capacity and flags sessions that are already
+  overbooked or badly undersized for the space. Use this if a popular
+  session has ever had attendees standing in the hallway while a bigger
+  room sat half empty down the corridor.
+category: events
+tags: [events, sessions, capacity, scheduling]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, -v overbook="{{overbook_pct}}" -v underfill="{{underfill_pct}}" '
+    NR==1 {next}
+    {
+      session=$1; room=$2; capacity=$3; rsvps=$4;
+      if (capacity <= 0) { next; }
+      pct = (rsvps / capacity) * 100;
+      if (pct >= overbook) {
+        printf "OVERBOOKED: %s in %s — %d RSVPs for %d seats (%.0f%%)\n", session, room, rsvps, capacity, pct;
+      } else if (pct <= underfill) {
+        printf "UNDERFILLED: %s in %s — %d RSVPs for %d seats (%.0f%%)\n", session, room, rsvps, capacity, pct;
+      }
+    }
+  ' "{{sessions_csv}}"
+variables:
+  sessions_csv:
+    default: "session-room-assignments.csv"
+    description: "CSV with header row, columns: session_name,room_name,room_capacity,rsvp_count."
+  overbook_pct:
+    default: 100
+    description: RSVP-to-capacity percent at or above which a session is flagged as overbooked.
+  underfill_pct:
+    default: 30
+    description: RSVP-to-capacity percent at or below which a session is flagged as badly undersized for its room (a swap candidate).
+compatible_agents: [generic, claude, codex]
+notes: Re-run after each room swap to confirm the new assignment actually fixed the mismatch instead of just moving it.

@@ -1,0 +1,43 @@
+id: personal-trainer-client-caseload-balance-check
+version: 1
+name: Personal Trainer Client Caseload Balance Check
+description: >
+  Counts active clients per trainer and flags anyone carrying a caseload
+  far above or below the target range, so overloaded trainers don't burn
+  out and underloaded trainers don't sit idle while new sign-ups pile up
+  elsewhere. Use this if a trainer has ever quietly ended up with double
+  the clients of a teammate because new sign-ups kept defaulting to
+  whoever was popular, without anyone rebalancing the roster.
+category: fitness
+tags: [fitness, trainers, staffing, workload]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v lo="{{min_clients_per_trainer}}" -v hi="{{max_clients_per_trainer}}" '
+    NR==1 {next}
+    {
+      count[$2] += 1;
+    }
+    END {
+      for (t in count) {
+        if (count[t] > hi) {
+          printf "OVERLOADED: %s — %d active clients (max %d)\n", t, count[t], hi;
+        } else if (count[t] < lo) {
+          printf "UNDERLOADED: %s — %d active clients (min %d)\n", t, count[t], lo;
+        }
+      }
+    }
+  ' "{{client_roster_csv_path}}"
+variables:
+  client_roster_csv_path:
+    default: "./trainer-client-roster.csv"
+    description: "Path to a CSV with columns: client_name,trainer_name — one row per active personal-training client."
+  min_clients_per_trainer:
+    default: 8
+    description: Minimum active clients a trainer should carry before they're flagged as underloaded.
+  max_clients_per_trainer:
+    default: 25
+    description: Maximum active clients a trainer should carry before they're flagged as overloaded.
+compatible_agents: [generic, claude, codex]
+notes: Re-export the roster whenever a client is reassigned or a trainer leaves so the counts reflect who's actually training whom today.

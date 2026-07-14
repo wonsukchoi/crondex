@@ -1,0 +1,42 @@
+id: manuscript-style-guide-compliance-scan
+version: 1
+name: Manuscript Style Guide Compliance Scan
+description: >
+  Reads a manuscript in editing and checks it against your house style
+  guide for consistency issues (terminology, capitalization, number
+  formatting, citation style) that a mechanical find-and-replace can't
+  reliably catch. Use this if manuscripts have ever gone to copyedit
+  with style inconsistencies that should have been caught earlier and
+  cost extra copyedit rounds to fix.
+category: publishing
+tags: [publishing, style-guide, editorial, manuscripts]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the house style guide at {{style_guide_path}} and the manuscript at
+  {{manuscript_path}}. Identify concrete deviations from the style guide:
+  inconsistent spelling or capitalization of recurring terms, mixed
+  number formatting (e.g. spelled-out vs numeral usage where the guide
+  specifies one), inconsistent citation or footnote formatting, and
+  terminology that contradicts the guide's preferred usage list. For each
+  issue found, quote the offending passage, state the rule it violates,
+  and suggest the corrected form. Skip subjective style opinions not
+  covered by the guide itself. Write the findings to
+  {{findings_output_path}} rather than editing the manuscript directly.
+variables:
+  style_guide_path:
+    default: "./house-style-guide.md"
+    description: Path to the house style guide document to check the manuscript against.
+  manuscript_path:
+    default: "./manuscripts/current-draft.docx"
+    description: Path to the manuscript file being scanned for style compliance.
+  findings_output_path:
+    default: "./manuscripts/style-compliance-findings.md"
+    description: Where the scan's findings are written for an editor to review.
+compatible_agents: [claude, codex]
+notes: >
+  Read-only against the manuscript — findings are written to a separate
+  file rather than edited in place, so an editor reviews and applies
+  changes manually. Works best with a style guide that lists concrete,
+  checkable rules rather than general prose-quality guidance.

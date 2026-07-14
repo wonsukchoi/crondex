@@ -1,0 +1,41 @@
+id: post-event-crm-export-sla-check
+version: 1
+name: Post-Event Lead/Attendee CRM Export SLA Check
+description: >
+  Checks how long it's been since the event ended and whether the
+  attendee/lead data has been exported to the CRM yet, and flags it once
+  the export SLA is at risk. Use this if a sales team has ever lost
+  momentum on hot event leads because the attendee list sat in a
+  spreadsheet for two weeks before anyone loaded it into the CRM.
+category: events
+tags: [events, crm, leads, post-event, data-export]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  end_date="{{event_end_date}}";
+  today="{{today_date}}";
+  export_status="{{export_status}}";
+  sla_days="{{sla_days}}";
+  days_since=$(( ( $(date -d "$today" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$today" +%s) - $(date -d "$end_date" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$end_date" +%s) ) / 86400 ));
+  if [ "$export_status" != "complete" ] && [ "$days_since" -ge "$sla_days" ]; then
+    echo "SLA BREACH: attendee/lead export still \"$export_status\" $days_since days after event ended $end_date (SLA: $sla_days days)";
+    exit 1;
+  else
+    echo "OK: export status \"$export_status\", $days_since days since event end (SLA: $sla_days days)";
+  fi
+variables:
+  event_end_date:
+    default: "2026-08-20"
+    description: Date the event ended (YYYY-MM-DD).
+  today_date:
+    default: "2026-08-25"
+    description: Today's date (YYYY-MM-DD).
+  export_status:
+    default: "pending"
+    description: Current status of the attendee/lead CRM export, e.g. pending, in-progress, complete.
+  sla_days:
+    default: 3
+    description: Number of days after event end within which the export should be complete.
+compatible_agents: [generic, claude, codex]
+notes: Works with either GNU or BSD date; update export_status manually or wire it to whatever marks the export job complete in your CRM pipeline.

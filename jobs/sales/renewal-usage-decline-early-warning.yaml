@@ -1,0 +1,35 @@
+id: renewal-usage-decline-early-warning
+version: 1
+name: Renewal Usage Decline Early Warning
+description: >
+  Compares each account's recent product usage against its usage from a
+  prior baseline period for accounts with a renewal coming up, and flags
+  meaningful declines so the account owner can dig in well before the
+  renewal conversation. Use this if a renewal has ever come as a
+  surprise "no" because usage had been quietly dropping for months and
+  nobody on the sales side was watching it.
+category: sales
+tags: [sales, renewals, usage-decline, account-risk, early-warning]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{usage_database_url}}" -t -c "select account_name, owner, recent_usage, baseline_usage, round(((recent_usage - baseline_usage) / nullif(baseline_usage,0)) * 100) as pct_change from account_usage_summary where renewal_date < now() + interval '{{renewal_window_days}} days' and baseline_usage > 0 and ((recent_usage - baseline_usage) / baseline_usage) <= -{{decline_threshold_pct}}::numeric / 100 order by pct_change asc;"
+variables:
+  usage_database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the product usage/CRM database.
+  renewal_window_days:
+    default: 90
+    description: How many days out from renewal_date to start checking for usage decline.
+  decline_threshold_pct:
+    default: "20"
+    description: Minimum percentage drop in usage (recent vs. baseline) to flag an account.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `account_usage_summary` view or table with `recent_usage`,
+  `baseline_usage`, and `renewal_date` columns — adjust the comparison
+  windows to your product's usage metric. Distinct from any churn-risk
+  scoring job in the growth category (which is typically product-led and
+  covers the whole customer base); this is scoped to the sales renewal
+  motion for accounts already approaching a specific renewal date.

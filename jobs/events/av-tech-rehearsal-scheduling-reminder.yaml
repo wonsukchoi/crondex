@@ -1,0 +1,29 @@
+id: av-tech-rehearsal-scheduling-reminder
+version: 1
+name: AV Tech Rehearsal Scheduling Reminder
+description: >
+  Checks which speakers and live-stream segments still don't have a
+  confirmed tech rehearsal or sound check slot as the event date closes
+  in, and flags them. Use this if a speaker has ever walked onstage never
+  having tested their laptop with the venue's projector or mic.
+category: events
+tags: [events, av, rehearsal, speakers, live-stream]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, '
+    NR==1 {next}
+    {
+      name=$1; segment=$2; slot=$3;
+      if (slot == "" || slot == "unscheduled") {
+        print "NO REHEARSAL SLOT: " name " (" segment ")";
+      }
+    }
+  ' "{{rehearsal_schedule_csv}}"
+variables:
+  rehearsal_schedule_csv:
+    default: "av-rehearsal-schedule.csv"
+    description: "CSV with header row, columns: speaker_or_segment_name,segment_type,rehearsal_slot (blank or \"unscheduled\" if not yet booked)."
+compatible_agents: [generic, claude, codex]
+notes: Prioritize scheduling rehearsals for anyone using unfamiliar equipment (own laptop, remote video feed, live demo) over speakers using the venue's standard setup.

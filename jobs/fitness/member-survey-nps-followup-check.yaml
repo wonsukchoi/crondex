@@ -1,0 +1,34 @@
+id: member-survey-nps-followup-check
+version: 1
+name: Member Survey NPS Follow-up Check
+description: >
+  Reads recent member satisfaction survey scores and drafts a personal
+  follow-up for anyone who left a detractor score, plus a short win-back
+  or thank-you note for promoters willing to leave a review. Use this if
+  a member has ever left a low satisfaction score and the survey just
+  sat in a spreadsheet with no one ever circling back to find out what
+  went wrong.
+category: fitness
+tags: [fitness, members, survey, nps, retention, feedback]
+schedule: "0 10 * * 2"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the member survey responses at {{survey_responses_csv_path}}
+  (columns: member_name, survey_date, nps_score, comment). Classify each
+  response as detractor (score 0-6), passive (7-8), or promoter (9-10).
+  For every detractor from the last {{followup_window_days}} days, draft
+  a short, sincere personal follow-up that references their specific
+  comment and asks what would help, not a generic apology. For promoters
+  with a comment, draft a brief thank-you that invites them to leave a
+  public review. Skip passives unless their comment raises a specific
+  concern worth a light-touch check-in.
+variables:
+  survey_responses_csv_path:
+    default: "./member-nps-survey.csv"
+    description: "Path to a CSV with columns: member_name,survey_date (YYYY-MM-DD),nps_score (0-10),comment."
+  followup_window_days:
+    default: 7
+    description: How many days back to look for detractor scores that still need a follow-up.
+compatible_agents: [claude, codex, generic]
+notes: A same-week follow-up to a detractor score is far more likely to save the membership than one sent a month later — don't let this queue build up.

@@ -1,0 +1,36 @@
+id: distributor-return-rate-spike-check
+version: 1
+name: Distributor Return Rate Spike Check
+description: >
+  Flags titles whose unsold-copy return rate from a distributor or
+  wholesaler has spiked above a threshold this period, which can signal
+  a demand miscalculation, a bad print run, or a shelving problem. Use
+  this if a spike in returns has ever gone unnoticed until the reconciled
+  royalty statement showed a much smaller net sale than expected.
+category: publishing
+tags: [publishing, distribution, returns, inventory]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold={{return_rate_threshold_pct}} '
+    NR>1 {
+      shipped=$2+0; returned=$3+0;
+      if (shipped > 0) {
+        rate = (returned / shipped) * 100;
+        if (rate >= threshold+0) printf "RETURN SPIKE: \"%s\" %.1f%% returned (%d of %d units)\n", $1, rate, returned, shipped;
+      }
+    }
+  ' "{{distributor_returns_csv}}"
+variables:
+  distributor_returns_csv:
+    default: "./distributor-returns.csv"
+    description: "CSV with header row, columns: title,units_shipped,units_returned — for the current reporting period."
+  return_rate_threshold_pct:
+    default: 25
+    description: Return rate percentage (returned/shipped) at or above which a title is flagged as spiking.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Refresh distributor-returns.csv from your distributor or wholesaler's
+  reporting export each period. Normal return rates vary a lot by genre
+  and channel, so tune return_rate_threshold_pct to your catalog's baseline.

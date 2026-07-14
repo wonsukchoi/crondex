@@ -1,0 +1,37 @@
+id: library-institutional-sales-lead-followup-tracker
+version: 1
+name: Library and Institutional Sales Lead Follow-Up Tracker
+description: >
+  Flags library, school, and institutional sales leads that haven't had a
+  follow-up contact in too long, so warm bulk-order opportunities don't
+  go cold. Use this if a library system or district order lead has ever
+  sat untouched for weeks after the initial inquiry until they bought
+  from a competitor instead.
+category: publishing
+tags: [publishing, institutional-sales, libraries, sales]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale={{stale_days}} '
+    NR>1 && $4 != "closed" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      if (days_since >= stale) print "FOLLOW UP: " $1 " (" $2 ") last contacted " days_since " days ago, status=" $4;
+    }
+  ' "{{institutional_leads_csv}}"
+variables:
+  institutional_leads_csv:
+    default: "./institutional-sales-leads.csv"
+    description: "CSV with header row, columns: account_name,account_type(library|school|district|other),last_contact_date(YYYY-MM-DD),status(new|in-conversation|proposal-sent|closed)."
+  stale_days:
+    default: 10
+    description: Days since last contact before a still-open lead is flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update institutional-sales-leads.csv whenever a rep makes contact or a
+  deal closes. Institutional buying cycles are slower than retail, so
+  stale_days should be tuned to your sales team's normal cadence rather
+  than a consumer sales rhythm.

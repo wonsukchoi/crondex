@@ -1,0 +1,41 @@
+id: event-photography-deliverable-deadline-check
+version: 1
+name: Event Photography/Videography Deliverable Deadline Check
+description: >
+  Checks the photographer and videographer contracts for deliverable due
+  dates (raw footage handoff, edited highlight reel, final gallery) and
+  flags any that are overdue or coming up without a delivered file on
+  record. Use this if you've ever had to chase a photographer weeks later
+  for photos everyone assumed had already been delivered.
+category: events
+tags: [events, photography, videography, deliverables, post-event]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  today="{{today_date}}";
+  awk -F, -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      vendor=$1; deliverable=$2; due=$3; status=$4;
+      if (status != "delivered") {
+        if (due < today) {
+          print "OVERDUE: " vendor " — \"" deliverable "\" was due " due " (status: " status ")";
+        } else {
+          print "UPCOMING: " vendor " — \"" deliverable "\" due " due " (status: " status ")";
+        }
+      }
+    }
+  ' "{{deliverables_csv}}"
+variables:
+  deliverables_csv:
+    default: "photo-video-deliverables.csv"
+    description: "CSV with header row, columns: vendor_name,deliverable,due_date,status (status is \"delivered\" once received and verified)."
+  today_date:
+    default: "2026-09-01"
+    description: Today's date (YYYY-MM-DD), used to split deliverables into overdue vs. upcoming.
+  warn_days:
+    default: 14
+    description: Days before a due date to start surfacing an upcoming deliverable (informational; overdue items always show).
+compatible_agents: [generic, claude, codex]
+notes: Mark a deliverable "delivered" only after someone has actually opened and verified the files, not just received a download link.

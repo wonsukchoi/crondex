@@ -1,0 +1,28 @@
+id: scada-alarm-backlog-check
+version: 1
+name: SCADA Alarm Backlog Check
+description: >
+  Checks the SCADA/telemetry alarm log for critical or high-severity alarms
+  that have gone unacknowledged past a set number of minutes, and lists
+  them oldest first. Use this if a real grid or network problem has ever
+  sat buried in a wall of SCADA alarms because nobody was watching the
+  queue closely enough to notice it wasn't cleared.
+category: utilities
+tags: [utilities, electric, scada, telemetry, grid-operations]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select alarm_id, asset_tag, severity, raised_at, extract(epoch from (now() - raised_at)) / 60 as minutes_open from scada_alarms where acknowledged = false and severity in ('critical', '{{min_severity}}') and raised_at < now() - interval '{{unacked_minutes_threshold}} minutes' order by raised_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the SCADA historian/alarm database.
+  min_severity:
+    default: "high"
+    description: Lowest alarm severity level (besides critical, which is always included) to include in the backlog check.
+  unacked_minutes_threshold:
+    default: "30"
+    description: Minutes an alarm can stay unacknowledged before it's flagged as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `scada_alarms` table with `alarm_id`, `asset_tag`, `severity`, `raised_at`, and `acknowledged` columns — adjust to your SCADA historian's schema (OSIsoft PI, Ignition, etc.). Read-only reporting job; it does not acknowledge or clear alarms itself, and an unacknowledged alarm is not necessarily an active fault, so route hits to grid operations for triage.

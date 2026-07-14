@@ -1,0 +1,32 @@
+id: vehicle-storage-title-documentation-check
+version: 1
+name: Vehicle Storage Title Documentation Check
+description: >
+  Checks units rented for RV, boat, or vehicle storage against the
+  registration and title/proof-of-ownership documents on file, and flags
+  units missing required paperwork or with documents that have expired.
+  Use this if your facility rents outdoor or covered vehicle/RV/boat spaces
+  and needs to keep ownership and registration documentation current for
+  liability and lien-law reasons.
+category: self-storage
+tags: [self-storage, vehicle-storage, compliance, documentation]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, vehicle_description, title_doc_status, registration_expiry from vehicle_storage_units where title_doc_status != 'on-file' or registration_expiry < current_date + interval '{{lead_days}} days' order by registration_expiry asc nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lead_days:
+    default: "30"
+    description: How many days ahead of a registration expiring to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `vehicle_storage_units` table with `unit_number`,
+  `tenant_name`, `vehicle_description`, `title_doc_status` (e.g. `on-file`,
+  `missing`, `pending`), and `registration_expiry` columns — adjust the
+  query to your schema. Documentation requirements vary by state/province,
+  so confirm what's legally required in your jurisdiction before treating
+  a flag as a violation. Read-only: it only lists units to follow up on.

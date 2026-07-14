@@ -1,0 +1,31 @@
+id: crew-vehicle-maintenance-due-check
+version: 1
+name: Crew Vehicle Maintenance Due Check
+description: >
+  Checks each company vehicle's mileage and last-service date against its
+  maintenance interval and flags anything due or overdue for an oil change,
+  inspection, or other scheduled service. Use this if a crew van has ever
+  broken down mid-route because nobody was tracking when it was last
+  serviced.
+category: cleaning-services
+tags: [cleaning-services, fleet, vehicle-maintenance, crew-management]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      vehicle=$1; mileage=$2+0; last_service_mileage=$3+0; interval=$4+0;
+      last_service_date=$5;
+      due_at = last_service_mileage + interval;
+      if (mileage >= due_at) printf "OVERDUE: %s at %d miles (service was due at %d miles, last serviced %s)\n", vehicle, mileage, due_at, last_service_date;
+      else if (due_at - mileage <= 500) printf "DUE SOON: %s at %d miles (service due at %d miles, last serviced %s)\n", vehicle, mileage, due_at, last_service_date;
+    }
+  ' "{{fleet_csv_path}}"
+variables:
+  fleet_csv_path:
+    default: "./fleet-maintenance-log.csv"
+    description: "CSV with header row, columns: vehicle_name,current_mileage,last_service_mileage,service_interval_miles,last_service_date."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes current_mileage is updated regularly (e.g. via odometer log or fuel card mileage capture).

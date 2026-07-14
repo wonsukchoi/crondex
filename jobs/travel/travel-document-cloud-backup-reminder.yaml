@@ -1,0 +1,43 @@
+id: travel-document-cloud-backup-reminder
+version: 1
+name: Travel Document Cloud Backup Reminder
+description: >
+  Reminds you, before departure, to photograph or scan your passport,
+  visa, insurance card, and ID and back them up to cloud storage and
+  email-to-self. Use this if you've ever had a passport stolen abroad
+  and realized the only copy of it was the physical one now missing.
+category: travel
+tags: [travel, documents, backup, security]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next trip.";
+  elif [ "$days_left" -le "{{warn_days_before}}" ]; then
+    backed_up=$(find "{{backup_folder_path}}" -type f 2>/dev/null | wc -l | tr -d ' ');
+    echo "REMINDER: $days_left day(s) until trip — scan/photograph {{documents_list}} and confirm copies are in {{backup_folder_path}} (currently $backed_up file(s)) and emailed to {{backup_email}}.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  documents_list:
+    default: "passport, visa, travel insurance card, driver's license"
+    description: Comma-separated list of documents to back up.
+  backup_folder_path:
+    default: "./travel-doc-backups"
+    description: Local or synced folder where scanned/photographed copies are saved.
+  backup_email:
+    default: "your own email address"
+    description: Email address to send copies to as a second backup, reachable even without the cloud folder.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  warn_days_before:
+    default: 3
+    description: Start reminding this many days before departure.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't scan or upload anything itself — it only counts
+  files already in backup_folder_path — you still have to do the
+  scanning and emailing yourself.

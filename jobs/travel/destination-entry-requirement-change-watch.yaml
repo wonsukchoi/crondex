@@ -1,0 +1,52 @@
+id: destination-entry-requirement-change-watch
+version: 1
+name: Destination Entry Requirement Change Watch
+description: >
+  Checks close to departure whether visa, ETA, or entry-form
+  requirements for your destination have changed since you last
+  looked, since these rules can shift with little notice. Use this if
+  you've ever booked a trip under one set of entry rules only to find
+  out closer to departure that a new visa-waiver form or fee was
+  added.
+category: travel
+tags: [travel, visa, entry-requirements, international]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  The user is traveling to {{destination_country}} from {{passport_country}}
+  on {{trip_start_date}}. They last verified entry requirements
+  (visa/ETA/health forms/passport validity rules) on
+  {{last_checked_date}}, and noted the requirements at that time as:
+  {{requirements_last_known}}. If the trip is within
+  {{recheck_window_days}} days, re-verify current entry requirements
+  (or reason from known general guidance if you can't browse) and
+  flag anything that appears to have changed since last_checked_date
+  — new forms, fee changes, processing-time changes, or passport
+  validity rules. If nothing looks different, say so plainly rather
+  than padding the output.
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country being traveled to.
+  passport_country:
+    default: "your passport's issuing country"
+    description: Country that issued the traveler's passport (entry rules depend on this).
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date entry requirements were last verified (YYYY-MM-DD).
+  requirements_last_known:
+    default: "not yet recorded"
+    description: Summary of what the requirements were as of last_checked_date, to compare against.
+  recheck_window_days:
+    default: 30
+    description: Only re-check within this many days of departure, since rules rarely change further out.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Distinct from destination-vaccination-requirement-check — this
+  tracks visa/ETA/entry-form rule changes over time, not a one-time
+  health lookup. Verify against an official government source before
+  relying on the output.

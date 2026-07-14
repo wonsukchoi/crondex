@@ -1,0 +1,36 @@
+id: commercial-walkthrough-inspection-scheduler
+version: 1
+name: Commercial Walkthrough Inspection Scheduler
+description: >
+  Checks each commercial client's contracted walkthrough or inspection
+  cadence against when the last walkthrough actually happened and drafts
+  scheduling outreach for anyone overdue. Use this if a commercial
+  contract has ever required a monthly or quarterly site walkthrough with
+  the facilities manager and it quietly stopped happening after the
+  account got busy.
+category: cleaning-services
+tags: [cleaning-services, commercial-contracts, inspections, scheduling]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the commercial account list at {{commercial_accounts_csv_path}}
+  (columns: client_name, facilities_contact, contact_email,
+  walkthrough_cadence_days, last_walkthrough_date). For each account,
+  calculate days since last_walkthrough_date and compare to
+  walkthrough_cadence_days. For any account where that gap has been
+  exceeded, draft a short scheduling email to facilities_contact
+  proposing two or three specific time windows in the next
+  {{scheduling_window_days}} days for the walkthrough. Group the drafts
+  under a summary listing which accounts are overdue and by how many
+  days, so the account manager can prioritize the most overdue
+  relationships first.
+variables:
+  commercial_accounts_csv_path:
+    default: "./commercial-accounts.csv"
+    description: "CSV with header row, columns: client_name,facilities_contact,contact_email,walkthrough_cadence_days,last_walkthrough_date (YYYY-MM-DD)."
+  scheduling_window_days:
+    default: 10
+    description: Number of days out to propose walkthrough time windows within.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — scheduling emails should be reviewed for tone and availability before sending, not sent automatically.

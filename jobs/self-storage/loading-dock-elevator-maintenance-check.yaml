@@ -1,0 +1,32 @@
+id: loading-dock-elevator-maintenance-check
+version: 1
+name: Loading Dock and Elevator Maintenance Check
+description: >
+  Checks freight elevators, loading dock levelers, and dock doors against
+  their scheduled maintenance and required safety inspection dates, and
+  flags any equipment that's due, overdue, or already logged as out of
+  service. Use this if your facility has multi-story units served by a
+  freight elevator or a loading dock, where equipment downtime directly
+  blocks tenant move-ins and move-outs.
+category: self-storage
+tags: [self-storage, equipment-maintenance, elevator, loading-dock]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select equipment_id, equipment_type, location, status, next_maintenance_due from facility_equipment where equipment_type in ('freight-elevator', 'dock-leveler', 'dock-door') and (status = 'out-of-service' or next_maintenance_due <= current_date + interval '{{lead_days}} days') order by next_maintenance_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility maintenance database.
+  lead_days:
+    default: "7"
+    description: How many days before the next scheduled maintenance date to start flagging the equipment.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `facility_equipment` table with `equipment_id`,
+  `equipment_type`, `location`, `status`, and `next_maintenance_due`
+  columns — adjust the equipment type values and query to your schema.
+  Read-only: it does not schedule service or take equipment offline
+  itself, it only surfaces what needs attention so tenant move-ins and
+  move-outs aren't blocked by a surprise breakdown.

@@ -1,0 +1,38 @@
+id: new-hire-training-completion-tracker
+version: 1
+name: New-Hire Training Completion Tracker
+description: >
+  Checks each new hire's required training modules (safety, chemical
+  handling, client-facing conduct, etc.) against what's actually been
+  completed and flags anyone overdue before they're sent out solo on a
+  job. Use this if a new cleaner has ever been sent to a client site
+  without finishing chemical-safety training because nobody was
+  tracking completion against the hire date.
+category: cleaning-services
+tags: [cleaning-services, training, onboarding, hr, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v deadlinedays="{{completion_deadline_days}}" '
+    NR==1 {next}
+    {
+      employee=$1; hire_date=$2; required=$3+0; completed=$4+0;
+      cmd = "date -d \"" hire_date "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" hire_date "\" +%s 2>/dev/null";
+      cmd | getline hire_epoch; close(cmd);
+      now = systime();
+      days_since_hire = int((now - hire_epoch) / 86400);
+      if (completed < required && days_since_hire >= deadlinedays) {
+        printf "OVERDUE: %s hired %s (%d days ago) — %d of %d required modules completed\n", employee, hire_date, days_since_hire, completed, required;
+      }
+    }
+  ' "{{training_csv_path}}"
+variables:
+  training_csv_path:
+    default: "./new-hire-training-log.csv"
+    description: "CSV with header row, columns: employee_name,hire_date,required_modules,completed_modules."
+  completion_deadline_days:
+    default: 14
+    description: Number of days after hire_date a new hire has to finish required training before being flagged as overdue.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; treat any flagged employee as not yet cleared to work unsupervised client jobs until training is confirmed complete.

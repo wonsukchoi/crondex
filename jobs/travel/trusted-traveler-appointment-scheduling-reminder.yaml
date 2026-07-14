@@ -1,0 +1,43 @@
+id: trusted-traveler-appointment-scheduling-reminder
+version: 1
+name: Trusted Traveler Program Appointment Scheduling Reminder
+description: >
+  Reminds you to book your Global Entry/TSA PreCheck/NEXUS interview
+  slot as soon as your application is conditionally approved, since
+  good appointment slots vanish fast. Use this if you've ever gotten
+  conditionally approved and then found every nearby enrollment center
+  booked out for months because you waited to schedule.
+category: travel
+tags: [travel, trusted-traveler, appointment, documents]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ "{{application_status}}" != "conditionally-approved" ] && [ "{{application_status}}" != "pending" ]; then
+    echo "OK: application status is '{{application_status}}' — no scheduling action needed.";
+  elif [ -n "{{appointment_date}}" ] && [ "{{appointment_date}}" != "none" ]; then
+    echo "OK: interview already scheduled for {{appointment_date}} at {{enrollment_center}}.";
+  else
+    echo "ACTION NEEDED: application status is '{{application_status}}' with no interview booked yet — check {{program_name}} enrollment center slots near {{preferred_location}} and grab the earliest opening.";
+  fi
+variables:
+  program_name:
+    default: "Global Entry"
+    description: Trusted traveler program name (e.g. Global Entry, NEXUS, SENTRI).
+  application_status:
+    default: "pending"
+    description: Current status ("pending", "conditionally-approved", "approved", "denied").
+  preferred_location:
+    default: "your nearest enrollment center"
+    description: Preferred enrollment center or airport for the interview.
+  appointment_date:
+    default: "none"
+    description: Booked interview date if one exists (YYYY-MM-DD, or "none").
+  enrollment_center:
+    default: "none"
+    description: Enrollment center booked, if any.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't book anything or check live slot availability —
+  government scheduling systems aren't reliably scriptable — it's a
+  nudge to go grab a slot before conditional approval expires.

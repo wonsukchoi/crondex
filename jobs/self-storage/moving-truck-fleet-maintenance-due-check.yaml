@@ -1,0 +1,34 @@
+id: moving-truck-fleet-maintenance-due-check
+version: 1
+name: Moving Truck Fleet Maintenance Due Check
+description: >
+  Checks the facility's rental moving truck fleet against mileage- and
+  date-based maintenance schedules and flags any truck that's due or
+  overdue for service. Use this if your facility rents out moving trucks
+  or vans to customers and needs to keep them roadworthy and out of an
+  unplanned breakdown mid-rental.
+category: self-storage
+tags: [self-storage, fleet-maintenance, moving-trucks, facility-operations]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select truck_id, license_plate, current_mileage, next_service_mileage, next_service_due_date from rental_trucks where current_mileage >= next_service_mileage - {{mileage_buffer}} or next_service_due_date <= current_date + interval '{{lead_days}} days' order by next_service_due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the fleet/facility management database.
+  mileage_buffer:
+    default: "500"
+    description: How many miles before the scheduled service mileage to start flagging the truck.
+  lead_days:
+    default: "14"
+    description: How many days before the scheduled service due date to start flagging the truck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `rental_trucks` table with `truck_id`, `license_plate`,
+  `current_mileage`, `next_service_mileage`, and `next_service_due_date`
+  columns, where mileage is updated from odometer readings at each rental
+  return — adjust the query to your schema. Only relevant to facilities
+  that operate a rental truck fleet. Read-only: it does not book service
+  or take a truck out of the rental pool itself.

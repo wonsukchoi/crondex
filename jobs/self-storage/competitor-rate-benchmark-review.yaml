@@ -1,0 +1,50 @@
+id: competitor-rate-benchmark-review
+version: 1
+name: Competitor Rate Benchmark Review
+description: >
+  Pulls this facility's currently posted unit rates alongside a short list
+  of nearby competitor rates and asks an agent to summarize where this
+  facility is priced above or below the local market by unit size. Use
+  this if you adjust rates manually and want a regular nudge to check
+  whether local competitors have moved their pricing since you last looked.
+category: self-storage
+tags: [self-storage, pricing, competitor-analysis, revenue-management]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select unit_type, unit_size, current_rate from unit_rate_card order by unit_size asc;" && curl --max-time 20 -s "{{competitor_rates_endpoint}}"
+prompt: |
+  You're given this facility's current rate card and a competitor rate
+  feed for nearby facilities within {{market_radius_miles}} miles.
+  1. Match unit sizes/types between this facility's rate card and the
+     competitor data as closely as possible.
+  2. For each matched size, note whether this facility is priced above,
+     below, or in line with the competitor average.
+  3. Call out the two or three sizes with the largest gap in either
+     direction, since those are the ones most worth a manual pricing
+     decision.
+  4. Do not recommend specific new rates — just summarize the comparison
+     for a human to decide on.
+script_note: >
+  `command` pulls the raw rate card and competitor feed data for free.
+  `prompt` matches unit sizes across sources and summarizes the pricing
+  gap, which a plain script can't reliably do given inconsistent size
+  naming between facilities.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  competitor_rates_endpoint:
+    default: "https://example.com/api/competitor-rates"
+    description: Endpoint returning nearby competitor rate data (e.g. from a rate-tracking service or manually maintained feed).
+  market_radius_miles:
+    default: "5"
+    description: Radius used when pulling/interpreting nearby competitor rates.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires a competitor rate data source (a paid rate-tracking service, a
+  scraper you maintain, or a manually updated feed) behind
+  competitor_rates_endpoint — this job does not source that data itself.
+  Read-only: it produces a comparison summary, it does not change any
+  posted rate.

@@ -1,0 +1,55 @@
+id: cleaning-checklist-audit-compliance-check
+version: 1
+name: Cleaning Checklist Audit Compliance Check
+description: >
+  Reviews the supervisor's quality-audit spot-check log and flags any
+  scheduled job that went without a spot-check for too long, plus any
+  crew whose recent spot-checks are failing the checklist more often than
+  they should. Use this if quality control has ever slipped because
+  spot-checks were only happening for the crews that already had a
+  problem, not on a regular rotation.
+category: cleaning-services
+tags: [cleaning-services, quality-audit, compliance, crew-management]
+schedule: "0 17 * * 5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v maxdays="{{max_days_since_audit}}" -v failrate="{{fail_rate_threshold_pct}}" '
+    NR==1 {next}
+    {
+      crew=$1; audit_date=$2; passed=$3; total_items=$4+0; failed_items=$5+0;
+      count[crew]++; last[crew]=audit_date;
+      fails[crew]+=failed_items; items[crew]+=total_items;
+      if (passed=="no") failed_audits[crew]++;
+    }
+    END {
+      for (c in count) {
+        rate = (items[c] > 0) ? (fails[c] / items[c]) * 100 : 0;
+        printf "SUMMARY: %s — %d audits, last on %s, %d failed audits, %.1f%% item fail rate\n", c, count[c], last[c], failed_audits[c]+0, rate;
+        if (rate > failrate) printf "HIGH FAIL RATE: %s at %.1f%% item fail rate (threshold %s%%)\n", c, rate, failrate;
+      }
+    }
+  ' "{{audit_log_csv_path}}"
+prompt: >
+  Read the quality-audit spot-check log at {{audit_log_csv_path}}
+  (columns: crew_name, audit_date, passed, total_checklist_items,
+  failed_items, auditor_notes). For each crew, check whether they've had
+  a spot-check within the last {{max_days_since_audit}} days — flag any
+  crew that hasn't been audited recently. Then look at each crew's item
+  fail rate (failed_items / total_checklist_items) and flag anyone above
+  {{fail_rate_threshold_pct}}%. Read the auditor_notes for flagged crews
+  and summarize the recurring themes (e.g. baseboards missed, trash not
+  emptied) so a manager knows what specifically to coach on.
+script_note: The command tallies audit frequency and fail rates with zero tokens; only the prompt mode reads auditor_notes to summarize the recurring quality issues worth coaching a crew on.
+variables:
+  audit_log_csv_path:
+    default: "./quality-audit-log.csv"
+    description: "CSV with header row, columns: crew_name,audit_date,passed,total_checklist_items,failed_items,auditor_notes."
+  max_days_since_audit:
+    default: 30
+    description: Number of days a crew can go without a spot-check before it's flagged.
+  fail_rate_threshold_pct:
+    default: 15
+    description: Item fail rate percentage above which a crew is flagged for a high fail rate.
+compatible_agents: [claude, codex, generic]
+notes: Read-only check; requires supervisors to log spot-checks consistently, including for crews with no issues, to get an accurate rotation picture.

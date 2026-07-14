@@ -1,0 +1,46 @@
+id: ada-accessibility-audit-reminder
+version: 1
+name: ADA Accessibility Audit Reminder
+description: >
+  Reminds facility staff when the next scheduled ADA/accessibility
+  compliance walkthrough (accessible unit availability, path of travel,
+  signage, parking) is due, based on the last logged audit date. Use this
+  if your facility has ADA-designated accessible units or public paths and
+  you rely on periodic manual walkthroughs rather than continuous
+  monitoring to catch accessibility issues.
+category: self-storage
+tags: [self-storage, ada-compliance, accessibility, facility-operations]
+schedule: "0 8 1 1,4,7,10 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the facility's ADA accessibility audit log for {{facility_id}}.
+  1. Find the most recent completed audit date and compare it against
+     today; if more than {{audit_interval_days}} days have passed, flag
+     that a new walkthrough is due.
+  2. If the audit log records open findings from the last walkthrough
+     (e.g. blocked accessible parking, missing signage, an accessible
+     unit that's not actually usable), list any that are still marked
+     open.
+  3. Summarize in plain language what staff should schedule or fix next,
+     referencing {{compliance_contact}} as the point of contact for
+     scheduling the walkthrough.
+  4. Do not make legal determinations about ADA compliance status — only
+     summarize what the log shows and what's overdue.
+variables:
+  facility_id:
+    default: "facility-001"
+    description: Identifier for the facility whose audit log to check.
+  audit_interval_days:
+    default: "180"
+    description: How many days are allowed between ADA accessibility walkthroughs before the next one is considered due.
+  compliance_contact:
+    default: "facilities-compliance@example.com"
+    description: Contact to reference for scheduling the next walkthrough or addressing open findings.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This job summarizes an existing audit log; it does not perform the
+  accessibility audit itself and is not a substitute for a qualified
+  ADA compliance review. Assumes some form of audit log (spreadsheet,
+  database, or ticketing system) that an agent can be given read access
+  to summarize — adjust how the log is retrieved to your actual setup.

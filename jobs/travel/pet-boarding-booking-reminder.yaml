@@ -1,0 +1,38 @@
+id: pet-boarding-booking-reminder
+version: 1
+name: Pet Boarding/Sitter Booking Reminder
+description: >
+  Reminds you to book a boarding kennel or pet sitter for your trip
+  dates before good slots fill up, especially around holidays. Use
+  this if you've ever started calling kennels two weeks out and found
+  every one booked solid for your travel dates.
+category: travel
+tags: [travel, pets, booking, home]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next trip.";
+  elif [ "{{sitter_confirmed}}" = "yes" ]; then echo "OK: pet care confirmed with {{sitter_or_kennel_name}} for the trip.";
+  elif [ "$days_left" -le "{{warn_days_before}}" ]; then echo "ACTION NEEDED: $days_left day(s) until trip and pet care isn't confirmed yet — book {{sitter_or_kennel_name}} or a backup now.";
+  else echo "OK: $days_left day(s) until trip, pet care not yet booked but still within normal lead time."; fi
+variables:
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  sitter_or_kennel_name:
+    default: "your preferred pet sitter or kennel"
+    description: Name of the pet sitter/boarding kennel you plan to use.
+  sitter_confirmed:
+    default: "no"
+    description: Whether the booking is confirmed yet ("yes" or "no") — update once booked.
+  warn_days_before:
+    default: 21
+    description: Start warning this many days before the trip if not yet booked (good slots go fast around holidays).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't book anything — just tracks a manually-updated
+  confirmation flag so the reminder stops nagging once it's handled.

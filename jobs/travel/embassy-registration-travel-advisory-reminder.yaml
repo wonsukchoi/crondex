@@ -1,0 +1,47 @@
+id: embassy-registration-travel-advisory-reminder
+version: 1
+name: Embassy Registration & Travel Advisory Reminder
+description: >
+  Reminds you before international trips to register with your home
+  country's traveler safety program (e.g. the US State Department's
+  STEP program) and check the current travel advisory level for your
+  destination. Use this if you've ever needed emergency consular help
+  abroad and realized no one back home even knew which country you
+  were in.
+category: travel
+tags: [travel, safety, embassy, international]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next international trip.";
+  elif [ "{{registered}}" = "yes" ]; then echo "OK: already registered with {{traveler_safety_program}} for this trip to {{destination_country}}.";
+  elif [ "$days_left" -le "{{warn_days_before}}" ]; then echo "REMINDER: $days_left day(s) until trip to {{destination_country}} — register with {{traveler_safety_program}} and check the current travel advisory level and embassy contact info for {{emergency_contact_name}} to have on file.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country you're traveling to.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  traveler_safety_program:
+    default: "your home country's traveler safety/registration program (e.g. STEP)"
+    description: The program to register your trip with.
+  registered:
+    default: "no"
+    description: Whether you've registered yet ("yes" or "no") — update once done.
+  emergency_contact_name:
+    default: "your emergency contact"
+    description: Person who should have your itinerary and embassy contact info on file.
+  warn_days_before:
+    default: 7
+    description: Start reminding this many days before the trip.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't register you or fetch a live advisory level —
+  registration/advisory sites vary by home country — it's a nudge to
+  do both manually before departure.

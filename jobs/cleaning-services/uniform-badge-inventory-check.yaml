@@ -1,0 +1,39 @@
+id: uniform-badge-inventory-check
+version: 1
+name: Uniform & Badge Inventory Check
+description: >
+  Checks stock levels of employee uniforms and ID badges by size or type
+  against a reorder threshold, and separately flags any active employee
+  who was never issued a badge or uniform in the first place. Use this
+  if a new hire has ever shown up to a commercial site without a
+  company badge and gotten turned away by building security.
+category: cleaning-services
+tags: [cleaning-services, uniforms, badges, inventory, hr]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR==1) {next}
+      item=$1; qty=$2+0; threshold=$3+0;
+      if (qty <= threshold) printf "REORDER: %s — %d on hand (threshold %d)\n", item, qty, threshold;
+      next;
+    }
+    FNR==1 {next}
+    {
+      employee=$1; badge_issued=$2; uniform_issued=$3; status=$4;
+      if (status=="active" && (badge_issued=="no" || uniform_issued=="no")) {
+        printf "MISSING ISSUE: %s — badge_issued=%s uniform_issued=%s\n", employee, badge_issued, uniform_issued;
+      }
+    }
+  ' "{{uniform_stock_csv_path}}" "{{employee_issue_csv_path}}"
+variables:
+  uniform_stock_csv_path:
+    default: "./uniform-badge-stock.csv"
+    description: "CSV with header row, columns: item_name,quantity_on_hand,reorder_threshold (e.g. Polo-M, Polo-L, Badge-Blank)."
+  employee_issue_csv_path:
+    default: "./employee-uniform-badge-log.csv"
+    description: "CSV with header row, columns: employee_name,badge_issued,uniform_issued,status (badge_issued/uniform_issued are yes/no, status is active or inactive)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; run monthly and right after any hiring push so new hires aren't sent to a commercial site unbadged.

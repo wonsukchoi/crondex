@@ -1,0 +1,31 @@
+id: fire-suppression-inspection-due-check
+version: 1
+name: Fire Suppression System Inspection Due Check
+description: >
+  Checks the facility's fire suppression, sprinkler, and alarm system
+  inspection records and flags any system whose next required inspection
+  or certification date has passed or is coming up soon. Use this if your
+  facility has fire/life-safety equipment under an inspection contract and
+  you've ever discovered late that a certification had lapsed.
+category: self-storage
+tags: [self-storage, fire-safety, compliance, maintenance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select facility_id, system_type, last_inspection_date, next_inspection_due, certifying_vendor from fire_safety_inspections where next_inspection_due <= current_date + interval '{{lead_days}} days' order by next_inspection_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility maintenance/compliance database.
+  lead_days:
+    default: "30"
+    description: How many days ahead of the next required inspection date to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `fire_safety_inspections` table with `facility_id`,
+  `system_type` (e.g. sprinkler, fire alarm, extinguisher), `last_inspection_date`,
+  `next_inspection_due`, and `certifying_vendor` columns, updated after each
+  completed inspection — adjust the query to your schema. Read-only: it
+  does not schedule the inspection itself, it only surfaces what's overdue
+  or approaching so staff can call the vendor.

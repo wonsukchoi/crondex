@@ -1,0 +1,25 @@
+id: storm-mutual-aid-crew-readiness-check
+version: 1
+name: Storm/Mutual Aid Crew Readiness Check
+description: >
+  Checks the crew roster for how many line crews are currently available
+  and properly certified for storm response or mutual-aid deployment, and
+  flags when available headcount drops below the minimum a utility wants
+  on standby. Use this if a storm has ever hit while nobody had confirmed
+  whether enough certified crews were actually ready to roll.
+category: utilities
+tags: [utilities, electric, storm-response, mutual-aid, crew-readiness]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select count(*) as available_crews, {{min_available_crews}} as minimum_required from crew_roster where availability_status = 'available' and storm_certification_expiry > current_date having count(*) < {{min_available_crews}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the workforce/crew-roster database.
+  min_available_crews:
+    default: "5"
+    description: Minimum number of storm-certified, available crews the utility wants on standby before this check flags a shortfall.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `crew_roster` table with `availability_status`, `storm_certification_expiry`, and one row per crew — adjust to your workforce-management system's schema. Read-only informational check; it does not activate mutual-aid agreements or dispatch crews itself.

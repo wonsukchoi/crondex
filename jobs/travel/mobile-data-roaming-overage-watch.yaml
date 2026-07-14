@@ -1,0 +1,38 @@
+id: mobile-data-roaming-overage-watch
+version: 1
+name: Mobile Data Roaming Overage Watch
+description: >
+  Warns you daily during a trip if your logged mobile data usage is
+  tracking toward blowing through your roaming plan or eSIM data cap.
+  Use this if you've ever come home to a surprise $200 roaming charge
+  because you didn't notice your data plan ran out on day three.
+category: travel
+tags: [travel, connectivity, data, roaming]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_end_epoch=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  today_epoch=$(date +%s);
+  if [ "$today_epoch" -gt "$trip_end_epoch" ]; then echo "note: trip has ended — update trip_end_date for the next trip."; exit 0; fi;
+  pct=$(awk -v used="{{data_used_mb}}" -v cap="{{data_cap_mb}}" 'BEGIN { if (cap<=0) { print 0 } else { printf "%.0f", (used/cap)*100 } }');
+  if [ "$pct" -ge "{{warn_threshold_pct}}" ]; then echo "WARNING: roaming/eSIM data at ${pct}% of cap ({{data_used_mb}}MB / {{data_cap_mb}}MB) — switch to Wi-Fi or top up before you get throttled or charged overage.";
+  else echo "OK: roaming data at ${pct}% of cap ({{data_used_mb}}MB / {{data_cap_mb}}MB)."; fi
+variables:
+  data_cap_mb:
+    default: "5000"
+    description: Total data allowance on your roaming plan or eSIM, in MB.
+  data_used_mb:
+    default: "0"
+    description: Data used so far this trip, in MB — update from your carrier/eSIM app periodically.
+  trip_end_date:
+    default: "2026-12-31"
+    description: Last day of the trip (YYYY-MM-DD) — checks stop after this.
+  warn_threshold_pct:
+    default: 80
+    description: Warn once usage reaches this percent of the data cap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't read your actual carrier usage — most carriers
+  don't expose that via a public API — update data_used_mb from your
+  phone's data usage screen or eSIM app each evening.

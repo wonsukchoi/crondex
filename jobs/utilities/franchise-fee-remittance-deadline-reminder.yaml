@@ -1,0 +1,35 @@
+id: franchise-fee-remittance-deadline-reminder
+version: 1
+name: Franchise Fee Remittance Deadline Reminder
+description: >
+  Reads the utility's municipal franchise agreement remittance schedule and
+  reports which franchise fee payments are due to which municipalities
+  within a lookahead window. Use this if a franchise fee remittance has
+  ever gone out late because the due dates for dozens of municipal
+  agreements only lived in a filing cabinet of individual contracts.
+category: utilities
+tags: [utilities, franchise-fee, municipal, regulatory, remittance-deadline]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Read the franchise agreement remittance schedule at
+  {{remittance_schedule_source}}. Identify every municipality with a
+  franchise fee remittance due within the next {{lookahead_days}} days. For
+  each, list the municipality name, due date, remittance basis (e.g. percent
+  of gross revenue) if stated, and days remaining, sorted soonest first.
+  Flag anything due within {{urgent_threshold_days}} days as urgent. If no
+  remittances fall in the window, say so plainly — do not invent
+  municipalities or dates.
+variables:
+  remittance_schedule_source:
+    default: "https://example.com/franchise-agreements/remittance-schedule"
+    description: URL or path to the consolidated franchise agreement remittance schedule (internal tracker export, contract calendar, etc.).
+  lookahead_days:
+    default: "21"
+    description: How many days ahead to scan for upcoming franchise fee remittance deadlines.
+  urgent_threshold_days:
+    default: "5"
+    description: Remittances due within this many days are flagged as urgent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder job — it does not calculate the remittance amount or submit payment. Franchise agreement terms and remittance cadence vary widely by municipality, which is why this is agent-prompt rather than a scripted parse; point `remittance_schedule_source` at whatever your regulatory/finance team actually maintains.

@@ -1,0 +1,41 @@
+id: flight-price-drop-watch
+version: 1
+name: Flight Price Drop Watch
+description: >
+  Reminds you to check the fare for an already-booked flight against
+  the price you paid so you can request a credit or rebook if it
+  dropped. Use this if you've ever booked a flight and later found
+  out — too late — that the same seat went for $150 less a week on.
+category: travel
+tags: [travel, flight, price, booking]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  flight_epoch=$(date -d "{{flight_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{flight_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (flight_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: flight date has passed — update flight_date for your next booked trip.";
+  elif [ "$days_left" -le "{{watch_window_days}}" ]; then echo "CHECK PRICE: compare current fare for {{route}} on {{flight_date}} against what you paid (\${{price_paid}}) — {{fare_rules_note}}. $days_left day(s) left.";
+  else echo "OK: $days_left day(s) until flight, price watch starts {{watch_window_days}} day(s) out."; fi
+variables:
+  route:
+    default: "your route (e.g. JFK-LHR)"
+    description: Flight route being watched.
+  flight_date:
+    default: "2026-12-31"
+    description: Departure date of the booked flight (YYYY-MM-DD).
+  price_paid:
+    default: "0"
+    description: What you paid for the ticket, so you have a number to compare against.
+  fare_rules_note:
+    default: "check if your fare allows free changes or only travel-credit rebooking"
+    description: Reminder of your fare's change/credit policy, since that determines whether a price drop is worth acting on.
+  watch_window_days:
+    default: 21
+    description: Start checking prices this many days before departure (most airlines/agencies don't rebook after that window is tight).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't fetch live fares itself — airline/OTA pricing APIs
+  aren't uniformly public — it's a nudge to go check manually or via
+  whatever fare-tracking tool you use.

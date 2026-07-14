@@ -1,0 +1,43 @@
+id: foreign-transaction-fee-card-usage-check
+version: 1
+name: Foreign Transaction Fee Card Usage Check
+description: >
+  Reminds you, before an international trip, to confirm you're
+  planning to use a no-foreign-transaction-fee card instead of one
+  that quietly charges 3% on every swipe. Use this if you've ever come
+  home and noticed a pile of small "foreign transaction fee" line
+  items on the wrong card's statement.
+category: travel
+tags: [travel, banking, cards, international, fees]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next international trip.";
+  elif [ "$days_left" -le "{{warn_days_before}}" ]; then echo "REMINDER: for your trip to {{destination_country}} in $days_left day(s), plan to use {{no_fee_card}} (no foreign transaction fee) — leave {{fee_card_to_avoid}} at home or only for emergencies.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  destination_country:
+    default: "your destination country"
+    description: Country you're traveling to.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  no_fee_card:
+    default: "your no-foreign-transaction-fee card"
+    description: The card you should be using abroad.
+  fee_card_to_avoid:
+    default: "your card that charges foreign transaction fees"
+    description: The card that charges a foreign transaction fee, as a reminder not to default to it.
+  warn_days_before:
+    default: 5
+    description: Start reminding this many days before the trip.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, distinct from the travel-notice reminder — this is about
+  which card to swipe, not about notifying the bank of travel. Doesn't
+  read your actual card terms; keep no_fee_card/fee_card_to_avoid
+  accurate yourself.

@@ -1,0 +1,37 @@
+id: energy-assistance-program-enrollment-deadline-reminder
+version: 1
+name: Energy Assistance Program Enrollment Deadline Reminder
+description: >
+  Reads the current listing of low-income energy assistance programs (like
+  LIHEAP or a utility's own bill-assistance fund) and reports which ones
+  have enrollment or application deadlines coming up soon. Use this if a
+  customer-assistance team has ever missed telling eligible customers about
+  a program deadline because the funding-cycle dates live on a state
+  website nobody checks on a schedule.
+category: utilities
+tags: [utilities, customer-assistance, energy-assistance, low-income, enrollment-deadline]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Read the energy assistance program listing at {{program_list_source}}.
+  Identify every program (LIHEAP, weatherization assistance, utility
+  bill-assistance fund, arrearage forgiveness, etc.) with an enrollment or
+  application deadline within the next {{lookahead_days}} days. For each,
+  list the program name, deadline, eligibility summary if stated, and days
+  remaining, sorted soonest first. Flag anything due within
+  {{urgent_threshold_days}} days as urgent so it can be pushed to customer
+  service and outreach channels. If no deadlines fall in the window, say so
+  plainly — do not invent programs or dates.
+variables:
+  program_list_source:
+    default: "https://example.com/energy-assistance-programs"
+    description: URL or path to the current listing of energy assistance programs and their deadlines (state agency site, internal tracker export, etc.).
+  lookahead_days:
+    default: "30"
+    description: How many days ahead to scan for upcoming enrollment/application deadlines.
+  urgent_threshold_days:
+    default: "7"
+    description: Deadlines due within this many days are flagged as urgent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder job — it does not enroll customers or submit applications. Program listings and deadline formats vary widely by state and funding source, which is why this is agent-prompt rather than a scripted parse; point `program_list_source` at whatever your customer-assistance team actually references.

@@ -1,0 +1,55 @@
+id: commercial-bid-win-rate-tracker
+version: 1
+name: Commercial Bid Win-Rate Tracker
+description: >
+  Reviews commercial contract bids and proposals over a rolling window
+  and calculates win rate, average bid value, and how win rate is
+  trending, so the business knows whether its commercial pricing or
+  positioning needs to change. Use this if commercial bids have ever
+  been submitted and forgotten about, with nobody stepping back to ask
+  why so many of them aren't converting.
+category: cleaning-services
+tags: [cleaning-services, commercial-contracts, sales, bids]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v lookbackdays="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      bid_date=$2; outcome=$4; amount=$5+0;
+      cmd = "date -d \"" bid_date "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" bid_date "\" +%s 2>/dev/null";
+      cmd | getline bid_epoch; close(cmd);
+      now = systime();
+      days_ago = int((now - bid_epoch) / 86400);
+      if (days_ago > lookbackdays) next;
+      total++; total_value+=amount;
+      if (outcome=="won") { won++; won_value+=amount; }
+      else if (outcome=="lost") { lost++; }
+    }
+    END {
+      if (total==0) { print "No bids found in the lookback window."; exit; }
+      winrate = (won/total)*100;
+      printf "SUMMARY: %d bids in last %d days — %d won, %d lost, %.1f%% win rate, $%.2f total won value, avg bid $%.2f\n", total, lookbackdays, won+0, lost+0, winrate, won_value+0, total_value/total;
+    }
+  ' "{{bids_csv_path}}"
+prompt: >
+  Read the commercial bids log at {{bids_csv_path}} (columns: bid_id,
+  bid_date, prospect_name, outcome, bid_amount, loss_reason). Restrict to
+  bids from the last {{lookback_days}} days. Calculate the win rate and
+  compare it to the prior equivalent period if enough data exists.
+  Then read loss_reason for every lost bid and summarize the most common
+  reasons deals were lost (e.g. price too high, lost to incumbent, slow
+  response time), so the owner or sales lead knows whether to adjust
+  pricing, speed up proposal turnaround, or address something else
+  entirely.
+script_note: The command calculates win rate, won value, and average bid size with zero tokens; only the prompt mode reads loss_reason across bids to surface the recurring reasons deals are being lost.
+variables:
+  bids_csv_path:
+    default: "./commercial-bids-log.csv"
+    description: "CSV with header row, columns: bid_id,bid_date,prospect_name,outcome,bid_amount,loss_reason (outcome is won, lost, or pending)."
+  lookback_days:
+    default: 90
+    description: Number of days back from today to include bids in the win-rate calculation.
+compatible_agents: [claude, codex, generic]
+notes: Read-only check; pending bids are excluded from win-rate math until they're marked won or lost.

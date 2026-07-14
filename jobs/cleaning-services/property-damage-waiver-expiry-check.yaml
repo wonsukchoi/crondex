@@ -1,0 +1,36 @@
+id: property-damage-waiver-expiry-check
+version: 1
+name: Property Damage Waiver Expiry Check
+description: >
+  Checks each client's signed property-damage waiver or liability
+  acknowledgment against its expiry or renewal date and flags anyone
+  whose waiver has lapsed or is about to. Use this if a damage claim has
+  ever come up on a job and nobody could confirm whether a current,
+  signed waiver was actually on file for that client.
+category: cleaning-services
+tags: [cleaning-services, waivers, liability, compliance, client-management]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      client=$1; signed_date=$2; expiry=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      now = systime();
+      days_left = int((expiry_epoch - now) / 86400);
+      if (days_left < 0) printf "EXPIRED: %s waiver expired %s (signed %s)\n", client, expiry, signed_date;
+      else if (days_left <= warndays) printf "EXPIRING SOON: %s waiver expires %s (%d days left)\n", client, expiry, days_left;
+    }
+  ' "{{waivers_csv_path}}"
+variables:
+  waivers_csv_path:
+    default: "./property-damage-waivers.csv"
+    description: "CSV with header row, columns: client_name,signed_date,expiry_date (YYYY-MM-DD)."
+  warn_days_before_expiry:
+    default: 30
+    description: Number of days before expiry to start flagging a waiver as expiring soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; not legal advice — confirm waiver language and renewal requirements with counsel or your insurer.

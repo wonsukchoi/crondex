@@ -1,0 +1,26 @@
+id: nerc-cip-patch-compliance-check
+version: 1
+name: NERC CIP Patch Compliance Check
+description: >
+  Checks critical cyber assets covered by NERC CIP patch-management
+  requirements for systems that have gone longer than the evaluation
+  window without a documented security patch or patch-applicability
+  assessment, and lists them by how overdue they are. Use this if a
+  critical OT/cyber asset has ever fallen out of NERC CIP patch compliance
+  because a patch evaluation slipped past the required cycle unnoticed.
+category: utilities
+tags: [utilities, electric, cybersecurity, nerc-cip, patch-management]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select asset_id, asset_name, cip_category, last_patch_evaluation_date, (current_date - last_patch_evaluation_date) as days_since_evaluation from ot_critical_cyber_assets where (current_date - last_patch_evaluation_date) > {{max_patch_age_days}} order by days_since_evaluation desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the OT/cyber-asset inventory and patch-tracking database.
+  max_patch_age_days:
+    default: "35"
+    description: Maximum days allowed since the last patch or patch-applicability evaluation before an asset is flagged as overdue (NERC CIP-007 requires 35-day evaluation cycles for most applicable assets).
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `ot_critical_cyber_assets` table with `asset_id`, `asset_name`, `cip_category`, and `last_patch_evaluation_date` columns tied to your OT asset-management or patch-tracking system — adjust to your schema and actual applicable CIP standard version. Read-only reporting job; it does not apply patches or file compliance evidence itself, and this is informational only — confirm actual NERC CIP obligations with your compliance team.

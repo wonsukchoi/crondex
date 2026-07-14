@@ -1,0 +1,35 @@
+id: storm-season-roof-drainage-inspection-check
+version: 1
+name: Storm Season Roof and Drainage Inspection Check
+description: >
+  Reminds facility staff to complete pre-storm-season roof, gutter, and
+  drainage inspections across all buildings before the local storm/rain
+  season starts, and flags any building without a completed inspection
+  logged for the current season. Use this if your facility has ever taken
+  water damage to stored goods because a clogged drain or roof issue wasn't
+  caught before the rainy season hit.
+category: self-storage
+tags: [self-storage, maintenance, roof-inspection, storm-preparedness]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select building_id, address, last_inspection_date, season_label from buildings where season_label = '{{current_season_label}}' and (last_inspection_date is null or last_inspection_date < '{{season_start_date}}');"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility maintenance database.
+  current_season_label:
+    default: "storm-2026"
+    description: Label identifying the current storm/rain season's inspection cycle, e.g. "storm-2026".
+  season_start_date:
+    default: "2026-06-01"
+    description: Date the current storm/rain season is considered to start, used to check whether the last inspection is recent enough.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `buildings` table with `building_id`, `address`,
+  `last_inspection_date`, and a `season_label` used to tag which
+  inspection cycle each record belongs to — adjust the query and labels
+  to your schema and region's storm season timing. Read-only: it only
+  lists buildings that still need an inspection logged, it does not
+  perform or schedule the inspection itself.

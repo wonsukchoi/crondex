@@ -1,0 +1,25 @@
+id: water-main-break-repair-aging-check
+version: 1
+name: Water Main Break Repair Aging Check
+description: >
+  Lists open water main break repair orders that have stayed unresolved
+  longer than the target repair window, ordered by how long they've been
+  open. Use this if a main break has ever stayed under a barricade for
+  days longer than it should have because the repair crew's backlog wasn't
+  visible to anyone outside the field office.
+category: utilities
+tags: [utilities, water, main-break, repair-backlog, field-operations]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select break_id, location_description, reported_at, status, (current_date - reported_at::date) as days_open from main_breaks where status <> 'repaired' and (current_date - reported_at::date) > {{max_open_days}} order by days_open desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the water utility's field-operations/work-order database.
+  max_open_days:
+    default: "3"
+    description: Maximum days a main break repair should stay open before it's flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `main_breaks` table with `break_id`, `location_description`, `reported_at`, and `status` columns — adjust to your work-order/CMMS system's schema. Read-only reporting job; it does not dispatch repair crews itself. An open main break also risks ongoing non-revenue water loss and service disruption, so treat aging hits as a priority.

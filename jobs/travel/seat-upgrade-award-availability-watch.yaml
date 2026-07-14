@@ -1,0 +1,47 @@
+id: seat-upgrade-award-availability-watch
+version: 1
+name: Seat Upgrade / Award Availability Watch
+description: >
+  Reminds you to check upgrade waitlist status or award-seat
+  availability for an upcoming flight as departure gets closer. Use
+  this if you've ever forgotten a standing upgrade request and only
+  noticed it never cleared after you'd already boarded in economy.
+category: travel
+tags: [travel, flight, upgrade, loyalty]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  The user has a flight on {{route}}, {{flight_date}}, and requested a
+  {{upgrade_type}} upgrade using {{loyalty_program}} (current waitlist
+  position or award search noted as: {{status_note}}). If the flight is
+  within {{check_window_days}} days, summarize what's worth checking:
+  whether upgrade priority/waitlist position has moved, whether new
+  award or upgrade space has opened on the {{loyalty_program}} site or
+  app, and whether it's time to consider a same-day standby or gate
+  request instead. Keep the output to a short actionable checklist, not
+  a lookup of live seat maps you can't actually access.
+variables:
+  route:
+    default: "your route (e.g. SFO-NRT)"
+    description: Flight route with the pending upgrade or award request.
+  flight_date:
+    default: "2026-12-31"
+    description: Flight departure date (YYYY-MM-DD).
+  upgrade_type:
+    default: "business class"
+    description: What kind of upgrade or award seat is being sought.
+  loyalty_program:
+    default: "your airline loyalty program"
+    description: Program the upgrade/award request is through.
+  status_note:
+    default: "not yet checked"
+    description: Manually-updated note on waitlist position or last award search result.
+  check_window_days:
+    default: 14
+    description: Start prompting checks this many days before departure, when upgrade space typically starts clearing.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Agent-prompt because upgrade waitlists and award space aren't exposed
+  via a consistent public API — this produces a checklist/reminder, not
+  a live seat-map lookup. Update status_note yourself after checking.

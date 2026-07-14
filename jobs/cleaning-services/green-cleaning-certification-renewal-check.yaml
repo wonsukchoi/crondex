@@ -1,0 +1,37 @@
+id: green-cleaning-certification-renewal-check
+version: 1
+name: Green Cleaning Certification Renewal Check
+description: >
+  Checks expiry dates on green-cleaning or eco-certifications (product
+  certifications, crew training credentials, or facility-level
+  certifications like Green Seal) and flags anything expiring soon. Use
+  this if a commercial client has ever required proof of an active
+  eco-certification and the business almost lost the contract because
+  the certificate had quietly lapsed.
+category: cleaning-services
+tags: [cleaning-services, certifications, green-cleaning, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cert=$1; holder=$2; expiry=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      now = systime();
+      days_left = int((expiry_epoch - now) / 86400);
+      if (days_left < 0) printf "EXPIRED: %s (%s) expired %s\n", cert, holder, expiry;
+      else if (days_left <= warndays) printf "EXPIRING SOON: %s (%s) expires %s (%d days left)\n", cert, holder, expiry, days_left;
+    }
+  ' "{{certifications_csv_path}}"
+variables:
+  certifications_csv_path:
+    default: "./green-certifications.csv"
+    description: "CSV with header row, columns: certification_name,holder_name,expiry_date (YYYY-MM-DD); holder_name is a crew member, product line, or the company itself."
+  warn_days_before_expiry:
+    default: 45
+    description: Number of days before expiry to start flagging a certification as expiring soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; renewal requirements vary by certifying body, so confirm the specific renewal process before the deadline hits.

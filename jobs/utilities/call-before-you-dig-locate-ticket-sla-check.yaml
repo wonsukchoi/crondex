@@ -1,0 +1,25 @@
+id: call-before-you-dig-locate-ticket-sla-check
+version: 1
+name: Call-Before-You-Dig Locate Ticket SLA Check
+description: >
+  Checks open underground-utility locate tickets (811/call-before-you-dig
+  requests) against the required response SLA and lists any that are
+  approaching or past their deadline. Use this if a locate ticket has ever
+  blown past the legal response window and turned into a damaged line, a
+  fine, or an excavator sitting idle waiting on marks that never came.
+category: utilities
+tags: [utilities, underground-utilities, locate-tickets, "811", sla]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select ticket_id, requested_at, dig_site_address, status, extract(epoch from (now() - requested_at)) / 3600 as hours_open from locate_tickets where status <> 'marked' and requested_at < now() - interval '{{sla_response_hours}} hours' order by requested_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the locate-ticket management database.
+  sla_response_hours:
+    default: "48"
+    description: Required response time (in hours) for marking a locate ticket before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `locate_tickets` table with `ticket_id`, `requested_at`, `dig_site_address`, and `status` columns — adjust to your locate-ticket management system's schema (most one-call centers expose a similar export). Read-only reporting job; it does not dispatch locate crews or mark the ticket itself, and a missed SLA is a damage-prevention and regulatory risk, so route hits to field operations immediately.

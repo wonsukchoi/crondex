@@ -1,0 +1,36 @@
+id: property-access-info-staleness-check
+version: 1
+name: Property Access Info Staleness Check
+description: >
+  Checks how long it's been since each client's property-access details
+  (garage codes, key locations, alarm codes, gate codes) were last
+  confirmed and flags anyone overdue for a re-verification call or text.
+  Use this if a crew has ever shown up to a job and the door code no
+  longer worked because the client changed it and nobody updated the
+  file.
+category: cleaning-services
+tags: [cleaning-services, property-access, security, client-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxdays="{{max_days_since_verified}}" '
+    NR==1 {next}
+    {
+      client=$1; last_verified=$2;
+      cmd = "date -d \"" last_verified "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" last_verified "\" +%s 2>/dev/null";
+      cmd | getline verified_epoch; close(cmd);
+      now = systime();
+      days = int((now - verified_epoch) / 86400);
+      if (days > maxdays) printf "STALE: %s access info last verified %s (%d days ago)\n", client, last_verified, days;
+    }
+  ' "{{access_log_csv_path}}"
+variables:
+  access_log_csv_path:
+    default: "./property-access-log.csv"
+    description: "CSV with header row, columns: client_name,last_verified_date (YYYY-MM-DD),access_notes."
+  max_days_since_verified:
+    default: 90
+    description: Number of days access info can go unconfirmed before it's flagged as stale.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; pair with a quick confirmation text or call to the client to re-verify codes before flags accumulate.

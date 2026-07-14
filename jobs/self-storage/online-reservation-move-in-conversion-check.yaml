@@ -1,0 +1,32 @@
+id: online-reservation-move-in-conversion-check
+version: 1
+name: Online Reservation Move-In Conversion Check
+description: >
+  Compares online unit reservations made in the last several days against
+  which of those reservations actually converted into a completed move-in,
+  and flags reservations that are still open past a reasonable window with
+  no move-in on record. Use this if you take online reservations and
+  suspect some of them are quietly falling through the cracks instead of
+  becoming paying tenants or getting followed up on.
+category: self-storage
+tags: [self-storage, reservations, conversion, sales-followup]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select reservation_id, prospect_name, prospect_phone, unit_size, reserved_at from reservations where status = 'open' and reserved_at <= current_date - interval '{{stale_after_days}} days' order by reserved_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management/CRM database.
+  stale_after_days:
+    default: "3"
+    description: How many days an online reservation can sit without converting to a move-in before it's flagged for followup.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `reservations` table with `reservation_id`, `prospect_name`,
+  `prospect_phone`, `unit_size`, `reserved_at`, and a `status` field that
+  moves to something other than `open` (e.g. `converted` or `canceled`)
+  once the prospect either moves in or cancels — adjust the query to your
+  schema. Read-only: it only lists stale reservations for staff to call,
+  it does not cancel reservations or contact anyone itself.

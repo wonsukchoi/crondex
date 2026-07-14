@@ -1,0 +1,25 @@
+id: gas-pipeline-odorization-test-due-reminder
+version: 1
+name: Gas Pipeline Odorization Test Due Reminder
+description: >
+  Checks the gas system's odorization test log for pipeline segments whose
+  next scheduled odor-level test falls within a lookahead window, and lists
+  them soonest-due first. Use this if a required periodic odorization test
+  has ever nearly lapsed because the due date only lived in a technician's
+  paper logbook.
+category: utilities
+tags: [utilities, gas, pipeline-safety, odorization, regulatory-compliance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select segment_id, segment_name, last_test_date, next_test_due_date, (next_test_due_date - current_date) as days_until_due from odorization_tests where next_test_due_date <= current_date + {{lookahead_days}} order by next_test_due_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the gas system's odorization/pipeline-safety database.
+  lookahead_days:
+    default: "14"
+    description: How many days ahead to scan for upcoming odorization test due dates.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `odorization_tests` table with `segment_id`, `segment_name`, `last_test_date`, and `next_test_due_date` columns — adjust to your pipeline-safety management system's schema. Read-only reminder job; it does not schedule or perform the odorization test itself. Missed odorization tests are a common regulatory citation item, so route hits to the gas operations/compliance team promptly.

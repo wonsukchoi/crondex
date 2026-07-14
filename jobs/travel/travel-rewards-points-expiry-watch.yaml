@@ -1,0 +1,39 @@
+id: travel-rewards-points-expiry-watch
+version: 1
+name: Travel Rewards Points Expiry Watch (Multi-Program)
+description: >
+  Checks a consolidated list of hotel, credit-card, and other travel
+  rewards points balances (excluding airline miles, which have their
+  own job) for upcoming expiry dates due to account inactivity. Use
+  this if you've ever lost a stash of hotel points because you forgot
+  that one program alone, buried in a spreadsheet of five, was about
+  to zero out.
+category: travel
+tags: [travel, loyalty, points, rewards]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  echo "{{programs_and_expiry_csv}}" | tr ';' '\n' | while IFS=',' read -r program balance expiry; do
+    [ -z "$program" ] && continue;
+    exp_epoch=$(date -d "$expiry" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$expiry" +%s 2>/dev/null);
+    [ -z "$exp_epoch" ] && continue;
+    days_left=$(( (exp_epoch-today_epoch)/86400 ));
+    if [ "$days_left" -le "{{warn_days_before}}" ] && [ "$days_left" -ge 0 ]; then
+      echo "EXPIRING SOON: $program — $balance point(s) expire in $days_left day(s) ($expiry). A small purchase/booking or transfer usually resets the clock.";
+    fi;
+  done
+variables:
+  programs_and_expiry_csv:
+    default: "Hotel Program A,10000,2026-12-31;Credit Card Points B,25000,2027-03-15"
+    description: "Semicolon-separated list of program,balance,expiry_date (YYYY-MM-DD) entries — update as balances/expiry dates change."
+  warn_days_before:
+    default: 30
+    description: Warn when a program's expiry is within this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from frequent-flyer-miles-expiry — this covers
+  hotel/credit-card/other non-airline points programs in one
+  consolidated list. Balances/dates are manually maintained since
+  most loyalty programs don't expose a public balance API.

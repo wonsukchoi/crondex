@@ -1,0 +1,25 @@
+id: smart-meter-firmware-rollout-tracker
+version: 1
+name: Smart Meter Firmware Rollout Tracker
+description: >
+  Groups the AMI/smart-meter fleet by firmware version and reports what
+  percentage of meters are still running behind the target version, so a
+  firmware rollout doesn't quietly stall partway through. Use this if a
+  smart-meter firmware update has ever dragged on for months because
+  nobody was tracking rollout progress against the fleet total.
+category: utilities
+tags: [utilities, smart-meter, ami, firmware, rollout]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select firmware_version, count(*) as meter_count, round(100.0 * count(*) / sum(count(*)) over (), 2) as pct_of_fleet from smart_meters group by firmware_version order by firmware_version <> '{{target_firmware_version}}' desc, meter_count desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the AMI head-end or meter-inventory database.
+  target_firmware_version:
+    default: "4.2.1"
+    description: Firmware version the rollout is trying to get the entire meter fleet onto.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `smart_meters` table with `firmware_version` and one row per meter — adjust to your AMI head-end system's schema. Read-only reporting job; it does not push firmware or reboot meters itself.

@@ -1,0 +1,35 @@
+id: gate-code-sharing-anomaly-check
+version: 1
+name: Gate Code Sharing Anomaly Check
+description: >
+  Looks at gate access logs for codes used from multiple distinct vehicles
+  or at overlapping times in a way a single tenant couldn't plausibly
+  account for, and flags those codes as possibly shared beyond the tenant
+  of record. Use this if you suspect some tenants are handing out their
+  access code to people who aren't on the lease.
+category: self-storage
+tags: [self-storage, gate-access, security, fraud-detection]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select access_code, tenant_id, count(distinct vehicle_plate) as distinct_plates, count(*) as entry_count from gate_access_logs where entry_time >= current_date - interval '{{lookback_days}} days' group by access_code, tenant_id having count(distinct vehicle_plate) >= {{plate_threshold}} order by distinct_plates desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the gate-access log database.
+  lookback_days:
+    default: "14"
+    description: How many days of gate access history to scan for anomalies.
+  plate_threshold:
+    default: "3"
+    description: Minimum number of distinct vehicle plates on one access code within the window to flag it as possibly shared.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `gate_access_logs` table with `access_code`, `tenant_id`,
+  `vehicle_plate`, and `entry_time` columns, populated from your gate
+  vendor's entry log export (plate capture is not universal, so this only
+  works if your gate hardware records it) — adjust the query to your
+  schema. Read-only: it flags patterns worth a human look, it does not
+  deactivate any code itself and multiple plates can have innocent
+  explanations (e.g. a household with several cars).

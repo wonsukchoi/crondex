@@ -1,0 +1,31 @@
+id: cash-drawer-reconciliation-check
+version: 1
+name: Cash Drawer Reconciliation Check
+description: >
+  Compares each front-office cash drawer's recorded closing count against
+  the expected total from logged cash transactions for the day, and flags
+  any shift with a discrepancy over a set threshold. Use this if your
+  facility takes cash payments at the counter and wants a routine check for
+  shortages or overages instead of finding out weeks later during an audit.
+category: self-storage
+tags: [self-storage, cash-handling, reconciliation, facility-operations]
+schedule: "0 22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select shift_id, employee_name, shift_date, expected_cash_total, counted_cash_total, (counted_cash_total - expected_cash_total) as variance from cash_drawer_shifts where shift_date = current_date and abs(counted_cash_total - expected_cash_total) >= {{variance_threshold}} order by abs(counted_cash_total - expected_cash_total) desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the point-of-sale/facility management database.
+  variance_threshold:
+    default: "5.00"
+    description: Minimum dollar amount of variance between expected and counted cash before a shift is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `cash_drawer_shifts` table with `shift_id`, `employee_name`,
+  `shift_date`, `expected_cash_total`, and `counted_cash_total` columns,
+  where the expected total is derived from logged cash transactions for
+  that shift — adjust the query to your schema. Read-only: it flags shifts
+  worth reviewing, it does not accuse anyone of wrongdoing or adjust any
+  balance itself; small variances are common and not automatically fraud.

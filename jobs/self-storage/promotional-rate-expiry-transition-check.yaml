@@ -1,0 +1,31 @@
+id: promotional-rate-expiry-transition-check
+version: 1
+name: Promotional Rate Expiry Transition Check
+description: >
+  Lists tenants whose introductory or promotional rental rate is about to
+  roll over to the standard published rate, so staff can notify them ahead
+  of the increase instead of it showing up unannounced on a bill. Use this
+  if you offer move-in specials or discounted first months and have ever
+  had a tenant complain about a surprise rate jump.
+category: self-storage
+tags: [self-storage, pricing, promotions, tenant-communication]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, tenant_email, promo_rate, standard_rate, promo_end_date from unit_leases where promo_rate is not null and promo_end_date between current_date and current_date + interval '{{notice_days}} days' order by promo_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  notice_days:
+    default: "10"
+    description: How many days before the promotional rate ends to start notifying the tenant.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `unit_leases` table with `unit_number`, `tenant_name`,
+  `tenant_email`, `promo_rate`, `standard_rate`, and `promo_end_date`
+  columns, where `promo_rate` is null once a tenant is on the standard
+  rate — adjust the query to your schema. Read-only: it only lists
+  upcoming rate transitions, it does not send the notice or change any
+  billing rate itself.

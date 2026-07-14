@@ -1,0 +1,40 @@
+id: ev-charging-station-uptime-monitor
+version: 1
+name: EV Charging Station Uptime Monitor
+description: >
+  Polls the EV charging network's status API for stations reporting
+  offline, faulted, or unreachable, and reports how long each has been
+  down. Use this if a charging station has ever sat dark for days before
+  anyone noticed, driving away customers and hurting the utility's
+  make-ready or network-operator reputation.
+category: utilities
+tags: [utilities, ev-charging, infrastructure, uptime, monitoring]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  curl -s --max-time 15 "{{station_status_api_url}}" |
+  grep -o '"station_id":"[^"]*"\|"status":"[^"]*"\|"last_seen":"[^"]*"' |
+  head -c 4000
+prompt: |
+  Fetch the current station status feed from {{station_status_api_url}}.
+  1. List every station reporting offline, faulted, or unreachable.
+  2. For each, estimate how long it has been down based on its last-seen
+     timestamp.
+  3. Flag any station offline longer than {{offline_threshold_minutes}}
+     minutes as needing a technician dispatched today.
+  4. Summarize overall network uptime as a percentage of total stations.
+script_note: >
+  `command` dumps raw station IDs, statuses, and last-seen timestamps with
+  no downtime calculation or prioritization — you'd still have to compute
+  outage duration and decide what's urgent yourself. `prompt` calculates
+  downtime, flags dispatch-worthy stations, and summarizes fleet uptime.
+variables:
+  station_status_api_url:
+    default: "https://example.com/api/ev-stations/status"
+    description: URL of the EV charging network's station status API or feed.
+  offline_threshold_minutes:
+    default: "30"
+    description: Minutes a station can be offline before it's flagged as needing a technician dispatched.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Adjust `station_status_api_url` and the `grep` pattern to your charging network operator's actual API response shape (ChargePoint, EVgo, in-house OCPP backend, etc.) — the field names here are illustrative. Read-only monitoring job; it does not reset or reboot stations itself.

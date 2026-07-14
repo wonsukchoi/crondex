@@ -1,0 +1,32 @@
+id: tenant-contact-info-staleness-check
+version: 1
+name: Tenant Contact Info Staleness Check
+description: >
+  Finds active tenants whose email has bounced, whose phone number was
+  flagged disconnected, or whose contact info hasn't been confirmed in a
+  long time, so staff can reach out through another channel while the
+  tenant is still on-site. Use this if you've ever needed to contact a
+  tenant urgently (lien notice, lockout, emergency) and discovered their
+  info on file was dead.
+category: self-storage
+tags: [self-storage, tenant-communication, data-quality, facility-operations]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select tenant_id, tenant_name, unit_number, email, phone, last_contact_verified_at from tenants where status = 'active' and (email_bounced = true or phone_disconnected = true or last_contact_verified_at < current_date - interval '{{staleness_days}} days') order by last_contact_verified_at asc nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  staleness_days:
+    default: "365"
+    description: How many days since contact info was last verified before it's considered stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `tenants` table with `tenant_id`, `tenant_name`, `unit_number`,
+  `email`, `phone`, `email_bounced`, `phone_disconnected`, and
+  `last_contact_verified_at` columns, where the bounce/disconnect flags are
+  set by your email/SMS provider's webhook or delivery reports — adjust the
+  query to your schema. Read-only: it only lists tenants needing a contact
+  update, it does not attempt to reach them itself.

@@ -1,0 +1,25 @@
+id: substation-inspection-schedule-compliance-check
+version: 1
+name: Substation Inspection Schedule Compliance Check
+description: >
+  Scans the asset-management system for substations whose routine
+  inspection interval has lapsed, and lists them ordered by how overdue
+  they are. Use this if a substation has ever gone longer than the
+  regulatory or internal inspection interval allows because the last
+  inspection date only lived in a spreadsheet nobody cross-checked.
+category: utilities
+tags: [utilities, electric, substation, inspection, asset-management]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select substation_id, substation_name, last_inspection_date, (current_date - last_inspection_date) as days_since_inspection from substations where (current_date - last_inspection_date) > {{inspection_interval_days}} order by days_since_inspection desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the substation asset-management database.
+  inspection_interval_days:
+    default: "180"
+    description: Maximum days allowed between routine substation inspections before a substation counts as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `substations` table with `substation_id`, `substation_name`, and `last_inspection_date` columns tied to your asset-management or GIS system — adjust to your schema. Read-only reporting job; it does not schedule inspection crews or file compliance reports itself.

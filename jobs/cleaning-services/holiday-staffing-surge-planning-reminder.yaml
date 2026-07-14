@@ -1,0 +1,43 @@
+id: holiday-staffing-surge-planning-reminder
+version: 1
+name: Holiday Staffing Surge Planning Reminder
+description: >
+  Compares upcoming holiday or peak-season booking volume against current
+  crew headcount and availability, and drafts a staffing plan noting
+  where extra hires, overtime, or subcontractors will be needed. Use this
+  if a holiday deep-clean rush has ever caught the business short-staffed
+  because planning only started once the bookings were already piling
+  up.
+category: cleaning-services
+tags: [cleaning-services, staffing, seasonal, planning]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the upcoming bookings forecast at {{bookings_forecast_csv_path}}
+  (columns: week_start_date, forecasted_jobs, avg_crew_hours_per_job) and
+  the current crew roster at {{crew_roster_csv_path}} (columns:
+  crew_name, weekly_available_hours, status). For each of the next
+  {{lookahead_weeks}} weeks, estimate total crew-hours needed
+  (forecasted_jobs * avg_crew_hours_per_job) and compare it to total
+  available crew-hours from active crew. Flag any week where the gap
+  exceeds {{surge_gap_threshold_hours}} hours, and draft a short staffing
+  plan for each flagged week covering whether the answer is overtime,
+  a temporary hire, a subcontractor, or rescheduling non-urgent jobs.
+  Call out holiday weeks specifically since they often combine higher
+  demand with reduced crew availability.
+variables:
+  bookings_forecast_csv_path:
+    default: "./bookings-forecast.csv"
+    description: "CSV with header row, columns: week_start_date,forecasted_jobs,avg_crew_hours_per_job."
+  crew_roster_csv_path:
+    default: "./crew-roster.csv"
+    description: "CSV with header row, columns: crew_name,weekly_available_hours,status (active or inactive)."
+  lookahead_weeks:
+    default: 8
+    description: Number of upcoming weeks to project staffing needs for.
+  surge_gap_threshold_hours:
+    default: 20
+    description: Crew-hour shortfall in a given week above which a staffing gap is flagged.
+compatible_agents: [claude, codex, generic]
+notes: Planning aid only — actual hiring, overtime approval, and subcontractor agreements still require manager sign-off.

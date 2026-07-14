@@ -1,0 +1,35 @@
+id: workers-comp-claim-follow-up-tracker
+version: 1
+name: Workers' Comp Claim Follow-Up Tracker
+description: >
+  Reviews open workers' compensation claims and flags any that haven't had
+  a status update or adjuster contact within a set number of days, so an
+  injured employee's claim doesn't stall in silence. Use this if a
+  workers' comp claim has ever gone weeks without anyone checking in on
+  it because the incident report was filed and then forgotten.
+category: cleaning-services
+tags: [cleaning-services, "workers-comp", hr, safety, claims]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the workers' comp claims log at {{claims_csv_path}} (columns:
+  claim_id, employee_name, injury_date, claim_status, last_update_date,
+  adjuster_name, adjuster_contact). Find every claim with status "open"
+  or "pending" whose last_update_date is more than
+  {{stale_after_days}} days ago. For each one, draft a short follow-up
+  message to the adjuster (using adjuster_name and adjuster_contact)
+  asking for a status update on behalf of the employee, and note how
+  long it's been since injury_date so urgency is clear. Summarize the
+  total number of stale claims and flag any employee who has been
+  waiting the longest, since claims that go quiet the longest tend to
+  create the most frustration and legal risk.
+variables:
+  claims_csv_path:
+    default: "./workers-comp-claims.csv"
+    description: "CSV with header row, columns: claim_id,employee_name,injury_date,claim_status,last_update_date,adjuster_name,adjuster_contact."
+  stale_after_days:
+    default: 14
+    description: Number of days a claim can go without a status update before it's flagged as stale.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — follow-up messages should be reviewed by whoever manages the claim (owner, HR, or broker) before sending, and this is not a substitute for legal or insurance advice.

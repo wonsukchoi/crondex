@@ -1,0 +1,43 @@
+id: post-trip-expense-report-deadline-reminder
+version: 1
+name: Post-Trip Expense Report Submission Deadline Reminder
+description: >
+  Reminds you daily after a business trip ends that the expense
+  report itself still needs to be submitted, until it's marked done.
+  Use this if you've ever collected every receipt perfectly during a
+  trip and then let the actual report submission slip past the
+  deadline anyway.
+category: travel
+tags: [travel, expenses, deadline, business]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_end_epoch=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  due_epoch=$(date -d "{{expense_report_due_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{expense_report_due_date}}" +%s);
+  today_epoch=$(date +%s);
+  if [ "{{report_submitted}}" = "yes" ]; then echo "OK: expense report already submitted."; exit 0; fi;
+  if [ "$today_epoch" -lt "$trip_end_epoch" ]; then echo "note: trip hasn't ended yet — this reminder starts after trip_end_date."; exit 0; fi;
+  days_to_due=$(( (due_epoch-today_epoch)/86400 ));
+  if [ "$days_to_due" -lt 0 ]; then echo "OVERDUE: expense report was due {{expense_report_due_date}} and is still marked unsubmitted — submit it now.";
+  elif [ "$days_to_due" -le "{{warn_days_before_due}}" ]; then echo "REMINDER: expense report due in $days_to_due day(s) ({{expense_report_due_date}}) and not yet submitted.";
+  else echo "OK: trip ended, report due {{expense_report_due_date}}, not yet submitted but not urgent."; fi
+variables:
+  trip_end_date:
+    default: "2026-12-31"
+    description: Last day of the business trip (YYYY-MM-DD) — reminders start after this.
+  expense_report_due_date:
+    default: "2027-01-15"
+    description: Date the expense report itself is due.
+  warn_days_before_due:
+    default: 3
+    description: Start daily warnings this many days before the due date.
+  report_submitted:
+    default: "no"
+    description: Whether the report has been submitted ("yes" or "no") — update once submitted to stop the reminders.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from trip-expense-receipt-collection-reminder,
+  which nudges you to log receipts during the trip — this tracks the
+  separate downstream step of actually filing and submitting the
+  finished report.

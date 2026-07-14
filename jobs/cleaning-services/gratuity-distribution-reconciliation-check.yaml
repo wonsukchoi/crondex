@@ -1,0 +1,45 @@
+id: gratuity-distribution-reconciliation-check
+version: 1
+name: Gratuity Distribution Reconciliation Check
+description: >
+  Compares tips and gratuities collected per job against what was
+  actually distributed to the crew members who worked that job, and
+  flags any mismatch. Use this if a client has ever added a tip to an
+  invoice or handed cash to a crew lead and there was no reliable way to
+  confirm it actually reached the cleaners who earned it.
+category: cleaning-services
+tags: [cleaning-services, gratuity, payroll, reconciliation]
+schedule: "0 18 * * 5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v tolerance="{{mismatch_tolerance_cents}}" '
+    NR==1 {next}
+    {
+      job=$1; collected=$2+0; distributed=$3+0;
+      diff = collected - distributed;
+      absdiff = (diff < 0) ? -diff : diff;
+      if (absdiff * 100 > tolerance) printf "MISMATCH: job %s — collected $%.2f, distributed $%.2f, diff $%.2f\n", job, collected, distributed, diff;
+    }
+  ' "{{gratuity_csv_path}}"
+prompt: >
+  Read the gratuity log at {{gratuity_csv_path}} (columns: job_id,
+  gratuity_collected, gratuity_distributed, crew_members_on_job,
+  distribution_date). Identify every job where gratuity_collected and
+  gratuity_distributed differ by more than
+  {{mismatch_tolerance_cents}} cents. For each mismatch, note how many
+  crew_members_on_job were listed and whether the shortfall looks like a
+  rounding issue, a missed distribution, or a pattern tied to a
+  particular crew or time period across multiple jobs. Summarize total
+  undistributed gratuity dollars across all flagged jobs so it's clear
+  how much money needs to be tracked down and paid out.
+script_note: The command flags per-job dollar mismatches with zero tokens; only the prompt mode looks for whether mismatches cluster around a specific crew or period, which points to the root cause.
+variables:
+  gratuity_csv_path:
+    default: "./gratuity-log.csv"
+    description: "CSV with header row, columns: job_id,gratuity_collected,gratuity_distributed,crew_members_on_job,distribution_date."
+  mismatch_tolerance_cents:
+    default: 100
+    description: Maximum allowed difference, in cents, between gratuity collected and distributed before a job is flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; requires both collection and distribution to be logged per job, not just deposited into a lump-sum pool.

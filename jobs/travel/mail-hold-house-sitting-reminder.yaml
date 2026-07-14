@@ -1,0 +1,39 @@
+id: mail-hold-house-sitting-reminder
+version: 1
+name: Mail Hold / House-Sitting Arrangement Reminder
+description: >
+  Reminds you to schedule a mail hold and confirm house-sitting or
+  security arrangements (lights, plants, mail pile visibility) before
+  you leave for a trip. Use this if you've ever come home to a
+  mailbox stuffed full of mail — a visible sign to everyone on the
+  street that nobody was home.
+category: travel
+tags: [travel, home, security, mail]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (trip_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then echo "note: trip start date has passed — update trip_start_date for your next trip.";
+  elif [ "$days_left" -le "{{warn_days_before}}" ]; then echo "REMINDER: $days_left day(s) until trip — schedule a mail hold ({{mail_hold_method}}) and confirm house-sitting/plant/light arrangements with {{house_sitter_name}}.";
+  else echo "OK: $days_left day(s) until trip, no action needed yet."; fi
+variables:
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  mail_hold_method:
+    default: "your local postal service's hold-mail service"
+    description: How you plan to stop mail piling up (postal hold service, neighbor, etc).
+  house_sitter_name:
+    default: "your house sitter or trusted neighbor"
+    description: Who's checking on the house/plants/pets while you're away.
+  warn_days_before:
+    default: 5
+    description: Start reminding this many days before the trip.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't file the mail hold or contact anyone for you —
+  most postal services don't expose a public scheduling API — it's a
+  nudge to handle it yourself before departure.

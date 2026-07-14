@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1651 jobs across 60 categories:
+1699 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -191,7 +191,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 32 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
-| `cleaning-services` | 20 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
+| `cleaning-services` | 32 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 32 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
@@ -236,15 +236,15 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
-| `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
+| `self-storage` | 32 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 32 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 32 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
-| `travel` | 20 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `utilities` | 20 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
+| `travel` | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
+| `utilities` | 32 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 32 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 20 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->

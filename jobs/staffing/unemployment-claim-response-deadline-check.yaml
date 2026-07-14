@@ -1,0 +1,40 @@
+id: unemployment-claim-response-deadline-check
+version: 1
+name: Unemployment Claim Response Deadline Check
+description: >
+  Scans open unemployment insurance claims against former workers and
+  flags any claim whose state-mandated response deadline is approaching,
+  since missing that deadline usually means the claim gets paid by
+  default regardless of the facts. Use this if the agency has ever eaten
+  an unemployment charge it could have contested, simply because the
+  response window closed unnoticed.
+category: staffing
+tags: [staffing, unemployment-claims, compliance, deadlines, ui-tax]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v windowDays="{{alert_window_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; state=$2; deadline_date=$3; responded=$4;
+      if (responded == "no") {
+        cmd = "date -d \"" deadline_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" deadline_date "\" +%s 2>/dev/null";
+        cmd | getline dl_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_left = (dl_epoch - now_epoch) / 86400;
+        if (days_left <= windowDays) {
+          printf "CLAIM DEADLINE: %s (%s) — response due %s, %.0f days left\n", worker, state, deadline_date, days_left;
+        }
+      }
+    }
+  ' "{{unemployment_claims_csv_path}}"
+variables:
+  unemployment_claims_csv_path:
+    default: "./unemployment-claims-log.csv"
+    description: "Path to a CSV with columns: former_worker_name,state,response_deadline (YYYY-MM-DD),responded (yes/no)."
+  alert_window_days:
+    default: 5
+    description: Days before the state response deadline to flag an unanswered claim.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Preparing and filing the actual response is a manual HR/compliance task, often with state-specific forms.

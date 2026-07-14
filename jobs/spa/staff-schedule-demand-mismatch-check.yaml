@@ -1,0 +1,46 @@
+id: staff-schedule-demand-mismatch-check
+version: 1
+name: Staff Schedule vs. Booking Demand Mismatch Check
+description: >
+  Compares next week's staffing schedule against actual booked
+  appointment volume per shift and flags shifts that are badly
+  over- or under-staffed relative to demand. Use this if a Saturday
+  morning has ever been double-booked into a waitlist while three
+  therapists sat idle on a slow Tuesday because the schedule was built
+  on habit instead of demand.
+category: spa
+tags: [spa, scheduling, staffing, operations]
+schedule: "0 15 * * 4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_per_staff="{{target_bookings_per_staff}}" -v idle_gap="{{idle_threshold}}" '
+    NR==1 {next}
+    { staff_count[$1,$2]=$3; bookings[$1,$2]=$4 }
+    END {
+      for (key in staff_count) {
+        split(key, parts, SUBSEP);
+        shift_date = parts[1]; shift_name = parts[2];
+        s = staff_count[key]; b = bookings[key];
+        if (s == 0) { continue }
+        ratio = b / s;
+        if (ratio > max_per_staff) {
+          printf "OVERBOOKED SHIFT: %s %s — %d bookings for %d staff (%.1f per person)\n", shift_date, shift_name, b, s, ratio;
+        } else if (max_per_staff - ratio >= idle_threshold) {
+          printf "UNDERUTILIZED SHIFT: %s %s — %d bookings for %d staff (%.1f per person)\n", shift_date, shift_name, b, s, ratio;
+        }
+      }
+    }
+  ' "{{shift_demand_csv_path}}"
+variables:
+  shift_demand_csv_path:
+    default: "./shift-demand.csv"
+    description: "Path to a CSV with columns: shift_date,shift_name,staff_scheduled,bookings_count."
+  target_bookings_per_staff:
+    default: 4
+    description: Target number of bookings per scheduled staff member for a balanced shift.
+  idle_threshold:
+    default: 2.5
+    description: How far below target a shift's bookings-per-staff ratio must fall before it's flagged as underutilized.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from therapist-utilization-rate-check, which looks at historical utilization per therapist — this looks forward at next week's schedule against booked demand so staffing can still be adjusted.

@@ -1,0 +1,38 @@
+id: work-authorization-reverification-deadline-check
+version: 1
+name: Work Authorization Re-Verification Deadline Check
+description: >
+  Scans worker work-authorization expiration dates (e.g. visa or
+  employment-authorization document expiry) and flags anyone whose
+  document needs re-verification within the coming window, so the agency
+  never lets someone's authorization to work lapse mid-assignment. Use
+  this if a worker's authorization has ever expired before HR caught it,
+  forcing an emergency pull from a client site.
+category: staffing
+tags: [staffing, compliance, work-authorization, i-9, immigration]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v windowDays="{{alert_window_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; doc_type=$2; expiry_date=$3;
+      cmd = "date -d \"" expiry_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry_date "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (exp_epoch - now_epoch) / 86400;
+      if (days_left <= windowDays) {
+        printf "REVERIFICATION DUE: %s — %s expires %s (%.0f days left)\n", worker, doc_type, expiry_date, days_left;
+      }
+    }
+  ' "{{work_auth_expiry_csv_path}}"
+variables:
+  work_auth_expiry_csv_path:
+    default: "./work-authorization-expiry.csv"
+    description: "Path to a CSV with columns: worker_name,document_type (e.g. EAD/visa/I-9-reverification),expiry_date (YYYY-MM-DD)."
+  alert_window_days:
+    default: 45
+    description: Days before expiry to start flagging a worker for re-verification.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Actually re-verifying I-9/work-authorization documents must be done by an authorized HR representative following current legal requirements — this only flags timing.

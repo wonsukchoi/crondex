@@ -1,0 +1,36 @@
+id: recruiter-submittal-productivity-check
+version: 1
+name: Recruiter Submittal Productivity Check
+description: >
+  Counts how many candidate submittals each recruiter sent to clients this
+  week against their target and flags anyone falling short. Use this if
+  a slow week has ever only surfaced at the monthly pipeline review
+  instead of while there was still time to fix it.
+category: staffing
+tags: [staffing, recruiting, recruiter-performance, submittals, productivity]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{weekly_submittal_target}}" '
+    NR==1 {next}
+    {
+      recruiter=$1; count[recruiter]++;
+    }
+    END {
+      for (r in count) {
+        if (count[r] < target) {
+          printf "BELOW TARGET: %s — %d submittals (target %s)\n", r, count[r], target;
+        }
+      }
+    }
+  ' "{{submittal_log_csv_path}}"
+variables:
+  submittal_log_csv_path:
+    default: "./recruiter-submittal-log.csv"
+    description: "Path to a CSV of this week's submittals with columns: recruiter_name,candidate_id,client_name,submittal_date."
+  weekly_submittal_target:
+    default: 8
+    description: Minimum number of candidate submittals a recruiter is expected to send per week.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Low submittal count can reflect thin requisitions as much as recruiter effort — a manager should confirm before coaching anyone.

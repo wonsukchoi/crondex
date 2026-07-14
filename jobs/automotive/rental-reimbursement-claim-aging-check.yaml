@@ -1,0 +1,41 @@
+id: rental-reimbursement-claim-aging-check
+version: 1
+name: Rental Car Reimbursement Claim Aging Check
+description: >
+  Checks open rental car reimbursement claims (insurance or warranty-funded
+  loaner/rental coverage) against how many days they've been outstanding
+  and flags anything past your normal reimbursement turnaround. Use this if
+  a rental reimbursement has ever gone unpaid for months because the claim
+  was submitted and then never followed up on.
+category: automotive
+tags: [automotive, rental, reimbursement, claims]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{aging_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      if ($5 != "") {next}
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sub_ts; close(cmd);
+      days_open = (today - sub_ts) / 86400;
+      if (days_open >= warn) {
+        printf "AGING CLAIM: RO %s — submitted to %s on %s, $%s outstanding, %d days open\n", $1, $4, $2, $3, days_open;
+      }
+    }
+  ' "{{rental_claims_csv_path}}"
+variables:
+  rental_claims_csv_path:
+    default: "./rental-reimbursement-claims.csv"
+    description: "Path to a CSV with columns: ro_number,submitted_date (YYYY-MM-DD),claim_amount,payer_name,paid_date (blank if unpaid)."
+  aging_days:
+    default: 21
+    description: Days a claim can sit unpaid before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `loaner-fleet-availability-check` and
+  `loaner-vehicle-return-reminder`, which track the physical loaner/rental
+  fleet; this job tracks the reimbursement paperwork/payment side of
+  rental coverage claims.

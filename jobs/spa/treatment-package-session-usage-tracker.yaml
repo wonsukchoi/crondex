@@ -1,0 +1,39 @@
+id: treatment-package-session-usage-tracker
+version: 1
+name: Treatment Package Session Usage Tracker
+description: >
+  Tracks how many sessions a client has used from a purchased series
+  package (e.g. "6-session laser package") against how many remain and
+  how long it's been since their last visit, flagging series that have
+  gone dormant. Use this if a client has ever bought a bundle of
+  sessions and stopped coming back halfway through, leaving revenue on
+  the table and the client under-treated.
+category: spa
+tags: [spa, packages, client-retention, revenue]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v dormant_days="{{dormant_days_threshold}}" '
+    NR==1 {next}
+    {
+      remaining = $3 - $4;
+      if (remaining <= 0) { next }
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      if (days_since >= dormant_days) {
+        printf "DORMANT PACKAGE: %s — %s, %d of %d sessions used, last visit %s (%d days ago)\n", $1, $2, $4, $3, $5, days_since;
+      }
+    }
+  ' "{{package_usage_csv_path}}"
+variables:
+  package_usage_csv_path:
+    default: "./package-session-usage.csv"
+    description: "Path to a CSV with columns: client_name,package_name,total_sessions,sessions_used,last_session_date (YYYY-MM-DD)."
+  dormant_days_threshold:
+    default: 60
+    description: Days since the last session before an in-progress package is flagged as dormant and worth a rebooking outreach.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from membership-unused-session-expiry-check, which watches expiry dates on memberships — this tracks mid-series dropout on one-time package purchases that may not expire at all.

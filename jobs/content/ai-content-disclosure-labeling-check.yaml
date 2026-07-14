@@ -1,0 +1,48 @@
+id: ai-content-disclosure-labeling-check
+version: 1
+name: AI Content Disclosure Labeling Check
+description: >
+  Scans recently published posts for content that appears to be
+  AI-generated or AI-assisted and checks whether it carries the
+  disclosure label your editorial policy requires. Use this if your
+  team uses AI drafting tools and wants to make sure disclosure labels
+  don't get dropped in the rush to publish.
+category: content
+tags: [content, ai-disclosure, editorial-policy, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review posts published in {{content_dir}} within the last
+  {{lookback_days}} days.
+  1. For each post, check the frontmatter/metadata field
+     "{{ai_assisted_field}}" if present, and separately skim the body
+     text for signals of AI-assisted drafting (frontmatter marking it as
+     such, boilerplate disclosure phrasing, or an explicit note from the
+     author).
+  2. Cross-check against {{disclosure_policy_note}} for what disclosure
+     is required and where it should appear (e.g. a visible byline note,
+     not just hidden metadata).
+  3. Flag posts where the metadata field says AI-assisted but no visible
+     reader-facing disclosure exists, and separately flag posts that read
+     as plausibly AI-drafted but carry no metadata field either way (for
+     a human to double check).
+  4. Report each flagged post's URL/path and which check it failed.
+variables:
+  content_dir:
+    default: "content/posts"
+    description: Directory containing published post source files to scan.
+  lookback_days:
+    default: 30
+    description: How many days back to check newly published posts.
+  ai_assisted_field:
+    default: "ai_assisted"
+    description: Frontmatter/metadata field name used to mark AI-assisted content.
+  disclosure_policy_note:
+    default: "AI-assisted posts must show an 'AI-assisted' note near the byline."
+    description: Plain-language summary of what your disclosure policy actually requires.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Metadata-based detection is only as reliable as your team's habit of
+  setting the field; the body-text skim is a heuristic, not a detector,
+  and should be treated as a prompt for human review rather than a verdict.

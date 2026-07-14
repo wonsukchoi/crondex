@@ -1,0 +1,40 @@
+id: referral-bonus-payout-tracker
+version: 1
+name: Employee Referral Bonus Payout Tracker
+description: >
+  Checks referred candidates who've hit their referral-bonus milestone
+  (e.g. completed 90 days on assignment) against the payout log and flags
+  any bonus that's earned but not yet paid, since unpaid referral bonuses
+  are one of the fastest ways to kill an internal referral program. Use
+  this if an employee has ever had to ask twice why their referral bonus
+  never showed up in a paycheck.
+category: staffing
+tags: [staffing, referral-bonus, payroll, retention, worker-satisfaction]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v milestoneDays="{{milestone_days}}" '
+    NR==1 {next}
+    {
+      referred_worker=$1; referrer=$2; start_date=$3; paid=$4;
+      if (paid == "no") {
+        cmd = "date -d \"" start_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" start_date "\" +%s 2>/dev/null";
+        cmd | getline start_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        tenure_days = (now_epoch - start_epoch) / 86400;
+        if (tenure_days >= milestoneDays) {
+          printf "BONUS OWED: %s referred by %s — started %s, %.0f days on assignment, unpaid\n", referred_worker, referrer, start_date, tenure_days;
+        }
+      }
+    }
+  ' "{{referral_log_csv_path}}"
+variables:
+  referral_log_csv_path:
+    default: "./referral-bonus-log.csv"
+    description: "Path to a CSV with columns: referred_worker_name,referrer_name,assignment_start_date (YYYY-MM-DD),paid (yes/no)."
+  milestone_days:
+    default: 90
+    description: Days a referred worker must stay on assignment before the referral bonus is earned.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Issuing the actual payout goes through payroll; this only flags who's owed one.

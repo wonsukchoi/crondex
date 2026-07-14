@@ -1,0 +1,48 @@
+id: client-no-show-fee-collection-check
+version: 1
+name: Client No-Show Fee Collection Check
+description: >
+  Finds no-show and late-cancellation fees that were charged in the
+  booking system but never actually collected, and drafts a polite
+  follow-up for the ones sitting longest. Use this if a no-show fee
+  has ever been logged as "charged" and then quietly never made it
+  onto the client's card because the charge failed silently.
+category: spa
+tags: [spa, no-show, billing, front-desk, revenue]
+schedule: "0 11 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v maxdays="{{max_uncollected_days}}" '
+    NR==1 {next}
+    $4 == "uncollected" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline fee_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - fee_epoch) / 86400;
+      if (age_days >= maxdays) {
+        printf "UNCOLLECTED NO-SHOW FEE: %s — $%s billed %s, %d days outstanding\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{noshow_fees_csv_path}}"
+prompt: >
+  Read {{noshow_fees_csv_path}} (columns: client_name, fee_amount,
+  charge_date, status). For every row where status is "uncollected" and
+  the fee is older than {{max_uncollected_days}} days, draft a short,
+  friendly follow-up message (SMS-length, under 300 characters) asking
+  the client to update their card on file to settle the no-show fee.
+  Keep the tone matter-of-fact and non-accusatory, and mention the
+  amount and date of the missed appointment.
+script_note: >
+  The command only lists which fees are uncollected and how old — it
+  doesn't draft outreach copy. Use `prompt` mode when you want
+  ready-to-send follow-up messages for each flagged client.
+variables:
+  noshow_fees_csv_path:
+    default: "./noshow-fees.csv"
+    description: "Path to a CSV with columns: client_name,fee_amount,charge_date (YYYY-MM-DD),status (collected/uncollected)."
+  max_uncollected_days:
+    default: 5
+    description: Days a no-show fee can sit uncollected before it's flagged for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Draft-only — review each message before sending, and check whether the client has a documented emergency exemption before pursuing collection.

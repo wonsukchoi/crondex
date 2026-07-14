@@ -1,0 +1,46 @@
+id: vehicle-history-report-spend-check
+version: 1
+name: Vehicle History Report Spend Check
+description: >
+  Reviews vehicle history report (CarFax/AutoCheck-style) pulls from the
+  past month and flags cost overruns against your monthly budget or a spike
+  in reports pulled per vehicle appraised, so per-report fees don't quietly
+  erode used-vehicle appraisal margin. Use this if the vehicle history
+  report bill has ever come in high and nobody could say why.
+category: automotive
+tags: [automotive, used-vehicles, cost-control, reporting]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v budget="{{monthly_budget}}" '
+    NR==1 {next}
+    {
+      total += $3 + 0;
+      count[$2]++;
+    }
+    END {
+      printf "TOTAL SPEND: %.2f (budget %.2f)\n", total, budget;
+      if (total > budget) {
+        printf "OVER BUDGET by %.2f\n", total - budget;
+      }
+      for (vin in count) {
+        if (count[vin] > 1) {
+          printf "DUPLICATE PULLS: VIN %s pulled %d times this period\n", vin, count[vin];
+        }
+      }
+    }
+  ' "{{report_pulls_csv_path}}"
+variables:
+  report_pulls_csv_path:
+    default: "./vehicle-history-report-pulls.csv"
+    description: "Path to a CSV with columns: pull_date,vin,report_cost."
+  monthly_budget:
+    default: 500
+    description: Monthly budget in dollars for vehicle history report pulls, before flagging an overrun.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `used-vehicle-inventory-aging-check` — that job tracks how
+  long units sit on the lot; this one tracks a specific recurring
+  per-vehicle cost line (history report fees) that's easy to overspend on
+  when appraisers re-pull reports on the same VIN.

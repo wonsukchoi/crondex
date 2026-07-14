@@ -1,0 +1,44 @@
+id: candidate-pipeline-dropoff-rate-check
+version: 1
+name: Candidate Pipeline Drop-Off / Ghosting Rate Check
+description: >
+  Measures what share of candidates disappear between each recruiting
+  pipeline stage (submitted, interviewed, offered, started) over a rolling
+  window and flags stages with an unusually high drop-off rate. Use this
+  if candidates have ever gone silent mid-process and nobody noticed until
+  a client asked where the person went.
+category: staffing
+tags: [staffing, recruiting, pipeline, ghosting, funnel]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v dropThreshold="{{dropoff_threshold_pct}}" '
+    NR==1 {next}
+    {
+      stage=$2;
+      count[stage]++;
+      total++;
+    }
+    END {
+      order[1]="submitted"; order[2]="interviewed"; order[3]="offered"; order[4]="started";
+      for (i=1; i<4; i++) {
+        s1=order[i]; s2=order[i+1];
+        if (count[s1] > 0) {
+          dropoff_pct = 100 - ((count[s2] / count[s1]) * 100);
+          if (dropoff_pct >= dropThreshold) {
+            printf "HIGH DROP-OFF: %s -> %s — %.1f%% did not advance (%d of %d)\n", s1, s2, dropoff_pct, count[s1]-count[s2], count[s1];
+          }
+        }
+      }
+    }
+  ' "{{pipeline_stage_log_csv_path}}"
+variables:
+  pipeline_stage_log_csv_path:
+    default: "./candidate-pipeline-log.csv"
+    description: "Path to a CSV with columns: candidate_id,stage (submitted/interviewed/offered/started)."
+  dropoff_threshold_pct:
+    default: 40
+    description: Drop-off percentage between consecutive stages that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Read-only analysis. This is a rough snapshot count, not a true cohort funnel — treat it as a signal to investigate, not a precise conversion rate.

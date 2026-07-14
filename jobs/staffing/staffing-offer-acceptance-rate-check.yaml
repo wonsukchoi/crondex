@@ -1,0 +1,41 @@
+id: staffing-offer-acceptance-rate-check
+version: 1
+name: Offer Acceptance Rate Trend Check
+description: >
+  Calculates what share of extended offers candidates actually accepted
+  over the last two periods and flags a meaningful drop, since a falling
+  acceptance rate usually means pay rates, counter-offers, or time-to-offer
+  have slipped out of line with the market. Use this if an acceptance-rate
+  slide has ever only become visible after several placements fell
+  through in a row.
+category: staffing
+tags: [staffing, offers, acceptance-rate, recruiting-ops, trend]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull offer records from {{ats_vms_system}} for the current period
+  ({{current_period_label}}) and the prior period ({{prior_period_label}}).
+  1. For each period, compute the offer acceptance rate: offers accepted
+     divided by offers extended.
+  2. Compare the two rates. If the current period's rate has dropped by
+     {{decline_threshold_points}} percentage points or more, flag it.
+  3. For any flagged decline, look at the declined offers and note the
+     likely driver where evident (counter-offer, pay rate below expectation,
+     slow time-to-offer, candidate withdrew, role changed) so the summary
+     is actionable rather than just a number.
+variables:
+  ats_vms_system:
+    default: "your ATS/VMS (e.g. Bullhorn, JobDiva, Vincere)"
+    description: Where offer and outcome data is tracked.
+  current_period_label:
+    default: "this month"
+    description: Label for the most recent period to evaluate.
+  prior_period_label:
+    default: "last month"
+    description: Label for the comparison period.
+  decline_threshold_points:
+    default: 10
+    description: Percentage-point drop in acceptance rate between periods that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis. Adjusting pay bands or offer process based on this trend is a manager decision.

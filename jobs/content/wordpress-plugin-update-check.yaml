@@ -1,0 +1,36 @@
+id: wordpress-plugin-update-check
+version: 1
+name: WordPress Plugin & Theme Update Check
+description: >
+  Compares the plugin versions listed in your local manifest against the
+  latest versions published on the WordPress.org plugin directory. Use
+  this if an outdated plugin has ever been the reason your site broke or
+  got flagged for a security issue.
+category: content
+tags: [content, wordpress, maintenance, updates]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=',' read -r slug installed; do
+    [ "$slug" = "slug" ] && continue;
+    [ -z "$slug" ] && continue;
+    latest=$(curl -sL --max-time 10 "https://api.wordpress.org/plugins/info/1.0/${slug}.json" | grep -o '"version":"[^"]*"' | head -n1 | sed -E 's/"version":"([^"]*)"/\1/');
+    if [ -z "$latest" ]; then
+      echo "UNKNOWN: could not look up $slug on wordpress.org";
+    elif [ "$latest" != "$installed" ]; then
+      echo "OUTDATED: $slug installed=$installed latest=$latest";
+    else
+      echo "OK: $slug is up to date ($installed)";
+    fi;
+  done < "{{plugin_manifest_csv}}"
+variables:
+  plugin_manifest_csv:
+    default: "./wp-plugins.csv"
+    description: "CSV with header row, columns: slug,installed — WordPress.org plugin slug and the version currently installed."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only covers plugins hosted on the public WordPress.org directory, not
+  premium/marketplace plugins without a public API entry. Keep the
+  manifest CSV updated from your actual site (e.g. `wp plugin list
+  --format=csv` via WP-CLI) for this to be meaningful.

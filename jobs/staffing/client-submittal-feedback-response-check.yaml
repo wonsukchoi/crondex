@@ -1,0 +1,52 @@
+id: client-submittal-feedback-response-check
+version: 1
+name: Client Submittal Feedback Response-Time Check
+description: >
+  Tracks how long clients are taking to give feedback (interview, reject,
+  or hold) on submitted candidates and flags submittals sitting silent
+  past a threshold, since a slow client response is one of the top
+  reasons good candidates take another offer. Use this if a strong
+  candidate has ever accepted a competing offer while waiting on client
+  feedback that never came.
+category: staffing
+tags: [staffing, client-feedback, submittals, recruiting-ops, sla]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v staleDays="{{no_feedback_alert_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; client=$2; submit_date=$3; status=$4;
+      if (status == "awaiting-feedback") {
+        cmd = "date -d \"" submit_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" submit_date "\" +%s 2>/dev/null";
+        cmd | getline sub_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_days = (now_epoch - sub_epoch) / 86400;
+        if (age_days >= staleDays) {
+          printf "NO CLIENT FEEDBACK: %s at %s — submitted %s, %.0f days silent\n", candidate, client, submit_date, age_days;
+        }
+      }
+    }
+  ' "{{submittal_status_csv_path}}"
+prompt: |
+  Read {{submittal_status_csv_path}} (columns: candidate_name, client_name,
+  submit_date, status) and list every submittal in "awaiting-feedback"
+  status for {{no_feedback_alert_days}} days or more, same as the script.
+  Then group the stale submittals by client and note which clients are
+  repeat offenders on slow feedback, since that pattern is useful context
+  the raw list doesn't surface and may warrant a conversation with the
+  account owner.
+script_note: >
+  The command gives you the flagged stale submittals. The prompt adds
+  grouping by client to spot repeat-offender accounts, which needs
+  aggregation judgment beyond a per-row check.
+variables:
+  submittal_status_csv_path:
+    default: "./client-submittal-status.csv"
+    description: "Path to a CSV with columns: candidate_name,client_name,submit_date (YYYY-MM-DD),status (awaiting-feedback/interview/rejected/on-hold)."
+  no_feedback_alert_days:
+    default: 5
+    description: Business days a submittal can sit without client feedback before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Following up with the client contact is a manual account-management task.

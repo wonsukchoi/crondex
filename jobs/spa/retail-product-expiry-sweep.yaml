@@ -1,0 +1,37 @@
+id: retail-product-expiry-sweep
+version: 1
+name: Retail Shelf Product Expiry-Date Sweep
+description: >
+  Scans the retail shelf inventory (skincare, serums, sunscreen sold to
+  clients) for items nearing their printed expiry or "period after
+  opening" date and flags them for markdown or pull. Use this if a
+  client has ever bought a serum off the retail shelf that turned out
+  to be expired, because nobody was sweeping the shelf stock separately
+  from the backbar treatment stock.
+category: spa
+tags: [spa, retail, inventory, expiry, product-safety]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (exp_epoch - now_epoch) / 86400;
+      if (days_left <= warn) {
+        printf "RETAIL PRODUCT EXPIRING: %s (qty %s) — expires %s (%d days), pull or markdown\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{retail_inventory_csv_path}}"
+variables:
+  retail_inventory_csv_path:
+    default: "./retail-shelf-inventory.csv"
+    description: "Path to a CSV with columns: product_name,quantity_on_shelf,expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: Days before expiry to flag for markdown or removal, leaving enough runway to run a promo before pulling stock.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from product-chemical-expiry-check, which covers backbar treatment products — this one covers client-facing retail shelf stock.

@@ -1,0 +1,38 @@
+id: keyword-cannibalization-check
+version: 1
+name: Keyword Cannibalization Check
+description: >
+  Looks across your published posts for multiple pages that appear to be
+  targeting the same primary keyword or search intent, competing with
+  each other instead of one clear page winning. Use this if you suspect
+  your own older and newer posts are splitting search traffic that
+  should be going to a single, stronger page.
+category: content
+tags: [content, seo, keyword-strategy]
+schedule: "0 8 15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the post metadata export at {{post_metadata_csv}} (CSV with
+  columns: url, title, target_keyword, publish_date) covering all
+  currently published posts.
+  1. Group posts by target_keyword, and also flag pairs of posts whose
+     titles or target_keyword values are near-duplicates even if not
+     an exact match (synonyms, singular/plural, close variants).
+  2. For each group/pair with more than one post, note the publish dates
+     and titles, and suggest a resolution: consolidate into the stronger
+     post with a redirect, differentiate the angle/intent of each post,
+     or mark it as intentional (e.g. a pillar page plus a supporting
+     deep-dive is fine).
+  3. Report groups ranked by how similar the target keywords are,
+     closest matches first.
+variables:
+  post_metadata_csv:
+    default: "./content/post-metadata.csv"
+    description: "CSV export of published posts with columns: url,title,target_keyword,publish_date."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Relies on target_keyword being filled in consistently at publish time;
+  if that field doesn't exist yet, this job's first useful run may just
+  be "you don't track this per post" — worth fixing before trusting the
+  output.

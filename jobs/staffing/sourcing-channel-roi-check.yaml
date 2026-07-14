@@ -1,0 +1,47 @@
+id: sourcing-channel-roi-check
+version: 1
+name: Sourcing Channel ROI Check
+description: >
+  Compares spend and hires produced by each candidate sourcing channel
+  (job boards, referrals, agencies, social) over a period and flags
+  channels whose cost-per-hire has drifted well above the rest. Use this
+  if a job board renewal has ever gone through on autopilot without
+  anyone checking whether it's still producing placements.
+category: staffing
+tags: [staffing, sourcing, roi, recruiting-spend, job-boards]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v capMultiple="{{cost_per_hire_alert_multiple}}" '
+    NR==1 {next}
+    {
+      channel=$1; spend=$2+0; hires=$3+0;
+      spend_sum[channel]+=spend; hires_sum[channel]+=hires;
+    }
+    END {
+      total_spend=0; total_hires=0;
+      for (c in spend_sum) { total_spend+=spend_sum[c]; total_hires+=hires_sum[c]; }
+      if (total_hires == 0) { print "No hires recorded in this period."; exit }
+      avg_cph = total_spend / total_hires;
+      for (c in spend_sum) {
+        if (hires_sum[c] > 0) {
+          cph = spend_sum[c] / hires_sum[c];
+          if (cph >= avg_cph * capMultiple) {
+            printf "HIGH COST/HIRE: %s — $%.2f per hire (fleet avg $%.2f), %d hires, $%.2f spend\n", c, cph, avg_cph, hires_sum[c], spend_sum[c];
+          }
+        } else if (spend_sum[c] > 0) {
+          printf "ZERO HIRES: %s — $%.2f spent, 0 hires\n", c, spend_sum[c];
+        }
+      }
+    }
+  ' "{{sourcing_spend_csv_path}}"
+variables:
+  sourcing_spend_csv_path:
+    default: "./sourcing-channel-spend.csv"
+    description: "Path to a CSV with columns: channel_name,spend_amount,hires_count for the reporting period."
+  cost_per_hire_alert_multiple:
+    default: 2
+    description: How many times above the average cost-per-hire a channel must be to get flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Cancelling or renegotiating a job board contract is a manual recruiting-ops decision.

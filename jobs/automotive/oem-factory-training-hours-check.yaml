@@ -1,0 +1,39 @@
+id: oem-factory-training-hours-check
+version: 1
+name: OEM Factory Training Hours Compliance Check
+description: >
+  Checks each technician's completed manufacturer/OEM factory training
+  hours for the current program year against the required minimum and
+  flags anyone falling behind pace. Use this if a tech has ever gotten
+  close to year-end still short on required training hours, risking loss
+  of factory-certified status even though their individual certifications
+  hadn't technically expired yet.
+category: automotive
+tags: [automotive, technician, training, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v required="{{required_annual_hours}}" -v month="$(date +%-m)" '
+    NR==1 {next}
+    {
+      completed = $2 + 0;
+      expected_pace = required * (month / 12);
+      if (completed < expected_pace) {
+        printf "BEHIND PACE: %s — %.1f hours completed, %.1f expected by now (%d required for the year)\n", $1, completed, expected_pace, required;
+      }
+    }
+  ' "{{training_hours_csv_path}}"
+variables:
+  training_hours_csv_path:
+    default: "./oem-training-hours.csv"
+    description: "Path to a CSV with columns: technician_name,hours_completed_ytd."
+  required_annual_hours:
+    default: 40
+    description: Required OEM factory training hours per technician per program year.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `ase-certification-expiry-check` — that job watches
+  individual certification expiration dates; this one watches progress
+  toward an annual continuing-education hours requirement that factory
+  certification programs typically impose separately.

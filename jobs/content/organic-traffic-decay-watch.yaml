@@ -1,0 +1,44 @@
+id: organic-traffic-decay-watch
+version: 1
+name: Organic Traffic Decay Watch
+description: >
+  Compares recent organic search traffic per page against each page's own
+  prior peak and flags pages that were doing well and have since dropped
+  off. Use this if content has ever quietly lost its ranking and traffic
+  months before anyone on the team noticed.
+category: content
+tags: [content, seo, analytics, traffic]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the per-page organic traffic export at {{traffic_export_path}}
+  (CSV with columns: url, month, organic_sessions), covering at least the
+  last {{lookback_months}} months.
+  1. For each URL, find its peak monthly organic_sessions value within
+     the window and the most recent month's value.
+  2. Flag any URL where the most recent value is at least
+     {{decay_threshold_percent}}% below its peak, and the peak was more
+     than 2 months ago (to avoid flagging normal short-term noise).
+  3. Rank flagged URLs by absolute session drop (peak minus recent),
+     highest first.
+  4. Report the top {{top_n}} with peak month/value, recent month/value,
+     and percent decline, so the biggest real losses surface first.
+variables:
+  traffic_export_path:
+    default: "./analytics/organic-traffic-by-page.csv"
+    description: CSV export of monthly organic sessions per URL.
+  lookback_months:
+    default: 12
+    description: Months of history to consider when finding each page's peak.
+  decay_threshold_percent:
+    default: 40
+    description: Percent drop from peak required before a page is flagged.
+  top_n:
+    default: 20
+    description: Maximum number of decayed pages to include in the report.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Needs a per-page, per-month traffic export (from GA4, Search Console, or
+  similar) rather than aggregate site-wide traffic — page-level history is
+  what makes the peak-vs-recent comparison meaningful.

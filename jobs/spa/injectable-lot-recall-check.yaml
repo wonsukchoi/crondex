@@ -1,0 +1,51 @@
+id: injectable-lot-recall-check
+version: 1
+name: Medspa Injectable Lot-Number Recall Check
+description: >
+  Compares the lot numbers of injectables (neurotoxins, dermal fillers)
+  currently in inventory or already administered against manufacturer
+  recall notices. Use this if a medspa has ever kept using a batch of
+  product past a recall notice because nobody was cross-referencing lot
+  numbers against manufacturer bulletins.
+category: spa
+tags: [spa, medspa, injectables, safety, recall, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    BEGIN { while ((getline line < "{{recalled_lots_csv_path}}") > 0) {
+      n++; recalled[n]=line;
+    } close("{{recalled_lots_csv_path}}") }
+    NR==1 {next}
+    {
+      for (i=1; i<=n; i++) {
+        split(recalled[i], rf, ",");
+        if ($2 == rf[1]) {
+          printf "RECALLED LOT IN USE: product=%s lot=%s — administered/stocked, recall reason: %s\n", $1, $2, rf[2];
+        }
+      }
+    }
+  ' "{{inventory_csv_path}}"
+prompt: >
+  Read {{inventory_csv_path}} (columns: product_name, lot_number,
+  client_or_status) and {{recalled_lots_csv_path}} (columns: lot_number,
+  recall_reason). Cross-reference the two, and for every matching lot
+  number, write a short incident note: which product/lot is affected,
+  whether it was administered to a specific client or is still in stock,
+  and a recommended next step (quarantine remaining stock, notify
+  affected clients, or both). Prioritize any row where the product was
+  already administered to a named client.
+script_note: >
+  The command only lists the raw lot-number matches — it doesn't draft
+  client-notification language or prioritize by urgency. Use `prompt`
+  mode when you need incident notes ready to hand to the medical director.
+variables:
+  inventory_csv_path:
+    default: "./injectable-inventory.csv"
+    description: "Path to a CSV with columns: product_name,lot_number,client_or_status (client name if administered, or 'in-stock')."
+  recalled_lots_csv_path:
+    default: "./recalled-lots.csv"
+    description: "Path to a CSV with columns: lot_number,recall_reason, sourced from manufacturer recall bulletins."
+compatible_agents: [generic, claude, codex]
+notes: Injectable safety is medically and legally sensitive — any match must be confirmed with the medical director before client notification or product disposal; this job only surfaces the possible match, it never acts.

@@ -1,0 +1,40 @@
+id: paint-mix-inventory-expiry-check
+version: 1
+name: Body Shop Paint Mix Inventory Expiry Check
+description: >
+  Checks body shop paint toners, mixes, and clearcoat/hardener stock against
+  each product's shelf life and flags anything close to or past its expiry
+  date. Use this if a paint job has ever come out wrong, or gotten
+  scrapped, because a toner or hardener had gone past its usable shelf
+  life without anyone checking the can date.
+category: automotive
+tags: [automotive, body-shop, paint, inventory]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "EXPIRING: %s (%s) — expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{paint_inventory_csv_path}}"
+variables:
+  paint_inventory_csv_path:
+    default: "./paint-mix-inventory.csv"
+    description: "Path to a CSV with columns: product_name,product_type,expiry_date (YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning, giving time to use up or reorder the product.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Applies to toners, base coats, clearcoats, hardeners, and reducers used
+  in a body/paint shop; distinct from `shop-supply-reorder-check`, which
+  covers general consumable reorder points rather than shelf-life expiry
+  of formulated paint products.

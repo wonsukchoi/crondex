@@ -1,0 +1,48 @@
+id: intake-form-staleness-check
+version: 1
+name: Client Intake Form Staleness Check
+description: >
+  Flags clients with upcoming appointments whose health-history intake
+  form is missing or older than the required refresh window. Use this
+  if a returning client has ever sat down for a treatment on a two-year-old
+  intake form that no longer reflects their current medications or
+  medical history.
+category: spa
+tags: [spa, intake-forms, compliance, client-care]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxdays="{{max_intake_age_days}}" '
+    BEGIN { while ((getline line < "{{intake_forms_csv_path}}") > 0) {
+      split(line, f, ","); last_date[f[1]]=f[2];
+    } close("{{intake_forms_csv_path}}") }
+    NR==FNR { next }
+    FNR==1 { next }
+    {
+      client = $1;
+      if (!(client in last_date)) {
+        printf "MISSING INTAKE FORM: %s — appointment %s, no form on file\n", client, $2;
+        next;
+      }
+      cmd = "date -d \"" last_date[client] "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_date[client] "\" +%s 2>/dev/null";
+      cmd | getline form_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - form_epoch) / 86400;
+      if (age_days > maxdays) {
+        printf "STALE INTAKE FORM: %s — appointment %s, last form dated %s (%d days old)\n", client, $2, last_date[client], age_days;
+      }
+    }
+  ' "{{intake_forms_csv_path}}" "{{upcoming_appointments_csv_path}}"
+variables:
+  intake_forms_csv_path:
+    default: "./client-intake-forms.csv"
+    description: "Path to a CSV with columns: client_name,last_completed_date (YYYY-MM-DD)."
+  upcoming_appointments_csv_path:
+    default: "./upcoming-appointments.csv"
+    description: "Path to a CSV with columns: client_name,appointment_date."
+  max_intake_age_days:
+    default: 365
+    description: Days an intake form stays valid before it must be refilled, adjust to match your state's requirement.
+compatible_agents: [generic, claude, codex]
+notes: Have the client refill the form at check-in rather than skipping the treatment — this job is a reminder, not a booking blocker.

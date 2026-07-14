@@ -1,0 +1,51 @@
+id: courtesy-inspection-upsell-conversion-tracker
+version: 1
+name: Courtesy Inspection Upsell Conversion Tracker
+description: >
+  Reviews multi-point courtesy inspections performed over the past week and
+  measures what share of recommended additional work actually turned into
+  sold repair orders, broken down by technician or advisor. Use this if
+  inspections have ever been getting done but nobody could tell whether the
+  recommendations were actually converting into booked work.
+category: automotive
+tags: [automotive, service-lane, upsell, conversion]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Using the courtesy inspection log in {{inspections_csv_path}} and the sold
+  repair order log in {{sold_ros_csv_path}} for the past 7 days, for
+  {{shop_name}}:
+  1. Match each inspection's recommended line items to whether they
+     appeared as sold line items on a repair order within the following
+     {{conversion_window_days}} days.
+  2. Calculate the overall conversion rate (recommended items sold / total
+     recommended items) and the dollar value of converted vs. unconverted
+     recommendations.
+  3. Break the conversion rate down by service advisor and, if the data
+     supports it, by inspecting technician.
+  4. Flag any advisor or technician whose conversion rate is more than
+     {{low_conversion_threshold_pct}} percent below the shop average, and
+     any recommendation category (tires, brakes, fluids, etc.) that
+     consistently underperforms.
+  5. Summarize as: overall conversion rate, total recommended dollars,
+     total converted dollars, and the lowest-performing advisor/category
+     worth coaching.
+variables:
+  inspections_csv_path:
+    default: "./courtesy-inspections.csv"
+    description: "Path to a CSV of inspections with columns like ro_number, inspecting_tech, service_advisor, recommended_item, recommended_amount, inspection_date."
+  sold_ros_csv_path:
+    default: "./sold-repair-orders.csv"
+    description: "Path to a CSV of sold repair order line items with columns like ro_number, line_item, sold_amount, sold_date."
+  shop_name:
+    default: "the shop"
+    description: Name of the dealership or repair shop, for report context.
+  conversion_window_days:
+    default: 30
+    description: Days after an inspection recommendation during which a sale still counts as converted.
+  low_conversion_threshold_pct:
+    default: 20
+    description: Percentage points below the shop average that flags an advisor or technician as underperforming.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `estimate-approval-followup-check` — that job chases pending estimate approvals on a specific RO; this one measures aggregate conversion of inspection recommendations into sales over time.

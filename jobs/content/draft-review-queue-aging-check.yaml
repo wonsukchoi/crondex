@@ -1,0 +1,37 @@
+id: draft-review-queue-aging-check
+version: 1
+name: Draft Review Queue Aging Check
+description: >
+  Flags drafts that have been sitting in "in review" status for too long
+  without being approved, rejected, or bounced back to the writer. Use
+  this if posts have ever gone stale in editorial limbo because a
+  reviewer forgot they were waiting on them.
+category: content
+tags: [content, editorial-workflow, review]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look at the CMS/editorial tracker at {{tracker_source}} and list every
+  item currently in "{{review_status_label}}" status.
+  1. For each, find when it entered that status.
+  2. Flag any item that has been waiting more than {{max_review_days}}
+     days without a status change or reviewer comment.
+  3. Group the flagged items by assigned reviewer.
+  4. Report each reviewer's stuck items with title, days waiting, and
+     the writer who submitted it, so it's obvious who to nudge.
+variables:
+  tracker_source:
+    default: "https://example.com/api/content/status"
+    description: Editorial tracker or CMS endpoint/board listing content items and their review status.
+  review_status_label:
+    default: "In Review"
+    description: The exact status label used for items awaiting editorial review.
+  max_review_days:
+    default: 5
+    description: Business days a draft can sit in review before it's flagged as stuck.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Needs read access to whatever tracks editorial status (CMS API, Notion,
+  Airtable, a project board) — the exact source varies per team, which is
+  why this is agent-prompt rather than a fixed script.

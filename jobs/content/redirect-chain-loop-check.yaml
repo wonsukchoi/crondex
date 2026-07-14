@@ -1,0 +1,53 @@
+id: redirect-chain-loop-check
+version: 1
+name: Redirect Chain & Loop Check
+description: >
+  Follows each redirect in your redirect map and flags any URL that
+  chains through more than one hop before landing, or loops back on
+  itself. Use this if your redirects file has grown organically over
+  years and you're no longer sure some of those entries still point
+  somewhere sane.
+category: content
+tags: [content, seo, redirects]
+schedule: "0 6 * * 4"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=',' read -r from to; do
+    [ "$from" = "from" ] && continue;
+    [ -z "$from" ] && continue;
+    hops=0;
+    current="$from";
+    seen="|$current|";
+    while [ "$hops" -lt "{{max_hops_to_check}}" ]; do
+      code=$(curl -s -o /dev/null --max-time 10 -w "%{http_code}" -L --max-redirs 0 "$current");
+      case "$code" in
+        301|302|307|308) ;;
+        *) break ;;
+      esac;
+      next=$(curl -s -o /dev/null --max-time 10 -D - -L --max-redirs 0 "$current" | grep -i '^location:' | sed 's/[Ll]ocation: //' | tr -d '\r');
+      [ -z "$next" ] && break;
+      hops=$((hops+1));
+      if echo "$seen" | grep -qF "|$next|"; then
+        echo "LOOP: $from eventually redirects back to a URL already seen ($next)";
+        break;
+      fi;
+      seen="$seen$next|";
+      current="$next";
+    done;
+    if [ "$hops" -ge 2 ]; then
+      echo "CHAIN ($hops hops): $from -> ... -> $current";
+    fi;
+  done < "{{redirect_map_csv}}"
+variables:
+  redirect_map_csv:
+    default: "./redirects.csv"
+    description: "CSV with header row, columns: from,to — one row per configured redirect."
+  max_hops_to_check:
+    default: 5
+    description: Maximum redirect hops to follow per URL before giving up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reads redirects from a local CSV rather than crawling live infrastructure
+  config; keep the CSV in sync with whatever actually serves the redirects
+  (CDN rules, web server config, CMS plugin) or point it at an exported copy.

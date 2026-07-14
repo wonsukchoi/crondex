@@ -1,0 +1,42 @@
+id: extended-service-contract-expiry-outreach-check
+version: 1
+name: Extended Service Contract Expiry Outreach Check
+description: >
+  Finds customers whose extended service contract or vehicle service
+  agreement is expiring within the outreach window and drafts a renewal or
+  upgrade outreach list, so coverage doesn't lapse silently and a renewal
+  opportunity isn't missed. Use this if a customer has ever shown up for a
+  covered repair only to find out their contract expired months earlier with
+  no one having reached out.
+category: automotive
+tags: [automotive, service-contracts, renewals, retention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Using the extended service contract roster in {{contracts_csv_path}} for
+  {{shop_name}}:
+  1. Identify every contract expiring within the next {{outreach_window_days}}
+     days (or by mileage, if a current-mileage estimate is available).
+  2. Group them by remaining term length: expiring this month vs. next
+     month vs. later in the window.
+  3. For each customer, draft a short renewal/upgrade outreach message
+     mentioning their vehicle, the contract's expiration date, and a call
+     to action to renew or upgrade before it lapses.
+  4. Flag any contract holder who has an open, unresolved repair order —
+     they're a priority for a phone call rather than just an email.
+  5. Summarize as: total contracts expiring in the window, total potential
+     renewal revenue if list prices are available, and the priority
+     call-list names.
+variables:
+  contracts_csv_path:
+    default: "./extended-service-contracts.csv"
+    description: "Path to a CSV with columns like customer_name, phone, email, vin, expiration_date, contract_type, renewal_price."
+  shop_name:
+    default: "the dealership"
+    description: Name of the dealership, for outreach message context.
+  outreach_window_days:
+    default: 60
+    description: Days before expiration to start including a contract in the outreach list.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `warranty-claim-deadline-check` — that job tracks OEM factory warranty claim filing deadlines on repairs already performed; this one tracks aftermarket/extended service contract expiration and proactive renewal outreach.

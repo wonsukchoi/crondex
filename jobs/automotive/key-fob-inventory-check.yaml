@@ -1,0 +1,34 @@
+id: key-fob-inventory-check
+version: 1
+name: Key/Fob Programming Inventory Check
+description: >
+  Checks key blank and remote fob stock used for programming jobs against a
+  reorder threshold per make/model family and flags anything running low.
+  Use this if a lost-key job has ever been turned away, or delayed a day,
+  because the right blank or fob wasn't in stock.
+category: automotive
+tags: [automotive, parts, keys, inventory]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      onhand = $3 + 0;
+      reorder_point = $4 + 0;
+      if (onhand <= reorder_point) {
+        printf "REORDER: %s %s — %s, %d on hand, reorder point %d\n", $1, $2, $5, onhand, reorder_point;
+      }
+    }
+  ' "{{key_fob_stock_csv_path}}"
+variables:
+  key_fob_stock_csv_path:
+    default: "./key-fob-stock.csv"
+    description: "Path to a CSV with columns: make,model_family,qty_on_hand,reorder_point,key_type (e.g. blade, smart-key, remote-fob)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `parts-reorder-point-check` — key blanks and fobs are
+  usually tracked and sourced separately from general parts inventory
+  because they come from specialized key-cutting/programming suppliers
+  rather than the standard parts distributor.

@@ -1,0 +1,39 @@
+id: field-placement-expense-reimbursement-backlog-check
+version: 1
+name: Field Placement Mileage/Expense Reimbursement Backlog Check
+description: >
+  Checks submitted mileage and expense reimbursement requests from
+  field-placed workers against how long they've been sitting unpaid and
+  flags anything past the agency's turnaround target. Use this if a
+  field worker has ever had to chase the office for weeks to get a
+  mileage reimbursement that should have gone out with a paycheck.
+category: staffing
+tags: [staffing, expense-reimbursement, mileage, field-placement, payroll]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v staleDays="{{reimbursement_sla_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; submit_date=$2; amount=$3+0; paid=$4;
+      if (paid == "no") {
+        cmd = "date -d \"" submit_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" submit_date "\" +%s 2>/dev/null";
+        cmd | getline sub_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_days = (now_epoch - sub_epoch) / 86400;
+        if (age_days >= staleDays) {
+          printf "REIMBURSEMENT OVERDUE: %s — $%.2f submitted %s, %.0f days unpaid\n", worker, amount, submit_date, age_days;
+        }
+      }
+    }
+  ' "{{expense_reimbursement_csv_path}}"
+variables:
+  expense_reimbursement_csv_path:
+    default: "./field-expense-reimbursements.csv"
+    description: "Path to a CSV with columns: worker_name,submit_date (YYYY-MM-DD),amount,paid (yes/no)."
+  reimbursement_sla_days:
+    default: 10
+    description: Days a submitted reimbursement can remain unpaid before it's flagged as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Approving and issuing the actual reimbursement runs through payroll or accounts payable.

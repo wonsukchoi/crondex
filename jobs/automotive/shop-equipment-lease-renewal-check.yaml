@@ -1,0 +1,39 @@
+id: shop-equipment-lease-renewal-check
+version: 1
+name: Shop Equipment Lease/Insurance Renewal Check
+description: >
+  Checks the shop equipment roster (lifts, alignment machines, diagnostic
+  tools, compressors) for lease agreements or equipment insurance riders
+  expiring soon and flags them for renewal. Use this if a piece of leased
+  or insured equipment has ever lapsed into an auto-renewal at a worse rate,
+  or gone uninsured, because nobody was tracking the renewal date.
+category: automotive
+tags: [automotive, equipment, lease, insurance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "RENEWAL DUE: %s (%s) — %s expires %s (%d days left)\n", $1, $2, $4, $3, days_left;
+      }
+    }
+  ' "{{equipment_agreements_csv_path}}"
+variables:
+  equipment_agreements_csv_path:
+    default: "./shop-equipment-agreements.csv"
+    description: "Path to a CSV with columns: equipment_name,category,expiration_date (YYYY-MM-DD),agreement_type (lease or insurance)."
+  warn_days:
+    default: 45
+    description: Days before expiration to start warning, giving time to negotiate renewal terms or shop for alternatives.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers financial/contractual renewal dates for equipment, not physical
+  safety inspections — see `lift-hoist-inspection-due-check` and
+  `wheel-alignment-calibration-due-check` for those.

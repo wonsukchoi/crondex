@@ -1,0 +1,37 @@
+id: temp-worker-benefits-eligibility-waiting-period-check
+version: 1
+name: Temp Worker Benefits Eligibility Waiting-Period Check
+description: >
+  Tracks how many hours or weeks each temp worker has accrued toward the
+  benefits-eligibility waiting period and flags anyone about to cross the
+  threshold, so enrollment paperwork goes out on time instead of after
+  the worker is already legally eligible. Use this if a worker has ever
+  become benefits-eligible without HR realizing until a compliance audit
+  flagged it.
+category: staffing
+tags: [staffing, benefits, aca, eligibility, worker-onboarding]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hoursThreshold="{{eligibility_hours_threshold}}" -v alertHours="{{alert_hours_before}}" '
+    NR==1 {next}
+    {
+      worker=$1; hours_accrued=$2+0; enrolled=$3;
+      if (enrolled == "no" && hours_accrued >= (hoursThreshold - alertHours)) {
+        printf "APPROACHING ELIGIBILITY: %s — %d of %s hours accrued, not yet enrolled\n", worker, hours_accrued, hoursThreshold;
+      }
+    }
+  ' "{{worker_hours_csv_path}}"
+variables:
+  worker_hours_csv_path:
+    default: "./temp-worker-hours-log.csv"
+    description: "Path to a CSV with columns: worker_name,cumulative_hours_accrued,benefits_enrolled (yes/no)."
+  eligibility_hours_threshold:
+    default: 1560
+    description: Cumulative hours (or equivalent measurement-period threshold) at which a temp worker becomes benefits-eligible. Confirm against your plan's actual measurement rules.
+  alert_hours_before:
+    default: 80
+    description: How many hours before hitting the threshold to start flagging the worker for enrollment outreach.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Eligibility rules (e.g. ACA look-back measurement periods) vary by plan and jurisdiction — verify the threshold with benefits counsel before relying on it.

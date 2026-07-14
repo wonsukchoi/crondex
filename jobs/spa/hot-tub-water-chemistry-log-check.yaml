@@ -1,0 +1,54 @@
+id: hot-tub-water-chemistry-log-check
+version: 1
+name: Hot Tub & Sauna Water Chemistry Log Compliance Check
+description: >
+  Verifies that pool, hot tub, and steam room water-chemistry readings
+  have been logged on schedule and fall within safe chemical ranges.
+  Use this if a health inspector has ever asked for the last week's
+  chlorine and pH logs and the front desk realized nobody had recorded
+  a reading in three days.
+category: spa
+tags: [spa, water-chemistry, compliance, safety, hydrotherapy]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v maxgap="{{max_gap_hours}}" -v ph_min="{{ph_min}}" -v ph_max="{{ph_max}}" -v cl_min="{{chlorine_min_ppm}}" -v cl_max="{{chlorine_max_ppm}}" '
+    NR==1 {next}
+    {
+      if ($3 < ph_min || $3 > ph_max) {
+        printf "PH OUT OF RANGE: %s — %s reading pH %.2f (allowed %.2f-%.2f)\n", $1, $2, $3, ph_min, ph_max;
+      }
+      if ($4 < cl_min || $4 > cl_max) {
+        printf "CHLORINE OUT OF RANGE: %s — %s reading %.2f ppm (allowed %.2f-%.2f)\n", $1, $2, $4, cl_min, cl_max;
+      }
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline read_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      gap_hours = (now_epoch - read_epoch) / 3600;
+      if (gap_hours > maxgap) {
+        printf "STALE READING: %s — last logged %s (%d hours ago)\n", $1, $2, gap_hours;
+      }
+    }
+  ' "{{water_chemistry_log_csv_path}}"
+variables:
+  water_chemistry_log_csv_path:
+    default: "./water-chemistry-log.csv"
+    description: "Path to a CSV with columns: unit_name,reading_timestamp (YYYY-MM-DD HH:MM),ph_level,chlorine_ppm."
+  max_gap_hours:
+    default: 8
+    description: Maximum hours allowed between logged readings before a unit is flagged as overdue for a check.
+  ph_min:
+    default: 7.2
+    description: Minimum acceptable pH reading.
+  ph_max:
+    default: 7.8
+    description: Maximum acceptable pH reading.
+  chlorine_min_ppm:
+    default: 1.0
+    description: Minimum acceptable free chlorine level in ppm.
+  chlorine_max_ppm:
+    default: 4.0
+    description: Maximum acceptable free chlorine level in ppm.
+compatible_agents: [generic, claude, codex]
+notes: Out-of-range chemistry is a health-code issue, not just a paperwork gap — take the unit out of service until a reading confirms it's back in range.

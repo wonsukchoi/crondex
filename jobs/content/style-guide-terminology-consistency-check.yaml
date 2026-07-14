@@ -1,0 +1,44 @@
+id: style-guide-terminology-consistency-check
+version: 1
+name: Style Guide Terminology Consistency Check
+description: >
+  Scans recently published content for terminology that conflicts with
+  your house style guide, like inconsistent product naming, banned
+  phrasing, or mixed capitalization of the same term. Use this if
+  different writers have ever referred to the same product or feature by
+  three different names across your own site.
+category: content
+tags: [content, style-guide, editorial-consistency]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the style guide/terminology list at {{style_guide_path}} — it
+  defines preferred terms, banned terms, and required capitalization for
+  specific words or product names.
+  1. Scan posts published or edited in {{content_dir}} within the last
+     {{lookback_days}} days.
+  2. For each post, find any use of a banned term, a non-preferred
+     variant of a defined term, or inconsistent capitalization of a term
+     that has a required casing.
+  3. Report violations grouped by term: the term in question, the
+     preferred form, and each post/location where it was used
+     incorrectly.
+  4. Note any term that appears with 2+ different spellings/casings
+     across the scanned posts even if not explicitly in the style guide,
+     as a possible gap in the guide itself.
+variables:
+  style_guide_path:
+    default: "./STYLE_GUIDE.md"
+    description: Path to the house style guide / terminology reference document.
+  content_dir:
+    default: "content/posts"
+    description: Directory containing published content to scan.
+  lookback_days:
+    default: 14
+    description: How many days of recently published/edited content to check.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Quality depends entirely on how complete the style guide is; treat the
+  "inconsistent term not in guide" findings as suggestions to formalize,
+  not violations.

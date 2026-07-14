@@ -1,0 +1,40 @@
+id: diagnostic-scan-tool-software-update-check
+version: 1
+name: Diagnostic Scan Tool Software Update Check
+description: >
+  Checks each shop diagnostic scan tool's installed software version against
+  its last-known-current version and flags any tool that's overdue for an
+  update. Use this if a tech has ever misdiagnosed a newer model, or missed a
+  module reflash, because the scan tool's software was months out of date.
+category: automotive
+tags: [automotive, diagnostics, equipment, software]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{stale_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      cmd2 = "date +%s";
+      cmd2 | getline now_ts; close(cmd2);
+      days_since = (now_ts - last_ts) / 86400;
+      if (days_since >= warn) {
+        printf "STALE: %s (%s) — last updated %s, %d days ago\n", $1, $2, $3, days_since;
+      }
+    }
+  ' "{{scan_tools_csv_path}}"
+variables:
+  scan_tools_csv_path:
+    default: "./scan-tool-versions.csv"
+    description: "Path to a CSV with columns: tool_name,bay_or_owner,last_update_date (YYYY-MM-DD)."
+  stale_days:
+    default: 60
+    description: Days since last software update before a tool is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers scan tools/tablets (e.g. OEM-specific or aftermarket diagnostic
+  platforms), not general shop equipment. Vendors publish update cadences
+  differently, so treat `stale_days` as a rough tripwire and confirm against
+  the vendor's actual release notes before assuming a tool is out of date.

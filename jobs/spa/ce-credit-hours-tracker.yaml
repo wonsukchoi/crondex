@@ -1,0 +1,44 @@
+id: ce-credit-hours-tracker
+version: 1
+name: Continuing Education Credit Hours Tracker
+description: >
+  Checks each licensed staff member's logged continuing-education hours
+  against their board's renewal-cycle requirement and flags anyone
+  falling behind pace. Use this if a therapist has ever scrambled for
+  CE hours in the final week before a license renewal deadline because
+  nobody was tracking progress throughout the cycle.
+category: spa
+tags: [spa, licensing, compliance, staff, education]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v required="{{required_hours_per_cycle}}" -v minpct="{{min_progress_percent}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline cycle_end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s" | getline cycle_start_epoch; close("date -d \"" $4 "\" +%s");
+      total_days = (cycle_end_epoch - cycle_start_epoch) / 86400;
+      elapsed_days = (now_epoch - cycle_start_epoch) / 86400;
+      if (total_days <= 0) { next }
+      expected_pct = (elapsed_days / total_days) * 100;
+      actual_pct = ($2 / required) * 100;
+      if (now_epoch < cycle_end_epoch && actual_pct + minpct < expected_pct) {
+        printf "CE HOURS BEHIND: %s — %.1f/%d hours logged (%.0f%% vs expected %.0f%%), cycle ends %s\n", $1, $2, required, actual_pct, expected_pct, $3;
+      }
+    }
+  ' "{{ce_hours_csv_path}}"
+variables:
+  ce_hours_csv_path:
+    default: "./staff-ce-hours.csv"
+    description: "Path to a CSV with columns: staff_name,hours_logged,cycle_end_date (YYYY-MM-DD),cycle_start_date (YYYY-MM-DD)."
+  required_hours_per_cycle:
+    default: 24
+    description: Total CE hours required by the licensing board for one renewal cycle.
+  min_progress_percent:
+    default: 10
+    description: Percentage points of slack allowed before someone is flagged as behind expected pace.
+compatible_agents: [generic, claude, codex]
+notes: This tracks pacing across the cycle, not just the final deadline — pair it with license-renewal-tracker, which only warns near expiry.

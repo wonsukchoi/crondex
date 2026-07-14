@@ -1,0 +1,44 @@
+id: staff-commission-payout-reconciliation
+version: 1
+name: Staff Commission Payout Reconciliation
+description: >
+  Recomputes each therapist's commission from the completed-service log
+  and compares it against what payroll actually paid out, flagging any
+  mismatch. Use this if a technician has ever quietly noticed their
+  commission was short one pay period and nobody could explain why
+  because nothing was being reconciled automatically.
+category: spa
+tags: [spa, payroll, commission, staff, finance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{tolerance_dollars}}" '
+    BEGIN { while ((getline line < "{{payroll_payouts_csv_path}}") > 0) {
+      split(line, f, ","); paid[f[1]] += f[2];
+    } close("{{payroll_payouts_csv_path}}") }
+    NR==FNR { next }
+    FNR==1 { next }
+    { earned[$1] += $2 * $3 }
+    END {
+      for (staff in earned) {
+        diff = earned[staff] - paid[staff];
+        if (diff < 0) diff = -diff;
+        if (diff > tolerance) {
+          printf "COMMISSION MISMATCH: %s — earned $%.2f, paid $%.2f, diff $%.2f\n", staff, earned[staff], paid[staff], diff;
+        }
+      }
+    }
+  ' "{{payroll_payouts_csv_path}}" "{{completed_services_csv_path}}"
+variables:
+  completed_services_csv_path:
+    default: "./completed-services.csv"
+    description: "Path to a CSV with columns: staff_name,service_price,commission_rate (e.g. 0.4 for 40%)."
+  payroll_payouts_csv_path:
+    default: "./payroll-commission-payouts.csv"
+    description: "Path to a CSV with columns: staff_name,amount_paid, one row per payout line item for the period."
+  tolerance_dollars:
+    default: 5
+    description: Dollar amount a mismatch can be off by before it's flagged, to absorb rounding.
+compatible_agents: [generic, claude, codex]
+notes: Run this before each pay period closes, not after — catching a shortfall before checks go out is far less awkward than clawing it back afterward.

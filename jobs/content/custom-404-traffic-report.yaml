@@ -1,0 +1,48 @@
+id: custom-404-traffic-report
+version: 1
+name: Custom 404 Traffic Report
+description: >
+  Pulls the URLs hitting your 404 page most often and separates the ones
+  worth a redirect (real traffic, likely an old link or typo) from the
+  noise. Use this if you'd rather fix the handful of broken links people
+  actually hit than guess at what's worth redirecting.
+category: content
+tags: [content, seo, "404", redirects]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v min="{{min_hits}}" '
+    NR>1 && $2+0 >= min { print $2 "," $1 }
+  ' "{{access_log_404_csv}}" | sort -rn | head -n "{{top_n}}"
+script_note: >
+  The command gives you a ranked list of 404 paths by raw hit count from a
+  pre-aggregated log export — fast and free. It won't tell you whether a
+  path looks like an old real page worth redirecting versus scanner noise
+  or a typo domain-wide; the prompt mode adds that judgment call.
+prompt: |
+  Read the 404 hit log at {{access_log_404_csv}} (CSV with columns:
+  path, hit_count) covering the last reporting period.
+  1. Filter to paths with at least {{min_hits}} hits.
+  2. For each, judge whether it looks like: a real old page (matches a
+     plausible former URL pattern), a common typo of an existing page, a
+     bot/scanner probe (e.g. .php, /wp-admin paths on a non-WordPress
+     site), or unclear.
+  3. For "real old page" and "typo" candidates, suggest a redirect target
+     if one is obvious from the site structure.
+  4. Report only the top {{top_n}} by hit count, grouped by judged
+     category.
+variables:
+  access_log_404_csv:
+    default: "./logs/404-hits.csv"
+    description: "CSV export of 404 hits with columns: path,hit_count."
+  min_hits:
+    default: 5
+    description: Minimum hit count for a 404 path to be included in the report.
+  top_n:
+    default: 25
+    description: Maximum number of 404 paths to include in the report.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Assumes a pre-aggregated CSV export of 404 hits (from server logs, a CDN
+  dashboard export, or an analytics tool) rather than tailing raw logs live.

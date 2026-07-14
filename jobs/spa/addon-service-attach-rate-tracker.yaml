@@ -1,0 +1,40 @@
+id: addon-service-attach-rate-tracker
+version: 1
+name: Add-On Service Upsell Attach-Rate Tracker
+description: >
+  Calculates what share of each provider's bookings include a paid
+  add-on (hot stone upgrade, scalp treatment, paraffin dip) and flags
+  providers whose attach rate has dropped well below the team average.
+  Use this if add-on revenue has ever quietly declined and nobody
+  noticed until the monthly P&L came in light.
+category: spa
+tags: [spa, upsell, revenue, staff-performance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v gap="{{flag_gap_percent}}" '
+    NR==1 {next}
+    { total[$1]++; if ($2 == "yes") { addon[$1]++ } }
+    END {
+      grand_total = 0; grand_addon = 0;
+      for (staff in total) { grand_total += total[staff]; grand_addon += addon[staff]; }
+      if (grand_total == 0) { exit }
+      avg_rate = (grand_addon / grand_total) * 100;
+      for (staff in total) {
+        rate = (addon[staff] / total[staff]) * 100;
+        if (avg_rate - rate >= gap) {
+          printf "LOW ATTACH RATE: %s — %.1f%% (team avg %.1f%%, %d of %d bookings)\n", staff, rate, avg_rate, addon[staff], total[staff];
+        }
+      }
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./bookings-with-addons.csv"
+    description: "Path to a CSV with columns: staff_name,addon_purchased (yes/no), one row per completed booking for the period."
+  flag_gap_percent:
+    default: 15
+    description: Percentage points below the team average attach rate before a provider is flagged for coaching.
+compatible_agents: [generic, claude, codex]
+notes: Use this to spot coaching opportunities, not to single anyone out publicly — attach rate also varies by service type and client mix, so review context before a conversation.

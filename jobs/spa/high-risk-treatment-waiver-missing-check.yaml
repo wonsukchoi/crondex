@@ -1,0 +1,46 @@
+id: high-risk-treatment-waiver-missing-check
+version: 1
+name: High-Risk Treatment Liability Waiver Missing Check
+description: >
+  Checks tomorrow's bookings for high-risk services (laser hair removal,
+  chemical peels, microneedling, injectables) against signed liability
+  waiver records and flags any appointment missing one. Use this if a
+  chemical peel has ever been performed on a client who never actually
+  signed the informed-consent waiver, leaving the business exposed if
+  something goes wrong.
+category: spa
+tags: [spa, waivers, compliance, safety, liability]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v services="{{high_risk_services}}" '
+    BEGIN {
+      n = split(services, svc_list, "|");
+      while ((getline line < "{{signed_waivers_csv_path}}") > 0) {
+        split(line, f, ","); signed[f[1] "|" f[2]] = 1;
+      }
+      close("{{signed_waivers_csv_path}}")
+    }
+    NR==FNR { next }
+    FNR==1 { next }
+    {
+      is_high_risk = 0;
+      for (i=1; i<=n; i++) { if ($3 == svc_list[i]) { is_high_risk = 1 } }
+      if (is_high_risk && !(($1 "|" $3) in signed)) {
+        printf "MISSING WAIVER: %s — %s booked at %s, no signed waiver on file\n", $1, $3, $2;
+      }
+    }
+  ' "{{signed_waivers_csv_path}}" "{{tomorrow_bookings_csv_path}}"
+variables:
+  tomorrow_bookings_csv_path:
+    default: "./tomorrow-bookings.csv"
+    description: "Path to a CSV with columns: client_name,appointment_time,service_name."
+  signed_waivers_csv_path:
+    default: "./signed-waivers.csv"
+    description: "Path to a CSV with columns: client_name,service_name, one row per signed waiver on file."
+  high_risk_services:
+    default: "Laser Hair Removal|Chemical Peel|Microneedling|Botox|Dermal Filler"
+    description: Pipe-separated list of service names that require a signed liability waiver before treatment.
+compatible_agents: [generic, claude, codex]
+notes: Front desk should collect the missing waiver before the client is taken back for treatment — this is a pre-appointment gate, not a post-hoc audit.

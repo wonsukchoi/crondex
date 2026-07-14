@@ -1,0 +1,41 @@
+id: candidate-assessment-score-expiry-check
+version: 1
+name: Candidate Skills-Assessment Score Expiry Check
+description: >
+  Scans candidate skills-test and assessment records for scores that are
+  about to age out of the validity window a client requires, so a
+  candidate isn't submitted on an assessment that's technically expired.
+  Use this if a client has ever bounced a submittal back because the
+  candidate's typing test or skills score was too old to count.
+category: staffing
+tags: [staffing, assessments, skills-test, candidate-qualification, expiry]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v windowDays="{{alert_window_days}}" -v validDays="{{score_validity_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; assessment=$2; taken_date=$3;
+      cmd = "date -d \"" taken_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" taken_date "\" +%s 2>/dev/null";
+      cmd | getline taken_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      expiry_epoch = taken_epoch + (validDays * 86400);
+      days_left = (expiry_epoch - now_epoch) / 86400;
+      if (days_left <= windowDays) {
+        printf "ASSESSMENT EXPIRING: %s — %s taken %s, %.0f days left\n", candidate, assessment, taken_date, days_left;
+      }
+    }
+  ' "{{assessment_log_csv_path}}"
+variables:
+  assessment_log_csv_path:
+    default: "./candidate-assessment-log.csv"
+    description: "Path to a CSV with columns: candidate_name,assessment_name,taken_date (YYYY-MM-DD)."
+  score_validity_days:
+    default: 180
+    description: How many days an assessment score stays valid before it must be retaken.
+  alert_window_days:
+    default: 21
+    description: Days before an assessment score expires to flag it for a retest.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Confirm the validity window against the specific client's or test vendor's actual policy, since it varies by assessment type.

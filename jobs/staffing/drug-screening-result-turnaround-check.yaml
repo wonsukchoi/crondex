@@ -1,0 +1,39 @@
+id: drug-screening-result-turnaround-check
+version: 1
+name: Drug Screening Result Turnaround Check
+description: >
+  Flags candidates whose drug screening was ordered more than a set
+  number of business days ago but still shows no result on file, since a
+  stalled lab result is one of the most common reasons a confirmed start
+  date slips. Use this if a candidate's start date has ever had to be
+  pushed because nobody chased down a pending screening result in time.
+category: staffing
+tags: [staffing, drug-screening, compliance, onboarding, turnaround]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v staleDays="{{stale_after_business_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; order_date=$2; result=$3;
+      if (result == "pending") {
+        cmd = "date -d \"" order_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" order_date "\" +%s 2>/dev/null";
+        cmd | getline ord_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_days = (now_epoch - ord_epoch) / 86400;
+        if (age_days >= staleDays) {
+          printf "STALLED SCREENING: %s — ordered %s, %.0f days pending\n", candidate, order_date, age_days;
+        }
+      }
+    }
+  ' "{{drug_screening_log_csv_path}}"
+variables:
+  drug_screening_log_csv_path:
+    default: "./drug-screening-log.csv"
+    description: "Path to a CSV with columns: candidate_name,order_date (YYYY-MM-DD),result (pending/clear/positive/refused)."
+  stale_after_business_days:
+    default: 3
+    description: Number of days a result can remain pending before the candidate is flagged for follow-up with the lab or clinic.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Contacting the testing vendor or the candidate is a manual staffing-coordinator task; this only surfaces who needs a nudge.

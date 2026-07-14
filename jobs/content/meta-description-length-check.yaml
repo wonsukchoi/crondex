@@ -1,0 +1,48 @@
+id: meta-description-length-check
+version: 1
+name: Meta Description Length Check
+description: >
+  Fetches pages from your sitemap and flags any meta description that's
+  missing, empty, or outside the length search engines typically display
+  without truncating. Use this if you've ever shipped a page with no meta
+  description at all, or one so long it gets cut off with "..." in
+  results.
+category: content
+tags: [content, seo, meta-description]
+schedule: "0 6 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  urls=$(curl -sL --max-time 20 "{{sitemap_url}}" | grep -o '<loc>[^<]*' | sed 's/<loc>//' | head -n "{{max_pages}}");
+  [ -z "$urls" ] && { echo "ERROR: no URLs found in {{sitemap_url}}"; exit 1; };
+  for url in $urls; do
+    desc=$(curl -sL --max-time 10 "$url" | grep -o '<meta[^>]*name=["\x27]description["\x27][^>]*content=["\x27][^"\x27]*' | sed -E 's/.*content=["\x27]//' | head -n1);
+    len=${#desc};
+    if [ -z "$desc" ]; then
+      echo "MISSING: $url has no meta description";
+    elif [ "$len" -lt "{{min_length}}" ]; then
+      echo "TOO SHORT ($len chars): $url";
+    elif [ "$len" -gt "{{max_length}}" ]; then
+      echo "TOO LONG ($len chars, will likely truncate): $url";
+    fi
+  done;
+  echo "Checked pages from {{sitemap_url}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate pages to check.
+  max_pages:
+    default: 100
+    description: Maximum number of sitemap URLs to fetch and check per run.
+  min_length:
+    default: 50
+    description: Minimum acceptable meta description length in characters.
+  max_length:
+    default: 160
+    description: Maximum length before a meta description is likely to be truncated in search results.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only checks the first meta description tag found per page; pages that
+  render descriptions client-side via JavaScript won't be picked up by a
+  plain curl fetch. Distinct from seo-meta-check, which covers title tags
+  and broader meta presence rather than description length specifically.

@@ -183,17 +183,17 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1603 jobs across 60 categories:
+1651 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
-| `automotive` | 20 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
+| `automotive` | 32 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 20 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
-| `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `content` | 32 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
@@ -238,8 +238,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 20 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
-| `spa` | 20 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
-| `staffing` | 20 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
+| `spa` | 32 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
+| `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 32 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |

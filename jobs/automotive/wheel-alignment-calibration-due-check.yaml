@@ -1,0 +1,43 @@
+id: wheel-alignment-calibration-due-check
+version: 1
+name: Wheel Alignment Machine Calibration Due Check
+description: >
+  Checks each alignment machine's last calibration date against the
+  manufacturer-recommended interval and flags any machine that's due,
+  so alignment jobs (and ADAS calibrations that depend on a true
+  reference) aren't run on a drifted rack. Use this if an alignment
+  machine has ever gone a year or more without anyone checking when it
+  was last calibrated.
+category: automotive
+tags: [automotive, equipment, calibration, alignment]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v warn="{{warn_days}}" -v today="$today" '
+    NR==1 {next}
+    {
+      interval_days = $3 + 0;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      due_ts = last_ts + (interval_days * 86400);
+      days_left = (due_ts - today) / 86400;
+      if (days_left <= warn) {
+        printf "CALIBRATION DUE: %s (bay %s) — last calibrated %s, %d days until due\n", $1, $4, $2, days_left;
+      }
+    }
+  ' "{{alignment_machines_csv_path}}"
+variables:
+  alignment_machines_csv_path:
+    default: "./alignment-machine-calibration.csv"
+    description: "Path to a CSV with columns: machine_id,last_calibration_date (YYYY-MM-DD),calibration_interval_days,bay_number."
+  warn_days:
+    default: 14
+    description: Days before the calibration due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Calibration intervals vary by machine make and whether the shop also
+  runs ADAS static/dynamic calibrations off the same rack, so keep
+  `calibration_interval_days` per-machine in the CSV rather than
+  hardcoding one value.

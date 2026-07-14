@@ -1,0 +1,38 @@
+id: internal-search-zero-results-report
+version: 1
+name: Internal Search Zero-Results Report
+description: >
+  Reviews your site's internal search query log and surfaces the terms
+  that returned no results, ranked by how often visitors searched for
+  them. Use this if you want a ready-made list of content ideas straight
+  from what your own readers are already asking for.
+category: content
+tags: [content, site-search, content-gaps]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the internal site-search query log at {{search_log_path}} (CSV with
+  columns: query, result_count, timestamp).
+  1. Filter to rows from the last {{lookback_days}} days where
+     result_count is 0.
+  2. Group near-duplicate queries together (typos, singular/plural,
+     word-order variants) and count occurrences per group.
+  3. Rank groups by frequency, highest first, and drop any singleton
+     query that only appeared once.
+  4. For each of the top 15 groups, suggest whether it points to a
+     missing page, a page that exists but isn't indexed by the site
+     search, or a synonym/redirect fix in the search config.
+  5. Report as a table: query group, count, suggested action.
+variables:
+  search_log_path:
+    default: "./logs/site-search-queries.csv"
+    description: Path to the exported internal site-search query log.
+  lookback_days:
+    default: 30
+    description: How many days of query log history to analyze.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires your site search tool to log queries with zero results;
+  most site-search products (Algolia, on-site search plugins) can export
+  this. No log means no signal here.

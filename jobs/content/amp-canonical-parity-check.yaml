@@ -1,0 +1,43 @@
+id: amp-canonical-parity-check
+version: 1
+name: AMP/Canonical Page Parity Check
+description: >
+  Fetches each page's AMP version alongside its canonical version and
+  checks that the canonical and amphtml link tags correctly reference
+  each other. Use this if you maintain AMP pages and a bad link pairing
+  has ever caused search engines to index the wrong version, or an AMP
+  page that no longer points back to a live canonical page.
+category: content
+tags: [content, seo, amp]
+schedule: "0 6 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  urls=$(curl -sL --max-time 20 "{{sitemap_url}}" | grep -o '<loc>[^<]*' | sed 's/<loc>//' | head -n "{{max_pages}}");
+  [ -z "$urls" ] && { echo "ERROR: no URLs found in {{sitemap_url}}"; exit 1; };
+  for canonical_url in $urls; do
+    amp_url=$(curl -sL --max-time 10 "$canonical_url" | grep -o '<link[^>]*rel=["\x27]amphtml["\x27][^>]*href=["\x27][^"\x27]*' | sed -E 's/.*href=["\x27]//' | head -n1);
+    if [ -z "$amp_url" ]; then
+      continue;
+    fi;
+    amp_canonical=$(curl -sL --max-time 10 "$amp_url" | grep -o '<link[^>]*rel=["\x27]canonical["\x27][^>]*href=["\x27][^"\x27]*' | sed -E 's/.*href=["\x27]//' | head -n1);
+    if [ -z "$amp_canonical" ]; then
+      echo "MISSING BACKLINK: AMP page $amp_url has no canonical link tag";
+    elif [ "$amp_canonical" != "$canonical_url" ]; then
+      echo "MISMATCH: $canonical_url points to AMP $amp_url, but that AMP page's canonical is $amp_canonical";
+    fi;
+  done;
+  echo "Checked AMP/canonical pairs from {{sitemap_url}}"
+variables:
+  sitemap_url:
+    default: "https://example.com/sitemap.xml"
+    description: Sitemap used to enumerate canonical pages to check for paired AMP pages.
+  max_pages:
+    default: 100
+    description: Maximum number of sitemap URLs to fetch and check per run.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only checks pages that already declare an amphtml link; sites without
+  AMP pages will simply report nothing to check. Distinct from
+  canonical-tag-check, which covers self-referencing/duplicate canonical
+  issues rather than the AMP/canonical cross-reference.

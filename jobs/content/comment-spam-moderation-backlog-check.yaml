@@ -1,0 +1,35 @@
+id: comment-spam-moderation-backlog-check
+version: 1
+name: Comment Spam Moderation Backlog Check
+description: >
+  Reviews the pending comment moderation queue and flags how big the
+  backlog has gotten and how much of it looks like spam versus real
+  reader comments waiting on approval. Use this if genuine reader
+  comments have ever sat unapproved for weeks buried under spam.
+category: content
+tags: [content, comments, moderation, spam]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the pending comment queue at {{moderation_queue_source}}.
+  1. Count the total number of comments awaiting moderation and how many
+     have been waiting more than {{max_wait_hours}} hours.
+  2. For a sample of up to 50 pending comments, judge each as likely spam
+     (generic praise plus a link, unrelated keyword stuffing, obvious bot
+     patterns) or likely genuine.
+  3. Report: total backlog size, oldest pending comment's age, estimated
+     spam percentage, and a short list of comments that look genuine and
+     have been waiting the longest so they can be prioritized.
+variables:
+  moderation_queue_source:
+    default: "https://example.com/api/comments?status=pending"
+    description: Endpoint or export listing comments awaiting moderation.
+  max_wait_hours:
+    default: 48
+    description: Hours a comment can sit pending before it's called out as backlogged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Spam classification here is a judgment call, not a guarantee — pair with
+  your existing spam filter (Akismet or similar) rather than replacing it;
+  this job is about surfacing the human-review backlog specifically.

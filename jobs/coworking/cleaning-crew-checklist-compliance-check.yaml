@@ -1,0 +1,31 @@
+id: cleaning-crew-checklist-compliance-check
+version: 1
+name: Cleaning Crew Checklist Compliance Check
+description: >
+  Checks whether the daily or nightly cleaning checklist (restrooms,
+  kitchen, common areas, trash) was actually marked complete for each
+  shift, so a skipped cleaning round doesn't go unnoticed until a member
+  complains. Use this if you contract out cleaning and want proof the
+  checklist is actually being done, not just billed.
+category: coworking
+tags: [coworking, facilities, cleaning, checklist, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select shift_date, shift_type, location, checklist_items_total, checklist_items_completed from cleaning_checklists where shift_date >= current_date - interval '{{lookback_days}} days' and checklist_items_completed < checklist_items_total order by shift_date desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's facilities/checklist database.
+  lookback_days:
+    default: "3"
+    description: How many days back to check for incomplete cleaning checklists.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `cleaning_checklists` table with `shift_date`, `shift_type`,
+  `location`, `checklist_items_total`, and `checklist_items_completed`
+  columns, populated by whatever checklist app or paper-to-digital process
+  your cleaning crew uses — adjust the query to your setup. Read-only and
+  informational; it does not contact the cleaning vendor or re-open a
+  checklist itself.

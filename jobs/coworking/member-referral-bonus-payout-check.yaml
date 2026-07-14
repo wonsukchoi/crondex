@@ -1,0 +1,30 @@
+id: member-referral-bonus-payout-check
+version: 1
+name: Member Referral Bonus Payout Check
+description: >
+  Checks approved member referrals where the referred person has completed
+  their qualifying period (e.g. first paid month) but the referring member's
+  bonus or credit hasn't been paid out yet. Use this if your referral
+  program has ever quietly lost trust because a member referred a friend
+  and never got the credit they were promised.
+category: coworking
+tags: [coworking, referral, billing, member-experience]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select referral_id, referring_member_id, referring_member_name, referred_member_name, qualifying_date, bonus_amount from member_referrals where status = 'qualified' and payout_status = 'unpaid' and qualifying_date <= current_date - interval '{{grace_period_days}} days' order by qualifying_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/referral database.
+  grace_period_days:
+    default: "7"
+    description: Days after a referral qualifies before an unpaid bonus is flagged (allows for normal payout processing time).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_referrals` table with `referral_id`,
+  `referring_member_id`, `referring_member_name`, `referred_member_name`,
+  `qualifying_date`, `bonus_amount`, `status`, and `payout_status` columns —
+  adjust the query to your referral program's schema. Read-only report; it
+  does not issue any credit or payment itself, it only flags who's owed one.

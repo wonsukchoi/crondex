@@ -1,0 +1,35 @@
+id: subscription-price-increase-watch
+version: 1
+name: Subscription Price-Increase Watch
+description: >
+  Flags when a tracked subscription's current price has risen above the price
+  you last recorded, so silent price hikes don't slide by unnoticed. Use this
+  if a streaming, software, or membership service has ever quietly raised
+  your rate without a clear notice.
+category: personal
+tags: [subscriptions, price, budget, reminder]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  increase=$(awk -v last="{{last_known_price}}" -v current="{{current_billed_price}}" 'BEGIN { printf "%.2f", current - last }');
+  is_higher=$(awk -v last="{{last_known_price}}" -v current="{{current_billed_price}}" 'BEGIN { print (current > last) ? "1" : "0" }');
+  if [ "$is_higher" = "1" ]; then
+    echo "{{service_name}} price increased from {{last_known_price}} to {{current_billed_price}} (up $increase) — review whether it's still worth it.";
+  else
+    echo "{{service_name}} price unchanged at {{current_billed_price}}.";
+  fi
+variables:
+  service_name:
+    default: "Streaming Service"
+    description: Name of the subscription being tracked.
+  last_known_price:
+    default: "9.99"
+    description: The price you last recorded for this subscription.
+  current_billed_price:
+    default: "9.99"
+    description: The price on your most recent bill or statement; update manually each cycle.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely arithmetic comparison of two manually-updated numbers; does not
+  connect to any billing account or card statement automatically.

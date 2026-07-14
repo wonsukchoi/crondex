@@ -1,0 +1,45 @@
+id: coffee-machine-maintenance-schedule-check
+version: 1
+name: Coffee Machine Maintenance Schedule Check
+description: >
+  Looks at brew-cycle counts and days since last service for each coffee
+  machine and flags any that are overdue for descaling or a technician
+  visit before it breaks down mid-morning rush. Use this if a coffee
+  machine going down has ever meant a flood of member complaints on the
+  same day.
+category: coworking
+tags: [coworking, amenities, maintenance, coffee]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select machine_id, location, brew_cycles_since_service, days_since_service, last_service_date from coffee_machines where brew_cycles_since_service >= {{brew_cycle_threshold}} or days_since_service >= {{days_threshold}} order by days_since_service desc;"
+prompt: |
+  Pull brew-cycle counts and days-since-last-service for each coffee machine.
+  Flag any machine at or above {{brew_cycle_threshold}} brew cycles or
+  {{days_threshold}} days since its last service. For each flagged machine,
+  note the location, how overdue it is by both measures, and recommend
+  whether it needs routine descaling or looks like it's due for a full
+  technician visit, prioritizing whichever machine is furthest past due and
+  in the busiest location.
+script_note: >
+  `command` returns raw cycle counts and days-since-service per machine with
+  no prioritization. `prompt` ranks machines by how overdue they are and
+  location traffic, and recommends descale-vs-technician-visit.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's facilities/equipment database.
+  brew_cycle_threshold:
+    default: "2000"
+    description: Brew cycle count since last service after which a machine is flagged for maintenance.
+  days_threshold:
+    default: "60"
+    description: Days since last service after which a machine is flagged for maintenance regardless of cycle count.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `coffee_machines` table with `machine_id`, `location`,
+  `brew_cycles_since_service`, `days_since_service`, and `last_service_date`
+  columns, populated from either a smart machine's usage counter or a manual
+  log — adjust to your equipment tracking setup. Informational only; it does
+  not schedule a technician or reset any counter itself.

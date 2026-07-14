@@ -1,0 +1,34 @@
+id: attic-insulation-check-reminder
+version: 1
+name: Attic Insulation Check Reminder
+description: >
+  Reminds you to check attic insulation depth and condition based on
+  how long it's been since the last check. Use this if your energy
+  bills have crept up over the years and you've never once gone up to
+  look at whether the insulation has settled, gotten wet, or is just
+  too thin for your climate zone.
+category: home
+tags: [home, insulation, attic, energy-efficiency]
+schedule: "0 9 1 10 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  It's time to check the attic insulation (last checked {{last_checked_date}},
+  recommended R-value for my climate zone is {{target_r_value}}). Walk me
+  through: measuring the current insulation depth against the manufacturer's
+  depth-to-R-value chart for the insulation type installed; looking for
+  matted-down, wet, or discolored insulation (a sign of a roof leak or past
+  moisture problem); checking that soffit vents aren't blocked by insulation;
+  and confirming attic bypasses (recessed lights, plumbing stacks, attic
+  hatch) are sealed. Summarize whether what I describe finding suggests the
+  insulation is adequate, needs topping up, or needs a professional
+  assessment.
+variables:
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the last attic insulation check — update this yourself.
+  target_r_value:
+    default: "R-49"
+    description: Recommended insulation R-value for your climate zone.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only advisory. Wear a respirator mask and avoid stepping off joists when inspecting an attic yourself.

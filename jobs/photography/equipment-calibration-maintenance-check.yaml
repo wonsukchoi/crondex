@@ -1,0 +1,42 @@
+id: equipment-calibration-maintenance-check
+version: 1
+name: Equipment Calibration & Maintenance Check
+description: >
+  Flags routine gear maintenance tasks — monitor color calibration,
+  camera sensor cleaning, lens/gimbal servicing — that are overdue based
+  on your own schedule intervals. Use this if you've ever delivered a
+  gallery and only then noticed a sensor dust spot in every frame, or
+  realized your monitor hadn't been color-calibrated in over a year.
+category: photography
+tags: [photography, equipment, maintenance, calibration, quality-control]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      task=$1; item=$2; last_done_date=$3; interval_days=$4;
+      cmd = "date -d \"" last_done_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_done_date "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      next_due_epoch = last_epoch + (interval_days * 86400);
+      days_to_due = int((next_due_epoch - today) / 86400);
+      if (days_to_due <= warn) {
+        if (days_to_due < 0) {
+          printf "MAINTENANCE OVERDUE: %s on %s was due %d day(s) ago (last done %s)\n", task, item, -days_to_due, last_done_date;
+        } else {
+          printf "MAINTENANCE DUE SOON: %s on %s due in %d day(s) (last done %s)\n", task, item, days_to_due, last_done_date;
+        }
+      }
+    }
+  ' "{{maintenance_schedule_csv_path}}"
+variables:
+  maintenance_schedule_csv_path:
+    default: "./equipment-maintenance.csv"
+    description: "Path to a CSV with columns: task_type (e.g. monitor calibration, sensor cleaning, gimbal service),item_name,last_done_date (YYYY-MM-DD),interval_days."
+  warn_days_before:
+    default: 5
+    description: How many days before a maintenance task's next due date to start warning it's due soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not perform any calibration or servicing itself. Update last_done_date once a task is actually completed so the next interval calculates correctly.

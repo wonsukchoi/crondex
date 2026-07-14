@@ -1,0 +1,33 @@
+id: water-filter-replacement-reminder
+version: 1
+name: Water Filter Replacement Reminder
+description: >
+  Reminds you to swap your fridge or whole-house water filter cartridge
+  based on how long it's been since the last change. Use this if you've
+  ever kept drinking through a filter for a year past its rated life
+  because there's no dashboard light to tell you otherwise.
+category: home
+tags: [home, water-filter, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_replaced_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: water filter ({{filter_location}}) last replaced $days_since day(s) ago (every ${interval} months) — swap the cartridge.";
+  else echo "OK: filter replaced $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  filter_location:
+    default: "refrigerator"
+    description: Where the filter is, e.g. "refrigerator" or "whole-house sediment filter".
+  last_replaced_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last replaced the filter cartridge — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to replace this filter, in months.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. You update last_replaced_date yourself each time you actually swap the cartridge. Manufacturer-rated life varies by filter type.

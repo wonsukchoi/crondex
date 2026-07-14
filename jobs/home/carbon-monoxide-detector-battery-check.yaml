@@ -1,0 +1,30 @@
+id: carbon-monoxide-detector-battery-check
+version: 1
+name: Carbon Monoxide Detector Battery Check
+description: >
+  Reminds you to test carbon monoxide detectors and check battery age
+  based on how long it's been since the last check. Use this if your
+  CO detectors live near the smoke detectors in your head but never
+  get tested on their own schedule.
+category: home
+tags: [home, carbon-monoxide, safety, detector]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_checked_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: CO detectors last checked $days_since day(s) ago (every ${interval} months) — press test on each unit and check battery/unit age.";
+  else echo "OK: checked $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_checked_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last tested the CO detectors — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test, in months. Whole-unit replacement is typically every 5-7 years regardless of battery.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. CO detectors have a limited sensor lifespan even when the battery is fine — check the manufacture date on the unit itself.

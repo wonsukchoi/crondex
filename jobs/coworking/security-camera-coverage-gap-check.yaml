@@ -1,0 +1,41 @@
+id: security-camera-coverage-gap-check
+version: 1
+name: Security Camera Coverage Gap Check
+description: >
+  Checks the status feed of your security camera system for units that are
+  offline, obstructed, or haven't reported a heartbeat recently, so a blind
+  spot doesn't go unnoticed until you actually need footage. Use this if
+  you've ever needed to review footage after an incident and found out a
+  camera had been down for days.
+category: coworking
+tags: [coworking, security, facilities, cameras]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  curl -s --max-time 15 "https://cameras.example.com/api/v1/status" | grep -o '"camera_id":"[^"]*","status":"[^"]*"'
+prompt: |
+  Pull the current status of every security camera from the camera
+  management system's status API. Flag any camera that is offline,
+  reporting "obstructed," or hasn't sent a heartbeat in more than
+  {{stale_heartbeat_minutes}} minutes. For each flagged camera, note its
+  location and how long it's been in that state. Group the flagged cameras
+  by area (e.g. entrances, parking, common areas) and call out any area
+  where more than one camera is down at once, since that's a bigger coverage
+  gap than a single isolated camera going offline.
+script_note: >
+  `command` dumps raw camera IDs and statuses with no grouping or
+  duration/severity read. `prompt` adds the stale-heartbeat check, groups
+  gaps by area, and flags areas with multiple simultaneous outages as
+  higher priority.
+variables:
+  stale_heartbeat_minutes:
+    default: "30"
+    description: Minutes since a camera's last heartbeat before it's treated as unresponsive.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  The `command` URL is a placeholder — replace `cameras.example.com` with
+  your actual camera management system's status endpoint (e.g. a local NVR,
+  Verkada, Rhombus, or similar). Read-only; it does not reboot, reposition,
+  or repair any camera itself, it only surfaces where coverage is currently
+  weak.

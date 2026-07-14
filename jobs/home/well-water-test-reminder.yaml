@@ -1,0 +1,34 @@
+id: well-water-test-reminder
+version: 1
+name: Well Water Test Reminder
+description: >
+  Reminds you to send a well water sample out for bacterial and
+  contaminant testing based on how long it's been since the last test.
+  Use this if you're on a private well and have ever gone years between
+  tests because municipal water drinkers don't have this chore to
+  remind you of it.
+category: home
+tags: [home, well-water, water-quality, testing]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}}; panel="{{test_panel}}";
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: well water last tested $days_since day(s) ago (every ${interval} months) — schedule a sample for bacteria/nitrates/${panel}.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the last well water test — update this yourself.
+  interval_months:
+    default: 12
+    description: How often to test, in months. Annual is the common minimum recommendation.
+  test_panel:
+    default: "arsenic and hardness"
+    description: Additional contaminants to test for beyond the standard bacteria/nitrate panel, based on local risk factors.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Test more often after flooding, near a new contamination source, or if anyone in the household is pregnant or an infant.

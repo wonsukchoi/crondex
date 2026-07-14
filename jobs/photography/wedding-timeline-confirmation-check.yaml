@@ -1,0 +1,37 @@
+id: wedding-timeline-confirmation-check
+version: 1
+name: Wedding Timeline Confirmation Check
+description: >
+  Flags upcoming weddings that still don't have a confirmed shot-list
+  timeline on file within your lead-time window. Use this if you've ever
+  arrived at a wedding not knowing when the first look, ceremony, and
+  toasts actually start because the couple never sent back a finalized
+  timeline.
+category: photography
+tags: [photography, weddings, timeline, coordination, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lead_time_days}}" '
+    NR==1 {next}
+    {
+      couple=$1; wedding_date=$2; confirmed=$3;
+      cmd = "date -d \"" wedding_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" wedding_date "\" +%s 2>/dev/null";
+      cmd | getline wedding_epoch; close(cmd);
+      days_out = int((wedding_epoch - today) / 86400);
+      if (days_out >= 0 && days_out <= lead && tolower(confirmed) != "yes") {
+        printf "TIMELINE MISSING: %s — wedding on %s, %d day(s) out, timeline confirmed: %s\n", couple, wedding_date, days_out, confirmed;
+      }
+    }
+  ' "{{weddings_csv_path}}"
+variables:
+  weddings_csv_path:
+    default: "./weddings.csv"
+    description: "Path to a CSV with columns: couple_names,wedding_date (YYYY-MM-DD),timeline_confirmed (yes/no)."
+  lead_time_days:
+    default: 21
+    description: How many days before the wedding date a missing confirmed timeline should start getting flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags weddings missing a confirmed timeline, it doesn't request or build the timeline itself. Follow up with the couple or planner directly once a wedding shows up here.

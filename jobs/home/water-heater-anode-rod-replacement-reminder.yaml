@@ -1,0 +1,31 @@
+id: water-heater-anode-rod-replacement-reminder
+version: 1
+name: Water Heater Anode Rod Replacement Reminder
+description: >
+  Reminds you to inspect and replace the water heater's sacrificial
+  anode rod based on how long it's been since the last replacement.
+  Use this if you've ever had a water heater fail years earlier than
+  its rated life because the anode rod was never checked and the tank
+  itself started corroding instead.
+category: home
+tags: [home, water-heater, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_replaced_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: water heater anode rod last inspected/replaced $days_since day(s) ago (every ${interval} months) — pull it and check how much magnesium/aluminum core remains.";
+  else echo "OK: inspected/replaced $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_replaced_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last inspected or replaced the anode rod — update this yourself.
+  interval_months:
+    default: 24
+    description: How often to inspect the anode rod, in months. Softened or well water corrodes rods faster than municipal water.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Replace the rod once the core wire is exposed along more than half its length rather than waiting for full consumption.

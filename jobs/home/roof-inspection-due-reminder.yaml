@@ -1,0 +1,42 @@
+id: roof-inspection-due-reminder
+version: 1
+name: Roof Inspection Due Reminder
+description: >
+  Reminds you it's time for a visual roof inspection based on how long
+  it's been since the last one, and prompts a walk-through of common
+  failure points. Use this if you've ever discovered a leak only after
+  water was already staining the ceiling below it.
+category: home
+tags: [home, roof, inspection, maintenance]
+schedule: "0 9 1 3,9 *"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  last={{last_inspected_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: roof last inspected $days_since day(s) ago (every ${interval} months) — do a visual check.";
+  else echo "OK: inspected $days_since day(s) ago, due again around day $interval_days."; fi
+prompt: |
+  It's time for a visual roof inspection (last done {{last_inspected_date}}).
+  Walk me through checking, from the ground or a ladder as appropriate:
+  missing, curling, or cracked shingles; damaged or rusted flashing around
+  chimneys and vents; granule buildup in gutters (a sign of shingle wear);
+  moss or algae growth; and any sagging roofline. Ask me what I observe at
+  each step, then summarize whether this looks like routine wear, something
+  to monitor, or something that warrants a professional roofer visit soon.
+script_note: >
+  command only tracks whether an inspection is overdue by date; prompt
+  walks through what to actually look for during the inspection and
+  triages severity based on what you report finding.
+variables:
+  last_inspected_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the last roof inspection — update this yourself.
+  interval_months:
+    default: 12
+    description: How often to inspect the roof, in months.
+compatible_agents: [generic, claude, codex]
+notes: Read-only advisory. For steep or high roofs, hire a professional rather than climbing yourself.

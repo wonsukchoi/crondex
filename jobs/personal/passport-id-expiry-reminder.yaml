@@ -1,0 +1,33 @@
+id: passport-id-expiry-reminder
+version: 1
+name: Passport / ID Expiry Reminder
+description: >
+  Warns you well ahead of your passport or government ID expiration date so
+  you have time to renew before a trip or deadline forces a rush application.
+  Use this if you've ever discovered an expired passport days before a flight.
+category: personal
+tags: [passport, id, documents, renewal, reminder]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry=$(date -d "{{expiry_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{expiry_date}}" +%s);
+  days_left=$(( (expiry - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "{{document_name}} expires in $days_left day(s) on {{expiry_date}} — start the renewal process.";
+  fi
+variables:
+  document_name:
+    default: "Passport"
+    description: Which document this reminder tracks (e.g. Passport, Driver's License).
+  expiry_date:
+    default: "2027-03-15"
+    description: Expiration date of the document (YYYY-MM-DD).
+  lead_time_days:
+    default: "180"
+    description: How many days before expiry to start reminding (passports often need longer lead time).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder only; no connection to any government or ID-verification
+  system. Update expiry_date manually after each renewal.

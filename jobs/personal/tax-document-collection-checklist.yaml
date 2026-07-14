@@ -1,0 +1,34 @@
+id: tax-document-collection-checklist
+version: 1
+name: Tax Document Collection Checklist
+description: >
+  Prompts an agent to help you build and check off a personal tax document
+  checklist (W-2s, 1099s, receipts, donation records) ahead of filing season
+  so you're not scrambling to find paperwork the week of the deadline. Use
+  this if tax prep always starts with a frantic document hunt.
+category: personal
+tags: [taxes, documents, filing, checklist, reminder]
+schedule: "0 9 15 1 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: >
+  Help me get ready for personal tax filing. My filing deadline is
+  {{filing_deadline}}. My expected document types are: {{expected_documents}}.
+  Walk through each expected document type and ask me whether I have it in
+  hand yet. For anything missing, suggest a concrete next step to obtain it
+  (e.g. "request a duplicate '1099' from the issuer" or "download the
+  receipt from your donation platform"). Summarize the checklist as a
+  markdown table with columns: Document, Status (have / missing / not
+  applicable), Next Step. Do not offer tax advice or estimate any tax
+  liability — this is purely an organizational checklist.
+variables:
+  filing_deadline:
+    default: "2027-04-15"
+    description: Your personal tax filing deadline (YYYY-MM-DD).
+  expected_documents:
+    default: "W-2, 1099-INT, 1099-NEC, mortgage interest statement, charitable donation receipts"
+    description: Comma-separated list of the document types you expect to need this filing season.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Purely organizational; does not access any financial account or perform
+  tax calculations. Consult a tax professional for actual filing decisions.

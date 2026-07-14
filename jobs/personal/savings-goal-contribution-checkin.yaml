@@ -1,0 +1,36 @@
+id: savings-goal-contribution-checkin
+version: 1
+name: Savings Goal Contribution Check-in
+description: >
+  Checks whether your latest contribution toward a specific savings goal
+  (emergency fund, vacation, down payment) landed on schedule and reports
+  progress toward the target, so a skipped month doesn't go unnoticed. Use
+  this if you're saving toward a specific goal with a target date.
+category: personal
+tags: [savings, budget, goals, finance, reminder]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  pct=$(awk -v current="{{current_balance}}" -v target="{{target_amount}}" 'BEGIN {
+    if (target <= 0) { print "n/a"; } else { printf "%.1f", (current / target) * 100; }
+  }');
+  remaining=$(awk -v current="{{current_balance}}" -v target="{{target_amount}}" 'BEGIN { printf "%.2f", target - current }');
+  echo "{{goal_name}}: {{current_balance}} of {{target_amount}} saved ($pct% there, $remaining remaining). Target date: {{target_date}}.";
+variables:
+  goal_name:
+    default: "Emergency Fund"
+    description: Name of the savings goal being tracked.
+  current_balance:
+    default: "0"
+    description: Current amount saved toward this goal; update after each contribution.
+  target_amount:
+    default: "10000.00"
+    description: The total amount you're trying to save.
+  target_date:
+    default: "2027-01-01"
+    description: The date you're aiming to hit the target by (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely arithmetic progress check; current_balance must be updated manually
+  or from a bank export. Does not connect to any bank account automatically.

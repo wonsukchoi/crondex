@@ -1,0 +1,33 @@
+id: library-book-due-reminder
+version: 1
+name: Library Book Due Date Reminder
+description: >
+  Reminds you a few days before a borrowed library book, DVD, or other item
+  is due so you can return or renew it before racking up late fees. Use this
+  if you regularly lose track of library due dates buried in your inbox.
+category: personal
+tags: [library, books, due-date, reminder]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  due=$(date -d "{{due_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{due_date}}" +%s);
+  days_left=$(( (due - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "\"{{item_title}}\" is due back in $days_left day(s) on {{due_date}} — return or renew it.";
+  fi
+variables:
+  item_title:
+    default: "Library item"
+    description: Title of the borrowed book or item.
+  due_date:
+    default: "2026-08-01"
+    description: Due date for the item (YYYY-MM-DD).
+  lead_time_days:
+    default: "3"
+    description: How many days before the due date to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder; does not connect to any library catalog account. Update
+  item_title and due_date manually for each new checkout.

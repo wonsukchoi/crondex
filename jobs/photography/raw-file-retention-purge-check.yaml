@@ -1,0 +1,38 @@
+id: raw-file-retention-purge-check
+version: 1
+name: RAW File Retention Purge Check
+description: >
+  Flags shoots whose RAW files have passed your retention policy window
+  and are due for either archival to cold storage or deletion, so
+  active drives don't quietly fill up with years of RAW captures nobody
+  will ever touch again. Use this if you've ever run out of working
+  storage mid-edit because RAW files from shoots two years old were
+  still sitting on your primary drive.
+category: photography
+tags: [photography, raw-files, retention, storage, policy]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v retention="{{retention_days}}" '
+    NR==1 {next}
+    {
+      shoot=$1; shoot_date=$2; disposition=$3;
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      age_days = int((today - shoot_epoch) / 86400);
+      if (age_days >= retention && tolower(disposition) == "pending") {
+        printf "RETENTION WINDOW PASSED: %s — shoot from %s is %d day(s) old, RAW disposition still pending\n", shoot, shoot_date, age_days;
+      }
+    }
+  ' "{{raw_retention_csv_path}}"
+variables:
+  raw_retention_csv_path:
+    default: "./raw-retention.csv"
+    description: "Path to a CSV with columns: shoot_name,shoot_date (YYYY-MM-DD),raw_disposition (pending/archived/deleted)."
+  retention_days:
+    default: 365
+    description: How many days to keep RAW files on active storage before flagging them for an archive-or-delete decision.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not archive or delete any files itself. Update raw_disposition once you've moved a shoot's RAW files to cold storage or deleted them per your retention policy.

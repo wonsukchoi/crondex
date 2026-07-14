@@ -1,0 +1,30 @@
+id: radon-test-renewal-reminder
+version: 1
+name: Radon Test Renewal Reminder
+description: >
+  Reminds you to re-test indoor radon levels based on how long it's
+  been since the last test. Use this if you've ever assumed one clean
+  test at move-in means you're covered for good, when levels can shift
+  as a home settles or is renovated.
+category: home
+tags: [home, radon, air-quality, safety, testing]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: radon last tested $days_since day(s) ago (every ${interval} months) — run a new test kit or hire a tester.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the last radon test — update this yourself.
+  interval_months:
+    default: 24
+    description: How often to re-test, in months. Re-test sooner after foundation work or renovations to the lowest livable level.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. If a past test came back elevated and you installed a mitigation system, re-test annually to confirm it's still working.

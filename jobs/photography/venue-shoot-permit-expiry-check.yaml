@@ -1,0 +1,46 @@
+id: venue-shoot-permit-expiry-check
+version: 1
+name: Venue & Location Shoot Permit Expiry Check
+description: >
+  Flags location shoot permits (parks, museums, private venues,
+  city film/photo permits) that are expiring soon or that a booked
+  shoot doesn't yet have a permit for at all. Use this if you've ever
+  shown up to shoot at a park or venue only to find your permit had
+  lapsed, or realized too late that a location required one you never
+  applied for.
+category: photography
+tags: [photography, permits, venue, compliance, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      venue=$1; shoot_date=$2; permit_status=$3; permit_expiry=$4;
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      if (tolower(permit_status) == "required" || tolower(permit_status) == "none") {
+        printf "NO PERMIT ON FILE: %s — shoot on %s requires a permit, status: %s\n", venue, shoot_date, permit_status;
+        next;
+      }
+      if (permit_expiry != "" && permit_expiry != "none") {
+        cmd2 = "date -d \"" permit_expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" permit_expiry "\" +%s 2>/dev/null";
+        cmd2 | getline expiry_epoch; close(cmd2);
+        days_to_expiry = int((expiry_epoch - today) / 86400);
+        if (days_to_expiry <= warn) {
+          printf "PERMIT EXPIRING: %s — permit expires %s (%d day(s) out), shoot scheduled %s\n", venue, permit_expiry, days_to_expiry, shoot_date;
+        }
+      }
+    }
+  ' "{{venue_permits_csv_path}}"
+variables:
+  venue_permits_csv_path:
+    default: "./venue-permits.csv"
+    description: "Path to a CSV with columns: venue_name,shoot_date (YYYY-MM-DD),permit_status (approved/required/none),permit_expiry_date (YYYY-MM-DD, or none)."
+  warn_days_before:
+    default: 5
+    description: How many days before a permit expires to start flagging it as expiring soon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not apply for or renew permits itself. Update permit_status and permit_expiry_date once a permit is confirmed or renewed with the venue or city office.

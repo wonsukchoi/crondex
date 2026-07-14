@@ -1,0 +1,43 @@
+id: headshot-batch-delivery-sla-check
+version: 1
+name: Headshot Batch Delivery SLA Check
+description: >
+  Checks corporate or team headshot batches against their promised
+  delivery turnaround and flags any batch at risk of missing its SLA.
+  Use this if a corporate client has ever emailed asking where 40
+  employee headshots were, three days after the promised delivery date,
+  because nobody was tracking the batch separately from your regular
+  editing queue.
+category: photography
+tags: [photography, headshots, corporate, sla, delivery]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      client=$1; shoot_date=$2; headcount=$3; sla_days=$4; delivered=$5;
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      due_epoch = shoot_epoch + (sla_days * 86400);
+      days_to_due = int((due_epoch - today) / 86400);
+      if (tolower(delivered) != "yes" && days_to_due <= warn) {
+        if (days_to_due < 0) {
+          printf "SLA MISSED: %s — %s headshots from %s were due %d day(s) ago\n", client, headcount, shoot_date, -days_to_due;
+        } else {
+          printf "SLA AT RISK: %s — %s headshots from %s due in %d day(s)\n", client, headcount, shoot_date, days_to_due;
+        }
+      }
+    }
+  ' "{{headshot_batches_csv_path}}"
+variables:
+  headshot_batches_csv_path:
+    default: "./headshot-batches.csv"
+    description: "Path to a CSV with columns: client_name,shoot_date (YYYY-MM-DD),headcount,sla_days (turnaround days promised),delivered (yes/no)."
+  warn_days_before:
+    default: 1
+    description: How many days before the SLA due date to start warning that a batch is at risk.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags batches at risk of or past their delivery SLA, it does not edit or deliver anything itself. Prioritize any batch marked SLA MISSED immediately.

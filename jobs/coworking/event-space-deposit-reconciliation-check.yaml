@@ -1,0 +1,30 @@
+id: event-space-deposit-reconciliation-check
+version: 1
+name: Event Space Deposit Reconciliation Check
+description: >
+  Checks event space rental bookings whose event date has passed but the
+  security deposit hasn't been either refunded or formally withheld yet, so
+  a renter's deposit doesn't sit in limbo for weeks. Use this if you rent
+  out event space or a large meeting room with a deposit and refunds have
+  ever slipped through the cracks after the event wrapped up.
+category: coworking
+tags: [coworking, events, billing, deposit]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select booking_id, renter_name, event_date, deposit_amount, deposit_status from event_space_bookings where event_date < current_date - interval '{{grace_period_days}} days' and deposit_status = 'held' order by event_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's event/booking database.
+  grace_period_days:
+    default: "5"
+    description: Days after the event date to allow for a post-event walkthrough before an unresolved deposit is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `event_space_bookings` table with `booking_id`, `renter_name`,
+  `event_date`, `deposit_amount`, and `deposit_status` columns — adjust the
+  query to your events/booking schema. Read-only; it does not refund, charge,
+  or withhold any deposit itself, it only flags bookings that still need a
+  decision.

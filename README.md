@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1555 jobs across 60 categories:
+1603 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -194,7 +194,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `cleaning-services` | 20 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 20 | Site/content health — SEO, broken links, freshness, repurposing. |
-| `coworking` | 20 | Shared-workspace membership ops — desks, room booking, community, amenities. |
+| `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
@@ -210,7 +210,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 33 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 32 | Recruiting pipeline — candidates, offers, interviews, reqs. |
-| `home` | 20 | Household reminders — maintenance, warranties, plants, safety. |
+| `home` | 32 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
@@ -224,10 +224,10 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
-| `personal` | 20 | Daily life reminders — bills, habits, meals, screen time. |
+| `personal` | 32 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
-| `photography` | 20 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
+| `photography` | 32 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |

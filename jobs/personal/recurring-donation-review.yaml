@@ -1,0 +1,34 @@
+id: recurring-donation-review
+version: 1
+name: Recurring Donation & Giving Review
+description: >
+  Prompts a periodic review of your recurring charitable donations so you can
+  confirm each one still aligns with your priorities and budget rather than
+  running on autopilot indefinitely. Use this if you've set up recurring
+  gifts over the years and never revisit whether they still make sense.
+category: personal
+tags: [charity, donations, giving, budget, reminder]
+schedule: "0 9 1 7,1 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: >
+  Help me review my recurring charitable donations. Here is my current list
+  of recurring gifts (name, monthly amount): {{recurring_donations_list}}.
+  My total monthly giving budget is {{monthly_giving_budget}}. For each
+  donation, ask me: do I still want to support this cause, has the amount
+  become a stretch, and is there a cause I'd rather redirect funds to?
+  Summarize the total committed amount versus my budget, flag if I'm over
+  budget, and produce a short table of keep / adjust / cancel decisions.
+  Do not initiate, modify, or cancel any actual payment — this is a
+  reflection exercise only.
+variables:
+  recurring_donations_list:
+    default: "Local Food Bank $20, Animal Shelter $15, Wikipedia $10"
+    description: Comma-separated list of your current recurring donations and monthly amounts.
+  monthly_giving_budget:
+    default: "50.00"
+    description: Your target total monthly giving budget.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Purely reflective; does not connect to any payment processor or charity
+  account and never modifies actual donations.

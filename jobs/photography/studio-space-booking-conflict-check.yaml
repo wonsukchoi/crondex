@@ -1,0 +1,38 @@
+id: studio-space-booking-conflict-check
+version: 1
+name: Studio Space Booking Conflict Check
+description: >
+  Scans the studio space reservation log for overlapping bookings on
+  the same room or the same day and flags each conflict. Use this if
+  two shoots have ever been accidentally booked into the same studio
+  room at the same time because one booking came in by phone and never
+  made it onto the shared calendar.
+category: photography
+tags: [photography, studio, scheduling, booking, conflict]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      room[NR]=$1; date[NR]=$2; start[NR]=$3; end[NR]=$4; client[NR]=$5; n=NR;
+    }
+    END {
+      for (i=2; i<=n; i++) {
+        for (j=2; j<i; j++) {
+          if (room[i] == room[j] && date[i] == date[j]) {
+            if (start[i] < end[j] && start[j] < end[i]) {
+              printf "BOOKING CONFLICT: room %s on %s — %s (%s-%s) overlaps %s (%s-%s)\n", room[i], date[i], client[i], start[i], end[i], client[j], start[j], end[j];
+            }
+          }
+        }
+      }
+    }
+  ' "{{studio_bookings_csv_path}}"
+variables:
+  studio_bookings_csv_path:
+    default: "./studio-bookings.csv"
+    description: "Path to a CSV with columns: room_name,booking_date (YYYY-MM-DD),start_time (HH:MM, 24h),end_time (HH:MM, 24h),client_name."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it only flags overlapping bookings on the same room and date, it does not rebook or notify anyone. Resolve each flagged conflict manually with whichever client booked second.

@@ -1,0 +1,40 @@
+id: watermark-infringement-scan-drafts
+version: 1
+name: Watermark & Copyright Infringement Scan Drafts
+description: >
+  Reviews a list of your portfolio images against reported or suspected
+  unauthorized reuse (social posts, blogs, print shops) and drafts a
+  polite licensing-or-takedown message for each confirmed hit. Use this
+  if you've ever found one of your wedding or commercial photos on
+  someone else's website with the watermark cropped out and had no idea
+  how to follow up.
+category: photography
+tags: [photography, copyright, watermark, infringement, licensing]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the suspected-infringement log at {{infringement_log_path}}
+  (columns: image_id, original_shoot, suspected_url, date_found,
+  confirmed_unauthorized yes/no, contacted yes/no). For every row where
+  confirmed_unauthorized is "yes" and contacted is "no", draft a short,
+  professional message to the site or account owner: note the specific
+  image, that it appears to be used without a license, and offer two
+  paths forward — purchase a usage license per
+  {{standard_license_fee_description}}, or remove the image within
+  {{takedown_window_days}} day(s). Keep the tone firm but not
+  accusatory; assume good faith (they may not know it needs a license).
+  Do NOT send anything or contact any platform directly — save each
+  message as a draft and list which image_ids still need review.
+variables:
+  infringement_log_path:
+    default: "./infringement-log.csv"
+    description: "Path to a CSV with columns: image_id,original_shoot,suspected_url,date_found (YYYY-MM-DD),confirmed_unauthorized (yes/no),contacted (yes/no)."
+  standard_license_fee_description:
+    default: "a one-time $150 usage license for continued display"
+    description: Plain-language description of the licensing offer to include in the draft message.
+  takedown_window_days:
+    default: 7
+    description: How many days to give the other party to either license the image or take it down.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — this never files a DMCA notice or contacts a platform automatically. Confirm each "confirmed_unauthorized" entry yourself before a message goes out, and involve a lawyer before escalating beyond a first polite ask.

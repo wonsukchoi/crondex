@@ -1,0 +1,45 @@
+id: community-forum-engagement-dropoff-check
+version: 1
+name: Community Forum Engagement Drop-Off Check
+description: >
+  Compares recent posting and reaction activity in your member Slack,
+  forum, or community app against each member's own historical baseline
+  to spot members who've gone quiet, since a sudden drop in community
+  engagement is often an early churn signal. Use this if members have
+  ever cancelled without warning when a fading presence in the community
+  channel would have been the tell.
+category: coworking
+tags: [coworking, community, engagement, churn-risk]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull each active member's posting, comment, and reaction activity in the
+  community Slack/forum/app over the last {{recent_window_days}} days, and
+  compare it against their average activity over the prior
+  {{baseline_window_days}} days. Flag members whose recent activity has
+  dropped by {{dropoff_threshold_pct}}% or more relative to their own
+  baseline — don't just compare against other members, since some people
+  were always quieter than others. For each flagged member, note their
+  typical engagement level, how sharply it's dropped, and whether the drop
+  coincides with anything visible in the data (e.g. a support ticket, a
+  failed payment, a complaint) that might explain it. Prioritize long-tenured
+  or previously highly-engaged members, since their drop-off is the strongest
+  signal.
+variables:
+  recent_window_days:
+    default: "14"
+    description: How many recent days of activity to evaluate per member.
+  baseline_window_days:
+    default: "90"
+    description: How many prior days of history to use as each member's personal activity baseline.
+  dropoff_threshold_pct:
+    default: "60"
+    description: Percentage drop from baseline activity at or above which a member is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes access to activity data from a community platform (Slack, Discord,
+  a member app's forum, etc.) with per-member, per-day post/comment/reaction
+  counts. This is a judgment-based signal, not a confirmed churn prediction —
+  treat flagged members as candidates for a casual check-in, not an automatic
+  retention offer.

@@ -1,0 +1,42 @@
+id: houseplant-fertilizing-schedule-reminder
+version: 1
+name: Houseplant Fertilizing & Repotting Reminder
+description: >
+  Reminds you when it's time to fertilize or repot your houseplants based on
+  how many days have passed since the last time, since these tasks are easy
+  to forget between routine waterings. Use this if your plants get watered
+  regularly but fertilizer and repotting fall by the wayside.
+category: personal
+tags: [plants, houseplants, gardening, reminder]
+schedule: "0 9 * * 6"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  last_fert=$(date -d "{{last_fertilized_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_fertilized_date}}" +%s);
+  last_repot=$(date -d "{{last_repotted_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_repotted_date}}" +%s);
+  days_since_fert=$(( (today - last_fert) / 86400 ));
+  days_since_repot=$(( (today - last_repot) / 86400 ));
+  if [ "$days_since_fert" -ge "{{fertilize_interval_days}}" ]; then
+    echo "It's been $days_since_fert day(s) since fertilizing — time to feed your plants.";
+  fi;
+  if [ "$days_since_repot" -ge "{{repot_interval_days}}" ]; then
+    echo "It's been $days_since_repot day(s) since repotting — check roots and pot size.";
+  fi
+variables:
+  last_fertilized_date:
+    default: "2026-06-01"
+    description: The last date you fertilized your houseplants (YYYY-MM-DD).
+  fertilize_interval_days:
+    default: "30"
+    description: How many days between fertilizing sessions.
+  last_repotted_date:
+    default: "2025-07-01"
+    description: The last date you repotted your houseplants (YYYY-MM-DD).
+  repot_interval_days:
+    default: "365"
+    description: How many days between repotting checks.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder only; update the last_* dates manually after each
+  fertilizing or repotting session.

@@ -1,0 +1,29 @@
+id: virtual-office-mail-forwarding-sla-check
+version: 1
+name: Virtual Office Mail Forwarding SLA Check
+description: >
+  Checks scanned or physical mail items logged for virtual office members
+  that haven't been forwarded or scanned within your promised turnaround
+  time. Use this if a virtual office member has ever complained about a
+  forwarded check or letter showing up late, or not at all.
+category: coworking
+tags: [coworking, virtual-office, mail, sla]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select mail_item_id, member_id, member_name, received_at, mail_type, status from virtual_office_mail where status in ('received', 'pending_forward') and received_at <= now() - interval '{{sla_hours}} hours' order by received_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's virtual office / mailroom database.
+  sla_hours:
+    default: "48"
+    description: Hours after receipt within which mail should be scanned or forwarded before it's flagged as an SLA breach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `virtual_office_mail` table with `mail_item_id`, `member_id`,
+  `member_name`, `received_at`, `mail_type`, and `status` columns — adjust the
+  query to your mailroom system's schema. Read-only report; it does not scan,
+  forward, or notify anyone about the mail itself, it only flags items past
+  your SLA window.

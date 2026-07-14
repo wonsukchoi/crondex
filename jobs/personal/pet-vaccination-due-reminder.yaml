@@ -1,0 +1,37 @@
+id: pet-vaccination-due-reminder
+version: 1
+name: Pet Vaccination Due Reminder
+description: >
+  Reminds you before your pet's next vaccination or booster is due so you can
+  schedule a vet visit in time, rather than finding out at a check-up that a
+  shot lapsed. Use this if you manage your pet's vaccine schedule yourself
+  instead of relying on vet office reminders.
+category: personal
+tags: [pets, vet, vaccination, reminder]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  due=$(date -d "{{next_due_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{next_due_date}}" +%s);
+  days_left=$(( (due - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "{{pet_name}}'s {{vaccine_name}} is due in $days_left day(s) on {{next_due_date}} — book a vet appointment.";
+  fi
+variables:
+  pet_name:
+    default: "your pet"
+    description: Name of the pet this reminder tracks.
+  vaccine_name:
+    default: "rabies booster"
+    description: Which vaccination or booster is due.
+  next_due_date:
+    default: "2026-10-01"
+    description: The date the vaccination is due (YYYY-MM-DD).
+  lead_time_days:
+    default: "14"
+    description: How many days before the due date to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder only; does not connect to any veterinary clinic system.
+  Update next_due_date manually after each vet visit.

@@ -1,0 +1,40 @@
+id: desk-sharing-sublease-compliance-check
+version: 1
+name: Desk Sharing / Sublease Compliance Check
+description: >
+  Reviews badge-in activity and headcount for dedicated desks and private
+  offices against the number of people actually listed on the membership
+  agreement, to catch teams quietly subletting or sharing seats beyond what
+  their plan allows. Use this if you suspect some members are splitting a
+  desk or office with people who were never added to the contract.
+category: coworking
+tags: [coworking, compliance, desk-sharing, membership]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  For each dedicated desk or private office account, pull the number of
+  distinct badge IDs that used that space's access point over the last
+  {{lookback_days}} days, and compare it against the number of people
+  officially listed on that account's membership agreement. Flag any account
+  where distinct badge users exceed the listed headcount by more than
+  {{overage_threshold}} person(s). For each flagged account, note the listed
+  headcount, the distinct badge count observed, and whether the extra badges
+  appear to be regular daily users (suggesting an unlisted person working
+  there) versus occasional one-off visitors (which is probably just a normal
+  guest). Recommend which accounts are worth a direct conversation about
+  updating their agreement versus which look like innocent one-off access.
+variables:
+  lookback_days:
+    default: "30"
+    description: How many days of badge access history to review per account.
+  overage_threshold:
+    default: "1"
+    description: Number of extra distinct badge users beyond the listed headcount before an account is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes access to badge/access-control logs joined with membership
+  agreement headcount data (e.g. from a key-fob system and your membership
+  CRM). This is a judgment-based signal, not proof of a sublease violation —
+  frequent guests or a new hire mid-onboarding can also trigger it, so treat
+  flagged accounts as worth a conversation, not an automatic penalty.

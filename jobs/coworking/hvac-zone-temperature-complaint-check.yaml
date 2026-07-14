@@ -1,0 +1,46 @@
+id: hvac-zone-temperature-complaint-check
+version: 1
+name: HVAC Zone Temperature Complaint Check
+description: >
+  Looks at facilities tickets tagged as temperature-related (too hot, too
+  cold, drafty) and groups them by floor or HVAC zone to spot a spot that
+  keeps coming up, rather than treating every complaint as a one-off. Use
+  this if the same corner of the office keeps getting "it's freezing in
+  here" tickets and nobody's connected the dots to a zone-level HVAC issue.
+category: coworking
+tags: [coworking, facilities, hvac, comfort]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select hvac_zone, count(*) as complaint_count, array_agg(distinct complaint_type) as complaint_types from facilities_tickets where ticket_category = 'temperature' and created_at >= now() - interval '{{lookback_days}} days' group by hvac_zone having count(*) >= {{complaint_threshold}} order by complaint_count desc;"
+prompt: |
+  Pull temperature-related facilities tickets from the last {{lookback_days}}
+  days, grouped by HVAC zone. For any zone with {{complaint_threshold}} or
+  more complaints, summarize whether the complaints lean "too hot," "too
+  cold," or mixed, whether they cluster at a particular time of day, and give
+  a plain-language guess at likely cause (e.g. thermostat miscalibration,
+  vent blockage, zone sized wrong for occupancy). Recommend whether this
+  looks like a quick fix (adjust setpoint) or something that needs an HVAC
+  technician.
+script_note: >
+  `command` gives you raw complaint counts and types per zone with no
+  interpretation. `prompt` adds the pattern read (hot vs. cold, time-of-day
+  clustering) and a likely-cause guess plus a fix-vs-technician
+  recommendation.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's facilities ticketing database.
+  lookback_days:
+    default: "30"
+    description: How many days back to review temperature-related tickets.
+  complaint_threshold:
+    default: "3"
+    description: Minimum number of complaints in a zone before it's flagged as a recurring issue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `facilities_tickets` table with `hvac_zone`, `ticket_category`,
+  `complaint_type`, and `created_at` columns — adjust to your ticketing
+  system's schema. Informational only; it does not adjust any thermostat or
+  dispatch a technician itself.

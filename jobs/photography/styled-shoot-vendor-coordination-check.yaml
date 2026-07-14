@@ -1,0 +1,54 @@
+id: styled-shoot-vendor-coordination-check
+version: 1
+name: Styled Shoot Vendor Coordination Check
+description: >
+  Flags editorial or commercial styled shoots where a collaborating
+  vendor (stylist, florist, hair/makeup artist, prop rental, model)
+  hasn't confirmed their participation yet as the shoot date approaches,
+  and drafts a nudge for each one. Use this if a styled shoot has ever
+  nearly fallen apart because the florist or MUA went quiet and nobody
+  chased them down until it was almost too late.
+category: photography
+tags: [photography, styled-shoot, vendors, coordination, commercial]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      shoot=$1; vendor_role=$2; vendor_name=$3; shoot_date=$4; confirmed=$5;
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      days_out = int((shoot_epoch - today) / 86400);
+      if (days_out >= 0 && days_out <= warn && tolower(confirmed) != "yes") {
+        printf "UNCONFIRMED VENDOR: %s (%s) for shoot \"%s\" on %s, %d day(s) out\n", vendor_name, vendor_role, shoot, shoot_date, days_out;
+      }
+    }
+  ' "{{shoot_vendors_csv_path}}"
+prompt: |
+  Run this job's shell command against {{shoot_vendors_csv_path}} to get
+  the list of unconfirmed vendors for upcoming styled shoots. For each
+  one, draft a short, friendly confirmation-request message to that
+  vendor: name the shoot, the date, call time if known, and ask them to
+  confirm their participation by {{confirmation_deadline_description}}.
+  Group drafts by shoot so it's easy to see which shoots are still at
+  risk. Do NOT send anything — save each as a draft.
+script_note: >
+  The shell command gives you the raw list of unconfirmed vendors per
+  shoot for free. The prompt mode adds the actual per-vendor nudge
+  drafts, which need natural phrasing per vendor role — that's judgment
+  a generic script can't do.
+variables:
+  shoot_vendors_csv_path:
+    default: "./shoot-vendors.csv"
+    description: "Path to a CSV with columns: shoot_name,vendor_role,vendor_name,shoot_date (YYYY-MM-DD),confirmed (yes/no)."
+  warn_days_before:
+    default: 5
+    description: How many days before the shoot date to start flagging unconfirmed vendors.
+  confirmation_deadline_description:
+    default: "48 hours before the shoot"
+    description: Plain-language deadline to ask the vendor to confirm by.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only in agent-prompt/hybrid mode — it never contacts a vendor automatically. The shell-only command mode is purely read-only and never drafts anything.

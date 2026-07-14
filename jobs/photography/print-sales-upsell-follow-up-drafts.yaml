@@ -1,0 +1,53 @@
+id: print-sales-upsell-follow-up-drafts
+version: 1
+name: Print Sales Upsell Follow-Up Drafts
+description: >
+  Flags clients whose digital gallery was delivered a while ago but who
+  haven't ordered any prints, canvases, or albums yet, and drafts a
+  gentle upsell message before the gallery expires. Use this if you've
+  ever left real print revenue on the table because nobody followed up
+  before a client's gallery access quietly lapsed.
+category: photography
+tags: [photography, print-sales, upsell, revenue, client-communication]
+schedule: "0 10 * * 2"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v min_days="{{min_days_since_delivery}}" '
+    NR==1 {next}
+    {
+      client=$1; delivery_date=$2; print_order_placed=$3; gallery=$4;
+      cmd = "date -d \"" delivery_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" delivery_date "\" +%s 2>/dev/null";
+      cmd | getline delivery_epoch; close(cmd);
+      days_since = int((today - delivery_epoch) / 86400);
+      if (days_since >= min_days && tolower(print_order_placed) != "yes") {
+        printf "NO PRINT ORDER: %s — gallery \"%s\" delivered %d day(s) ago, no prints/albums ordered yet\n", client, gallery, days_since;
+      }
+    }
+  ' "{{gallery_sales_csv_path}}"
+prompt: |
+  Run this job's shell command against {{gallery_sales_csv_path}} to get
+  the list of clients who haven't ordered prints yet. For each one,
+  draft a warm, low-pressure message highlighting a couple of favorite
+  images from their gallery (if noted) and mentioning
+  {{print_promo_description}}, along with a reminder that the gallery
+  link expires soon if that applies. Do NOT send anything — save each
+  as a draft and list who still needs a nudge.
+script_note: >
+  The shell command gives you the raw list of clients with no print
+  order on file for free. The prompt mode adds the actual personalized
+  upsell drafts, which need natural phrasing and image-specific
+  mentions — that's judgment a generic script can't do.
+variables:
+  gallery_sales_csv_path:
+    default: "./gallery-sales.csv"
+    description: "Path to a CSV with columns: client_name,gallery_delivery_date (YYYY-MM-DD),print_order_placed (yes/no),gallery_name."
+  min_days_since_delivery:
+    default: 10
+    description: Minimum number of days since gallery delivery before flagging a missing print order.
+  print_promo_description:
+    default: "15% off print and album orders placed this month"
+    description: Plain-language description of the current print promotion to mention in the draft.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — the prompt mode drafts upsell messages but never sends them automatically; review before sending. The shell-only command mode is purely read-only.

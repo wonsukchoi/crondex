@@ -1,0 +1,26 @@
+id: parking-spot-allocation-conflict-check
+version: 1
+name: Parking Spot Allocation Conflict Check
+description: >
+  Checks assigned parking spots against active vehicle registrations and
+  flags spots claimed by more than one member or member accounts with more
+  registered vehicles than their plan allows. Use this if members have ever
+  fought over a spot because two people were told the same numbered space
+  was theirs.
+category: coworking
+tags: [coworking, parking, facilities, allocation]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select spot_number, count(distinct member_id) as claimants, array_agg(member_name) as members from parking_assignments where status = 'active' group by spot_number having count(distinct member_id) > 1 order by spot_number;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's parking/facilities database.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `parking_assignments` table with `spot_number`, `member_id`,
+  `member_name`, and `status` columns — adjust the query to your parking
+  management schema. Read-only; it surfaces double-assigned spots for staff
+  to resolve, it does not reassign or revoke any parking access itself.

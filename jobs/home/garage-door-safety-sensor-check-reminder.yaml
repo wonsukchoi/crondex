@@ -1,0 +1,32 @@
+id: garage-door-safety-sensor-check-reminder
+version: 1
+name: Garage Door Safety Sensor Check Reminder
+description: >
+  Reminds you to test the garage door opener's auto-reverse and
+  photo-eye safety sensors on a recurring basis. Use this if you've
+  ever realized the sensors were misaligned or dead only after the
+  door failed to reverse on something in its path.
+category: home
+tags: [home, garage-door, safety, maintenance]
+schedule: "0 9 1 */2 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Walk me through testing my garage door opener's safety features right now:
+  1. Auto-reverse test — place a {{test_object}} (e.g. a 2x4 board) flat on
+     the ground where the door would close, trigger the door to close, and
+     confirm it reverses immediately on contact instead of continuing to
+     close or crushing the object.
+  2. Photo-eye test — wave a broom handle through the beam near the bottom
+     of the tracks while the door is closing and confirm it stops and
+     reverses without contact.
+  If either test fails, tell me the likely cause (misaligned sensors,
+  dead sensor LED, obstructed lens, worn reversal mechanism) and whether
+  this is a DIY realignment or a job for a garage door technician. Treat a
+  failed safety-reversal test as urgent, not routine.
+variables:
+  test_object:
+    default: "2x4 board"
+    description: Object to use for the auto-reverse contact test.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Safety-critical check — a failed reversal test means small children or pets could be seriously injured. Don't defer a failed test.

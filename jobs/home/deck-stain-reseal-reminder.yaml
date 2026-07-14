@@ -1,0 +1,30 @@
+id: deck-stain-reseal-reminder
+version: 1
+name: Deck/Fence Stain & Reseal Reminder
+description: >
+  Reminds you it's the season to inspect and reseal a wood deck or fence
+  based on how long it's been since the last treatment. Use this if
+  you've ever noticed graying, splintering wood after skipping a
+  resealing season because there was no obvious trigger to do it.
+category: home
+tags: [home, deck, exterior, maintenance, seasonal]
+schedule: "0 9 1 4,10 *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_sealed_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: deck/fence last stained or sealed $days_since day(s) ago (every ${interval} months) — inspect for graying or splintering and reseal.";
+  else echo "OK: sealed $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_sealed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last stained or sealed the deck/fence — update this yourself.
+  interval_months:
+    default: 24
+    description: How often to reseal, in months. Sun-exposed or high-traffic decks need shorter intervals.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Best done in dry, moderate-temperature weather — the spring and fall firing months are a starting point, not a hard rule.

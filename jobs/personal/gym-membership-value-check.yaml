@@ -1,0 +1,32 @@
+id: gym-membership-value-check
+version: 1
+name: Gym Membership Usage-vs-Cost Check
+description: >
+  Compares how many times you actually went to the gym this month against
+  what you're paying, so you can decide whether to keep, downgrade, or cancel
+  the membership. Use this if you suspect you're paying for a membership you
+  barely use.
+category: personal
+tags: [gym, fitness, subscription, cost, reminder]
+schedule: "0 18 28 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  cost_per_visit=$(awk -v cost="{{monthly_cost}}" -v visits="{{visits_this_month}}" 'BEGIN {
+    if (visits <= 0) { print "n/a"; } else { printf "%.2f", cost / visits; }
+  }');
+  echo "Gym membership: {{monthly_cost}} for {{visits_this_month}} visit(s) this month (cost per visit: $cost_per_visit). Threshold for reconsidering: {{max_acceptable_cost_per_visit}} per visit.";
+variables:
+  monthly_cost:
+    default: "45.00"
+    description: Monthly gym membership fee in your local currency.
+  visits_this_month:
+    default: "0"
+    description: Number of times you visited the gym so far this month (update manually or from an app export).
+  max_acceptable_cost_per_visit:
+    default: "15.00"
+    description: The cost-per-visit above which you'd consider cancelling or downgrading.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only calculation only; visits_this_month must be updated manually or
+  pulled from a fitness app export before running. Does not call any gym API.

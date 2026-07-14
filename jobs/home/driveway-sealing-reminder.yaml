@@ -1,0 +1,30 @@
+id: driveway-sealing-reminder
+version: 1
+name: Driveway Sealing Reminder
+description: >
+  Reminds you it's time to seal-coat an asphalt driveway based on how
+  long it's been since the last sealing. Use this if you've ever
+  watched hairline cracks in your driveway slowly turn into potholes
+  because resealing never had a trigger date attached to it.
+category: home
+tags: [home, driveway, exterior, maintenance, seasonal]
+schedule: "0 9 1 5,9 *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_sealed_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: driveway last sealed $days_since day(s) ago (every ${interval} months) — inspect for cracking and reseal in dry weather above 50F.";
+  else echo "OK: sealed $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_sealed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last seal-coated the driveway — update this yourself.
+  interval_months:
+    default: 24
+    description: How often to reseal an asphalt driveway, in months. Concrete driveways need this far less often.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token. Only applies to asphalt driveways; concrete driveways should track crack/joint sealant separately on a longer cycle.

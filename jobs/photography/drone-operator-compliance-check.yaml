@@ -1,0 +1,45 @@
+id: drone-operator-compliance-check
+version: 1
+name: Drone Operator Compliance Check
+description: >
+  Flags an aerial/drone photography operation whose pilot certificate,
+  drone registration, or drone liability insurance is expired or
+  expiring soon, and separately flags any upcoming drone shoot that
+  hasn't had its airspace authorization checked yet. Use this if you've
+  ever booked a drone shot for a property or event and only remembered
+  the pilot certificate had lapsed the morning of the shoot.
+category: photography
+tags: [photography, drone, aerial, compliance, faa]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      item=$1; expiry_date=$2; upcoming_shoot_date=$3; airspace_checked=$4;
+      cmd = "date -d \"" expiry_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry_date "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_to_expiry = int((expiry_epoch - today) / 86400);
+      if (days_to_expiry <= warn) {
+        if (days_to_expiry < 0) {
+          printf "EXPIRED: %s expired %d day(s) ago\n", item, -days_to_expiry;
+        } else {
+          printf "EXPIRING SOON: %s expires in %d day(s)\n", item, days_to_expiry;
+        }
+      }
+      if (upcoming_shoot_date != "" && upcoming_shoot_date != "none" && tolower(airspace_checked) != "yes") {
+        printf "AIRSPACE NOT CHECKED: %s — drone shoot on %s has no airspace authorization check on file\n", item, upcoming_shoot_date;
+      }
+    }
+  ' "{{drone_compliance_csv_path}}"
+variables:
+  drone_compliance_csv_path:
+    default: "./drone-compliance.csv"
+    description: "Path to a CSV with columns: item_name (e.g. Part 107 certificate, drone registration, drone liability policy),expiry_date (YYYY-MM-DD),upcoming_shoot_date (YYYY-MM-DD, or blank/none),airspace_checked (yes/no)."
+  warn_days_before:
+    default: 14
+    description: How many days before an expiry date to start warning that a certificate, registration, or policy needs renewal.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; it does not renew certificates, registrations, or insurance, and does not file airspace authorization requests. Renewing and authorizing remain the pilot's responsibility before any drone shoot.

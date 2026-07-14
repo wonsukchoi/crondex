@@ -1,0 +1,54 @@
+id: client-anniversary-rebooking-outreach-drafts
+version: 1
+name: Client Anniversary Rebooking Outreach Drafts
+description: >
+  Flags past clients whose shoot anniversary (wedding anniversary,
+  newborn's first birthday, annual family session) is coming up and
+  drafts a personal rebooking outreach message. Use this if repeat
+  clients have ever slipped through the cracks because nobody reached
+  out again after their original session, even though they'd have
+  happily rebooked for the next milestone.
+category: photography
+tags: [photography, repeat-clients, rebooking, outreach, retention]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lead_days}}" '
+    NR==1 {next}
+    {
+      client=$1; milestone=$2; anniversary_date=$3; rebooked=$4;
+      cmd = "date -d \"" anniversary_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" anniversary_date "\" +%s 2>/dev/null";
+      cmd | getline anniv_epoch; close(cmd);
+      days_out = int((anniv_epoch - today) / 86400);
+      if (days_out >= 0 && days_out <= lead && tolower(rebooked) != "yes") {
+        printf "REBOOKING OPPORTUNITY: %s — %s coming up on %s (%d day(s) out)\n", client, milestone, anniversary_date, days_out;
+      }
+    }
+  ' "{{client_milestones_csv_path}}"
+prompt: |
+  Run this job's shell command against {{client_milestones_csv_path}} to
+  get the list of past clients with an upcoming milestone. For each one,
+  draft a warm, personal outreach message referencing their original
+  session and the upcoming milestone, and gently invite them to book a
+  follow-up session, mentioning {{returning_client_offer_description}}
+  if relevant. Do NOT send anything — save each as a draft and list who
+  still needs outreach.
+script_note: >
+  The shell command gives you the raw list of upcoming client
+  milestones for free. The prompt mode adds the actual personalized
+  rebooking drafts, which need natural, non-salesy phrasing — that's
+  judgment a generic script can't do.
+variables:
+  client_milestones_csv_path:
+    default: "./client-milestones.csv"
+    description: "Path to a CSV with columns: client_name,milestone_description,anniversary_date (YYYY-MM-DD),rebooked (yes/no)."
+  lead_days:
+    default: 30
+    description: How many days before the milestone date to start flagging it as a rebooking opportunity.
+  returning_client_offer_description:
+    default: "10% returning-client discount"
+    description: Plain-language description of any offer to extend to returning clients in the draft.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Draft-only — the prompt mode drafts outreach messages but never sends them automatically; review before sending. The shell-only command mode is purely read-only.

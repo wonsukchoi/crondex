@@ -1,0 +1,38 @@
+id: member-satisfaction-survey-followup-check
+version: 1
+name: Member Satisfaction Survey Follow-Up Check
+description: >
+  Looks at recent member satisfaction or NPS survey responses and flags
+  detractors or low scorers who haven't had any follow-up contact logged
+  yet. Use this if surveys have ever gone out and the low scores just sat
+  in a spreadsheet with nobody circling back to the unhappy members.
+category: coworking
+tags: [coworking, member-experience, nps, survey, retention]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Pull member satisfaction or NPS survey responses submitted in the last
+  {{lookback_days}} days from the survey/CRM system. Identify respondents who
+  scored at or below {{detractor_score_threshold}} (on whatever scale the
+  survey uses, e.g. 0-6 on a 0-10 NPS scale) and check whether a follow-up
+  contact (call, email, in-person chat) has already been logged for them. For
+  each detractor with no logged follow-up, summarize their score, any
+  free-text comments they left, and how long it's been since they responded.
+  Prioritize members with the lowest scores and members who left specific
+  complaints (e.g. noise, billing, staff) over generic low scores, since
+  those give staff something concrete to address.
+variables:
+  lookback_days:
+    default: "14"
+    description: How many days back to check for new survey responses.
+  detractor_score_threshold:
+    default: "6"
+    description: Score at or below which a respondent is treated as a detractor needing follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes survey responses are captured in a CRM, form tool, or coworking
+  platform with a timestamp, score, optional comment, and some way to check
+  whether a follow-up was logged. This is informational and judgment-based —
+  it surfaces who needs a human touch, it does not send any message or close
+  out the follow-up itself.

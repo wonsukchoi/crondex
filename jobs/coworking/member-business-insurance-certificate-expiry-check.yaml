@@ -1,0 +1,30 @@
+id: member-business-insurance-certificate-expiry-check
+version: 1
+name: Member Business Insurance Certificate Expiry Check
+description: >
+  Checks certificates of insurance (COIs) on file for member businesses
+  against your lease or license agreement's required coverage, and flags
+  ones that have already expired or are expiring soon. Use this if your
+  space requires members to carry liability insurance and you don't want to
+  discover a lapsed COI only after an incident happens.
+category: coworking
+tags: [coworking, compliance, insurance, legal]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select member_id, account_name, coi_expiration_date, required_coverage_amount, coverage_amount_on_file from member_insurance_certificates where coi_expiration_date <= current_date + interval '{{warning_days}} days' order by coi_expiration_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's member compliance/legal database.
+  warning_days:
+    default: "30"
+    description: Days of advance warning before a certificate's expiration date to include it in the flagged list.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `member_insurance_certificates` table with `member_id`,
+  `account_name`, `coi_expiration_date`, `required_coverage_amount`, and
+  `coverage_amount_on_file` columns — adjust the query to your compliance
+  tracking schema. Read-only; it does not request a new COI from the member
+  or suspend access itself, it only flags who's due for a renewal reminder.

@@ -6,7 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-07-15
+
 ### Added
+
+- 24 new jobs across 20 categories; every category now holds at least 32
+  jobs, enforced in CI by the new `npm run check-category-floor` gate
+  (`scripts/check-category-floor.js`, floor overridable via
+  `CRONDEX_CATEGORY_FLOOR`). Catalog now 1932 jobs across 60 categories.
+- k8s CronJob deploy target emits the native `spec.timeZone` field
+  (Kubernetes 1.27+) when a job declares a `timezone`.
+- `crondex recommend`: 8 new catalog-grounded synonym groups
+  (certificate/certification, license/permit, warranty/guarantee,
+  subscription/membership, vendor/supplier, credential/password/access,
+  capacity/utilization/occupancy, headcount/staffing/roster), plus
+  renewal/lapse merged into the expiry group and archive into backup.
+- PR validation workflow (`.github/workflows/pr-jobs.yml`): PRs touching
+  `jobs/**` get schema/shellcheck/duplicate checks with a pass/fail
+  summary comment.
+- Static catalog site generator (`npm run build-site`) with client-side
+  search, category filter, and per-job detail view; deployed to GitHub
+  Pages on push to main (`.github/workflows/deploy-site.yml`).
 
 - Biome lint + format for `bin/`, `lib/`, `scripts/`, and `test/`
   (`biome.json`, pinned `@biomejs/biome` dev dependency). `npm run lint`

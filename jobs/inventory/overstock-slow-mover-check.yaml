@@ -1,5 +1,5 @@
 id: overstock-slow-mover-check
-version: 1
+version: 2
 name: Overstock / Slow-Mover Check
 description: >
   Flags SKUs sitting well above normal stock levels with low recent sales
@@ -7,7 +7,7 @@ description: >
   stock has ever piled up quietly until a year-end count revealed how
   much cash was sitting on shelves doing nothing.
 category: inventory
-tags: [inventory, overstock, slow-mover, capital]
+tags: [inventory, overstock, slow-mover, capital, retail, markdown, aging]
 schedule: "0 6 * * 1"
 timezone: "UTC"
 runner: shell
@@ -33,4 +33,20 @@ variables:
     default: 90
     description: Minimum days-of-stock-on-hand (at current velocity) before flagging, to avoid noise from normal restocking bumps.
 compatible_agents: [generic, claude, codex]
-notes: Complements `low-stock-alert`/`low-stock-reorder-alert` by catching the opposite problem — too much stock, not too little.
+notes: >
+  Complements `low-stock-alert`/`low-stock-reorder-alert` by catching the
+  opposite problem — too much stock, not too little. Absorbs the former
+  `markdown-aging-inventory-check` job (retail category): there are two valid
+  trigger philosophies for "too much slow inventory" —
+  (1) velocity-relative, used here by default, which flags a SKU only once
+  its stock-on-hand is large *relative to how fast it's actually selling*
+  (via `min_days_of_stock` and `overstock_multiplier`), avoiding noise from
+  normal restocking bumps but requiring a par-level/velocity feed
+  (`inventory_csv_path` columns: sku,current_stock,units_sold_last_30_days,normal_par_level); and
+  (2) simple time-on-shelf aging, which flags any SKU still "in-stock" past a
+  fixed number of days since receipt regardless of sales velocity — cruder,
+  but usable with only a receiving log (columns: sku,received_date,status)
+  when no sales-velocity data is available. If you only have receiving dates
+  and no per-SKU sales/par data, replace the awk trigger condition with a
+  simple `days_on_shelf >= aging_days_threshold` check on `received_date`
+  instead of the velocity/par comparison.

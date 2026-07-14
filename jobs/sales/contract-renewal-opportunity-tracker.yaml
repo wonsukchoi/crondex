@@ -1,11 +1,14 @@
 id: contract-renewal-opportunity-tracker
-version: 1
+version: 2
 name: Contract Renewal Opportunity Tracker
 description: >
   Flags existing customer contracts approaching their renewal date so
   account management can start the renewal conversation early. Use this
   if a contract has ever auto-lapsed or renewed on unfavorable terms
-  because nobody flagged it until it was almost too late.
+  because nobody flagged it until it was almost too late. Applies equally
+  to agencies tracking client contracts and retainer agreements — same
+  pattern, just swap `contracts` for whatever table holds client/retainer
+  end dates.
 category: sales
 tags: [sales, renewals, contracts, account-management]
 schedule: "0 8 * * 1-5"
@@ -26,3 +29,8 @@ notes: >
   `contract_value` columns — adjust to your schema. Distinct from
   `quote-expiry-reminder` (pre-sale quotes that haven't been signed yet);
   this tracks signed, active customer contracts nearing their renewal date.
+  Agency example: point this at a `client_contracts` table (`client`,
+  `account_lead`, `contract_end_date`, `status`) to flag client retainer
+  agreements approaching their end date instead of generic sales contracts —
+  same read-only reminder pattern, it does not renew, extend, or modify
+  anything, it only surfaces upcoming dates so the account lead can act.

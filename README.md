@@ -183,12 +183,12 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1919 jobs across 60 categories:
+1908 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
-| `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
-| `agriculture` | 32 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `agency` | 31 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
+| `agriculture` | 31 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 31 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 32 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
@@ -199,7 +199,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 31 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
+| `education` | 31 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 32 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 31 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 36 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
@@ -222,7 +222,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
-| `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
+| `moving-relocation` | 31 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 31 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
@@ -231,15 +231,15 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `podcast` | 30 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 32 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 31 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
-| `realestate` | 32 | Property management — leases, rent, vacancy, inspections, tax. |
+| `realestate` | 30 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 32 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
-| `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
+| `retail` | 31 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 32 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
-| `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
+| `senior-living` | 31 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 31 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
-| `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
+| `staffing` | 30 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 31 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 31 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |

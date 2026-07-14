@@ -1,12 +1,12 @@
 id: tenant-lease-agreement-renewal-reminder
-version: 1
+version: 2
 name: Tenant Lease Agreement Renewal Reminder
 description: >
-  Looks through fixed-term storage unit rental agreements and lists the ones
-  due to renew or expire within the next several days, so staff can reach out
-  before a tenant's contract lapses. Use this if your facility uses
-  fixed-term lease agreements (not simple month-to-month rentals) and has
-  ever had a tenant's agreement quietly expire without anyone following up.
+  Looks through fixed-term lease agreements — storage units, apartments, or
+  any similar tenancy — and lists the ones due to renew or expire within the
+  next several days, so staff can reach out before a tenant's contract
+  lapses. Use this if your leases are fixed-term (not simple month-to-month
+  rentals) and have ever quietly expired without anyone following up.
 category: self-storage
 tags: [self-storage, leasing, renewals, tenant-communication]
 schedule: "0 8 * * *"
@@ -29,4 +29,11 @@ notes: >
   rental agreements; if every unit is month-to-month there is no fixed end
   date to track and this job will not find anything useful. Read-only:
   it only lists upcoming renewals, it does not send reminders or renew
-  anything itself.
+  anything itself. Merged in v2 from a near-duplicate realestate
+  "lease expiry reminder" job: if you're tracking a single lease and don't
+  have a database, the same date-window logic works fine as a standalone
+  script driven off one lease_end_date/warn_days pair, exiting non-zero
+  when the warning window is hit so it's easy to alert on from cron. Distinct
+  from realestate/lease-renewal-offer-window-check, which doesn't just warn
+  on the approaching date — it tracks whether a renewal offer has actually
+  been sent yet and only flags leases where that action is still outstanding.

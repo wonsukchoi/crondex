@@ -1,13 +1,16 @@
 id: offer-acceptance-rate-trend-check
-version: 1
+version: 2
 name: Offer Acceptance Rate Trend Check
 description: >
   Reviews recent offers and flags when the acceptance rate drops below a
   healthy baseline, which often signals a compensation or process problem
   before it shows up anywhere else. Use this if you've ever only noticed a
-  string of declines after several offers in a row fell through.
+  string of declines after several offers in a row fell through. Applies
+  equally to direct-hire offers tracked in a corporate ATS and to
+  agency-placement offers tracked in a staffing ATS/VMS (e.g. Bullhorn,
+  JobDiva, Vincere) — same accept/decline math, different source system.
 category: hiring
-tags: [hiring, recruiting, offers, metrics]
+tags: [hiring, recruiting, offers, metrics, staffing, acceptance-rate, trend, recruiting-ops]
 schedule: "0 9 1,15 * *"
 timezone: "UTC"
 runner: agent-prompt
@@ -19,13 +22,19 @@ prompt: |
   2. Compare it against the {{baseline_acceptance_rate}}% target.
   3. If it's below target, break declines down by role/level/location if
      that data is available, and note any pattern (e.g. one team, one
-     comp band, one location).
+     comp band, one location). Where evident, note the likely driver
+     (counter-offer, pay rate below expectation, slow time-to-offer,
+     candidate withdrew, role changed) so the summary is actionable rather
+     than just a number.
   4. Report the rate plainly, flagging whether it's on track or a concern
      worth raising with recruiting leadership.
 variables:
   ats_system:
     default: "your applicant tracking system"
-    description: Where offer outcomes are recorded.
+    description: >
+      Where offer outcomes are recorded — a corporate ATS for direct-hire
+      offers, or a staffing ATS/VMS (e.g. Bullhorn, JobDiva, Vincere) for
+      agency-placement offers.
   lookback_days:
     default: 30
     description: Rolling window of offers to include in the rate calculation.
@@ -33,4 +42,10 @@ variables:
     default: 85
     description: Target acceptance rate percentage below which the trend is flagged.
 compatible_agents: [claude, codex, hermes, openclaw, generic]
-notes: Read-only trend report — distinct from offer-expiry-reminder, which tracks individual pending offers rather than the aggregate accept/decline rate.
+notes: >
+  Read-only trend report — distinct from offer-expiry-reminder, which tracks
+  individual pending offers rather than the aggregate accept/decline rate.
+  Covers both direct-hire (corporate ATS) and agency-placement (staffing
+  ATS/VMS) offer tracking; merged from the former staffing-specific
+  duplicate staffing-offer-acceptance-rate-check, which used a
+  period-over-period comparison framing of the same underlying metric.

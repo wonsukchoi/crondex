@@ -1,5 +1,5 @@
 id: sourcing-channel-effectiveness-check
-version: 1
+version: 2
 name: Sourcing Channel Effectiveness Check
 description: >
   Compares how many hires each sourcing channel (job boards, referrals,
@@ -7,9 +7,9 @@ description: >
   investing in it, and flags channels that aren't pulling their weight.
   Use this if you've kept renewing a job board subscription or paying an
   agency out of habit without checking whether it's still converting to
-  hires.
+  hires or placements.
 category: hiring
-tags: [hiring, recruiting, sourcing, metrics]
+tags: [hiring, recruiting, sourcing, metrics, roi, staffing]
 schedule: "0 9 1 * *"
 timezone: "UTC"
 runner: agent-prompt
@@ -24,6 +24,11 @@ prompt: |
   3. Flag any channel with a hire rate below {{low_hire_rate_pct}}% or
      that produced zero hires this period despite active spend, as a
      candidate for cutting or renegotiating.
+  4. If cost-per-hire is available, also flag any channel whose
+     cost-per-hire is {{cost_per_hire_alert_multiple}}x or more above the
+     average cost-per-hire across all channels this period. This applies
+     equally to agency/placement fees in staffing contexts, not just
+     job-board or ad spend.
 variables:
   ats_system:
     default: "your applicant tracking system"
@@ -37,5 +42,15 @@ variables:
   low_hire_rate_pct:
     default: 2
     description: Hire rate percentage below which a channel is flagged as underperforming.
+  cost_per_hire_alert_multiple:
+    default: 2
+    description: How many times above the average cost-per-hire a channel must be to get flagged.
 compatible_agents: [claude, codex, hermes, openclaw, generic]
-notes: Read-only analysis — distinct from cost-per-hire-budget-check, which totals overall spend per role rather than comparing channel-level hire conversion.
+notes: >
+  Read-only analysis — distinct from cost-per-hire-budget-check, which totals
+  overall spend per role rather than comparing channel-level hire conversion.
+  If you only have a simple CSV export (columns: channel_name,spend_amount,
+  hires_count) rather than live ATS access, this check can also be run as a
+  lightweight shell/awk script over that file, grouping spend and hires by
+  channel and flagging any channel at or above the alert multiple — useful
+  for agency-heavy staffing shops tracking placements instead of direct hires.

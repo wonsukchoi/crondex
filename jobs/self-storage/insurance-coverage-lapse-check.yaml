@@ -1,12 +1,13 @@
 id: insurance-coverage-lapse-check
-version: 1
+version: 2
 name: Insurance Coverage Lapse Check
 description: >
-  Looks at every active storage unit rental and flags tenants whose required
-  goods-protection or insurance policy has expired, been canceled, or was
-  never set up in the first place. Use this if your facility requires
-  tenants to carry coverage on their stored belongings as a condition of
-  the lease and you want to catch gaps before a claim (or an audit) exposes
+  Looks at every active tenant/unit lease and flags anyone whose required
+  insurance or goods-protection policy has expired, been canceled, or was
+  never set up in the first place. Use this if your lease requires tenants
+  to carry coverage — storage-unit goods protection, apartment renters
+  insurance, or any similar lease-mandated policy — as a condition of the
+  lease and you want to catch gaps before a claim (or an audit) exposes
   them.
 category: self-storage
 tags: [self-storage, insurance, compliance, lease-requirement]
@@ -33,4 +34,12 @@ notes: >
   `tenant_id` with `policy_status` and `expiration_date` — adjust the join
   and column names to your actual schema, including if your facility
   auto-enrolls tenants in a house protection plan billed alongside rent
-  rather than tracking third-party policies.
+  rather than tracking third-party policies. Merged in v2 from a
+  near-duplicate realestate "tenant renters insurance compliance" check:
+  if you don't have a database, the same logic works fine against a plain
+  CSV of tenant_name,unit,coverage_expiration_date — just distinguish
+  "LAPSED" (already past expiration) from "EXPIRING SOON" (within your
+  warning window) in the output for clearer triage. Also distinct from
+  subcontractor-insurance-expiry-check in jobs/construction, which tracks
+  contractor COIs on a job site rather than a tenant's own required
+  coverage.

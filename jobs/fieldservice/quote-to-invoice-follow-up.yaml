@@ -1,12 +1,17 @@
 id: quote-to-invoice-follow-up
-version: 1
+version: 2
 name: Quote-to-Invoice Conversion Follow-Up
 description: >
   Flags quotes/estimates that were sent to a customer but never approved
   or converted into a scheduled job after a set number of days, and
   drafts a follow-up nudge for each. Use this if quotes have ever gone
   quiet after being sent — no yes, no no, just silence — and nobody
-  circled back to close the sale.
+  circled back to close the sale. Applies to any vertical that sends a
+  quote/estimate and waits on a yes: e.g. a moving company can track
+  binding vs. non-binding estimates and flag ones with an upcoming
+  requested move date by adding an `estimate_type` and target-date
+  column to the CSV and treating them as extra `job_description` detail
+  (see `optional_columns` note below) — no separate job needed.
 category: fieldservice
 tags: [fieldservice, quotes, estimates, sales-followup]
 schedule: "0 9 * * 1-5"
@@ -40,9 +45,26 @@ prompt: >
 variables:
   quotes_csv_path:
     default: "./quotes.csv"
-    description: "Path to a CSV with columns: quote_id,customer_name,sent_date (YYYY-MM-DD),status (sent/approved/declined),amount,job_description."
+    description: "Path to a CSV with columns: quote_id,customer_name,sent_date (YYYY-MM-DD),status (sent/approved/declined),amount,job_description. Optional extra columns are fine — the prompt mode will read and use whatever context is present, e.g. contact_email, estimate_type (binding/non-binding, for moving-style estimates), or a requested/target date so urgent ones can be prioritized."
   stale_days:
     default: 10
     description: Days a quote can sit unanswered before it's flagged for follow-up.
+  urgent_target_date_days:
+    default: 14
+    description: >
+      Optional. If the CSV includes a requested/target date column (e.g. a
+      moving company's requested_move_date), flag quotes whose target date
+      falls within this many days as urgent/priority in the drafted
+      summary. Leave unused for verticals with no such date.
 compatible_agents: [generic, claude, codex]
-notes: Review drafted follow-ups before sending — this job doesn't contact the customer on its own.
+notes: >
+  Review drafted follow-ups before sending — this job doesn't contact the
+  customer on its own. When drafting, group stalled quotes under a short
+  summary (count, total dollar value, and any urgent ones per
+  urgent_target_date_days) rather than sending one-off messages — this
+  keeps the output scannable when there are many stale quotes at once.
+  Formerly duplicated by moving-relocation/binding-estimate-follow-up-drafts.yaml
+  (merged here 2026-07-14) and distinct from
+  automotive/estimate-approval-followup-check.yaml, which tracks
+  repair-order approvals on an hours-scale via a shop's RO system rather
+  than a CRM quotes log.

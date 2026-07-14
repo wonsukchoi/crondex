@@ -1,14 +1,16 @@
 id: competitor-price-watch
-version: 1
+version: 2
 name: Competitor Price Watch
 description: >
   Fetches a competitor's product page for each SKU you're tracking, pulls
   out the price, and flags any SKU where their price has moved enough to
   matter relative to yours. Use this if you've ever found out you were
   underpricing (or getting undercut on) a product only because a customer
-  mentioned it.
+  mentioned it. For brick-and-mortar competitors with no comparable product
+  URL, use the flyer/photo-review alternate method below instead of the
+  scrape command.
 category: ecommerce
-tags: [ecommerce, pricing, competitor, monitoring]
+tags: [ecommerce, retail, pricing, competitor, monitoring]
 schedule: "0 6 * * *"
 timezone: "UTC"
 runner: hybrid
@@ -56,5 +58,33 @@ variables:
   timeout_seconds:
     default: 10
     description: Seconds to wait for each competitor page before giving up.
+  competitor_source_path:
+    default: ""
+    description: >
+      Alternate-method variable, only used when there's no scrapeable
+      competitor URL (e.g. a brick-and-mortar competitor). Folder of the
+      competitor's current weekly ad/flyer scans or in-store price photos.
+      When set, skip the `command` scrape and instead have the agent read
+      prices directly out of this source per the alternate-method prompt
+      note below.
 compatible_agents: [claude, codex, hermes, openclaw, generic]
-notes: Respect the target site's robots.txt/terms before scraping. Distinct from `competitor-page-diff-watch` in marketing, which diffs whole-page content/messaging — this is narrowly a per-SKU price comparison against your own price list.
+alternate_method_note: >
+  If the competitor has no product page URL to scrape (typical for a
+  physical retail competitor), don't run `command`. Instead, have the
+  agent compare {{competitor_source_path}} (this week's flyer scans or
+  in-store price photos) against {{tracked_skus_csv_path}} directly: for
+  each tracked item, find the competitor's current price if it appears in
+  the source material, flag any item at least ${{diff_threshold_usd}}
+  cheaper than yours, and note any item the competitor no longer appears
+  to carry versus one you simply couldn't find a price for. Summarize
+  ranked by dollar gap for a price-match/promo decision.
+notes: >
+  Respect the target site's robots.txt/terms before scraping. Distinct
+  from `competitor-page-diff-watch` in marketing, which diffs whole-page
+  content/messaging — this is narrowly a per-SKU/per-item price
+  comparison against your own price list. Covers both the online
+  scrape method and, via `competitor_source_path` and
+  `alternate_method_note`, the manual flyer/in-store-photo method used
+  for brick-and-mortar competitors (folded in from the former
+  `competitor-price-monitoring-check` retail job, which this job now
+  supersedes).

@@ -1,12 +1,15 @@
 id: well-water-test-reminder
-version: 1
+version: 2
 name: Well Water Test Reminder
 description: >
   Reminds you to send a well water sample out for bacterial and
   contaminant testing based on how long it's been since the last test.
   Use this if you're on a private well and have ever gone years between
   tests because municipal water drinkers don't have this chore to
-  remind you of it.
+  remind you of it. Works for a single household well; if you're
+  tracking several sources (e.g. a farm/ranch well plus separate
+  livestock or irrigation sources), keep one of these per source, or
+  adapt the command to read a CSV of source/last-tested/interval rows.
 category: home
 tags: [home, well-water, water-quality, testing]
 schedule: "0 9 1 * *"
@@ -31,4 +34,12 @@ variables:
     default: "arsenic and hardness"
     description: Additional contaminants to test for beyond the standard bacteria/nitrate panel, based on local risk factors.
 compatible_agents: [generic, claude, codex]
-notes: Zero-token. Test more often after flooding, near a new contamination source, or if anyone in the household is pregnant or an infant.
+notes: >
+  Zero-token. Test more often after flooding, near a new contamination
+  source, or if anyone in the household is pregnant or an infant.
+  Required testing frequency and parameters (coliform, nitrate, arsenic,
+  etc.) can be a regulatory/compliance matter rather than just good
+  practice — e.g. for farms/ranches, wells serving livestock or
+  irrigation, or rentals in some jurisdictions — and vary by state, so
+  confirm with your local health department or extension office and
+  adjust interval_months/test_panel to match.

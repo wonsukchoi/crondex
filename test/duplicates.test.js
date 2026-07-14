@@ -24,10 +24,7 @@ function job(id, tags, description) {
 }
 
 test("findDuplicates: flags a pair only when both tag AND description overlap clear threshold", () => {
-  const jobs = [
-    job("a", ["ssl", "cert"], ["check", "expiry"]),
-    job("b", ["ssl", "cert"], ["check", "expiry"]),
-  ];
+  const jobs = [job("a", ["ssl", "cert"], ["check", "expiry"]), job("b", ["ssl", "cert"], ["check", "expiry"])];
   const flagged = findDuplicates(jobs, { tagThreshold: 0.6, descThreshold: 0.5 });
   assert.equal(flagged.length, 1);
   assert.equal(flagged[0].a.id, "a");

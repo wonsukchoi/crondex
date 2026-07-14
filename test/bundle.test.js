@@ -64,7 +64,10 @@ test("runBundle: github-actions target produces one file per job with header sec
   const manifest = { jobs: [{ id: "job-a" }, { id: "job-b" }] };
   const result = runBundle(manifest, CATALOG, { target: "github-actions", readJobFile });
   assert.equal(result.files.length, 2);
-  assert.deepEqual(result.files.map((f) => f.name), ["job-a.yml", "job-b.yml"]);
+  assert.deepEqual(
+    result.files.map((f) => f.name),
+    ["job-a.yml", "job-b.yml"]
+  );
   assert.match(result.output, /=== job-a\.yml ===/);
   assert.match(result.output, /=== job-b\.yml ===/);
 });
@@ -72,13 +75,19 @@ test("runBundle: github-actions target produces one file per job with header sec
 test("runBundle: systemd target produces a .service + .timer pair per job", () => {
   const manifest = { jobs: [{ id: "job-a" }] };
   const result = runBundle(manifest, CATALOG, { target: "systemd", readJobFile });
-  assert.deepEqual(result.files.map((f) => f.name), ["job-a.service", "job-a.timer"]);
+  assert.deepEqual(
+    result.files.map((f) => f.name),
+    ["job-a.service", "job-a.timer"]
+  );
 });
 
 test("runBundle: docker target produces a Dockerfile + crontab pair per job", () => {
   const manifest = { jobs: [{ id: "job-a" }] };
   const result = runBundle(manifest, CATALOG, { target: "docker", readJobFile });
-  assert.deepEqual(result.files.map((f) => f.name), ["job-a/Dockerfile", "job-a/crontab"]);
+  assert.deepEqual(
+    result.files.map((f) => f.name),
+    ["job-a/Dockerfile", "job-a/crontab"]
+  );
 });
 
 test("runBundle: respects per-job mode for hybrid/prompt jobs", () => {

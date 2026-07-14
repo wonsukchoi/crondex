@@ -115,6 +115,14 @@ actually spawn `bin/crondex.js` for `list`/`show`/`add`/`init`/`recommend`/
 would look like "slightly worse output," not a crash — that's exactly what
 the tests exist to catch.
 
+## Lint and format
+
+`bin/`, `lib/`, `scripts/`, and `test/` are linted and formatted with
+[Biome](https://biomejs.dev/). Run `npm run format` to auto-format your
+changes and `npm run lint` (`biome check .`) before opening a PR — it's the
+same check CI runs. `catalog.json`, `site/`, and `jobs/` are excluded (the
+first is generated, the other two aren't JS).
+
 ## What makes a good job
 
 - **Description written for a normal person, not an agent.** One sentence on

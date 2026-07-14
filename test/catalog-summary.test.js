@@ -38,11 +38,7 @@ test("findMissingDescriptions: all present returns empty", () => {
 });
 
 test("buildSummaryLines: builds a sorted markdown table with counts and descriptions", () => {
-  const jobs = [
-    { category: "security" },
-    { category: "devops" },
-    { category: "devops" },
-  ];
+  const jobs = [{ category: "security" }, { category: "devops" }, { category: "devops" }];
   const lines = buildSummaryLines(jobs, { devops: "Infra stuff.", security: "Security stuff." });
   assert.equal(lines[0], "3 jobs across 2 categories:");
   assert.equal(lines[2], "| category | jobs | description |");

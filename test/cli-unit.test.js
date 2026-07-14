@@ -78,7 +78,19 @@ test("parseArgs: empty argv has undefined command and no positional/flags", () =
 });
 
 test("COMMANDS dispatch table has an entry for every documented command", () => {
-  for (const name of ["list", "categories", "init", "show", "next", "add", "recommend", "deploy", "uninstall", "update", "mcp"]) {
+  for (const name of [
+    "list",
+    "categories",
+    "init",
+    "show",
+    "next",
+    "add",
+    "recommend",
+    "deploy",
+    "uninstall",
+    "update",
+    "mcp",
+  ]) {
     assert.equal(typeof COMMANDS[name], "function", `missing dispatch entry for "${name}"`);
   }
 });

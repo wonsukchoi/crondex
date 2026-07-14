@@ -16,12 +16,12 @@ for (const job of catalog.jobs) {
   counts.set(job.category, (counts.get(job.category) ?? 0) + 1);
 }
 
-const offenders = [...counts.entries()]
-  .filter(([, count]) => count < FLOOR)
-  .sort((a, b) => a[1] - b[1]);
+const offenders = [...counts.entries()].filter(([, count]) => count < FLOOR).sort((a, b) => a[1] - b[1]);
 
 if (offenders.length > 0) {
-  console.error(`${offenders.length} categor${offenders.length === 1 ? "y is" : "ies are"} below the floor of ${FLOOR} job(s):\n`);
+  console.error(
+    `${offenders.length} categor${offenders.length === 1 ? "y is" : "ies are"} below the floor of ${FLOOR} job(s):\n`
+  );
   for (const [category, count] of offenders) {
     console.error(`  ${category}: ${count} job(s), needs ${FLOOR - count} more`);
   }

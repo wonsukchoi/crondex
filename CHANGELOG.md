@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Biome lint + format for `bin/`, `lib/`, `scripts/`, and `test/`
+  (`biome.json`, pinned `@biomejs/biome` dev dependency). `npm run lint`
+  (`biome check .`) and `npm run format` (`biome format --write .`); lint
+  is wired into CI (`.github/workflows/validate.yml`). `useTemplate`,
+  `noUnusedFunctionParameters`, and `noTemplateCurlyInString` are disabled
+  — they fired on existing idiomatic patterns (`str + "\n"` joins, the
+  uniform `(positional, flags)` `COMMANDS` dispatch signature, and a
+  literal `${job.id}` inside a systemd comment string) rather than real
+  bugs.
 - `crondex doctor [--json]` — audits installed crontab entries against the
   catalog: flags orphaned entries (job id no longer in the catalog),
   schedule drift (installed schedule no longer matches the catalog's), and

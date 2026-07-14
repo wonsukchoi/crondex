@@ -275,8 +275,11 @@ crondex/
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) — copy `templates/job.template.yaml`
 (or run `crondex init`), fill it in, `npm run validate && npm run
-build-catalog`, open a PR. See [`ROADMAP.md`](ROADMAP.md) for what's
-prioritized right now and what's deliberately not built yet.
+build-catalog`, open a PR. If you're touching JS in `bin/`, `lib/`,
+`scripts/`, or `test/`, run `npm run format` and `npm run lint`
+([Biome](https://biomejs.dev/)) — CI runs the same lint check. See
+[`ROADMAP.md`](ROADMAP.md) for what's prioritized right now and what's
+deliberately not built yet.
 
 ---
 

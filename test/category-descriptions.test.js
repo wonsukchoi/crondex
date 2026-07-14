@@ -17,5 +17,9 @@ test("every category in the catalog has a description", () => {
 test("no orphaned description for a category that no longer exists", () => {
   const categories = new Set(catalog.jobs.map((j) => j.category));
   const orphaned = Object.keys(CATEGORY_DESCRIPTIONS).filter((c) => !categories.has(c));
-  assert.deepEqual(orphaned, [], `lib/category-descriptions.js has entries for nonexistent categories: ${orphaned.join(", ")}`);
+  assert.deepEqual(
+    orphaned,
+    [],
+    `lib/category-descriptions.js has entries for nonexistent categories: ${orphaned.join(", ")}`
+  );
 });

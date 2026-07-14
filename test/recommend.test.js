@@ -63,10 +63,7 @@ const jobFixture = (overrides = {}) => ({
 
 test("scoreJob: tags weigh more than description", () => {
   const tagHit = scoreJob(["ssl"], jobFixture());
-  const descOnlyHit = scoreJob(
-    ["website"],
-    jobFixture({ tags: [], description: "Checks the website's status." })
-  );
+  const descOnlyHit = scoreJob(["website"], jobFixture({ tags: [], description: "Checks the website's status." }));
   assert.ok(tagHit.score > descOnlyHit.score);
 });
 
@@ -110,9 +107,19 @@ test("scoreJob: plural/singular query still matches via stemming", () => {
 
 test("rankJobs: ranks higher-scoring job first and respects limit", () => {
   const jobs = [
-    jobFixture({ id: "unrelated-job", name: "Unrelated Job", tags: ["unrelated"], description: "Nothing to do with it." }),
+    jobFixture({
+      id: "unrelated-job",
+      name: "Unrelated Job",
+      tags: ["unrelated"],
+      description: "Nothing to do with it.",
+    }),
     jobFixture(),
-    jobFixture({ id: "cert-renewal-reminder", name: "Cert Renewal Reminder", tags: ["cert"], description: "Warns before a cert expires." }),
+    jobFixture({
+      id: "cert-renewal-reminder",
+      name: "Cert Renewal Reminder",
+      tags: ["cert"],
+      description: "Warns before a cert expires.",
+    }),
   ];
   const ranked = rankJobs(jobs, "ssl cert expiry", 2);
   assert.equal(ranked.length, 2);

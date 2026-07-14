@@ -1,0 +1,40 @@
+id: moving-crew-background-check-expiry-check
+version: 1
+name: Moving Crew Background Check Renewal Check
+description: >
+  Checks each crew member's background check against your renewal
+  interval and flags anyone whose check is overdue or expiring soon,
+  since many corporate relocation and household moving clients require
+  a current background check before letting a crew into a customer's
+  home. Use this if a crew has ever been assigned to an in-home move
+  only to find out the background check on file was too old to satisfy
+  the client's requirement.
+category: moving-relocation
+tags: [moving-relocation, crew-management, background-check, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{renewal_warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_check_epoch; close(cmd);
+      cmd2 = "date -d \"" $2 " +" $3 " days\" +%s 2>/dev/null || date -j -v+" $3 "d -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd2 | getline renewal_epoch; close(cmd2);
+      days_left = (renewal_epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "BACKGROUND CHECK RENEWAL DUE: %s — last check %s (renews every %s days), %.0f days left\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{crew_background_checks_csv_path}}"
+variables:
+  crew_background_checks_csv_path:
+    default: "./crew-background-checks.csv"
+    description: "Path to a CSV with columns: crew_member_name,last_check_date (YYYY-MM-DD),renewal_interval_days (e.g. 365)."
+  renewal_warning_days:
+    default: 30
+    description: How many days before a crew member's background check renewal is due to start flagging it, so it can be re-run before it lapses.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces crew members whose background check renewal is due soon, it doesn't order the new check or pull anyone off in-home assignments itself.

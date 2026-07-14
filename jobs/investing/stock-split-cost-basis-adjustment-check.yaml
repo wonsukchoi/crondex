@@ -1,0 +1,39 @@
+id: stock-split-cost-basis-adjustment-check
+version: 1
+name: Stock Split / Spinoff Cost Basis Adjustment Check
+description: >
+  Reviews your holdings for recent stock splits, reverse splits, or
+  spinoffs and flags any where your recorded cost basis and share count
+  haven't been adjusted yet. Use this if you've ever filed taxes with a
+  cost basis that was quietly wrong because a spinoff or split happened
+  and your records never caught up.
+category: investing
+tags: [investing, cost-basis, stock-split, spinoff]
+schedule: "0 9 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Review the holdings and cost-basis log in {{cost_basis_log}} against
+  corporate actions for tickers: {{tickers}}.
+  1. Check for any stock split, reverse split, or spinoff announced or
+     effective for these tickers since the last review date
+     ({{last_reviewed_date}}), using any market data source available.
+  2. For each corporate action found, calculate the adjusted cost basis
+     per share and adjusted share count (splits) or the basis allocation
+     between parent and spinoff company (spinoffs, typically by relative
+     fair market value on the distribution date).
+  3. Flag any position in the log where the recorded basis/share count
+     doesn't match what the adjustment implies.
+  4. Summarize what needs correcting; don't edit the log automatically.
+variables:
+  cost_basis_log:
+    default: "cost-basis-log.csv"
+    description: File tracking your lots, share counts, and cost basis per position.
+  tickers:
+    default: "AAPL, MSFT"
+    description: Comma-separated tickers to check for corporate actions.
+  last_reviewed_date:
+    default: "2026-01-01"
+    description: Date of the last time this check was run, to scope the corporate-action lookback.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — surfaces corporate actions that likely require a basis adjustment; you (or your broker's 1099-B) still make the final call on reported basis.

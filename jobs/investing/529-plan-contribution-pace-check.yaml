@@ -1,0 +1,32 @@
+id: 529-plan-contribution-pace-check
+version: 1
+name: 529 Education Savings Plan Contribution Pace Check
+description: >
+  Checks year-to-date contributions to a 529 education savings plan
+  against a pace that would hit your annual goal by year-end. Use this
+  if you've ever meant to contribute steadily to a child's 529 plan and
+  realized in December you were far behind where you wanted to be.
+category: investing
+tags: [investing, "529", education-savings, contributions]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  month=$(date +%-m);
+  awk -v ytd={{ytd_contributions_usd}} -v goal={{annual_goal_usd}} -v month="$month" 'BEGIN{
+    expected = goal * (month / 12);
+    if (ytd < expected) {
+      printf "WARNING: 529 contributions to date are $%.2f, behind the $%.2f expected pace for month %d of the year toward a $%.2f goal.\n", ytd, expected, month, goal;
+    } else {
+      printf "OK: 529 contributions to date are $%.2f, on or ahead of the $%.2f expected pace toward a $%.2f goal.\n", ytd, expected, goal;
+    }
+  }'
+variables:
+  ytd_contributions_usd:
+    default: 1200
+    description: Total contributed to the 529 plan so far this calendar year — update after each contribution.
+  annual_goal_usd:
+    default: 6000
+    description: Target total contribution for the calendar year.
+compatible_agents: [generic, claude, codex]
+notes: Tracks pace toward your own goal only — check your state's 529 deduction rules separately, since many states cap the deductible contribution amount.

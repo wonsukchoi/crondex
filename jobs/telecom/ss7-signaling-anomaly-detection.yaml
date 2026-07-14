@@ -1,0 +1,43 @@
+id: ss7-signaling-anomaly-detection
+version: 1
+name: SS7 Signaling Anomaly Detection
+description: >
+  Checks SS7/signaling event logs for spikes in suspicious message types
+  (e.g. unexpected location updates, SRI-SM floods from unfamiliar
+  global titles) that are common signatures of signaling-network abuse.
+  Use this if subscriber location or SMS interception fraud over SS7
+  has ever gone unnoticed because nobody was watching signaling volume
+  by message type and origin.
+category: telecom
+tags: [telecom, ss7, signaling, security]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v spike_mult="{{spike_multiplier}}" -v baseline="{{baseline_msgs_per_window}}" '
+    NR==1 {next}
+    { count[$2]++ }
+    END {
+      for (gt in count) {
+        if (count[gt] > baseline * spike_mult) {
+          printf "SIGNALING SPIKE: origin global title %s sent %d messages this window (baseline ~%d)\n", gt, count[gt], baseline;
+        }
+      }
+    }
+  ' "{{ss7_event_log_csv_path}}"
+variables:
+  ss7_event_log_csv_path:
+    default: "./ss7-signaling-events.csv"
+    description: "Path to a CSV with columns: timestamp,origin_global_title,message_type,subscriber_msisdn, covering the current monitoring window."
+  baseline_msgs_per_window:
+    default: 50
+    description: Expected normal message count per origin global title within one monitoring window.
+  spike_multiplier:
+    default: 5
+    description: How many times above baseline counts as an anomalous spike worth flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes signaling events are already exported from your STP/SS7
+  firewall into the CSV per monitoring window. This is a coarse
+  volume-based heuristic, not a substitute for a dedicated signaling
+  firewall.

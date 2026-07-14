@@ -1,0 +1,44 @@
+id: abandoned-shipment-storage-lien-check
+version: 1
+name: Abandoned Shipment Storage Lien Check
+description: >
+  Checks storage-in-transit shipments with no customer contact or
+  payment against your state's abandonment timeline and flags any that
+  are approaching the deadline to start a lien or auction process. Use
+  this if a shipment has ever sat unclaimed in the warehouse so long
+  that the lien filing deadline nearly passed before anyone noticed.
+category: moving-relocation
+tags: [moving-relocation, storage, abandonment, lien, warehouse, compliance]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lien_days="{{lien_eligibility_days}}" -v window="{{warning_window_days}}" '
+    NR==1 {next}
+    $5 == "unclaimed" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_contact_epoch; close(cmd);
+      days_since_contact = (today - last_contact_epoch) / 86400;
+      days_to_lien = lien_days - days_since_contact;
+      if (days_to_lien <= window) {
+        printf "LIEN DEADLINE APPROACHING: shipment %s — %s, last contact %s, %.0f days until lien-eligible\n", $1, $2, $3, days_to_lien;
+      }
+    }
+  ' "{{shipments_csv_path}}"
+variables:
+  shipments_csv_path:
+    default: "./storage-shipments.csv"
+    description: "Path to a CSV with columns: shipment_id,customer_name,last_contact_date (YYYY-MM-DD),storage_start_date,status (unclaimed/active/released)."
+  lien_eligibility_days:
+    default: 90
+    description: Days of no contact or payment after which a shipment becomes eligible for a storage lien under your state's warehouse lien law.
+  warning_window_days:
+    default: 14
+    description: How many days before the lien-eligibility deadline to start flagging a shipment, so legal notice can be sent in time.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only job — it only flags shipments approaching lien eligibility,
+  it doesn't file the lien or send legal notice itself. Lien timelines
+  and required notice periods vary by state; confirm the correct
+  lien_eligibility_days with counsel before relying on this.

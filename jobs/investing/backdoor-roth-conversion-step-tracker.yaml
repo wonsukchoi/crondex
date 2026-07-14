@@ -1,0 +1,35 @@
+id: backdoor-roth-conversion-step-tracker
+version: 1
+name: Backdoor Roth Conversion Step Tracker
+description: >
+  Checks that each step of a backdoor Roth IRA conversion (nondeductible
+  traditional contribution, conversion to Roth, Form 8606 filing) has
+  actually been completed and reasonably close in timing. Use this if
+  you've ever made the traditional IRA contribution and then forgotten
+  to actually convert it, or converted but forgot to file Form 8606.
+category: investing
+tags: [investing, retirement, roth-ira, backdoor-roth]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the backdoor Roth conversion log at {{conversion_log}} for tax
+  year {{tax_year}}.
+  1. Confirm a nondeductible traditional IRA contribution was made and
+     dated.
+  2. Confirm a conversion from traditional to Roth IRA was made, and note
+     the gap in days between contribution and conversion (a long gap
+     risks pro-rata earnings becoming taxable).
+  3. Check whether Form 8606 has been marked as filed for this tax year.
+  4. Flag any step that's missing or incomplete, and remind that the
+     pro-rata rule applies if other pre-tax traditional/SEP/SIMPLE IRA
+     balances exist — this is informational only, not tax advice.
+variables:
+  conversion_log:
+    default: "backdoor-roth-log.csv"
+    description: Log file tracking contribution date, conversion date, amount, and Form 8606 filing status per tax year.
+  tax_year:
+    default: "2026"
+    description: Tax year being reviewed.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Not tax advice — flags missing or out-of-order steps for a human (ideally with a tax professional) to confirm, especially around the pro-rata rule.

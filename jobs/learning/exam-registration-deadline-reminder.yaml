@@ -1,0 +1,36 @@
+id: exam-registration-deadline-reminder
+version: 1
+name: Exam/Test Registration Deadline Reminder
+description: >
+  Warns you before the registration deadline for a certification exam or
+  standardized test closes, before the cheap-registration or
+  any-registration window shuts. Use this if you've ever decided to take
+  an exam and then missed the registration cutoff by procrastinating on
+  the paperwork.
+category: learning
+tags: [learning, exam, certification, deadline, registration]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{registration_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{registration_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "OK: {{exam_name}} registration deadline has passed — nothing to track.";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{exam_name}} registration closes in $days_left days ({{registration_deadline}})"; exit 1;
+  else echo "OK: {{exam_name}} registration closes in $days_left days"; fi
+variables:
+  exam_name:
+    default: "your exam"
+    description: Name of the exam or certification test.
+  registration_deadline:
+    default: "2026-08-15"
+    description: Registration cutoff date (YYYY-MM-DD) — use the cheaper/earlier tier if there are multiple.
+  warn_days:
+    default: 14
+    description: Days before the deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Manual registration_deadline input per exam you're tracking
+  — this job doesn't integrate with any testing body's registration
+  system.

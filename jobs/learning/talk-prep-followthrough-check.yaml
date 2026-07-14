@@ -1,0 +1,54 @@
+id: talk-prep-followthrough-check
+version: 1
+name: Teaching/Talk Prep Follow-Through Check
+description: >
+  Checks whether you've made real prep progress on an accepted talk,
+  workshop, or teaching session as its date approaches, and escalates
+  urgency the closer it gets. Use this if you've ever said yes to
+  speaking somewhere and then not opened the slides until the week of.
+category: learning
+tags: [learning, speaking, teaching, career, deadline]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  file={{prep_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  days_left=$(( (event_ts - today) / 86400 ));
+  prep_entries=$(($(wc -l < "$file") - 1));
+  if [ "$days_left" -le "{{urgent_days}}" ] && [ "$prep_entries" -le 0 ]; then echo "WARNING: {{talk_title}} is in $days_left days and no prep entries logged yet"; exit 1;
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "REMINDER: {{talk_title}} is in $days_left days, $prep_entries prep session(s) logged so far"; exit 1;
+  else echo "OK: {{talk_title}} is in $days_left days, $prep_entries prep session(s) logged."; fi
+prompt: |
+  I have an upcoming talk/workshop titled "{{talk_title}}" on
+  {{event_date}}. Read my prep log at {{prep_log_path}} (each line is a
+  dated prep session note). Given how many days remain until the event
+  and what's actually been done so far, tell me plainly whether my prep
+  pace is on track, and suggest the single most valuable next prep task
+  to tackle before the next check.
+script_note: >
+  `command` only counts logged prep sessions and checks urgency by date.
+  `prompt` reads what the prep sessions actually covered and judges pace
+  and next steps, which needs an LLM.
+variables:
+  talk_title:
+    default: "your upcoming talk"
+    description: Title of the talk, workshop, or teaching session.
+  event_date:
+    default: "2026-09-15"
+    description: Date of the talk/workshop/session (YYYY-MM-DD).
+  prep_log_path:
+    default: "./talk-prep-log.csv"
+    description: "CSV with header row, columns: date,note — one row per prep session you log."
+  urgent_days:
+    default: 7
+    description: Days before the event at which zero prep entries becomes an urgent warning.
+  warn_days:
+    default: 21
+    description: Days before the event at which a general reminder starts firing.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  You log a row to prep_log_path each time you work on the talk; this job
+  doesn't track slide/deck content, only session frequency and timing.

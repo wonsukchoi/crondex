@@ -1,0 +1,37 @@
+id: dark-fiber-splice-record-completeness-check
+version: 1
+name: Dark Fiber Splice Record Completeness Check
+description: >
+  Checks the fiber splice record log for missing or incomplete entries
+  (no splice location, no fiber count, no technician sign-off) across
+  recently completed splice work orders. Use this if a fiber cut has
+  ever taken longer to repair than it should have because the splice
+  records for that segment were incomplete or never got filed.
+category: telecom
+tags: [telecom, dark-fiber, splicing, documentation]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      missing = "";
+      if ($2 == "") missing = missing "location ";
+      if ($3 == "") missing = missing "fiber_count ";
+      if ($4 == "") missing = missing "closure_id ";
+      if ($5 == "") missing = missing "tech_signoff ";
+      if (missing != "") {
+        printf "INCOMPLETE RECORD: work order %s missing: %s\n", $1, missing;
+      }
+    }
+  ' "{{splice_records_csv_path}}"
+variables:
+  splice_records_csv_path:
+    default: "./fiber-splice-records.csv"
+    description: "Path to a CSV with columns: work_order_id,splice_location,fiber_count,closure_id,tech_signoff,completed_date."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes splice records are exported from your fiber management system
+  or OSP work order log into the CSV. Flags gaps for follow-up; does not
+  edit the splice records itself.

@@ -1,0 +1,36 @@
+id: cdl-license-expiry-check
+version: 1
+name: CDL License Expiry Check
+description: >
+  Checks each driver's commercial driver's license and required
+  endorsements against their expiry dates and flags anyone lapsing
+  soon. Use this if a driver has ever shown up for a long-distance
+  dispatch only for someone to realize their CDL or medical card had
+  already expired.
+category: moving-relocation
+tags: [moving-relocation, cdl, drivers, licensing, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{expiry_warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "CDL EXPIRING: %s — %s (%s) expires %s (%.0f days left)\n", $1, $2, $3, $4, days_left;
+      }
+    }
+  ' "{{driver_licenses_csv_path}}"
+variables:
+  driver_licenses_csv_path:
+    default: "./driver-cdl-licenses.csv"
+    description: "Path to a CSV with columns: driver_name,document_type (cdl, medical-card, hazmat-endorsement),document_number,expiry_date (YYYY-MM-DD)."
+  expiry_warning_days:
+    default: 30
+    description: How many days before a driver's CDL, medical card, or endorsement expires to start flagging it, so there's time to renew before it lapses.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces licenses and endorsements expiring soon, it doesn't remove the driver from the schedule or renew anything itself.

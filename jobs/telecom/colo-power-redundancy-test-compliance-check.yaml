@@ -1,0 +1,39 @@
+id: colo-power-redundancy-test-compliance-check
+version: 1
+name: Colo/Data Center Power Redundancy Test Compliance Check
+description: >
+  Checks each colocation or data center site's log of dual-feed transfer
+  switch and generator load-bank tests against the required test cadence
+  and flags any site that's overdue. Use this if a site's backup power
+  has ever gone untested for so long that the first real test happened
+  during an actual utility outage.
+category: telecom
+tags: [telecom, colocation, power-redundancy, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_between_tests}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_test_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_test_epoch) / 86400;
+      if (days_since > max_days) {
+        printf "OVERDUE: site %s last %s test %s (%d days ago)\n", $1, $3, $2, days_since;
+      }
+    }
+  ' "{{power_test_log_csv_path}}"
+variables:
+  power_test_log_csv_path:
+    default: "./colo-power-test-log.csv"
+    description: "Path to a CSV with columns: site_name,last_test_date (YYYY-MM-DD),test_type (transfer-switch/generator-load-bank/battery)."
+  max_days_between_tests:
+    default: 90
+    description: Maximum days allowed between backup power tests before a site is flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes power test results are logged manually or exported from a
+  facilities maintenance system into the CSV. Read-only — does not
+  schedule tests, just flags overdue sites.

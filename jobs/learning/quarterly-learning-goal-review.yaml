@@ -1,0 +1,37 @@
+id: quarterly-learning-goal-review
+version: 1
+name: Quarterly Learning Goal Review
+description: >
+  Every quarter, reviews your stated learning goals against what you've
+  actually logged and helps you decide what to keep, drop, or add. Use
+  this if you set ambitious learning goals in January and never look at
+  them again until next January.
+category: learning
+tags: [learning, goals, quarterly, review]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Read my learning goals file at {{goals_path}} and, if it exists, my
+  activity/progress log at {{progress_log_path}}.
+  1. List each stated goal and assess, based on the progress log,
+     whether it looks on track, stalled, or already achieved this
+     quarter.
+  2. Call out any goal that's had zero related activity all quarter.
+  3. Suggest whether each goal should be kept as-is, revised, or dropped
+     for next quarter, with a one-sentence reason.
+  4. Suggest up to 2 new goals worth considering, based on gaps you
+     notice in the progress log.
+  Keep the whole review concise enough to read in under two minutes.
+variables:
+  goals_path:
+    default: "./learning-goals.md"
+    description: Markdown or text file listing your current learning goals, one per line or bullet.
+  progress_log_path:
+    default: "./learning-progress-log.md"
+    description: Free-form log or notes file where you track learning activity through the quarter.
+compatible_agents: [claude, codex, hermes, openclaw]
+notes: >
+  Needs an LLM to interpret free-form goals and progress notes and make
+  keep/drop judgment calls — not scriptable. You maintain both files
+  yourself; this job only reads them.

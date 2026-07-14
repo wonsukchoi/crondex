@@ -1,0 +1,50 @@
+id: dispatch-route-fuel-cost-drift-check
+version: 1
+name: Dispatch Route Fuel Cost Drift Check
+description: >
+  Compares each long-haul route's estimated fuel cost against its actual
+  fuel spend and flags routes drifting past a set percentage over
+  estimate, then explains the likely causes. Use this if a cross-country
+  dispatch has ever come in way over its fuel budget and nobody could
+  say afterward whether it was detours, idling, or just bad routing.
+category: moving-relocation
+tags: [moving-relocation, dispatch, fuel-cost, routing, budgeting]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v threshold="{{drift_percent_threshold}}" '
+    NR==1 {next}
+    {
+      route=$1; estimated=$3; actual=$4;
+      if (estimated + 0 > 0) {
+        drift = ((actual - estimated) / estimated) * 100;
+        if (drift >= threshold) {
+          printf "FUEL DRIFT: route %s — estimated $%s, actual $%s (%.1f%% over)\n", route, estimated, actual, drift;
+        }
+      }
+    }
+  ' "{{route_fuel_csv_path}}"
+prompt: >
+  Read the route fuel data at {{route_fuel_csv_path}} (columns:
+  route_id, origin_destination, estimated_fuel_cost, actual_fuel_cost,
+  miles_driven, detour_miles, idle_hours). For every route where actual
+  fuel cost exceeds estimated fuel cost by {{drift_percent_threshold}}
+  percent or more, summarize the likely contributing factors using the
+  detour_miles and idle_hours columns (e.g. excess detours, excessive
+  idling, or fuel price alone), rank the routes by total dollar overage,
+  and suggest one concrete adjustment per route (route planning, idle
+  policy, or re-estimating the lane's baseline fuel cost).
+script_note: >
+  The command gives you a zero-token list of routes over the fuel cost
+  drift threshold with dollar amounts; only the prompt explains the
+  likely causes and recommends per-route fixes.
+variables:
+  route_fuel_csv_path:
+    default: "./route-fuel-costs.csv"
+    description: "Path to a CSV with columns: route_id,origin_destination,estimated_fuel_cost,actual_fuel_cost,miles_driven,detour_miles,idle_hours."
+  drift_percent_threshold:
+    default: 15
+    description: Percentage over the estimated fuel cost a route must exceed before it's flagged as drifting.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only flags and explains fuel cost drift, it doesn't change route plans or dispatch assignments itself.

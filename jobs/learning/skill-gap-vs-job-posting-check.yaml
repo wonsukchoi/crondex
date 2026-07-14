@@ -1,0 +1,37 @@
+id: skill-gap-vs-job-posting-check
+version: 1
+name: Skill Gap vs. Job Posting Check
+description: >
+  Compares your current skills list against a target job posting's
+  requirements and highlights the gaps to focus your learning on. Use
+  this if you have a target role in mind and want your learning time
+  aimed at closing specific gaps instead of studying whatever's shiny.
+category: learning
+tags: [learning, career, skill-gap, job-search]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Read my current skills list at {{skills_path}} and the target job
+  posting text at {{job_posting_path}}.
+  1. Extract the required and preferred skills/technologies from the job
+     posting.
+  2. Compare against my current skills list and split into three
+     buckets: skills I already have, skills I'm missing entirely, and
+     skills I have some exposure to but should deepen.
+  3. Rank the missing/weak skills by how frequently or prominently they
+     appear in the posting.
+  4. Suggest one concrete, time-bounded learning action for each of the
+     top 3 gaps (a course, a project idea, a certification, etc.).
+variables:
+  skills_path:
+    default: "./my-skills.md"
+    description: Markdown or text file listing your current skills, technologies, and proficiency levels.
+  job_posting_path:
+    default: "./target-job-posting.txt"
+    description: Plain text of the target job posting you're comparing against (paste it in yourself).
+compatible_agents: [claude, codex, hermes, openclaw]
+notes: >
+  Needs an LLM to parse free-form posting text and judge skill overlap —
+  not scriptable. You update job_posting_path when targeting a new role;
+  this job doesn't scrape job boards.

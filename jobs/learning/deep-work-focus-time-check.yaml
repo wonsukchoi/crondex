@@ -1,0 +1,34 @@
+id: deep-work-focus-time-check
+version: 1
+name: Study Focus-Time Weekly Goal Check
+description: >
+  Sums up logged study/deep-work minutes for the current week and
+  compares against your weekly goal, so you know by midweek whether
+  you're on pace. Use this if you tell yourself you'll "study more this
+  week" without ever actually measuring the hours.
+category: learning
+tags: [learning, focus-time, productivity, weekly-goal]
+schedule: "0 18 * * 3,0"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{session_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  week_start=$(date -v-$(($(date +%u)-1))d +%Y-%m-%d 2>/dev/null || date -d "-$(( $(date +%u) - 1 )) days" +%Y-%m-%d);
+  minutes=$(awk -F',' -v ws="$week_start" 'NR>1 && $1>=ws {sum+=$2} END{print sum+0}' "$file");
+  goal={{weekly_goal_minutes}};
+  pct=$(( minutes * 100 / goal ));
+  if [ "$minutes" -lt "$goal" ]; then echo "STATUS: $minutes/$goal min logged this week ($pct%) since $week_start — behind pace"; exit 1;
+  else echo "OK: $minutes/$goal min logged this week ($pct%) since $week_start — goal met."; fi
+variables:
+  session_log_path:
+    default: "./focus-session-log.csv"
+    description: "CSV with header row, columns: date,minutes — one row per study/focus session, date in YYYY-MM-DD."
+  weekly_goal_minutes:
+    default: 300
+    description: Target study/focus minutes per week.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Week is treated as Monday-Sunday based on local date; you
+  log each session's minutes yourself (from a timer app export or
+  manually) into session_log_path.

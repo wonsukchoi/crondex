@@ -1,0 +1,45 @@
+id: dns-zone-nameserver-health-check
+version: 1
+name: DNS Zone / Nameserver Health Check
+description: >
+  Checks that every authoritative nameserver for a customer-facing zone
+  actually resolves the zone's SOA record and that the serial numbers
+  agree across all of them. Use this if a zone has ever gone half-stale
+  because one authoritative nameserver silently fell behind on a zone
+  transfer while the others kept serving fine.
+category: telecom
+tags: [telecom, dns, nameservers, monitoring]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  for ns in {{nameservers_space_separated}}; do
+    serial=$(dig +time=5 +tries=1 @"$ns" "{{zone_name}}" SOA +short 2>/dev/null | awk '{print $3}')
+    if [ -z "$serial" ]; then
+      printf "UNREACHABLE: %s did not answer SOA query for %s\n" "$ns" "{{zone_name}}"
+    else
+      printf "%s serial=%s\n" "$ns" "$serial"
+    fi
+  done | awk '
+    /UNREACHABLE/ { print; next }
+    { serial=$2; sub("serial=","",serial); serials[NR]=serial; ns[NR]=$1; count++ }
+    END {
+      for (i=2; i<=count; i++) {
+        if (serials[i] != serials[1]) {
+          printf "SERIAL MISMATCH: %s has %s but %s has %s\n", ns[1], serials[1], ns[i], serials[i];
+        }
+      }
+    }
+  '
+variables:
+  zone_name:
+    default: "example.com"
+    description: "The DNS zone to check, e.g. example.com."
+  nameservers_space_separated:
+    default: "ns1.example.com ns2.example.com"
+    description: "Space-separated list of authoritative nameserver hostnames or IPs to query directly."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires the `dig` CLI. Queries each nameserver directly (not through a
+  recursive resolver) so a lagging secondary shows up before customers
+  notice stale records.

@@ -1,0 +1,39 @@
+id: customer-sla-credit-issuance-backlog-check
+version: 1
+name: Customer SLA Credit Issuance Backlog Check
+description: >
+  Checks approved SLA credit requests (from outages or missed
+  commitments) against how long they've sat unissued and flags ones
+  past the promised turnaround. Use this if a customer has ever had to
+  call in and ask where their promised SLA credit went because the
+  approved credit just sat in a queue nobody was tracking.
+category: telecom
+tags: [telecom, sla-credits, billing, customer-experience]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_to_issue}}" '
+    NR==1 {next}
+    $3 == "approved_not_issued" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline approved_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_waiting = (now_epoch - approved_epoch) / 86400;
+      if (days_waiting > max_days) {
+        printf "CREDIT OVERDUE: account %s approved %s for $%s (%d days waiting)\n", $1, $2, $4, days_waiting;
+      }
+    }
+  ' "{{sla_credits_csv_path}}"
+variables:
+  sla_credits_csv_path:
+    default: "./sla-credit-requests.csv"
+    description: "Path to a CSV with columns: account_id,approved_date (YYYY-MM-DD),status (approved_not_issued/issued/denied),credit_amount."
+  max_days_to_issue:
+    default: 14
+    description: Maximum days allowed between credit approval and it actually being issued on an invoice.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes SLA credit approvals and issuance status are tracked in a
+  billing or customer-care log exported to the CSV. Flags for follow-up;
+  does not issue credits itself.

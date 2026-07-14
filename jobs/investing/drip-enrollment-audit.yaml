@@ -1,0 +1,31 @@
+id: drip-enrollment-audit
+version: 1
+name: DRIP Enrollment Audit
+description: >
+  Compares your dividend-paying positions against which ones are actually
+  enrolled in a dividend reinvestment plan, and flags mismatches against
+  your intended DRIP list. Use this if you've ever noticed a dividend
+  landed as idle cash instead of reinvesting because DRIP got switched
+  off (or never turned on) after a transfer or account change.
+category: investing
+tags: [investing, dividends, drip, reinvestment]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, '
+    NR==FNR { if (FNR>1) want[$1]=1; next }
+    FNR>1 {
+      if ($1 in want && $2 != "on") print "WARNING: " $1 " should be DRIP-enrolled but is currently " $2;
+      else if (!($1 in want) && $2 == "on") print "NOTE: " $1 " is DRIP-enrolled but is not on the intended DRIP list — confirm this is intentional.";
+    }
+  ' {{intended_drip_list_csv}} {{actual_enrollment_csv}}
+variables:
+  intended_drip_list_csv:
+    default: "drip-intended-list.csv"
+    description: "CSV with header row, single column: ticker — the positions you intend to have reinvesting dividends."
+  actual_enrollment_csv:
+    default: "drip-actual-enrollment.csv"
+    description: "CSV with header row, columns: ticker,status(on/off) — actual DRIP status per position, exported or copied from your brokerage."
+compatible_agents: [generic, claude, codex]
+notes: Requires you to export or maintain actual_enrollment_csv from your brokerage's DRIP settings page — this job can't read brokerage settings directly.

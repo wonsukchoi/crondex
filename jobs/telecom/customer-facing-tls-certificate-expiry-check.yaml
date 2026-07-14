@@ -1,0 +1,41 @@
+id: customer-facing-tls-certificate-expiry-check
+version: 1
+name: Customer-Facing TLS Certificate Expiry Check
+description: >
+  Checks the TLS certificate on every customer-facing endpoint (portal,
+  API, webmail, self-care app) for days remaining until expiry and warns
+  once a threshold is crossed. Use this if a certificate on a
+  customer-facing service has ever expired unnoticed and thrown up
+  browser warnings before anyone on the team saw it coming.
+category: telecom
+tags: [telecom, tls, certificates, customer-facing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  for host in {{endpoints_space_separated}}; do
+    expiry=$(echo | curl --max-time 10 -sS --connect-timeout 5 -vI "https://$host" 2>&1 \
+      | openssl s_client -connect "$host:443" -servername "$host" 2>/dev/null \
+      | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+    if [ -z "$expiry" ]; then
+      printf "CHECK FAILED: could not read certificate for %s\n" "$host"
+      continue
+    fi
+    expiry_epoch=$(date -d "$expiry" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$expiry" +%s 2>/dev/null)
+    now_epoch=$(date +%s)
+    days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+    if [ "$days_left" -le "{{warn_days_before}}" ]; then
+      printf "CERT EXPIRING: %s expires in %d days (%s)\n" "$host" "$days_left" "$expiry"
+    fi
+  done
+variables:
+  endpoints_space_separated:
+    default: "portal.example.com api.example.com webmail.example.com"
+    description: "Space-separated list of customer-facing hostnames to check."
+  warn_days_before:
+    default: 21
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `curl` and `openssl`. Every network call is bounded with
+  --max-time so a hung TLS handshake can't stall the whole run.

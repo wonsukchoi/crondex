@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1699 jobs across 60 categories:
+1747 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -215,14 +215,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hr` | 32 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 32 | Stock accuracy — counts, shrinkage, expiry, overstock. |
-| `investing` | 20 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `investing` | 32 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
-| `learning` | 20 | Personal learning — certs, courses, flashcards, reading. |
+| `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 20 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
-| `moving-relocation` | 20 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
+| `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `personal` | 32 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
@@ -242,7 +242,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 32 | Team ops — 1:1s, on-call, PTO, anniversaries. |
-| `telecom` | 20 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
+| `telecom` | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 32 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 32 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |

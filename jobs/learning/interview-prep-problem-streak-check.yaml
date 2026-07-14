@@ -1,0 +1,35 @@
+id: interview-prep-problem-streak-check
+version: 1
+name: Technical Interview Practice-Problem Streak Check
+description: >
+  Checks whether you've logged a technical interview practice problem
+  (LeetCode-style, system design, etc.) recently, to keep an active
+  streak before interview season creeps up. Use this if you tell yourself
+  you'll "grind problems" and then don't touch it for three weeks.
+category: learning
+tags: [learning, interview-prep, streak, career]
+schedule: "0 19 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{problem_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  last_date=$(tail -n 1 "$file" | cut -d',' -f1);
+  [ -z "$last_date" ] && { echo "ERROR: no entries found in $file"; exit 1; };
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  total=$(($(wc -l < "$file") - 1));
+  if [ "$days_since" -ge "{{gap_threshold_days}}" ]; then echo "WARNING: no interview practice problem logged in $days_since days ($total total logged) — streak broken"; exit 1;
+  else echo "OK: last problem logged $days_since day(s) ago, $total total logged."; fi
+variables:
+  problem_log_path:
+    default: "./interview-problem-log.csv"
+    description: "CSV with header row, columns: date,problem,topic — one row per practice problem solved."
+  gap_threshold_days:
+    default: 3
+    description: Days without a logged problem before the streak is considered broken.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You append a row to problem_log_path each time you solve a
+  practice problem; this job doesn't scrape LeetCode/HackerRank/etc.

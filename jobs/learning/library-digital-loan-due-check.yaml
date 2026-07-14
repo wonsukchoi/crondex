@@ -1,0 +1,39 @@
+id: library-digital-loan-due-check
+version: 1
+name: Library Digital Loan Due-Date Reminder
+description: >
+  Warns you before a digital library loan (Libby, Hoopla, an e-book or
+  audiobook checkout) is due back, so you either finish it or renew
+  before it's auto-returned. Use this if you've ever lost your spot in a
+  library e-book because it silently expired mid-chapter.
+category: learning
+tags: [learning, library, loan, reminder]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{loans_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  due_soon="";
+  while IFS=',' read -r title due_date; do
+    [ "$title" = "title" ] && continue;
+    [ -z "$title" ] && continue;
+    due_ts=$(date -d "$due_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$due_date" +%s);
+    days_left=$(( (due_ts - today) / 86400 ));
+    if [ "$days_left" -le "{{warn_days}}" ]; then due_soon="${due_soon}${title} (due $due_date, $days_left day(s) left); "; fi;
+  done < "$file";
+  if [ -n "$due_soon" ]; then echo "WARNING: loans due soon — $due_soon"; exit 1;
+  else echo "OK: no library loans due within {{warn_days}} days."; fi
+variables:
+  loans_path:
+    default: "./library-loans.csv"
+    description: "CSV with header row, columns: title,due_date (YYYY-MM-DD) — one row per active digital loan."
+  warn_days:
+    default: 3
+    description: Days before due_date to start warning about a loan.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain loans_path yourself when you check items out
+  (most library apps don't expose a public API); this job doesn't
+  integrate with Libby/OverDrive/Hoopla directly.

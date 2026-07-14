@@ -1,0 +1,36 @@
+id: 401k-plan-fee-benchmark-review
+version: 1
+name: 401(k) Plan Fee Benchmark Review
+description: >
+  Once a year, checks your 401(k) plan's administrative and fund expense
+  ratios against reasonable benchmarks and flags anything that looks
+  expensive relative to comparable low-cost index options. Use this if
+  you've never actually read your plan's fee disclosure and don't know
+  whether you're paying more than you should be for a target-date fund
+  or actively managed option.
+category: investing
+tags: [investing, retirement, "401k", fees]
+schedule: "0 9 1 1 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the 401(k) plan fee disclosure summarized in {{fee_disclosure_notes}}.
+  1. List the administrative fee (flat dollar or percent of assets) and
+     the expense ratio for each fund option currently held or available.
+  2. Compare each fund's expense ratio to a reasonable low-cost benchmark
+     for its category (e.g. broad-market index funds are typically under
+     0.10%; target-date funds under 0.20% is considered competitive).
+  3. Flag any fund with an expense ratio notably above its category
+     benchmark, and estimate the extra annual cost in dollars given a
+     balance of ${{current_balance_usd}}.
+  4. Note whether the plan offers a lower-cost share class or index
+     alternative for the same asset class, if the notes mention one.
+variables:
+  fee_disclosure_notes:
+    default: "401k-fee-disclosure-notes.txt"
+    description: Notes or a copy of the annual 404(a)(5) fee disclosure your plan sends.
+  current_balance_usd:
+    default: 50000
+    description: Approximate current 401(k) balance, used to estimate the dollar impact of fee differences.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: You can't change plan-level admin fees, but this can inform which fund options within the plan to prefer, or whether a rollover to an IRA is worth considering after leaving the employer.

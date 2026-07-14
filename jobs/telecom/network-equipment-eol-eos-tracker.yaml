@@ -1,0 +1,40 @@
+id: network-equipment-eol-eos-tracker
+version: 1
+name: Network Equipment End-of-Life/End-of-Support Tracker
+description: >
+  Checks your network equipment inventory against known end-of-life and
+  end-of-support dates and warns when a device in production is
+  approaching or past its support cutoff. Use this if a core router or
+  switch has ever kept running past its vendor support date, leaving no
+  path to a fix when it eventually failed.
+category: telecom
+tags: [telecom, network-equipment, end-of-life, lifecycle]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_eos}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline eos_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (eos_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days) {
+        status = (diff_days < 0) ? "PAST EOS" : "EOS APPROACHING";
+        printf "%s: %s (%s) at %s, end-of-support %s (%d days)\n", status, $1, $2, $4, $3, diff_days;
+      }
+    }
+  ' "{{equipment_inventory_csv_path}}"
+variables:
+  equipment_inventory_csv_path:
+    default: "./network-equipment-inventory.csv"
+    description: "Path to a CSV with columns: device_id,model,end_of_support_date (YYYY-MM-DD),site_or_location."
+  warn_days_before_eos:
+    default: 180
+    description: Days before end-of-support date to start warning — replacement hardware needs lead time to procure.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes end-of-support dates are maintained manually or pulled from a
+  vendor lifecycle bulletin into the CSV. Does not query vendor sites
+  directly.

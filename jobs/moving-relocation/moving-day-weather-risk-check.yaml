@@ -1,0 +1,45 @@
+id: moving-day-weather-risk-check
+version: 1
+name: Moving Day Weather Risk Check
+description: >
+  Pulls the forecast for each upcoming move's origin and destination zip
+  codes and drafts a heads-up for any move at risk from severe weather
+  in the days before the truck rolls. Use this if a crew has ever
+  arrived at a move only to get caught off guard by a storm, heat
+  advisory, or road closure that could have been flagged days earlier.
+category: moving-relocation
+tags: [moving-relocation, weather-risk, scheduling, customer-service]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  while IFS=',' read -r move_id origin_zip dest_zip move_date; do
+    [ "$move_id" = "move_id" ] && continue;
+    curl --max-time 10 -fsS "https://example.com/weather/v1/forecast?zip=${origin_zip}&date=${move_date}" \
+      2>/dev/null || echo "WEATHER LOOKUP FAILED: move $move_id (origin $origin_zip)";
+  done < "{{upcoming_moves_csv_path}}"
+prompt: >
+  Read the upcoming moves at {{upcoming_moves_csv_path}} (columns:
+  move_id, origin_zip, dest_zip, move_date) and check the forecast for
+  each origin and destination zip code within {{lookahead_days}} days of
+  the move_date. For any move where the forecast shows severe weather
+  (heavy snow, ice, high wind advisory, hurricane/tropical storm
+  warning, or extreme heat) along the route or at either end, draft a
+  short heads-up message to send to the customer and crew lead
+  explaining the risk and suggesting a contingency (earlier start time,
+  extra day buffer, or reschedule conversation). List unaffected moves
+  as a one-line "clear" confirmation.
+script_note: >
+  The command is a placeholder forecast lookup per move (swap
+  example.com for your actual weather API endpoint); only the prompt
+  interprets the forecast against each move's risk and drafts the
+  heads-up message.
+variables:
+  upcoming_moves_csv_path:
+    default: "./upcoming-moves.csv"
+    description: "Path to a CSV with columns: move_id,origin_zip,dest_zip,move_date (YYYY-MM-DD)."
+  lookahead_days:
+    default: 5
+    description: How many days ahead of the move_date to check the forecast for severe weather risk.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — the weather endpoint in `command` is a placeholder; point it at your real weather provider before relying on this job, and review drafts before sending.

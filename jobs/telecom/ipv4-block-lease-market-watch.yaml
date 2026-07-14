@@ -1,0 +1,44 @@
+id: ipv4-block-lease-market-watch
+version: 1
+name: IPv4 Address Block Lease/Transfer Market Watch
+description: >
+  Uses an agent to review your held-but-underutilized IPv4 blocks
+  against current utilization data and draft a recommendation on which
+  blocks are candidates to lease out or sell on the transfer market.
+  Use this if your organization has ever sat on unused IPv4 space for
+  years while paying RIR maintenance fees on it, without ever
+  quantifying what it's worth freeing up.
+category: telecom
+tags: [telecom, ipv4, address-space, revenue]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is the IPv4 block inventory with current utilization:
+  {{ipv4_inventory_csv_path}} (columns: cidr_block,total_addresses,
+  in_use_addresses,acquisition_date,rir_registry).
+
+  1. Compute a utilization percentage for each block.
+  2. Flag any block under {{low_utilization_threshold_pct}}% utilized
+     that has stayed that low for over a year (based on
+     acquisition_date if no historical trend is available).
+  3. For each flagged block, note its size (e.g. /24) since that
+     affects transfer-market liquidity and typical per-address pricing
+     ranges.
+  4. Draft a short recommendation memo: which blocks look like good
+     lease-or-sell candidates, which should stay reserved for growth,
+     and what the RIR's transfer policy generally requires (note that
+     exact current market pricing should be verified separately, since
+     it moves quickly).
+variables:
+  ipv4_inventory_csv_path:
+    default: "./ipv4-block-inventory.csv"
+    description: "Path to a CSV of held IPv4 blocks with utilization and acquisition data."
+  low_utilization_threshold_pct:
+    default: 30
+    description: Utilization percentage below which a block is considered a lease/sell candidate.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Advisory only — does not check live market pricing or initiate any
+  RIR transfer request. A human still needs to verify current market
+  rates and file the transfer with the relevant registry.

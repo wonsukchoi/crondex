@@ -1,0 +1,36 @@
+id: fuel-card-spend-anomaly-check
+version: 1
+name: Fuel Card Spend Anomaly Check
+description: >
+  Compares each fleet fuel card transaction against a per-gallon price
+  ceiling and a daily spend cap, then flags anything that looks off.
+  Use this if a fuel card has ever been used for a suspiciously large
+  purchase or an out-of-route fill-up and nobody noticed until the
+  monthly statement arrived.
+category: moving-relocation
+tags: [moving-relocation, fuel-card, fleet, expenses, anomaly-detection]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v price_ceiling="{{max_price_per_gallon}}" -v spend_cap="{{max_single_transaction_amount}}" '
+    NR==1 {next}
+    {
+      card=$1; vehicle=$2; date=$3; gallons=$4; price=$5; total=$6;
+      if (price + 0 > price_ceiling || total + 0 > spend_cap) {
+        printf "FUEL ANOMALY: card %s (%s) — %s gal at $%s/gal, total $%s on %s\n", card, vehicle, gallons, price, total, date;
+      }
+    }
+  ' "{{fuel_transactions_csv_path}}"
+variables:
+  fuel_transactions_csv_path:
+    default: "./fuel-card-transactions.csv"
+    description: "Path to a CSV with columns: card_id,vehicle_id,transaction_date (YYYY-MM-DD),gallons,price_per_gallon,total_amount."
+  max_price_per_gallon:
+    default: "5.50"
+    description: Per-gallon price above which a fuel transaction is flagged as anomalous, adjust to your local fuel market.
+  max_single_transaction_amount:
+    default: 400
+    description: Total dollar amount above which a single fuel transaction is flagged for review regardless of price per gallon.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only flags transactions that look off, it doesn't freeze the card or contact the driver itself. False positives are expected around diesel price spikes; tune the thresholds to your fleet.

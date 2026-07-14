@@ -1,0 +1,36 @@
+id: van-line-claim-reimbursement-aging-check
+version: 1
+name: Van Line Network Claim Reimbursement Aging Check
+description: >
+  Checks damage claims you've filed with your van line network for
+  reimbursement and flags any that have gone unpaid past a set number
+  of days. Use this if a claim has ever been submitted to the van line
+  for network reimbursement and then sat unresolved for months while
+  your agency covered the customer payout out of pocket.
+category: moving-relocation
+tags: [moving-relocation, van-line, claims, reimbursement, aging]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_pending}}" '
+    NR==1 {next}
+    $6 == "submitted" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline submitted_epoch; close(cmd);
+      days_pending = (today - submitted_epoch) / 86400;
+      if (days_pending >= max_days) {
+        printf "REIMBURSEMENT OVERDUE: claim %s — %s, submitted to %s on %s, $%s (%d days pending)\n", $1, $2, $5, $3, $4, days_pending;
+      }
+    }
+  ' "{{van_line_claims_csv_path}}"
+variables:
+  van_line_claims_csv_path:
+    default: "./van-line-claims.csv"
+    description: "Path to a CSV with columns: claim_id,customer_name,submitted_date (YYYY-MM-DD),claim_amount,van_line_network,status (submitted/reimbursed/denied)."
+  max_days_pending:
+    default: 45
+    description: Days a van line network reimbursement claim can sit submitted before it's flagged as overdue for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Read-only job — it only surfaces claims stuck waiting on van line network reimbursement, it doesn't resubmit the claim or contact the network itself.

@@ -1,0 +1,37 @@
+id: wash-sale-30-day-window-check
+version: 1
+name: Wash Sale 30-Day Window Check
+description: >
+  Checks whether a planned or recent purchase falls within 30 days
+  before or after selling the same or a substantially identical security
+  at a loss, which would trigger the wash sale rule and disallow the
+  loss. Use this if you've ever sold a position at a loss for tax
+  purposes and then bought it back too soon without realizing it undid
+  the tax benefit.
+category: investing
+tags: [investing, tax, wash-sale, capital-gains]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  sale_ts=$(date -d "{{loss_sale_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{loss_sale_date}}" +%s);
+  buy_ts=$(date -d "{{repurchase_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{repurchase_date}}" +%s);
+  diff_days=$(( (buy_ts - sale_ts) / 86400 ));
+  abs_diff=${diff_days#-};
+  if [ "$abs_diff" -le 30 ]; then
+    echo "WARNING: {{ticker}} repurchase on {{repurchase_date}} is $abs_diff day(s) from the {{loss_sale_date}} loss sale — inside the 30-day wash sale window, the loss may be disallowed.";
+  else
+    echo "OK: {{ticker}} repurchase on {{repurchase_date}} is $abs_diff day(s) from the {{loss_sale_date}} loss sale — outside the 30-day wash sale window.";
+  fi
+variables:
+  ticker:
+    default: "some-ticker"
+    description: Ticker or fund symbol being checked.
+  loss_sale_date:
+    default: "2026-06-01"
+    description: Date the position was sold at a loss (YYYY-MM-DD).
+  repurchase_date:
+    default: "2026-06-20"
+    description: Date of the actual or planned repurchase (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: Not tax advice — also check for "substantially identical" securities (not just the exact same ticker) and purchases in other accounts, including an IRA, which can also trigger a wash sale.

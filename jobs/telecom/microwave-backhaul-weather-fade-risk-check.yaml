@@ -1,0 +1,51 @@
+id: microwave-backhaul-weather-fade-risk-check
+version: 1
+name: Microwave Backhaul Weather-Fade Risk Check
+description: >
+  Uses an agent to cross-reference microwave backhaul link margins with
+  an upcoming weather forecast and flag links at elevated risk of rain
+  or fog fade over the next few days. Use this if a microwave link has
+  ever dropped during a storm that was forecast days in advance, when a
+  heads-up could have let ops pre-stage a failover to a redundant path.
+category: telecom
+tags: [telecom, microwave, backhaul, weather-risk]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is the microwave backhaul link inventory with fade margins:
+  {{link_margins_csv_path}} (columns: link_id,site_a,site_b,
+  frequency_band,fade_margin_db,has_redundant_path). Here is the
+  upcoming weather forecast for the relevant sites:
+  {{weather_forecast_csv_path}} (columns: site,date,precip_probability_pct,
+  precip_intensity,fog_risk).
+
+  1. For each link, look up the forecast for both endpoint sites over
+     the next {{forecast_horizon_days}} days.
+  2. Flag any link with fade_margin_db below {{low_margin_db_threshold}}
+     dB whose endpoints show meaningful precipitation or fog risk in
+     that window — these are the highest-risk combinations.
+  3. Separately call out flagged links that have no redundant path
+     (has_redundant_path is false), since those are the ones where a
+     fade event causes a real outage rather than a graceful failover.
+  4. Produce a short daily risk list ranked by severity, with link_id,
+     affected dates, and a one-line reason, so ops can pre-stage
+     failover or alert customers proactively.
+variables:
+  link_margins_csv_path:
+    default: "./microwave-link-margins.csv"
+    description: "Path to a CSV of microwave backhaul links with fade margin and redundancy data."
+  weather_forecast_csv_path:
+    default: "./site-weather-forecast.csv"
+    description: "Path to a CSV of forecast data per site for the upcoming days."
+  forecast_horizon_days:
+    default: 3
+    description: How many days ahead of forecast to consider.
+  low_margin_db_threshold:
+    default: 10
+    description: Fade margin in dB below which a link is considered vulnerable to weather fade.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Advisory only — does not trigger any automatic failover. Forecast
+  accuracy degrades with the forecast horizon, so treat this as a
+  heads-up, not a guarantee.

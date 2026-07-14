@@ -1,0 +1,36 @@
+id: mutual-fund-redemption-fee-window-check
+version: 1
+name: Mutual Fund Short-Term Redemption Fee Window Check
+description: >
+  Checks how many days you've held a mutual fund lot against the fund's
+  minimum holding period, so you don't accidentally trigger a short-term
+  redemption fee by selling too early. Use this if you've ever sold a
+  fund and gotten hit with a surprise 1-2% redemption fee because you
+  didn't realize you were still inside the minimum holding window.
+category: investing
+tags: [investing, mutual-fund, redemption-fee, cost-basis]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  purch_ts=$(date -d "{{purchase_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{purchase_date}}" +%s);
+  days_held=$(( (today - purch_ts) / 86400 ));
+  if [ "$days_held" -lt {{min_holding_days}} ]; then
+    remaining=$(( {{min_holding_days}} - days_held ));
+    echo "WARNING: {{fund_name}} lot bought {{purchase_date}} has been held $days_held day(s); wait $remaining more day(s) to avoid the short-term redemption fee.";
+  else
+    echo "OK: {{fund_name}} lot bought {{purchase_date}} has cleared the {{min_holding_days}}-day minimum holding window.";
+  fi
+variables:
+  fund_name:
+    default: "some-mutual-fund"
+    description: Name or ticker of the mutual fund lot being checked.
+  purchase_date:
+    default: "2026-06-01"
+    description: Purchase date of the lot (YYYY-MM-DD).
+  min_holding_days:
+    default: 90
+    description: Minimum holding period (days) before redemption fee-free sale, per the fund's prospectus.
+compatible_agents: [generic, claude, codex]
+notes: Redemption fee policies vary by fund family — confirm min_holding_days against the specific fund's current prospectus before relying on this.

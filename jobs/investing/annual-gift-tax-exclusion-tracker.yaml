@@ -1,0 +1,36 @@
+id: annual-gift-tax-exclusion-tracker
+version: 1
+name: Annual Gift Tax Exclusion Tracker
+description: >
+  Tracks the total value of appreciated stock and cash gifted to a single
+  recipient this year against the annual gift tax exclusion, so you know
+  when you're approaching the limit that requires filing Form 709. Use
+  this if you've ever gifted shares to family throughout the year without
+  tallying the running total against the annual exclusion.
+category: investing
+tags: [investing, tax, gifting, estate-planning]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, -v limit={{annual_exclusion_usd}} '
+    NR>1 { total += $3 }
+    END {
+      printf "Total gifted to {{recipient_name}} this year: $%.2f (limit $%.2f)\n", total, limit;
+      if (total >= limit) print "WARNING: gifts to {{recipient_name}} have reached or exceeded the annual exclusion — Form 709 filing likely required.";
+      else if (total >= limit * 0.8) print "NOTE: gifts to {{recipient_name}} are within 20% of the annual exclusion.";
+      else print "OK: gifts to {{recipient_name}} are well under the annual exclusion.";
+    }
+  ' {{gift_log_csv}}
+variables:
+  gift_log_csv:
+    default: "gift-log.csv"
+    description: "CSV with header row, columns: date,ticker_or_cash,fair_market_value_usd — log each gift as it happens."
+  recipient_name:
+    default: "recipient"
+    description: Name of the person receiving the gifts (used only for the message; each recipient has their own exclusion).
+  annual_exclusion_usd:
+    default: 19000
+    description: Current-year annual gift tax exclusion per recipient — update when the IRS adjusts it.
+compatible_agents: [generic, claude, codex]
+notes: Not tax advice — value gifted stock at fair market value on the gift date, and remember married couples can split gifts to double the effective exclusion (requires Form 709 to elect).

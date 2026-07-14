@@ -1,0 +1,41 @@
+id: course-platform-unused-seat-check
+version: 1
+name: Course Platform Unused-Seat Check
+description: >
+  Flags when you're paying for an online learning platform subscription
+  (Coursera Plus, Pluralsight, O'Reilly, etc.) but haven't logged any
+  activity recently. Use this if you've ever kept paying for a course
+  subscription for months after you stopped actually using it.
+category: learning
+tags: [learning, subscription, cost, platform]
+schedule: "0 9 1,15 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  file={{activity_log_path}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  last_date=$(tail -n 1 "$file" | cut -d',' -f1);
+  [ -z "$last_date" ] && { echo "ERROR: no entries found in $file"; exit 1; };
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s);
+  now_ts=$(date +%s);
+  days_since=$(( (now_ts - last_ts) / 86400 ));
+  if [ "$days_since" -ge "{{idle_threshold_days}}" ]; then echo "WARNING: no logged activity on {{platform_name}} for $days_since days (paying {{monthly_cost}}/mo) — consider pausing or cancelling"; exit 1;
+  else echo "OK: {{platform_name}} used $days_since day(s) ago."; fi
+variables:
+  activity_log_path:
+    default: "./course-platform-activity.csv"
+    description: "CSV with header row, columns: date,note — one row each time you log into or use the platform."
+  platform_name:
+    default: "your course platform"
+    description: Name of the subscription platform, for labeling output.
+  monthly_cost:
+    default: "$0"
+    description: Monthly subscription cost, for labeling output only (not summed).
+  idle_threshold_days:
+    default: 21
+    description: Days without a logged activity entry before this is flagged as an unused seat.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You (or a browser extension/export) must append a row to
+  activity_log_path whenever you actually use the platform; this job
+  doesn't integrate with any vendor API.

@@ -1,0 +1,37 @@
+id: target-date-fund-glide-path-drift-check
+version: 1
+name: Target-Date Fund Glide Path Drift Check
+description: >
+  Compares your target-date fund's actual equity/bond allocation against
+  the glide path percentage its fund family publishes for your target
+  year, and flags a meaningful mismatch. Use this if you've ever assumed
+  a target-date fund was quietly de-risking on schedule and never
+  actually checked whether its current allocation matches what the
+  glide path says it should be.
+category: investing
+tags: [investing, target-date-fund, asset-allocation, retirement]
+schedule: "0 9 1 1,7 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -v actual={{actual_equity_pct}} -v expected={{glide_path_equity_pct}} -v tol={{tolerance_pct}} 'BEGIN{
+    diff = actual - expected;
+    absdiff = diff < 0 ? -diff : diff;
+    if (absdiff > tol) {
+      printf "WARNING: fund equity allocation is %.1f%%, expected %.1f%% per glide path — drift of %.1f points exceeds %.1f%% tolerance.\n", actual, expected, diff, tol;
+    } else {
+      printf "OK: fund equity allocation %.1f%% is within %.1f%% of the %.1f%% glide-path target.\n", actual, tol, expected;
+    }
+  }'
+variables:
+  actual_equity_pct:
+    default: 70
+    description: Fund's current actual equity allocation percent, from its latest factsheet or holdings breakdown.
+  glide_path_equity_pct:
+    default: 75
+    description: Equity allocation percent the fund family's published glide path expects for your target retirement year.
+  tolerance_pct:
+    default: 5
+    description: Allowed drift (percentage points) before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Update actual_equity_pct and glide_path_equity_pct periodically from the fund's factsheet and provider's glide-path documentation — this job doesn't fetch fund holdings automatically.

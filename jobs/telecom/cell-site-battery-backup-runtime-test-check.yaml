@@ -1,0 +1,45 @@
+id: cell-site-battery-backup-runtime-test-check
+version: 1
+name: Cell Site Battery Backup Runtime Test Check
+description: >
+  Checks each cell site's most recent battery backup runtime test
+  against the required test cadence and minimum runtime spec, flagging
+  sites that are overdue for a test or that failed to meet the runtime
+  target. Use this if a cell site has ever gone dark during a power
+  outage sooner than expected because its backup batteries hadn't been
+  load-tested in a long time.
+category: telecom
+tags: [telecom, cell-site, battery-backup, resilience]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_between_tests}}" -v min_runtime="{{min_required_runtime_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline test_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - test_epoch) / 86400;
+      if (days_since > max_days) {
+        printf "TEST OVERDUE: site %s last tested %s (%d days ago)\n", $1, $2, days_since;
+      } else if ($3 + 0 < min_runtime + 0) {
+        printf "RUNTIME BELOW SPEC: site %s tested %s at %s hours (min %s)\n", $1, $2, $3, min_runtime;
+      }
+    }
+  ' "{{battery_test_log_csv_path}}"
+variables:
+  battery_test_log_csv_path:
+    default: "./cell-site-battery-test-log.csv"
+    description: "Path to a CSV with columns: site_id,last_test_date (YYYY-MM-DD),measured_runtime_hours."
+  max_days_between_tests:
+    default: 180
+    description: Maximum days allowed between battery backup runtime tests before a site is flagged overdue.
+  min_required_runtime_hours:
+    default: 4
+    description: Minimum backup runtime in hours a site must demonstrate to pass its test.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes battery test results are logged manually or exported from a
+  site maintenance system into the CSV. Read-only — flags sites needing
+  attention, does not schedule technicians.

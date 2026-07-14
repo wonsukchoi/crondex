@@ -1,0 +1,37 @@
+id: covered-call-expiration-reminder
+version: 1
+name: Covered Call / Cash-Secured Put Expiration Reminder
+description: >
+  Warns when an open covered call or cash-secured put is approaching its
+  expiration date, so you have time to decide whether to let it expire,
+  roll it, or close it early. Use this if you've ever been surprised by
+  an option expiring and shares getting called away (or put to you) when
+  you meant to act first.
+category: investing
+tags: [investing, options, covered-call, expiration]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  exp_ts=$(date -d "{{expiration_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{expiration_date}}" +%s);
+  days_left=$(( (exp_ts - today) / 86400 ));
+  if [ "$days_left" -le {{warn_days_before}} ] && [ "$days_left" -ge 0 ]; then
+    echo "WARNING: {{contract_description}} expires in $days_left day(s) on {{expiration_date}} — decide whether to close, roll, or let assign/expire.";
+  elif [ "$days_left" -lt 0 ]; then
+    echo "NOTE: {{contract_description}} expiration date {{expiration_date}} has already passed — update or remove this entry.";
+  else
+    echo "OK: {{contract_description}} expires in $days_left day(s), outside the {{warn_days_before}}-day warning window.";
+  fi
+variables:
+  contract_description:
+    default: "covered call on TICKER"
+    description: Short label for the option contract, e.g. "covered call on AAPL 200 strike".
+  expiration_date:
+    default: "2026-08-15"
+    description: Expiration date of the option contract (YYYY-MM-DD).
+  warn_days_before:
+    default: 5
+    description: Days before expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: You maintain expiration_date and contract_description per open position yourself — this job doesn't read your brokerage's options positions directly.

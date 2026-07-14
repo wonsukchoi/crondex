@@ -1,0 +1,39 @@
+id: relocation-policy-exception-approval-backlog
+version: 1
+name: Corporate Relocation Policy Exception Approval Backlog
+description: >
+  Reviews pending policy-exception requests from corporate relocation
+  clients, like extra shipment weight or extended temporary housing,
+  and drafts a status summary for anyone waiting past a set number of
+  days. Use this if a transferring employee's exception request has
+  ever sat waiting on an HR or client approver so long that their move
+  timeline started slipping.
+category: moving-relocation
+tags: [moving-relocation, corporate-relocation, policy-exceptions, approvals]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the policy exception requests at {{exceptions_csv_path}}
+  (columns: request_id, transferee_name, client_company, exception_type,
+  request_date, move_date, approver_email, status). Find every request with status
+  "pending" whose request_date is more than
+  {{stale_after_days}} days ago. For each one, draft a short, polite
+  nudge email to the approver_email summarizing the exception_type
+  requested, how long it's been pending, and the transferee's name, and
+  asking for a decision by a specific date. Group the results by
+  client_company and flag any transferee whose move date is within
+  {{urgent_move_window_days}} days as needing an immediate escalation
+  instead of a routine nudge.
+variables:
+  exceptions_csv_path:
+    default: "./relocation-policy-exceptions.csv"
+    description: "Path to a CSV with columns: request_id,transferee_name,client_company,exception_type,request_date (YYYY-MM-DD),move_date (YYYY-MM-DD),approver_email,status (pending/approved/denied)."
+  stale_after_days:
+    default: 5
+    description: Number of days a policy exception request can sit pending before it triggers a follow-up draft.
+  urgent_move_window_days:
+    default: 10
+    description: If the transferee's move is within this many days, the request is flagged for immediate escalation rather than a routine nudge.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — nudge emails should be reviewed before sending, not sent automatically. It doesn't approve or deny the exception itself.

@@ -1,0 +1,45 @@
+id: customer-bandwidth-overage-billing-accuracy-check
+version: 1
+name: Customer Bandwidth Overage Billing Accuracy Check
+description: >
+  Uses an agent to compare metered usage records against the overage
+  charges that actually appeared on customer invoices and flags
+  mismatches in either direction. Use this if a customer has ever been
+  billed an overage fee that didn't match their metered usage, or usage
+  that should have triggered a fee slipped through unbilled.
+category: telecom
+tags: [telecom, billing, bandwidth-overage, revenue-assurance]
+schedule: "0 9 2 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is the metered usage export: {{usage_export_csv_path}} (columns:
+  account_id,billing_period,plan_cap_gb,metered_usage_gb). Here is the
+  billed overage export: {{billed_overage_csv_path}} (columns:
+  account_id,billing_period,overage_fee_charged,overage_rate_per_gb).
+
+  1. For each account/billing_period pair, compute expected overage as
+     (metered_usage_gb - plan_cap_gb) * overage_rate_per_gb when usage
+     exceeds the cap, else zero.
+  2. Flag any account where the overage_fee_charged differs from the
+     expected overage by more than {{tolerance_dollars}} dollars, in
+     either direction (overcharged or undercharged).
+  3. Flag any account that exceeded plan_cap_gb but has no matching row
+     in the billed overage export at all.
+  4. Summarize total dollar impact of overcharges and undercharges
+     separately, and list the top discrepancies by dollar amount for
+     billing team follow-up.
+variables:
+  usage_export_csv_path:
+    default: "./metered-usage-export.csv"
+    description: "Path to the metered bandwidth usage CSV."
+  billed_overage_csv_path:
+    default: "./billed-overage-export.csv"
+    description: "Path to the CSV of overage fees actually charged on invoices."
+  tolerance_dollars:
+    default: "1.00"
+    description: Dollar tolerance before a billing discrepancy is flagged (accounts for rounding).
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Read-only reconciliation. Any correction (credit or back-bill) still
+  needs a human to issue it through the billing system.

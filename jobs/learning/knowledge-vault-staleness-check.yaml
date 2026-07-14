@@ -1,0 +1,33 @@
+id: knowledge-vault-staleness-check
+version: 1
+name: Knowledge Vault Staleness Check
+description: >
+  Checks how many notes in your Notion/Obsidian/markdown knowledge base
+  haven't been touched in a long time, so stale or half-finished notes
+  don't quietly rot. Use this if you take notes while learning but rarely
+  go back and revise or link them up afterward.
+category: learning
+tags: [learning, notes, knowledge-base, obsidian]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  dir={{vault_dir}};
+  [ -d "$dir" ] || { echo "ERROR: $dir not found"; exit 1; };
+  total=$(find "$dir" -name '*.md' -type f | wc -l | xargs);
+  stale=$(find "$dir" -name '*.md' -type f -mtime +{{staleness_days}} | wc -l | xargs);
+  if [ "$total" -eq 0 ]; then echo "ERROR: no markdown notes found in $dir"; exit 1; fi;
+  if [ "$stale" -gt 0 ]; then echo "WARNING: $stale of $total notes in $dir haven't been modified in {{staleness_days}}+ days"; exit 1;
+  else echo "OK: all $total notes in $dir modified within {{staleness_days}} days."; fi
+variables:
+  vault_dir:
+    default: "./knowledge-vault"
+    description: Path to your local notes vault directory (Obsidian, plain markdown, etc.).
+  staleness_days:
+    default: 90
+    description: Days without modification before a note counts as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Counts stale files by mtime only — it doesn't know which
+  notes are meant to be evergreen vs. actively developed, so review the
+  list before deleting or archiving anything.

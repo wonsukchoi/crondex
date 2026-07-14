@@ -1,0 +1,32 @@
+id: hsa-investment-sweep-threshold-check
+version: 1
+name: HSA Investment Sweep Threshold Check
+description: >
+  Checks whether your HSA cash balance has grown past the minimum your
+  provider requires before you can invest the excess, and flags the
+  amount available to sweep into investments. Use this if your HSA cash
+  has ever sat earning near-zero interest well above the investable
+  threshold because nobody moved it.
+category: investing
+tags: [investing, hsa, cash, retirement]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -v bal={{hsa_cash_balance_usd}} -v floor={{investment_threshold_usd}} 'BEGIN{
+    excess = bal - floor;
+    if (excess > 0) {
+      printf "ACTION: HSA cash balance $%.2f is $%.2f above the $%.2f investable threshold — sweep the excess into your HSA investment account.\n", bal, excess, floor;
+    } else {
+      printf "OK: HSA cash balance $%.2f is at or below the $%.2f threshold required to keep in cash.\n", bal, floor;
+    }
+  }' /dev/null
+variables:
+  hsa_cash_balance_usd:
+    default: 3000
+    description: Current cash balance sitting in the HSA — update from your HSA provider's dashboard.
+  investment_threshold_usd:
+    default: 2000
+    description: Minimum cash balance your HSA provider requires before letting you invest the rest.
+compatible_agents: [generic, claude, codex]
+notes: This job can't read your HSA balance directly — update hsa_cash_balance_usd yourself, or wire it up to an export if your provider offers one.

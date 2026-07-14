@@ -1,0 +1,36 @@
+id: driver-hours-of-service-violation-check
+version: 1
+name: Driver Hours-of-Service Violation Check
+description: >
+  Checks each driver's logged hours for the day against the federal
+  hours-of-service driving and on-duty limits and flags anyone at or
+  over the threshold. Use this if a driver has ever been kept on a
+  long-distance run past their legal driving limit because nobody was
+  watching the clock in real time.
+category: moving-relocation
+tags: [moving-relocation, hours-of-service, drivers, compliance, safety]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v drive_limit="{{max_driving_hours}}" -v duty_limit="{{max_on_duty_hours}}" '
+    NR==1 {next}
+    {
+      driver=$1; name=$2; driving_hours=$3; on_duty_hours=$4;
+      if (driving_hours + 0 >= drive_limit || on_duty_hours + 0 >= duty_limit) {
+        printf "HOS ALERT: %s (%s) — %s driving hrs / %s on-duty hrs today\n", driver, name, driving_hours, on_duty_hours;
+      }
+    }
+  ' "{{driver_hours_csv_path}}"
+variables:
+  driver_hours_csv_path:
+    default: "./driver-hours-log.csv"
+    description: "Path to a CSV with columns: driver_id,driver_name,driving_hours_today,on_duty_hours_today."
+  max_driving_hours:
+    default: 11
+    description: Maximum federal driving hours allowed in the on-duty window before a driver must stop driving.
+  max_on_duty_hours:
+    default: 14
+    description: Maximum federal on-duty hours allowed in the daily window before a driver must go off duty.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only flags drivers approaching or over hours-of-service limits, it doesn't reassign a route or force a driver off duty itself. Pair with your ELD system's own enforcement for legal compliance.

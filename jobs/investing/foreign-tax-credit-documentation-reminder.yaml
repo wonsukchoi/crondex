@@ -1,0 +1,25 @@
+id: foreign-tax-credit-documentation-reminder
+version: 1
+name: Foreign Tax Credit Documentation Reminder
+description: >
+  Reminds you before tax season to gather the foreign tax paid figures
+  from your 1099-DIV and brokerage statements for international funds so
+  you can claim the foreign tax credit. Use this if you've ever filed
+  your taxes and only afterward remembered you left foreign tax paid on
+  the table because the documentation wasn't gathered in time.
+category: investing
+tags: [investing, tax, foreign-tax-credit, international]
+schedule: "0 9 15 1 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  echo "REMINDER: gather foreign tax paid (Box 7 on Form 1099-DIV) for tax year {{tax_year}} from: {{international_holdings}}. Needed for Form 1116 (or the simplified election if total foreign tax paid is under the de minimis threshold) to claim the foreign tax credit."
+variables:
+  tax_year:
+    default: "2025"
+    description: Tax year the documentation is being gathered for.
+  international_holdings:
+    default: "international/emerging-market funds and ADRs held in taxable accounts"
+    description: Which holdings to check statements for (typically international or emerging-market funds and ADRs in taxable accounts).
+compatible_agents: [generic, claude, codex]
+notes: Not tax advice — a licensed preparer can confirm whether Form 1116 is required or whether the simplified de minimis election applies for the given tax year.

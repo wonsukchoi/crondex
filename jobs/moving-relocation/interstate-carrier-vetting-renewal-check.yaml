@@ -1,0 +1,36 @@
+id: interstate-carrier-vetting-renewal-check
+version: 1
+name: Interstate Carrier Vetting Renewal Check
+description: >
+  Reviews the third-party carriers and van line partners you dispatch
+  interstate loads to and flags any whose insurance certificate, DOT
+  authority, or vetting review has expired or is expiring soon. Use
+  this if a load has ever been handed off to a partner carrier only to
+  learn afterward that their cargo insurance had already lapsed.
+category: moving-relocation
+tags: [moving-relocation, carrier-vetting, partners, interstate, compliance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{expiry_warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "CARRIER VETTING DUE: %s (MC# %s) — %s expires %s (%.0f days left)\n", $1, $2, $3, $4, days_left;
+      }
+    }
+  ' "{{carrier_vetting_csv_path}}"
+variables:
+  carrier_vetting_csv_path:
+    default: "./carrier-vetting.csv"
+    description: "Path to a CSV with columns: carrier_name,mc_number,document_type (cargo-insurance, dot-authority, vetting-review),expiry_date (YYYY-MM-DD)."
+  expiry_warning_days:
+    default: 30
+    description: How many days before a partner carrier's insurance, authority, or vetting review expires to start flagging it, before you route more loads to them.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces partner carriers with lapsing paperwork, it doesn't pause dispatch to that carrier or re-vet them itself.

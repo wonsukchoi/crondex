@@ -1,0 +1,36 @@
+id: certification-exam-retake-eligibility-check
+version: 1
+name: Certification Exam Retake Eligibility Check
+description: >
+  Tracks the mandatory waiting period after a failed certification exam
+  attempt and tells you the earliest date you're eligible to retake it.
+  Use this if you've failed a cert exam before and lost track of exactly
+  when the vendor's cooldown period actually ends.
+category: learning
+tags: [learning, certification, exam, retake]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  attempt_ts=$(date -d "{{failed_attempt_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{failed_attempt_date}}" +%s);
+  eligible_ts=$(( attempt_ts + ({{waiting_period_days}} * 86400) ));
+  days_left=$(( (eligible_ts - today) / 86400 ));
+  eligible_date=$(date -r "$eligible_ts" +%Y-%m-%d 2>/dev/null || date -d "@$eligible_ts" +%Y-%m-%d);
+  if [ "$days_left" -le 0 ]; then echo "OK: {{exam_name}} retake window is open (eligible since $eligible_date).";
+  else echo "STATUS: {{exam_name}} retake eligible in $days_left days ($eligible_date)"; fi
+variables:
+  exam_name:
+    default: "your certification exam"
+    description: Name of the certification exam.
+  failed_attempt_date:
+    default: "2026-06-01"
+    description: Date of the failed attempt that started the waiting period (YYYY-MM-DD).
+  waiting_period_days:
+    default: 14
+    description: Vendor-mandated waiting period in days before a retake is allowed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Waiting period varies by vendor and by attempt number
+  (some certs increase the cooldown after multiple failures) — verify
+  waiting_period_days against the vendor's current policy yourself.

@@ -1,0 +1,46 @@
+id: e911-address-database-accuracy-audit
+version: 1
+name: E911 Address Database Accuracy Audit
+description: >
+  Uses an agent to compare the current E911/ALI address database export
+  against recent service address changes (new installs, moves, MDU unit
+  additions) and flag subscriber records that look stale or mismatched.
+  Use this if a 911 dispatch has ever gone to the wrong address, or no
+  address at all, because a subscriber's location record was never
+  updated after they moved or a unit number changed.
+category: telecom
+tags: [telecom, "e911", public-safety, compliance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is the current E911/ALI database export: {{ali_export_csv_path}}
+  (columns: subscriber_id,phone_number,service_address,unit_number,
+  last_verified_date). Here is the recent service order log:
+  {{recent_service_orders_csv_path}} (columns: subscriber_id,order_type
+  [new-install/move/disconnect/unit-change],order_date,new_address).
+
+  1. Cross-reference the two files. Flag any subscriber whose service
+     order log shows a move or unit-change dated after their
+     last_verified_date in the ALI export — their 911 location record is
+     likely stale.
+  2. Flag any subscriber_id present in the service order log as a new
+     install but missing entirely from the ALI export.
+  3. Flag any record with an empty or clearly incomplete service_address
+     or missing unit_number where the address is a known multi-unit
+     building.
+  4. Produce a prioritized list (worst risk first) with subscriber_id,
+     phone_number, and a one-line reason for each flag, ready to hand to
+     whoever submits ALI database corrections.
+variables:
+  ali_export_csv_path:
+    default: "./e911-ali-export.csv"
+    description: "Path to the current E911/ALI database export CSV."
+  recent_service_orders_csv_path:
+    default: "./recent-service-orders.csv"
+    description: "Path to a CSV of recent service orders (installs, moves, unit changes, disconnects)."
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Read-only cross-reference. Regulatory correction filings and database
+  updates still require a human to submit them through the ALI database
+  provider's process.

@@ -1,0 +1,36 @@
+id: dot-vehicle-annual-inspection-check
+version: 1
+name: DOT Vehicle Annual Inspection Check
+description: >
+  Checks each truck and trailer's DOT annual inspection date against
+  today and flags any vehicle whose inspection is expired or due soon.
+  Use this if a truck has ever been dispatched on a long-haul job only
+  for the crew to discover the annual inspection sticker had already
+  lapsed.
+category: moving-relocation
+tags: [moving-relocation, dot-compliance, fleet, inspection, safety]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{inspection_warning_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= window) {
+        printf "INSPECTION DUE: %s (%s) — annual inspection expires %s (%.0f days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{fleet_inspections_csv_path}}"
+variables:
+  fleet_inspections_csv_path:
+    default: "./fleet-inspections.csv"
+    description: "Path to a CSV with columns: vehicle_id,vehicle_type (truck/trailer),annual_inspection_expiry (YYYY-MM-DD)."
+  inspection_warning_days:
+    default: 30
+    description: How many days before a vehicle's DOT annual inspection expiry to start flagging it, so there's time to book the reinspection.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only job — it only surfaces vehicles with lapsing or expired annual inspections, it doesn't schedule the reinspection or take the vehicle out of dispatch rotation itself.

@@ -1,0 +1,35 @@
+id: cold-chain-produce-shipment-temperature-check
+version: 1
+name: Cold-Chain Produce Shipment Temperature Check
+description: >
+  Checks logged reefer/cold-chain temperature readings for outbound
+  produce shipments against the safe range and flags any excursion. Use
+  this if you've ever had a buyer reject a load — or worse, not
+  noticed a temperature excursion until the produce arrived spoiled.
+category: agriculture
+tags: [agriculture, cold-chain, produce, shipping, food-safety]
+schedule: "*/30 5-20 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v low="{{min_safe_temp_f}}" -v high="{{max_safe_temp_f}}" '
+    NR==1 {next}
+    {
+      temp = $3+0;
+      if (temp < low || temp > high) {
+        printf "EXCURSION: shipment %s (%s) reading %.1fF at %s — outside %s-%sF range\n", $1, $2, temp, $4, low, high;
+      }
+    }
+  ' "{{shipment_temps_csv_path}}"
+variables:
+  shipment_temps_csv_path:
+    default: "./cold-chain-shipment-temps.csv"
+    description: "Path to a CSV with columns: shipment_id,commodity,reading_fahrenheit,reading_timestamp."
+  min_safe_temp_f:
+    default: 33
+    description: Minimum safe temperature in Fahrenheit for the commodity being shipped.
+  max_safe_temp_f:
+    default: 41
+    description: Maximum safe temperature in Fahrenheit for the commodity being shipped.
+compatible_agents: [generic, claude, codex]
+notes: Safe temperature ranges differ by commodity (leafy greens vs. berries vs. root vegetables) — set min/max per shipment type, not one blanket range for everything.

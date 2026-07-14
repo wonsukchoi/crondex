@@ -1,0 +1,54 @@
+id: localization-string-coverage-check
+version: 1
+name: Localization String Coverage Check
+description: >
+  Scans your localization file(s) for keys that are missing a translation
+  or still holding the source-language placeholder text in a target
+  locale, and flags locales that fall below an acceptable coverage
+  percentage. Use this if a build has ever shipped with English strings
+  leaking through in the French or Japanese client because a late-added
+  UI string never made it into the translation pass.
+category: gaming
+tags: [gaming, localization, quality, release]
+schedule: "0 6 * * 1-5"
+runner: shell
+command: >
+  file={{locale_file_path}}; source_locale={{source_locale}}; target_locale={{target_locale}};
+  if [ ! -f "$file" ]; then
+    echo "ERROR: locale file not found at $file";
+    exit 1;
+  fi;
+  total=$(grep -c "^[^#].*=" "$file" || true);
+  missing=$(grep -c "TODO\|MISSING\|\[untranslated\]" "$file" || true);
+  if [ "$total" -le 0 ]; then
+    echo "ERROR: no string entries found in $file";
+    exit 1;
+  fi;
+  translated=$((total - missing));
+  pct=$(awk -v t="$translated" -v tot="$total" 'BEGIN { printf "%.1f", (t / tot) * 100 }');
+  under=$(awk -v p="$pct" -v thr="{{min_coverage_pct}}" 'BEGIN { print (p < thr) ? 1 : 0 }');
+  if [ "$under" -eq 1 ]; then
+    echo "LOW COVERAGE: locale $target_locale is ${pct}% translated ($missing of $total strings missing, threshold {{min_coverage_pct}}%)";
+    exit 1;
+  else
+    echo "OK: locale $target_locale is ${pct}% translated ($missing of $total strings missing)";
+  fi
+variables:
+  locale_file_path:
+    default: "locales/fr.properties"
+    description: Path to the locale file to check, one string entry per line with TODO/MISSING/[untranslated] markers for gaps.
+  source_locale:
+    default: "en"
+    description: Locale code of the source-language strings (for reporting).
+  target_locale:
+    default: "fr"
+    description: Locale code being checked for coverage.
+  min_coverage_pct:
+    default: 98
+    description: Minimum percentage of translated strings required before flagging low coverage.
+notes: >
+  Assumes untranslated entries are tagged with TODO/MISSING/[untranslated]
+  by your localization export process — adjust the grep pattern to match
+  whatever marker your loc pipeline (Crowdin, Lokalise, POEditor, custom)
+  emits for gaps. Run one instance per target locale.
+compatible_agents: [generic, claude, codex]

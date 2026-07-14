@@ -1,0 +1,35 @@
+id: kitting-accuracy-check
+version: 1
+name: Warehouse-to-Line Kitting Accuracy Check
+description: >
+  Compares kits staged by the warehouse against the bill of materials
+  for the work order they're feeding and flags shortages, overages, or
+  wrong parts. Use this if a line has ever stopped mid-shift because a
+  kit sent from the warehouse was missing a component nobody checked
+  for before it left staging.
+category: manufacturing
+tags: [manufacturing, warehouse, kitting, inventory, quality]
+schedule: "0 5,13,21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) bom[$1 SUBSEP $2]=$3; next }
+    FNR==1 { next }
+    {
+      key = $1 SUBSEP $2;
+      needed = (key in bom) ? bom[key] : -1;
+      if (needed < 0) { printf "UNEXPECTED PART: work order %s kit contains part %s not on BOM\n", $1, $2; next }
+      if ($3+0 < needed+0) printf "SHORTAGE: work order %s part %s kitted %d, BOM requires %d\n", $1, $2, $3, needed;
+      else if ($3+0 > needed+0) printf "OVERAGE: work order %s part %s kitted %d, BOM requires %d\n", $1, $2, $3, needed;
+    }
+  ' "{{bom_csv}}" "{{kit_staging_csv}}"
+variables:
+  bom_csv:
+    default: "./work-order-bom.csv"
+    description: "CSV with header row, columns: work_order_id,part_number,required_qty."
+  kit_staging_csv:
+    default: "./kit-staging-log.csv"
+    description: "CSV with header row, columns: work_order_id,part_number,staged_qty."
+compatible_agents: [generic, claude, codex]
+notes: Export both CSVs from the WMS/MES before each run — flags discrepancies at staging, before the kit reaches the line.

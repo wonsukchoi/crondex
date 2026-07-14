@@ -1,0 +1,40 @@
+id: grain-futures-hedge-position-check
+version: 1
+name: Grain Futures Hedge Position Check
+description: >
+  Checks your open grain futures/hedge positions against your unsold
+  physical bushels and flags when your hedge ratio drifts outside your
+  target range. Use this if you've ever realized weeks later that a
+  hedge was left on (or off) after you sold or held back grain.
+category: agriculture
+tags: [agriculture, grain, futures, hedging, risk-management]
+schedule: "0 15 * * 1-5"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v low="{{min_hedge_ratio_pct}}" -v high="{{max_hedge_ratio_pct}}" '
+    NR==1 {next}
+    {
+      unsold = $2+0;
+      hedged = $3+0;
+      if (unsold <= 0) {next}
+      ratio = (hedged / unsold) * 100;
+      if (ratio < low || ratio > high) {
+        printf "OUT OF RANGE: %s — %d bu unsold, %d bu hedged, ratio %.1f%% (target %s-%s%%)\n", $1, unsold, hedged, ratio, low, high;
+      } else {
+        printf "OK: %s — hedge ratio %.1f%% within target\n", $1, ratio;
+      }
+    }
+  ' "{{positions_csv_path}}"
+variables:
+  positions_csv_path:
+    default: "./grain-hedge-positions.csv"
+    description: "Path to a CSV with columns: contract_or_crop,unsold_bushels,hedged_bushels."
+  min_hedge_ratio_pct:
+    default: 40
+    description: Minimum acceptable hedge-to-unsold ratio (percent) before flagging under-hedged.
+  max_hedge_ratio_pct:
+    default: 90
+    description: Maximum acceptable hedge-to-unsold ratio (percent) before flagging over-hedged.
+compatible_agents: [generic, claude, codex]
+notes: A position-ratio check only, not trading advice — confirm actual contract details and margin calls with your broker before adjusting positions.

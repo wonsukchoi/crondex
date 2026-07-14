@@ -1,0 +1,39 @@
+id: swppp-stormwater-compliance-check
+version: 1
+name: SWPPP Stormwater Compliance Check
+description: >
+  Reviews the site's Stormwater Pollution Prevention Plan inspection log
+  for overdue routine or post-rain-event inspections and for any noted
+  erosion-control deficiencies still open past their correction window.
+  Use this if a site has ever drawn an environmental compliance fine
+  because a required post-storm SWPPP inspection or a broken silt fence
+  went unaddressed for too long.
+category: construction
+tags: [construction, environmental, swppp, stormwater, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v routine_warn="{{routine_inspection_days}}" -v fix_warn="{{deficiency_fix_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline insp_ts; close(cmd);
+      days_since = int((today - insp_ts) / 86400);
+      if ($3 == "routine" && days_since >= routine_warn) printf "ROUTINE SWPPP INSPECTION OVERDUE: last on %s, %d days ago (limit %d)\n", $2, days_since, routine_warn;
+      if ($4 == "open" && days_since >= fix_warn) printf "SWPPP DEFICIENCY OPEN: %s — noted %s, open %d days: %s\n", $1, $2, days_since, $5;
+    }
+  ' "{{swppp_log_csv}}"
+variables:
+  swppp_log_csv:
+    default: "./swppp-inspection-log.csv"
+    description: "Path to a CSV with columns: entry_id,inspection_date (YYYY-MM-DD),inspection_type (routine/post-storm),deficiency_status (open/closed/none),deficiency_description."
+  routine_inspection_days:
+    default: 7
+    description: Maximum days allowed between routine SWPPP inspections before flagging one as overdue.
+  deficiency_fix_days:
+    default: 7
+    description: Days an erosion-control deficiency can stay open before it's flagged for immediate correction.
+compatible_agents: [generic, claude, codex]
+notes: Adjust routine_inspection_days to match your NPDES permit or local ordinance requirement — some jurisdictions require inspections every 7 days, others tie it strictly to measurable rain events.

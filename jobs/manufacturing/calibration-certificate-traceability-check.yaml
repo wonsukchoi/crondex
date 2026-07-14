@@ -1,0 +1,36 @@
+id: calibration-certificate-traceability-check
+version: 1
+name: Calibration Certificate Traceability Check
+description: >
+  Verifies every gauge/instrument marked as calibrated actually has a
+  matching, unexpired calibration certificate on file traceable to a
+  national standard. Use this if an auditor has ever asked for a
+  calibration certificate and the file that turned up was for the wrong
+  gauge or had already expired.
+category: manufacturing
+tags: [manufacturing, quality, calibration, traceability, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    FNR==NR { if (FNR>1) { cert_exp[$1]=$2; cert_std[$1]=$3 }; next }
+    FNR==1 { next }
+    {
+      if (!($1 in cert_exp)) { printf "NO CERTIFICATE: gauge %s marked calibrated but no certificate on file\n", $1; next }
+      if (cert_std[$1] == "" || cert_std[$1] == "none") printf "NOT TRACEABLE: gauge %s certificate lacks a national standard reference\n", $1;
+      cmd="date -d \"" cert_exp[$1] "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" cert_exp[$1] "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      if (exp_ts < today) printf "EXPIRED CERTIFICATE: gauge %s certificate expired %s\n", $1, cert_exp[$1];
+    }
+  ' "{{cert_records_csv}}" "{{gauge_registry_csv}}"
+variables:
+  cert_records_csv:
+    default: "./calibration-certificates.csv"
+    description: "CSV with header row, columns: gauge_id,cert_expiry_date(YYYY-MM-DD),standard_reference."
+  gauge_registry_csv:
+    default: "./gauge-registry.csv"
+    description: "CSV with header row, columns: gauge_id,status(calibrated/out-of-service)."
+compatible_agents: [generic, claude, codex]
+notes: This checks certificate presence and traceability, a different concern from equipment-calibration-due-check which tracks upcoming calibration scheduling.

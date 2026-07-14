@@ -1,0 +1,36 @@
+id: restricted-use-pesticide-record-retention-check
+version: 1
+name: Restricted-Use Pesticide Record Retention Check
+description: >
+  Checks your restricted-use pesticide (RUP) application log for entries
+  missing required fields (applicator ID, EPA registration number,
+  target site, rate) so records are audit-ready before the retention
+  clock or a state inspection catches you short. Use this if you've ever
+  scrambled to reconstruct spray records after an inspector asked to see
+  them.
+category: agriculture
+tags: [agriculture, pesticide, restricted-use, compliance, recordkeeping]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      missing = "";
+      if ($1 == "") { missing = missing "applicator_id "; }
+      if ($2 == "") { missing = missing "epa_reg_number "; }
+      if ($3 == "") { missing = missing "application_date "; }
+      if ($4 == "") { missing = missing "target_site "; }
+      if ($5 == "") { missing = missing "rate_applied "; }
+      if (missing != "") {
+        printf "INCOMPLETE RECORD (row %d): missing %s\n", NR, missing;
+      }
+    }
+  ' "{{rup_log_csv_path}}"
+variables:
+  rup_log_csv_path:
+    default: "./restricted-use-pesticide-log.csv"
+    description: "Path to a CSV with columns: applicator_id,epa_reg_number,application_date,target_site,rate_applied."
+compatible_agents: [generic, claude, codex]
+notes: Federal law requires certified applicators to keep RUP records for at least 2 years — check your state's rules, as many require additional fields or longer retention.

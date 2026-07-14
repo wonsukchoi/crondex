@@ -1,0 +1,36 @@
+id: equipment-fuel-def-inventory-check
+version: 1
+name: Farm Equipment Fuel & DEF Inventory Check
+description: >
+  Checks on-farm diesel and Diesel Exhaust Fluid (DEF) tank levels
+  against your reorder threshold so equipment doesn't sit idle mid-field
+  waiting on a fuel delivery. Use this if you've ever had a tractor run
+  dry during planting or harvest because nobody was watching the tank
+  gauge.
+category: agriculture
+tags: [agriculture, equipment, fuel, def, inventory]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v reorder="{{reorder_threshold_pct}}" '
+    NR==1 {next}
+    {
+      capacity = $2+0;
+      current = $3+0;
+      if (capacity <= 0) {next}
+      pct_full = (current / capacity) * 100;
+      if (pct_full <= reorder) {
+        printf "REORDER: %s — %.1f%% full (%d of %d gal)\n", $1, pct_full, current, capacity;
+      }
+    }
+  ' "{{fuel_tanks_csv_path}}"
+variables:
+  fuel_tanks_csv_path:
+    default: "./fuel-def-tank-levels.csv"
+    description: "Path to a CSV with columns: tank_name (e.g. diesel-main, def-shop),capacity_gallons,current_gallons."
+  reorder_threshold_pct:
+    default: 30
+    description: Percent-full level at or below which a reorder should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: Tank levels must be logged manually or from a telemetry export into the CSV — this job doesn't read sensors directly.

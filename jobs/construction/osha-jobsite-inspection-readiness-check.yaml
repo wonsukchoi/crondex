@@ -1,0 +1,35 @@
+id: osha-jobsite-inspection-readiness-check
+version: 1
+name: OSHA Jobsite Inspection Readiness Check
+description: >
+  Reviews the jobsite's self-inspection checklist log for open safety
+  findings that haven't been closed out within the required window, so an
+  unannounced OSHA inspection doesn't catch an already-known hazard still
+  sitting open. Use this if a site has ever scrambled the morning an
+  inspector showed up because nobody was tracking which findings from last
+  week's walkthrough were actually fixed.
+category: construction
+tags: [construction, safety, osha, inspection, compliance]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{overdue_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline found_ts; close(cmd);
+      days_open = int((today - found_ts) / 86400);
+      if (days_open >= warn) printf "OPEN FINDING: %s — %s (found %s, open %d days, severity %s)\n", $1, $3, $2, days_open, $5;
+    }
+  ' "{{inspection_findings_csv}}"
+variables:
+  inspection_findings_csv:
+    default: "./jobsite-inspection-findings.csv"
+    description: "Path to a CSV with columns: location,found_date (YYYY-MM-DD),finding,status (open/closed),severity."
+  overdue_days:
+    default: 3
+    description: Days a safety finding can stay open before it's flagged as inspection-readiness risk.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from jobsite-safety-incident-near-miss-tracker — that logs incidents/near-misses as they happen; this tracks whether known self-inspection findings get closed out before a regulator sees them.

@@ -1,0 +1,36 @@
+id: jobsite-trailer-utility-setup-check
+version: 1
+name: Jobsite Trailer & Portable Facility Utility Check
+description: >
+  Checks that temporary jobsite facilities, like the site office trailer,
+  portable toilets, and temporary power or water hookups, have current
+  service and haven't lapsed on their servicing schedule. Use this if a
+  crew has ever shown up to a site with no working toilets or a dead
+  trailer generator because nobody tracked the last service date.
+category: construction
+tags: [construction, jobsite, facilities, utilities, logistics]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{overdue_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      days_overdue = days_since - $4;
+      if (days_overdue >= 0) printf "SERVICE OVERDUE: %s at %s — last serviced %s, %d days over the %s-day interval\n", $2, $1, $3, days_overdue, $4;
+      else if (days_overdue >= -warn) printf "SERVICE DUE SOON: %s at %s — last serviced %s, due in %d days\n", $2, $1, $3, -days_overdue;
+    }
+  ' "{{facility_service_csv}}"
+variables:
+  facility_service_csv:
+    default: "./jobsite-facility-service-log.csv"
+    description: "Path to a CSV with columns: jobsite,facility_type,last_service_date (YYYY-MM-DD),service_interval_days."
+  overdue_days:
+    default: 5
+    description: Days before the next service is due to start flagging it as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Covers portable toilets, temporary power/generator fuel, trailer HVAC, and temporary water — not permanent site utilities, which typically go through the permit and inspection jobs instead.

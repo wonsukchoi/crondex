@@ -1,0 +1,42 @@
+id: esports-schedule-conflict-check
+version: 1
+name: Esports League Schedule Conflict Check
+description: >
+  Reviews your esports league's upcoming match schedule for double-booked
+  time slots, venues, casters, or teams playing in two places at once.
+  Use this if a scheduling spreadsheet shared across regions or divisions
+  has ever produced two matches booked in the same broadcast slot, or a
+  team drawn into two brackets on the same night, and it only got caught
+  when talent showed up to the wrong stream.
+category: gaming
+tags: [gaming, esports, scheduling, live-ops]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the upcoming match schedule for {{league_name}} covering the next
+  {{lookback_days}} days from your scheduling tool, spreadsheet, or
+  calendar export.
+  1. Flag any two matches that share the same time slot and the same
+     venue, broadcast channel, caster, or referee.
+  2. Flag any team or player scheduled to compete in two different
+     matches that overlap in time.
+  3. Flag any match scheduled without a confirmed venue/stream slot at
+     all, if that's normally required this far out.
+  4. For each conflict found, list the matches involved, the resource
+     they collide on, and suggest the simplest fix (move one match to
+     the nearest open slot).
+  5. If no conflicts are found, report that in one line.
+  Do not modify the schedule yourself — this is a report only.
+variables:
+  league_name:
+    default: "your league"
+    description: Name of the esports league/tournament series to check.
+  lookback_days:
+    default: 14
+    description: How many days ahead of the current date to scan for conflicts.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Works best when your scheduling source (spreadsheet, Google Calendar,
+  league-ops tool) is accessible to the agent as a read-only export or API
+  — there is no universal esports scheduling API, so this is prompt-only.

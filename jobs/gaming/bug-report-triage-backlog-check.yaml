@@ -1,0 +1,61 @@
+id: bug-report-triage-backlog-check
+version: 1
+name: Community Bug-Report Triage Backlog Check
+description: >
+  Counts how many player-submitted bug reports in your tracker are still
+  sitting untriaged past a set age, so a growing pile doesn't get lost
+  under newer tickets. Use this if community-reported bugs have ever gone
+  unacknowledged for weeks because nobody owned the "sort the incoming
+  pile" step and it only surfaced once players started complaining that
+  reports go nowhere.
+category: gaming
+tags: [gaming, community, bug-reports, triage, support]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ -z "${TRACKER_API_TOKEN:-}" ]; then
+    echo "TRACKER_API_TOKEN not set — use agent-prompt mode against your bug tracker instead";
+    exit 0;
+  fi;
+  count=$(curl -s --max-time 15 -H "Authorization: Bearer $TRACKER_API_TOKEN" "{{tracker_untriaged_query_url}}" | grep -o '"id"' | wc -l | tr -d ' ');
+  if [ "$count" -ge "{{backlog_threshold}}" ]; then
+    echo "WARNING: $count untriaged bug reports older than {{max_age_hours}}h (threshold {{backlog_threshold}})";
+    exit 1;
+  else
+    echo "OK: $count untriaged bug reports older than {{max_age_hours}}h";
+  fi
+prompt: |
+  Check {{tracker_name}} for player-submitted bug reports that are still
+  untriaged (no severity, no owner, or still in an "incoming" state) and
+  older than {{max_age_hours}} hours.
+  1. Report the total count of untriaged reports past that age.
+  2. If the count is at or above {{backlog_threshold}}, group the oldest
+     ones by likely area (crashes, UI, gameplay, platform-specific) so
+     triage can start with the biggest cluster.
+  3. Flag any report that mentions a crash, data loss, or payment issue
+     specifically, since those usually need to jump the queue regardless
+     of age.
+  4. If the backlog is under threshold, report the count in one line.
+script_note: >
+  `command` only gives a raw count from a REST-queryable tracker via
+  TRACKER_API_TOKEN — it can't group by area or flag urgent reports.
+  `prompt` reads the actual report contents and clusters/prioritizes them.
+variables:
+  tracker_name:
+    default: "your bug tracker"
+    description: Name of the bug-tracking tool used for player reports (prompt mode).
+  tracker_untriaged_query_url:
+    default: "https://tracker.example.com/api/issues?status=untriaged"
+    description: API endpoint returning untriaged bug reports as JSON (command mode).
+  max_age_hours:
+    default: 48
+    description: Age in hours past which an untriaged report counts toward the backlog.
+  backlog_threshold:
+    default: 20
+    description: Number of untriaged reports past max_age_hours that triggers a warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Command mode needs TRACKER_API_TOKEN and a tracker with a REST query
+  endpoint; swap `tracker_untriaged_query_url` for your own tool's saved
+  filter/query URL.

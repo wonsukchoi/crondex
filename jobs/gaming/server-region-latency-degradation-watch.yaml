@@ -1,0 +1,51 @@
+id: server-region-latency-degradation-watch
+version: 1
+name: Server Region Latency Degradation Watch
+description: >
+  Pings your game server's per-region latency probe endpoint and flags any
+  region whose average round-trip time has crept above a healthy threshold.
+  Use this if a specific region's network path or hosting node has ever
+  quietly degraded for days, with only a slow trickle of "the game feels
+  laggy" reports to go on before someone finally checked the numbers.
+category: gaming
+tags: [gaming, latency, infrastructure, live-service, uptime]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  region={{region_name}}; url={{latency_probe_url}};
+  response=$(curl -s --max-time {{timeout_seconds}} "$url");
+  if [ -z "$response" ]; then
+    echo "ERROR: no response from latency probe for region {{region_name}} at $url";
+    exit 1;
+  fi;
+  ms=$(echo "$response" | grep -o '[0-9]\+' | head -1);
+  if [ -z "$ms" ]; then
+    echo "ERROR: could not parse latency value from probe response for region {{region_name}}";
+    exit 1;
+  fi;
+  if [ "$ms" -gt "{{max_healthy_ms}}" ]; then
+    echo "DEGRADED: region {{region_name}} average latency is ${ms}ms (threshold {{max_healthy_ms}}ms)";
+    exit 1;
+  else
+    echo "OK: region {{region_name}} average latency is ${ms}ms";
+  fi
+variables:
+  region_name:
+    default: "us-east"
+    description: Label for the server region this probe checks.
+  latency_probe_url:
+    default: "https://status.example.com/latency/us-east"
+    description: Endpoint that returns the region's current average round-trip latency in milliseconds (plain number or JSON with a numeric field).
+  timeout_seconds:
+    default: 5
+    description: Max seconds to wait for the probe response.
+  max_healthy_ms:
+    default: 80
+    description: Average round-trip latency in milliseconds above which the region is considered degraded.
+notes: >
+  Schedule one instance of this job per region you operate, pointing
+  `latency_probe_url` at each region's own probe/status endpoint. The
+  `grep -o '[0-9]\+' | head -1` parsing is a lowest-common-denominator
+  approach — swap in `jq` if your probe returns structured JSON.
+compatible_agents: [generic, claude, codex]

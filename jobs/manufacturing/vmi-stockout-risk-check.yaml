@@ -1,0 +1,34 @@
+id: vmi-stockout-risk-check
+version: 1
+name: Vendor-Managed Inventory Stockout Risk Check
+description: >
+  Compares current vendor-managed inventory (VMI) bin levels against
+  min/max replenishment thresholds and flags bins at risk of stocking
+  out before the vendor's next scheduled restock. Use this if a
+  VMI-supplied bin has ever run dry on the line because the vendor's
+  restock cadence didn't keep up with actual consumption.
+category: manufacturing
+tags: [manufacturing, inventory, vmi, supply-chain]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $5 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $5 "\" +%s";
+      cmd | getline restock_ts; close(cmd);
+      days_to_restock = int((restock_ts - today) / 86400);
+      daily_burn = $4+0;
+      days_of_stock = (daily_burn > 0) ? ($3+0) / daily_burn : 9999;
+      if (days_of_stock < days_to_restock) printf "STOCKOUT RISK: bin \"%s\" has %.1f days of stock but next restock is in %d days\n", $1, days_of_stock, days_to_restock;
+      else if ($3+0 <= $2+0) printf "AT MIN: bin \"%s\" at or below min level (%s <= %s)\n", $1, $3, $2;
+    }
+  ' "{{vmi_bin_csv}}"
+variables:
+  vmi_bin_csv:
+    default: "./vmi-bin-levels.csv"
+    description: "CSV with header row, columns: bin_id,min_qty,current_qty,avg_daily_usage,next_vendor_restock_date(YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: Pull current_qty and usage from your inventory/MES system and next_vendor_restock_date from the VMI agreement or vendor portal before each run.

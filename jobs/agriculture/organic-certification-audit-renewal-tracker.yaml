@@ -1,0 +1,37 @@
+id: organic-certification-audit-renewal-tracker
+version: 1
+name: Organic Certification Audit & Renewal Tracker
+description: >
+  Tracks your organic certification's annual inspection date and
+  certificate renewal deadline, and warns before either one lapses. Use
+  this if you've ever nearly missed the window to schedule your annual
+  organic inspection and risked losing certified status.
+category: agriculture
+tags: [agriculture, organic, certification, compliance, audit]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_ts; close(cmd);
+      days_left = (due_ts - today) / 86400;
+      if (days_left <= 0) {
+        printf "OVERDUE: %s — %s was due %s (certification at risk)\n", $1, $3, $2;
+      } else if (days_left <= warn) {
+        printf "SCHEDULE NOW: %s — %s due %s (%d days left)\n", $1, $3, $2, days_left;
+      }
+    }
+  ' "{{certification_csv_path}}"
+variables:
+  certification_csv_path:
+    default: "./organic-certification-dates.csv"
+    description: "Path to a CSV with columns: certifier_or_scope,due_date (YYYY-MM-DD),milestone_name (e.g. annual inspection, certificate renewal)."
+  warn_days_before:
+    default: 45
+    description: Days before an inspection or renewal deadline to start warning, since scheduling a certifier visit takes lead time.
+compatible_agents: [generic, claude, codex]
+notes: Requirements vary by certifying agent (USDA-accredited) — confirm exact submission deadlines and required records (input logs, sales receipts) with your certifier.

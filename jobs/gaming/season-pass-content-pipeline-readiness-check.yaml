@@ -1,0 +1,44 @@
+id: season-pass-content-pipeline-readiness-check
+version: 1
+name: Season-Pass Content Pipeline Readiness Check
+description: >
+  Reviews whether the next season/battle pass's reward track, art assets,
+  and unlock schedule are actually ready ahead of its launch date, tier by
+  tier. Use this if a new season has ever gone live with placeholder art
+  still on a reward tier or a challenge that references content that
+  hasn't shipped yet, because "ready" was assumed instead of checked.
+category: gaming
+tags: [gaming, live-ops, content-pipeline, season-pass, release]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the production status of {{game_name}}'s season {{season_name}},
+  currently set to launch on {{launch_date}}, {{days_out}} days from now.
+  1. Check the reward track/tier list for any tier still marked as
+     placeholder, missing final art, or missing a confirmed reward item.
+  2. Check that any challenges or unlock conditions tied to the season
+     reference content (maps, modes, cosmetics) that is actually shipping
+     alongside it, not content still in an earlier production stage.
+  3. Flag any tier or asset whose current status suggests it won't be
+     finished by {{launch_date}} at its current pace.
+  4. Summarize overall readiness as on-track, at-risk, or blocked, and
+     list the specific blockers if not on-track.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title the season pass belongs to.
+  season_name:
+    default: "Season 5"
+    description: Identifier of the upcoming season/battle pass being checked.
+  launch_date:
+    default: "2026-08-15"
+    description: Planned launch date for this season.
+  days_out:
+    default: 14
+    description: Days remaining until launch_date, for urgency framing in the report.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Points the agent at your production tracker (Jira, Trello, a content
+  pipeline spreadsheet) since asset/tier readiness has no universal API.
+  Run weekly and increase frequency in the final two weeks before launch.

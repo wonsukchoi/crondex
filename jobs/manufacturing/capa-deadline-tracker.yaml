@@ -1,0 +1,37 @@
+id: capa-deadline-tracker
+version: 1
+name: CAPA Deadline Tracker
+description: >
+  Flags corrective and preventive action (CAPA) items that are approaching
+  or past their committed closure date. Use this if a CAPA has ever
+  quietly slipped past its due date because it was tracked only in
+  someone's inbox instead of a shared log.
+category: manufacturing
+tags: [manufacturing, quality, capa, corrective-action, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR==1 {next}
+    $2 == "open" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (due_ts < today) { overdue++; printf "OVERDUE: CAPA %s (\"%s\") owner %s, was due %s\n", $1, $4, $5, $3 }
+      else if (days_left <= warn) { soon++; printf "DUE SOON: CAPA %s (\"%s\") owner %s, due in %d days\n", $1, $4, $5, days_left }
+    }
+    END {
+      printf "Summary: %d CAPA(s) overdue, %d due within %d days\n", overdue+0, soon+0, warn;
+    }
+  ' "{{capa_log_csv}}"
+variables:
+  capa_log_csv:
+    default: "./capa-log.csv"
+    description: "CSV with header row, columns: capa_id,status(open/closed),due_date(YYYY-MM-DD),description,owner."
+  warn_days:
+    default: 5
+    description: Days before the due date to start flagging a CAPA as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Export capa-log.csv from your QMS's CAPA module before each run — this tracks the closure clock, it doesn't judge whether the corrective action is effective.

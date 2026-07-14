@@ -1,0 +1,59 @@
+id: in-game-store-price-parity-check
+version: 1
+name: In-Game Store Price Parity Check
+description: >
+  Compares the price of the same in-game item or bundle across storefronts
+  (PC store, console stores, mobile) after a price update and flags any
+  platform that didn't get updated to match, converted for currency and
+  platform cut. Use this if a price change has ever landed on one store
+  but not another because the update process is manual per-platform, and
+  players started screenshotting the mismatch before anyone on the team
+  noticed.
+category: gaming
+tags: [gaming, monetization, store, live-ops, pricing]
+schedule: "0 10 * * *"
+runner: shell
+command: >
+  ref={{reference_price_usd}}; other={{compare_price_usd}};
+  if [ -z "$ref" ] || [ -z "$other" ]; then
+    echo "ERROR: reference_price_usd and compare_price_usd must be set";
+    exit 1;
+  fi;
+  diff_pct=$(awk -v r="$ref" -v o="$other" 'BEGIN { if (r == 0) { print "ERR"; exit } d = ((o - r) / r) * 100; if (d < 0) d = -d; printf "%.2f", d }');
+  if [ "$diff_pct" = "ERR" ]; then
+    echo "ERROR: reference_price_usd cannot be 0";
+    exit 1;
+  fi;
+  over=$(awk -v d="$diff_pct" -v t="{{tolerance_pct}}" 'BEGIN { print (d > t) ? 1 : 0 }');
+  if [ "$over" -eq 1 ]; then
+    echo "MISMATCH: {{item_name}} on {{compare_platform}} is off by ${diff_pct}% vs {{reference_platform}} price (tolerance {{tolerance_pct}}%)";
+    exit 1;
+  else
+    echo "OK: {{item_name}} price parity between {{reference_platform}} and {{compare_platform}} is within tolerance (${diff_pct}%)";
+  fi
+variables:
+  item_name:
+    default: "Starter Bundle"
+    description: Name of the item/bundle being compared across storefronts.
+  reference_platform:
+    default: "PC"
+    description: Platform whose price is treated as the source of truth.
+  compare_platform:
+    default: "console"
+    description: Platform being checked against the reference for parity.
+  reference_price_usd:
+    default: 9.99
+    description: Reference platform's USD-equivalent price for this item.
+  compare_price_usd:
+    default: 9.99
+    description: Compared platform's USD-equivalent price for this item.
+  tolerance_pct:
+    default: 3
+    description: Allowed percentage price difference (to absorb rounding/regional tax quirks) before flagging a mismatch.
+notes: >
+  Feed in USD-normalized prices from each storefront's export or admin
+  panel — this job compares two numbers you supply rather than fetching
+  live store prices, since each platform's pricing API is different. Run
+  one instance per platform pair you want to watch, right after any price
+  update.
+compatible_agents: [generic, claude, codex]

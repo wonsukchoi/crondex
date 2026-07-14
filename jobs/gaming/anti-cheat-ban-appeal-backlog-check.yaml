@@ -1,0 +1,64 @@
+id: anti-cheat-ban-appeal-backlog-check
+version: 1
+name: Anti-Cheat Ban-Appeal Backlog Check
+description: >
+  Counts how many anti-cheat ban appeals are sitting unresolved past a set
+  age, so wrongly-banned players aren't left locked out for weeks while
+  legitimately banned cheaters slip through a slow queue. Use this if your
+  ban-appeal queue has ever quietly grown for a month because everyone
+  assumed someone else was working through it.
+category: gaming
+tags: [gaming, anti-cheat, moderation, support]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  if [ -z "${SUPPORT_API_TOKEN:-}" ]; then
+    echo "SUPPORT_API_TOKEN not set — use agent-prompt mode against your appeal queue instead";
+    exit 0;
+  fi;
+  count=$(curl -s --max-time 15 -H "Authorization: Bearer $SUPPORT_API_TOKEN" "{{appeal_queue_url}}" | grep -o '"id"' | wc -l | tr -d ' ');
+  if [ "$count" -ge "{{backlog_threshold}}" ]; then
+    echo "WARNING: $count open ban appeals older than {{max_age_days}}d (threshold {{backlog_threshold}})";
+    exit 1;
+  else
+    echo "OK: $count open ban appeals older than {{max_age_days}}d";
+  fi
+prompt: |
+  Check {{appeal_system_name}} for anti-cheat ban appeals still open and
+  older than {{max_age_days}} days.
+  1. Report the total count of open appeals past that age.
+  2. If the count is at or above {{backlog_threshold}}, break down how
+     many appeals look like they have strong evidence of a false
+     positive (e.g. no matching anti-cheat flag, conflicting detection
+     logs) versus ones where the ban evidence looks solid, so reviewers
+     can prioritize likely false positives first.
+  3. Flag any appeal open longer than {{critical_age_days}} days as
+     critical regardless of the overall count.
+  4. If the backlog is under threshold, report the count in one line.
+  Do not resolve or reverse any ban yourself — this is a report only.
+script_note: >
+  `command` only gives a raw open-appeal count from a REST-queryable
+  support system via SUPPORT_API_TOKEN. `prompt` reads appeal contents to
+  separate likely false positives from solid bans and flags critical-age
+  cases.
+variables:
+  appeal_system_name:
+    default: "your support/appeal system"
+    description: Name of the tool ban appeals are tracked in (prompt mode).
+  appeal_queue_url:
+    default: "https://support.example.com/api/appeals?status=open"
+    description: API endpoint returning open ban appeals as JSON (command mode).
+  max_age_days:
+    default: 3
+    description: Age in days past which an open appeal counts toward the backlog.
+  critical_age_days:
+    default: 10
+    description: Age in days at which an open appeal is flagged critical regardless of backlog count.
+  backlog_threshold:
+    default: 15
+    description: Number of open appeals past max_age_days that triggers a warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Command mode needs SUPPORT_API_TOKEN and a REST-queryable appeal system;
+  swap `appeal_queue_url` for your own tool's saved filter/query URL.

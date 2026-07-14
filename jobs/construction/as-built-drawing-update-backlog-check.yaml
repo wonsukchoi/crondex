@@ -1,0 +1,34 @@
+id: as-built-drawing-update-backlog-check
+version: 1
+name: As-Built Drawing Update Backlog Check
+description: >
+  Checks the field markup log for design changes and RFIs that have been
+  resolved on site but not yet reflected in the as-built drawing set, and
+  flags entries sitting unincorporated past a reasonable window. Use this
+  if a project has ever reached closeout with a stack of red-line
+  markups nobody transferred into the final as-builts.
+category: construction
+tags: [construction, as-built, drawings, documentation, closeout]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{overdue_days}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline resolved_ts; close(cmd);
+      days_pending = int((today - resolved_ts) / 86400);
+      if (days_pending >= warn) printf "AS-BUILT UPDATE PENDING: %s — %s resolved on site %s, %d days not incorporated into drawing set\n", $1, $3, $2, days_pending;
+    }
+  ' "{{field_markup_log_csv}}"
+variables:
+  field_markup_log_csv:
+    default: "./field-markup-log.csv"
+    description: "Path to a CSV with columns: markup_id,resolved_date (YYYY-MM-DD),change_description,as_built_status (pending/incorporated)."
+  overdue_days:
+    default: 14
+    description: Days a resolved field change can go without being transferred to the as-built set before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Run this well before scheduled closeout milestones — catching up a large as-built backlog at the end of a project is far slower than incorporating changes as they happen.

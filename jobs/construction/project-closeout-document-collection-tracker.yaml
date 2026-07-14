@@ -1,0 +1,34 @@
+id: project-closeout-document-collection-tracker
+version: 1
+name: Project Closeout Document Collection Tracker
+description: >
+  Checks the closeout checklist for a project nearing substantial
+  completion and flags which required documents, like O&M manuals,
+  warranties, as-builts, and final lien waivers, are still missing so
+  final payment isn't held up chasing paperwork at the last minute. Use
+  this if final payment or retainage release has ever stalled for weeks
+  because closeout documents trickled in one at a time after the punch
+  list was already done.
+category: construction
+tags: [construction, closeout, documentation, project-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v proj="{{project_name}}" '
+    NR==1 {next}
+    $2 != "received" {
+      missing++;
+      printf "MISSING CLOSEOUT DOC: %s — %s (status: %s, responsible: %s)\n", proj, $1, $2, $3;
+    }
+    END { if (missing > 0) printf "TOTAL MISSING: %d closeout document(s) for %s\n", missing, proj; else printf "All closeout documents received for %s\n", proj; }
+  ' "{{closeout_checklist_csv}}"
+variables:
+  closeout_checklist_csv:
+    default: "./project-closeout-checklist.csv"
+    description: "Path to a CSV with columns: document_name,status (received/pending/not-started),responsible_party."
+  project_name:
+    default: "the project"
+    description: Name of the project whose closeout checklist is being reviewed.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from lien-waiver-collection-tracker and retainage-holdback-release-tracker, which each track one payment-related document type; this covers the full closeout package including O&M manuals, warranties, as-builts, and training sign-offs.

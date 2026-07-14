@@ -1,0 +1,38 @@
+id: crop-yield-vs-projection-variance-check
+version: 1
+name: Crop Yield vs. Projection Variance Check
+description: >
+  Compares actual harvested yield per field against your pre-season
+  projection and flags fields that came in significantly above or below
+  plan. Use this if you've ever finished harvest and realized months
+  later that one field quietly underperformed every year without anyone
+  digging into why.
+category: agriculture
+tags: [agriculture, yield, harvest, variance, field-records]
+schedule: "0 8 15 10 *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v thresh="{{variance_threshold_pct}}" '
+    NR==1 {next}
+    {
+      projected = $2+0;
+      actual = $3+0;
+      if (projected <= 0) {next}
+      variance_pct = ((actual - projected) / projected) * 100;
+      abs_variance = variance_pct;
+      if (abs_variance < 0) { abs_variance = -abs_variance; }
+      if (abs_variance >= thresh) {
+        printf "VARIANCE: %s — projected %.1f, actual %.1f (%.1f%% off plan)\n", $1, projected, actual, variance_pct;
+      }
+    }
+  ' "{{yield_csv_path}}"
+variables:
+  yield_csv_path:
+    default: "./field-yield-vs-projection.csv"
+    description: "Path to a CSV with columns: field_name,projected_yield_per_acre,actual_yield_per_acre."
+  variance_threshold_pct:
+    default: 15
+    description: Percentage variance from projection (either direction) that's worth flagging for review.
+compatible_agents: [generic, claude, codex]
+notes: A raw variance flag only — pair with weather, soil test, and input records for the field before drawing conclusions about cause.

@@ -1,0 +1,45 @@
+id: crash-symbolication-backlog-check
+version: 1
+name: Crash-Report Symbolication Backlog Check
+description: >
+  Counts how many crash reports in your crash reporter are still stuck
+  unsymbolicated (raw memory addresses instead of readable stack traces),
+  since a growing pile of those makes every crash triage session slower.
+  Use this if debug symbols have ever failed to upload for a build and
+  weeks of crashes from that build sat as unreadable noise until someone
+  finally noticed the symbol files never made it up.
+category: gaming
+tags: [gaming, crash-reporting, quality, release]
+schedule: "0 */4 * * *"
+runner: shell
+command: >
+  if [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
+    echo "SENTRY_AUTH_TOKEN not set — use your crash reporter's own dashboard/API for this check";
+    exit 0;
+  fi;
+  count=$(curl -s --max-time 15 -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/{{sentry_org}}/{{sentry_project}}/events/?query=stack.filename:%3Cunknown%3E&statsPeriod={{lookback_hours}}h" | grep -o '"id"' | wc -l | tr -d ' ');
+  if [ "$count" -ge "{{backlog_threshold}}" ]; then
+    echo "WARNING: $count unsymbolicated crash events in last {{lookback_hours}}h (threshold {{backlog_threshold}}) — check symbol upload for recent builds";
+    exit 1;
+  else
+    echo "OK: $count unsymbolicated crash events in last {{lookback_hours}}h";
+  fi
+variables:
+  sentry_org:
+    default: "your-org"
+    description: Sentry organization slug.
+  sentry_project:
+    default: "your-project"
+    description: Sentry project slug.
+  lookback_hours:
+    default: 24
+    description: Rolling window in hours to check for unsymbolicated crash events.
+  backlog_threshold:
+    default: 50
+    description: Number of unsymbolicated events in the window that triggers a warning.
+notes: >
+  Written for Sentry's query syntax; adjust the query string for your own
+  crash reporter (Crashlytics, Bugsnag, a platform cert crash dashboard)
+  if it flags unsymbolicated events differently. A spike here usually
+  means a build's dSYM/symbol upload step failed in CI.
+compatible_agents: [generic, claude, codex]

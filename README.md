@@ -183,16 +183,16 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1889 jobs across 60 categories:
+1933 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
-| `agriculture` | 21 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `agriculture` | 32 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 32 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 32 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
-| `construction` | 21 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
+| `construction` | 32 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 32 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
@@ -205,7 +205,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `finance` | 36 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 32 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
-| `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
+| `gaming` | 32 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 32 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 33 | Clinic ops — appointments, recalls, licenses, lab results. |
@@ -220,7 +220,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
-| `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
+| `manufacturing` | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |

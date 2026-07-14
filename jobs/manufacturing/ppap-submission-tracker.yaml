@@ -1,0 +1,35 @@
+id: ppap-submission-tracker
+version: 1
+name: PPAP Submission Tracker
+description: >
+  Tracks Production Part Approval Process (PPAP) packages owed to
+  customers and flags ones approaching or past their commitment date.
+  Use this if a customer has ever put a program on hold because a PPAP
+  submission was late and nobody was watching the date.
+category: manufacturing
+tags: [manufacturing, quality, ppap, customer, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR==1 {next}
+    $4 == "submitted" {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (due_ts < today) printf "OVERDUE: PPAP for part %s (customer %s) was due %s\n", $1, $2, $3;
+      else if (days_left <= warn) printf "DUE SOON: PPAP for part %s (customer %s) due in %d days\n", $1, $2, days_left;
+    }
+  ' "{{ppap_tracker_csv}}"
+variables:
+  ppap_tracker_csv:
+    default: "./ppap-tracker.csv"
+    description: "CSV with header row, columns: part_number,customer,due_date(YYYY-MM-DD),status(submitted/pending)."
+  warn_days:
+    default: 10
+    description: Days before the due date to start flagging a submission as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Keep ppap-tracker.csv synced with your program/APQP schedule — this tracks the submission clock, not PPAP package content completeness.

@@ -1,0 +1,42 @@
+id: livestock-breeding-calving-schedule-tracker
+version: 1
+name: Livestock Breeding & Calving Schedule Tracker
+description: >
+  Projects expected calving/lambing/farrowing dates from breeding records
+  and flags animals due soon or overdue, so you can staff up for
+  birthing season instead of finding out at the barn. Use this if you've
+  ever been caught off guard by an animal calving without extra hands or
+  supplies on hand.
+category: agriculture
+tags: [agriculture, livestock, breeding, calving, herd-management]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v soon="{{warn_days_before}}" -v gestation="{{gestation_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline breed_ts; close(cmd);
+      due_ts = breed_ts + (gestation * 86400);
+      days_until_due = (due_ts - today) / 86400;
+      if (days_until_due <= 0) {
+        printf "OVERDUE: %s — bred %s, expected due date has passed (%d days ago)\n", $1, $2, -days_until_due;
+      } else if (days_until_due <= soon) {
+        printf "DUE SOON: %s — bred %s, expected due in %d days\n", $1, $2, days_until_due;
+      }
+    }
+  ' "{{breeding_csv_path}}"
+variables:
+  breeding_csv_path:
+    default: "./livestock-breeding-records.csv"
+    description: "Path to a CSV with columns: animal_id,breeding_date (YYYY-MM-DD)."
+  gestation_days:
+    default: 283
+    description: Average gestation length in days for the species being tracked (283 for cattle; adjust for sheep/goats/swine).
+  warn_days_before:
+    default: 14
+    description: Days before the projected due date to start flagging as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Gestation length varies by species and breed — this gives a projected window, not a guarantee; confirm with vet exams or ultrasound where precision matters.

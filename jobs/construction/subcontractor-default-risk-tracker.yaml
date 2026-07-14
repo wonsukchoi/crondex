@@ -1,0 +1,46 @@
+id: subcontractor-default-risk-tracker
+version: 1
+name: Subcontractor Default Risk Tracker
+description: >
+  Reviews performance and financial red flags logged against active
+  subcontractors, like missed milestones, unpaid lower-tier subs, or
+  repeated quality rejections, and synthesizes which subs are trending
+  toward default so a replacement plan can start before the trade
+  actually walks off the job. Use this if a subcontractor has ever
+  defaulted with no warning and the GC had to scramble to find a
+  replacement mid-schedule.
+category: construction
+tags: [construction, subcontractor, risk, default, replacement-planning]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the subcontractor performance log ({{sub_performance_log_path}})
+  for project {{project_name}}. For each active subcontractor:
+  1. Count missed schedule milestones, quality rejection/rework
+     incidents, and any reports of unpaid lower-tier subs or suppliers
+     filing preliminary notices against that subcontractor.
+  2. Weigh these against the subcontractor's contract value
+     ({{high_value_threshold}} or above counts as high-impact if they
+     fail) and remaining scope of work still to be performed.
+  3. Flag any subcontractor showing {{risk_signal_count}} or more
+     distinct risk signals in the last 60 days as elevated default risk.
+  4. For each flagged subcontractor, summarize the specific risk signals
+     observed and recommend next steps: closer monitoring, a
+     cure-notice conversation, or beginning replacement-sourcing now
+     given lead time to onboard a new sub for that scope.
+variables:
+  sub_performance_log_path:
+    default: "./subcontractor-performance-log.csv"
+    description: Path to the logged performance and financial incidents per subcontractor.
+  project_name:
+    default: "the project"
+    description: Name of the project being reviewed.
+  high_value_threshold:
+    default: "$100000"
+    description: Contract value above which a subcontractor's failure is considered high-impact to the schedule.
+  risk_signal_count:
+    default: 3
+    description: Number of distinct risk signals within 60 days that triggers an elevated-risk flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is a leading-indicator/judgment job, distinct from subcontractor-insurance-expiry-check and subcontractor-pay-application-approval-tracker, which each track one specific compliance fact rather than overall default risk.

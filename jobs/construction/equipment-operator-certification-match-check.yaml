@@ -1,0 +1,38 @@
+id: equipment-operator-certification-match-check
+version: 1
+name: Equipment Operator Certification Match Check
+description: >
+  Cross-references the crew scheduled to run heavy equipment tomorrow
+  against each worker's current equipment certifications, and flags any
+  assignment where the scheduled operator isn't certified for that
+  specific machine. Use this if an uncertified worker has ever been put
+  on a crane, forklift, or aerial lift because the scheduler didn't check
+  cert records against the equipment assignment sheet.
+category: construction
+tags: [construction, safety, certification, equipment, crew-assignment]
+schedule: "0 15 * * 0-4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR>1) certs[$1","$2]=$3;
+      next;
+    }
+    FNR==1 {next}
+    {
+      key = $2","$3;
+      if (!(key in certs) || certs[key] != "valid") {
+        printf "CERT MISMATCH: %s assigned to %s (%s) on %s — no valid certification on file\n", $2, $3, $4, $1;
+      }
+    }
+  ' "{{operator_certs_csv}}" "{{equipment_assignments_csv}}"
+variables:
+  operator_certs_csv:
+    default: "./operator-certifications.csv"
+    description: "Path to a CSV with columns: worker_name,equipment_type,cert_status (valid/expired/none)."
+  equipment_assignments_csv:
+    default: "./equipment-assignments.csv"
+    description: "Path to a CSV with columns: assignment_date (YYYY-MM-DD),worker_name,equipment_type,equipment_id."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from crew-safety-cert-expiry-check — that job watches certs approaching expiry in isolation; this one cross-checks tomorrow's actual equipment assignments against who's certified for that specific machine type.

@@ -1,0 +1,51 @@
+id: creator-code-performance-tracker
+version: 1
+name: Influencer/Creator Code Performance Tracker
+description: >
+  Digests which creator/influencer referral codes drove revenue or
+  installs in the last period and flags codes that have gone completely
+  dead, so partnerships get renewed based on actual performance instead
+  of vibes. Use this if a paid creator partnership has ever kept
+  auto-renewing months after the creator's code stopped converting,
+  because nobody was watching the per-code numbers.
+category: gaming
+tags: [gaming, marketing, creators, monetization, live-ops]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull creator/influencer referral-code performance for {{game_name}} over
+  the last {{lookback_days}} days from your attribution or store-analytics
+  dashboard, covering codes: {{creator_code_list}}.
+  1. For each code, report installs/redemptions and revenue attributed to
+     it over the window, and compare against the prior {{lookback_days}}-day
+     window to show trend direction.
+  2. Flag any code with fewer than {{min_redemptions}} redemptions in the
+     window as effectively dead.
+  3. Rank the remaining codes by revenue-per-redemption to surface which
+     creators are converting best, not just driving the most volume.
+  4. Note any code nearing a contract renewal or payout milestone
+     ({{renewal_note}}) so it can be reviewed against this period's
+     numbers before renewing.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title the creator codes apply to.
+  lookback_days:
+    default: 30
+    description: Rolling window of code performance to evaluate.
+  creator_code_list:
+    default: "CREATOR1, CREATOR2, CREATOR3"
+    description: Comma-separated list of creator referral codes to track.
+  min_redemptions:
+    default: 10
+    description: Redemption count below which a code is flagged as dead for the window.
+  renewal_note:
+    default: "none due this cycle"
+    description: Free-text note on which creator contracts are up for renewal soon, to prioritize their code review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Works against whatever attribution/analytics platform you use (AppsFlyer,
+  Adjust, a first-party store dashboard) since referral-code reporting has
+  no universal API — point the agent at your dashboard export or read
+  access.

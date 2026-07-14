@@ -1,0 +1,64 @@
+id: recall-traceability-drill-readiness-check
+version: 1
+name: Product Recall Traceability Drill Readiness Check
+description: >
+  Reviews when the plant last ran a mock recall/traceability drill and
+  how long the last drill took to trace a lot end-to-end, flagging if
+  you're overdue for the next drill or if trace time is trending too
+  slow to meet your recall response commitment. Use this if a real
+  recall has ever been the first time anyone tested whether the lot
+  traceability records could actually be pulled together fast enough.
+category: manufacturing
+tags: [manufacturing, quality, traceability, recall, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days={{max_days_since_drill}} -v target_hrs={{target_trace_hours}} '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $1 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $1 "\" +%s";
+      cmd | getline drill_ts; close(cmd);
+      days_since = int((today - drill_ts) / 86400);
+      if (drill_ts > last_ts) { last_ts = drill_ts; last_hrs = $2; last_days = days_since }
+    }
+    END {
+      if (last_days > max_days+0) printf "OVERDUE: last recall drill was %d days ago (limit %d)\n", last_days, max_days;
+      if (last_hrs+0 > target_hrs+0) printf "SLOW TRACE: last drill took %.1f hours to trace the lot (target %.1f)\n", last_hrs, target_hrs;
+    }
+  ' "{{drill_log_csv}}"
+script_note: >
+  The script gives you the overdue/slow-trace facts from the drill log
+  for free. It doesn't assess whether the drill actually exercised
+  every traceability record type (supplier lots, in-process, shipping)
+  you'd need in a real recall — that judgment call is what the prompt
+  adds.
+prompt: |
+  Review the drill readiness data for lot traceability drills, using
+  {{drill_log_csv}} and any drill after-action notes available. The
+  target is to trace a lot end-to-end in under {{target_trace_hours}}
+  hours, with a new drill run at least every {{max_days_since_drill}}
+  days.
+
+  Summarize:
+  1. Whether the plant is currently overdue for a drill or missed the
+     trace-time target, and by how much.
+  2. Any recurring gap noted in past drills (e.g. supplier lot records
+     hard to pull, shipping records incomplete) that would slow down a
+     real recall.
+  3. A recommended date and scope for the next drill.
+
+  Keep it to a few bullets a quality manager can act on directly.
+variables:
+  drill_log_csv:
+    default: "./recall-drill-log.csv"
+    description: "CSV with header row, columns: drill_date(YYYY-MM-DD),trace_time_hours,notes."
+  max_days_since_drill:
+    default: 90
+    description: Maximum days allowed between recall traceability drills.
+  target_trace_hours:
+    default: 4
+    description: Target maximum hours to trace a lot end-to-end during a drill.
+compatible_agents: [claude, codex, hermes, generic]
+notes: Log every mock or real recall trace to recall-drill-log.csv with actual elapsed hours — this is a readiness check, not a substitute for running the drill itself.

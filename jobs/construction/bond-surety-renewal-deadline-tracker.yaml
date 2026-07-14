@@ -1,0 +1,34 @@
+id: bond-surety-renewal-deadline-tracker
+version: 1
+name: Bond & Surety Renewal Deadline Tracker
+description: >
+  Checks performance bonds, payment bonds, and the company's surety
+  program for upcoming renewal or annual review deadlines and flags them
+  before they lapse. Use this if a bid has ever been at risk because the
+  firm's surety capacity or an active project bond was found to be
+  expired or under review at the wrong moment.
+category: construction
+tags: [construction, bonding, surety, compliance, finance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) printf "BOND RENEWAL DUE: %s — %s (project: %s) expires %s (%d days left)\n", $1, $2, $4, $3, days_left;
+    }
+  ' "{{bond_register_csv}}"
+variables:
+  bond_register_csv:
+    default: "./bond-surety-register.csv"
+    description: "Path to a CSV with columns: bond_number,bond_type (performance/payment/annual-surety-review),expiry_date (YYYY-MM-DD),project_name."
+  warn_days:
+    default: 45
+    description: Days before expiry or renewal review to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Include the annual surety program review as its own row, not just individual project bonds — a lapsed overall surety relationship blocks bidding on every project, not just one.

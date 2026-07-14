@@ -1,0 +1,48 @@
+id: loot-drop-rate-anomaly-check
+version: 1
+name: Loot Drop-Rate Anomaly Check
+description: >
+  Compares the last window's actual item/loot drop rate against the
+  designed target rate and flags a mismatch big enough to suggest a bug in
+  the drop tables. Use this if a balance patch, a new content push, or a
+  server config typo has ever silently broken drop rates for a rare item,
+  either flooding players with it or making it impossible to get, before
+  anyone on the team noticed.
+category: gaming
+tags: [gaming, loot, drop-rate, live-ops, balance]
+schedule: "0 */6 * * *"
+runner: shell
+command: >
+  drops={{observed_drops}}; rolls={{total_rolls}}; target={{target_drop_rate_pct}};
+  if [ "$rolls" -le 0 ]; then echo "ERROR: total_rolls must be greater than 0"; exit 1; fi;
+  actual_pct=$(awk -v d="$drops" -v r="$rolls" 'BEGIN { printf "%.3f", (d / r) * 100 }');
+  dev_pct=$(awk -v a="$actual_pct" -v t="$target" 'BEGIN { d = a - t; if (d < 0) d = -d; printf "%.3f", d }');
+  over=$(awk -v dev="$dev_pct" -v tol="{{tolerance_pct}}" 'BEGIN { print (dev > tol) ? 1 : 0 }');
+  if [ "$over" -eq 1 ]; then
+    echo "ANOMALY: item {{item_id}} actual drop rate ${actual_pct}% vs target ${target}% (deviation ${dev_pct}pp, tolerance {{tolerance_pct}}pp)";
+    exit 1;
+  else
+    echo "OK: item {{item_id}} actual drop rate ${actual_pct}% is within tolerance of target ${target}%";
+  fi
+variables:
+  item_id:
+    default: "rare-item-01"
+    description: Identifier of the item/loot table entry being checked (for reporting).
+  observed_drops:
+    default: 480
+    description: Number of times the item actually dropped in the observed window.
+  total_rolls:
+    default: 100000
+    description: Total number of drop rolls/opportunities in the observed window.
+  target_drop_rate_pct:
+    default: 0.5
+    description: Designed drop-rate percentage for this item.
+  tolerance_pct:
+    default: 0.15
+    description: Allowed deviation in percentage points before the drop rate is flagged as anomalous.
+notes: >
+  Feed `observed_drops` and `total_rolls` in from your own loot-table
+  telemetry export (this job does not fetch data itself, since drop
+  tracking usually lives in a game-specific analytics pipeline). Run one
+  instance per high-value/rare item you want watched.
+compatible_agents: [generic, claude, codex]

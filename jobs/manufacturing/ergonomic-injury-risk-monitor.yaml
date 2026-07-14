@@ -1,0 +1,34 @@
+id: ergonomic-injury-risk-monitor
+version: 1
+name: Ergonomic/Repetitive-Motion Injury Risk Monitor
+description: >
+  Reviews logged workstation ergonomic assessment scores and repetitive
+  task exposure hours, flagging stations above your injury-risk
+  threshold. Use this if a repetitive-strain injury has ever surfaced
+  on a station that had been flagged as high-risk months earlier but
+  never got a fix.
+category: manufacturing
+tags: [manufacturing, safety, ergonomics, injury-prevention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v risk_threshold={{risk_score_threshold}} -v hours_threshold={{exposure_hours_threshold}} '
+    NR==1 {next}
+    {
+      if ($2+0 >= risk_threshold+0) printf "HIGH RISK SCORE: station \"%s\" ergonomic score %.1f (threshold %.1f)\n", $1, $2, risk_threshold;
+      if ($3+0 >= hours_threshold+0) printf "HIGH EXPOSURE: station \"%s\" repetitive task exposure %.1f hrs/week (threshold %.1f)\n", $1, $3, hours_threshold;
+    }
+  ' "{{ergo_assessment_csv}}"
+variables:
+  ergo_assessment_csv:
+    default: "./ergonomic-assessments.csv"
+    description: "CSV with header row, columns: station_id,risk_score,weekly_exposure_hours."
+  risk_score_threshold:
+    default: 7
+    description: Ergonomic risk score (e.g. RULA/REBA-style scale) at or above which a station is flagged.
+  exposure_hours_threshold:
+    default: 20
+    description: Weekly repetitive-task exposure hours at or above which a station is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Populate ergonomic-assessments.csv from your industrial hygiene or EHS ergonomic survey data; flagged stations warrant an EHS review, not an automatic shutdown.

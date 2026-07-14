@@ -1,0 +1,53 @@
+id: concrete-pour-weather-window-check
+version: 1
+name: Concrete Pour Weather Window Check
+description: >
+  Checks the forecast against scheduled concrete pours and flags any pour
+  where temperature, precipitation, or wind conditions fall outside the
+  mix design's acceptable curing window, so a crew doesn't pour into
+  conditions that risk cracking or a failed cure. Use this if a pour has
+  ever gone ahead in a cold snap or downpour and the slab had to be
+  reviewed or replaced afterward.
+category: construction
+tags: [construction, concrete, weather, scheduling, quality]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" -v min_temp="{{min_pour_temp_f}}" -v max_temp="{{max_pour_temp_f}}" '
+    NR==1 {next}
+    $2 == today {
+      printf "SCHEDULED POUR TODAY: %s at %s — check forecast against min %sF / max %sF and any rain/wind limits before proceeding\n", $1, $3, min_temp, max_temp;
+    }
+  ' "{{pour_schedule_csv}}";
+  echo "Fetch current forecast for the jobsite location separately and compare against the mix design limits above.";
+variables:
+  pour_schedule_csv:
+    default: "./concrete-pour-schedule.csv"
+    description: "Path to a CSV with columns: pour_id,pour_date (YYYY-MM-DD),location,mix_design."
+  min_pour_temp_f:
+    default: 40
+    description: Minimum ambient temperature (Fahrenheit) the mix design allows for pouring without cold-weather protection.
+  max_pour_temp_f:
+    default: 95
+    description: Maximum ambient temperature (Fahrenheit) the mix design allows before hot-weather measures are required.
+  project_name:
+    default: "the project"
+    description: Name of the project whose pour schedule is being checked.
+prompt: |
+  For each concrete pour scheduled today or in the next 24 hours at
+  {{project_name}}, look up the weather forecast for the pour location
+  and compare it against the mix design's allowable pour window: minimum
+  temperature {{min_pour_temp_f}}F, maximum temperature {{max_pour_temp_f}}F,
+  plus any forecast precipitation or high wind. Flag any pour where
+  conditions fall outside these limits or where rain is forecast during
+  the pour and finishing window, and recommend whether to proceed with
+  cold/hot-weather protection measures, reschedule, or proceed as planned.
+compatible_agents: [claude, codex, hermes, openclaw]
+script_note: >
+  The script only lists what's scheduled to pour today from the CSV; it
+  can't fetch live weather data itself, so the prompt pass pulls the
+  forecast for each jobsite and makes the go/no-go judgment against the
+  mix design limits and any project-specific hot/cold weather procedures.
+notes: Pair with your mix design's ACI 305/306 hot- and cold-weather concreting requirements; this job flags scheduling conflicts, not a substitute for a QC engineer's sign-off.

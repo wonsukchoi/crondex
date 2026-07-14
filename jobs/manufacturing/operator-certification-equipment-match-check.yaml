@@ -1,0 +1,36 @@
+id: operator-certification-equipment-match-check
+version: 1
+name: Operator Certification-to-Equipment Match Check
+description: >
+  Cross-checks today's shift roster against operator equipment
+  certifications and flags anyone assigned to a machine they aren't
+  certified to run. Use this if an uncertified operator has ever ended
+  up running a press or forklift because the scheduler didn't know
+  their certification had lapsed.
+category: manufacturing
+tags: [manufacturing, safety, training, certification, compliance]
+schedule: "0 5 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    FNR==NR { if (FNR>1) { equip[$1]=$2; cert_exp[$1 SUBSEP $2]=$3 }; next }
+    FNR==1 { next }
+    {
+      key = $1 SUBSEP $2;
+      if (!(key in cert_exp)) { printf "NOT CERTIFIED: operator %s assigned to equipment %s\n", $1, $2; next }
+      cmd="date -d \"" cert_exp[key] "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" cert_exp[key] "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      if (exp_ts < today) printf "EXPIRED CERT: operator %s on equipment %s expired %s\n", $1, $2, cert_exp[key];
+    }
+  ' "{{cert_roster_csv}}" "{{shift_assignment_csv}}"
+variables:
+  cert_roster_csv:
+    default: "./operator-certifications.csv"
+    description: "CSV with header row, columns: operator_id,equipment_type,cert_expiry_date(YYYY-MM-DD)."
+  shift_assignment_csv:
+    default: "./shift-assignments.csv"
+    description: "CSV with header row, columns: operator_id,equipment_type,shift_date."
+compatible_agents: [generic, claude, codex]
+notes: Refresh both CSVs from the LMS/training record and the day's scheduling board before each run — this is a safety gate, review flagged assignments before the shift starts.

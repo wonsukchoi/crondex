@@ -1,0 +1,51 @@
+id: content-rating-recompliance-check
+version: 1
+name: Age-Rating Content Compliance Re-Review Reminder
+description: >
+  Reminds the compliance owner to re-review a game's age rating and
+  content descriptors before a major update ships, whenever the update
+  adds content (violence, gambling-like mechanics, chat, user-generated
+  content) that could change the rating. Use this if a content update has
+  ever shipped without a fresh ratings-board check and the rating drifted
+  out of sync with the actual game, risking a storefront pull or a
+  compliance fine.
+category: gaming
+tags: [gaming, compliance, age-rating, content, release]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the changelog/design notes for {{game_name}}'s upcoming release
+  {{release_version}}, currently targeted to ship on {{target_ship_date}}.
+  1. Identify any new or changed content that could affect the game's
+     age rating or content descriptors: new violence/gore, new gambling
+     or loot-box-style mechanics, new chat/UGC features, new substance
+     references, or romance/sexual content.
+  2. For each item found, note which rating board(s) apply to
+     {{platform_list}} and whether a re-review or descriptor update
+     appears to be required before this content can ship on each
+     platform.
+  3. Flag whether a re-review submission has already been filed for this
+     release; if not, and one appears required, recommend filing it now
+     given typical board turnaround times.
+  4. If no rating-relevant content changes are found, report that in one
+     line.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title being reviewed.
+  release_version:
+    default: "1.0.0"
+    description: Version/build identifier of the upcoming release.
+  target_ship_date:
+    default: "2026-08-01"
+    description: Planned ship date for this release, used to judge review lead time.
+  platform_list:
+    default: "PC, PlayStation, Xbox, Switch"
+    description: Comma-separated list of platforms/storefronts this release targets.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This is a reminder/report job, not a submission tool — actual ratings
+  board submissions (ESRB, PEGI, USK, CERO, etc.) still need to go through
+  their own official process. Run weekly in the lead-up to any release
+  with new content.

@@ -1,0 +1,36 @@
+id: tool-equipment-theft-loss-tracker
+version: 1
+name: Tool & Equipment Theft/Loss Tracker
+description: >
+  Scans the small-tools and equipment inventory log for items marked
+  missing, stolen, or unaccounted for past a grace period, and flags
+  patterns worth reporting to insurance or law enforcement. Use this if
+  tools have ever quietly walked off a site for months before anyone
+  totaled up the replacement cost.
+category: construction
+tags: [construction, equipment, theft, loss-prevention, inventory]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{unresolved_days}}" '
+    NR==1 {next}
+    $5 == "missing" || $5 == "stolen" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline reported_ts; close(cmd);
+      days_unresolved = int((today - reported_ts) / 86400);
+      total += $3;
+      if (days_unresolved >= warn) printf "UNRESOLVED LOSS: %s (%s) — $%s reported %s at %s, %d days unresolved\n", $1, $5, $3, $4, $2, days_unresolved;
+    }
+    END { if (total > 0) printf "TOTAL REPORTED LOSS VALUE: $%d\n", total; }
+  ' "{{tool_loss_log_csv}}"
+variables:
+  tool_loss_log_csv:
+    default: "./tool-equipment-loss-log.csv"
+    description: "Path to a CSV with columns: item_name,jobsite,estimated_value,reported_date (YYYY-MM-DD),status (missing/stolen/recovered/written-off)."
+  unresolved_days:
+    default: 14
+    description: Days an item can stay unresolved before it's flagged for insurance claim or police report follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from equipment-rental-return-reminder — that tracks rented equipment due back to the supplier; this tracks owned tools/equipment that have actually gone missing.

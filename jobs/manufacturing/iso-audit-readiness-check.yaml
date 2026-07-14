@@ -1,0 +1,38 @@
+id: iso-audit-readiness-check
+version: 1
+name: ISO Audit Readiness Check
+description: >
+  Scans your quality management system checklist for overdue or missing
+  items (document reviews, internal audits, management review minutes)
+  ahead of an ISO 9001/IATF surveillance or certification audit. Use
+  this if a certification audit has ever surfaced a stale procedure or
+  missing record that everyone assumed was handled.
+category: manufacturing
+tags: [manufacturing, quality, iso, audit, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR==1 {next}
+    $3 == "open" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (due_ts < today) { overdue++; printf "OVERDUE: \"%s\" (owner: %s) was due %s\n", $1, $4, $2 }
+      else if (days_left <= warn) { soon++; printf "DUE SOON: \"%s\" (owner: %s) due in %d days\n", $1, $4, days_left }
+    }
+    END {
+      printf "Summary: %d overdue, %d due within %d days\n", overdue+0, soon+0, warn;
+    }
+  ' "{{audit_checklist_csv}}"
+variables:
+  audit_checklist_csv:
+    default: "./iso-audit-checklist.csv"
+    description: "CSV with header row, columns: item,due_date(YYYY-MM-DD),status(open/closed),owner."
+  warn_days:
+    default: 14
+    description: Days before the due date to start flagging an item as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Populate iso-audit-checklist.csv from your QMS document-control register; this checks the paperwork clock, not the substance of the records.

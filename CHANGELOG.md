@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `crondex doctor [--json]` — audits installed crontab entries against the
+  catalog: flags orphaned entries (job id no longer in the catalog),
+  schedule drift (installed schedule no longer matches the catalog's), and
+  entries installed before version tagging or older than the catalog's
+  current version. Exits `1` if any issues were found. Comparison logic
+  lives in `lib/doctor.js`.
+- `crondex bundle <file.yaml> [--target <target>] [--dry-run] [--out-dir <path>] [--install]`
+  — deploys every job listed in a manifest in one shot, reusing
+  `lib/deploy.js`'s per-job resolution. See README's "Bundles" section for
+  the manifest format. Logic lives in `lib/bundle.js`.
+- `crondex deploy --install`/`crondex bundle --install` (crontab target)
+  now tag the installed comment marker with the job's catalog version —
+  `# crondex:<id>@<version>` — so `doctor` can detect staleness. Markers
+  without a version are still parsed for backward compatibility with
+  previously installed entries.
+- `crondex_deploy` MCP tool, opt-in via `crondex mcp --allow-deploy`.
+  Generates the same artifact text `crondex deploy` would print for a job
+  (crontab line, GitHub Actions workflow, systemd unit pair, etc.) but
+  never writes a file or touches crontab — generation only. Not
+  registered unless `--allow-deploy` is passed.
+- Argument parsing and command routing extracted from `bin/crondex.js`
+  into `lib/cli.js` (`parseArgs`, `COMMANDS` dispatch table, `runCli`) —
+  `bin/crondex.js` is now a thin shim. Unit-tested directly in
+  `test/cli-unit.test.js` without spawning a subprocess.
+
 ## [0.56.1] - 2026-07-15
 
 ### Fixed

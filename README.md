@@ -54,6 +54,11 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
 - `deploy --list-installed` — show every crondex-managed line in your
   crontab (the ones left by `--install`)
 - `uninstall <id>` — remove one of those installed crontab entries
+- `doctor [--json]` — audit installed crontab entries against the catalog:
+  orphaned entries, schedule drift, and version tagging/staleness. Exits `1`
+  if any issues were found.
+- `bundle <file.yaml> [--target <target>] [--dry-run] [--out-dir <path>] [--install]`
+  — deploy every job in a manifest in one shot (see [Bundles](#bundles))
 
 Add `--json` to `list`/`categories`/`show`/`recommend` for machine-readable
 output — useful when an agent is parsing the result programmatically
@@ -93,6 +98,15 @@ Tools exposed: `crondex_recommend`, `crondex_list`, `crondex_categories`,
 `crondex_show`, `crondex_next_runs` — each returns the same JSON shape as
 the matching CLI command's `--json` flag.
 
+Pass `--allow-deploy` (`crondex mcp --allow-deploy`, or add it to your MCP
+client's args) to opt into one more tool: `crondex_deploy`. It takes the
+same inputs as `crondex deploy` (`id`, `target`, `vars`, `mode`) and
+returns the generated artifact text — a crontab line, workflow file,
+systemd unit pair, etc. It's generation-only: it never writes a file,
+never touches your crontab, and has no other side effect, so the server
+stays safe to point an agent at even with `--allow-deploy` on. Without the
+flag, `crondex_deploy` isn't registered at all.
+
 ---
 
 ## What's in a job
@@ -128,6 +142,41 @@ then hand `command`/`prompt` plus `schedule` to whatever scheduler you have
 (system crontab, a hosted cron, your agent's own scheduling mechanism). This
 repo defines *what* to run and *when*, not the executor. Full field spec:
 [`schema/job.schema.json`](schema/job.schema.json).
+
+---
+
+## Bundles
+
+Deploy several jobs in one shot with a manifest file:
+
+```yaml
+# bundle.yaml
+jobs:
+  - id: ssl-cert-expiry-check
+    vars:
+      host: example.com
+      port: "443"
+  - id: dependency-audit
+    vars:
+      repo_path: /srv/app
+  - id: cost-alert
+    mode: prompt
+```
+
+```bash
+crondex bundle bundle.yaml --target crontab --dry-run   # preview
+crondex bundle bundle.yaml --target crontab --install   # install every job
+crondex bundle bundle.yaml --target github-actions --out-dir .github/workflows
+```
+
+Each entry supports `id` (required), `vars` (variable overrides, same shape
+as `deploy --var`), and `mode` (`script`/`prompt`, for `hybrid` jobs).
+`--target crontab` (the default) combines every job into one crontab line
+per job; every other target either writes one file (or file pair, for
+`systemd`/`docker`) per job to `--out-dir`, or — without `--out-dir` —
+prints all the artifacts concatenated with `===` header separators.
+`--dry-run` previews the combined output without installing or writing
+anything.
 
 ---
 
@@ -212,8 +261,8 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 ```
 crondex/
 ├── llms.txt               agent-discovery manifest (llms.txt convention)
-├── bin/crondex.js         CLI: list / categories / show / add / recommend / init / update / deploy / uninstall
-├── lib/                   recommend, deploy, diff, and catalog-building logic (unit tested in test/)
+├── bin/crondex.js         thin CLI entry point — parsing/routing lives in lib/cli.js
+├── lib/                   cli, doctor, bundle, recommend, deploy, diff, and catalog-building logic (unit tested in test/)
 ├── catalog.json           generated index of every job — read this first
 ├── schema/job.schema.json spec every job file follows
 ├── jobs/                  one YAML per job, grouped by category subdirectory

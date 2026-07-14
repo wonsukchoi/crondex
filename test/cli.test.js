@@ -276,6 +276,141 @@ fi
   }
 });
 
+test("bundle --dry-run: prints combined crontab lines for every job in the manifest without installing anything", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const manifest = join(tmp, "bundle.yaml");
+    writeFileSync(
+      manifest,
+      `jobs:
+  - id: ssl-cert-expiry-check
+    vars:
+      host: bundled.example.com
+  - id: dependency-audit
+`
+    );
+    const out = run(["bundle", manifest, "--target", "crontab", "--dry-run"]);
+    assert.match(out, /bundled\.example\.com/);
+    assert.match(out, /# crondex:ssl-cert-expiry-check/);
+    assert.match(out, /# crondex:dependency-audit/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("bundle --out-dir: writes a github-actions workflow file per job", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const manifest = join(tmp, "bundle.yaml");
+    writeFileSync(manifest, `jobs:\n  - id: ssl-cert-expiry-check\n`);
+    const outDir = join(tmp, "out");
+    const out = run(["bundle", manifest, "--target", "github-actions", "--out-dir", outDir]);
+    assert.match(out, /wrote 1 file/);
+    assert.ok(existsSync(join(outDir, "ssl-cert-expiry-check.yml")));
+    assert.match(readFileSync(join(outDir, "ssl-cert-expiry-check.yml"), "utf8"), /cron: "0 6 \* \* \*"/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("bundle: errors on a manifest referencing an unknown job id", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const manifest = join(tmp, "bundle.yaml");
+    writeFileSync(manifest, `jobs:\n  - id: not-a-real-job-id\n`);
+    assert.throws(() => run(["bundle", manifest]), /no job named/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("doctor: reports healthy when nothing is installed", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  const fakeBin = join(tmp, "bin");
+  try {
+    mkdirSync(fakeBin);
+    const stub = `#!/bin/sh
+if [ "$1" = "-l" ]; then
+  exit 1
+fi
+`;
+    const crontabPath = join(fakeBin, "crontab");
+    writeFileSync(crontabPath, stub);
+    chmodSync(crontabPath, 0o755);
+    const env = { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` };
+
+    const out = run(["doctor"], { env });
+    assert.match(out, /healthy/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("doctor: flags an orphaned entry and exits nonzero, --json returns structured issues", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  const fakeBin = join(tmp, "bin");
+  const state = join(tmp, "state.txt");
+  try {
+    mkdirSync(fakeBin);
+    const stub = `#!/bin/sh
+if [ "$1" = "-l" ]; then
+  [ -f "${state}" ] && cat "${state}" || exit 1
+elif [ "$1" = "-" ]; then
+  cat > "${state}"
+fi
+`;
+    const crontabPath = join(fakeBin, "crontab");
+    writeFileSync(crontabPath, stub);
+    chmodSync(crontabPath, 0o755);
+    const env = { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` };
+
+    writeFileSync(state, `0 0 * * * bash -lc 'echo hi' # crondex:not-a-real-job-id@1\n`);
+
+    assert.throws(() => run(["doctor"], { env }));
+
+    let jsonOut;
+    try {
+      jsonOut = run(["doctor", "--json"], { env });
+    } catch (e) {
+      jsonOut = e.stdout;
+    }
+    const report = JSON.parse(jsonOut);
+    assert.equal(report.length, 1);
+    assert.equal(report[0].id, "not-a-real-job-id");
+    assert.deepEqual(report[0].issues, ["orphaned"]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("doctor: real deploy --install produces a healthy versioned entry", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  const fakeBin = join(tmp, "bin");
+  const state = join(tmp, "state.txt");
+  try {
+    mkdirSync(fakeBin);
+    const stub = `#!/bin/sh
+if [ "$1" = "-l" ]; then
+  [ -f "${state}" ] && cat "${state}" || exit 1
+elif [ "$1" = "-" ]; then
+  cat > "${state}"
+fi
+`;
+    const crontabPath = join(fakeBin, "crontab");
+    writeFileSync(crontabPath, stub);
+    chmodSync(crontabPath, 0o755);
+    const env = { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` };
+
+    run(["deploy", "ssl-cert-expiry-check", "--install"], { env });
+    assert.match(readFileSync(state, "utf8"), /# crondex:ssl-cert-expiry-check@\d+/);
+
+    const out = run(["doctor"], { env });
+    assert.match(out, /healthy/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("deploy --install: installs into crontab via a stubbed crontab binary, idempotently", () => {
   // Never touch the real system crontab — stub `crontab` on PATH and point at it.
   const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));

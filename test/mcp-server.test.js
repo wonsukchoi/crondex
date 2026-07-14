@@ -12,9 +12,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CLI = join(ROOT, "bin/crondex.js");
 
-async function withClient(fn) {
+async function withClient(fn, extraArgs = []) {
   const client = new Client({ name: "crondex-test-client", version: "1.0.0" });
-  const transport = new StdioClientTransport({ command: "node", args: [CLI, "mcp"], cwd: ROOT });
+  const transport = new StdioClientTransport({ command: "node", args: [CLI, "mcp", ...extraArgs], cwd: ROOT });
   await client.connect(transport);
   try {
     return await fn(client);
@@ -103,4 +103,60 @@ test("crondex_next_runs: returns the requested count of future ISO timestamps", 
     assert.equal(data.runs.length, 3);
     for (const iso of data.runs) assert.ok(new Date(iso).getTime() > Date.now());
   });
+});
+
+test("without --allow-deploy: crondex_deploy is not registered", async () => {
+  await withClient(async (client) => {
+    const { tools } = await client.listTools();
+    assert.ok(!tools.some((t) => t.name === "crondex_deploy"));
+  });
+});
+
+test("with --allow-deploy: crondex_deploy is registered and generates a crontab line", async () => {
+  await withClient(
+    async (client) => {
+      const { tools } = await client.listTools();
+      assert.ok(tools.some((t) => t.name === "crondex_deploy"));
+
+      const result = await client.callTool({
+        name: "crondex_deploy",
+        arguments: { id: "ssl-cert-expiry-check", vars: { host: "mcp-test.example.com" } },
+      });
+      const data = jsonOf(result);
+      assert.equal(data.id, "ssl-cert-expiry-check");
+      assert.equal(data.target, "crontab");
+      assert.match(data.artifacts, /^0 6 \* \* \*/);
+      assert.match(data.artifacts, /mcp-test\.example\.com/);
+      assert.match(data.artifacts, /# crondex:ssl-cert-expiry-check/);
+    },
+    ["--allow-deploy"]
+  );
+});
+
+test("with --allow-deploy: crondex_deploy generates a systemd unit pair without writing files", async () => {
+  await withClient(
+    async (client) => {
+      const result = await client.callTool({
+        name: "crondex_deploy",
+        arguments: { id: "ssl-cert-expiry-check", target: "systemd" },
+      });
+      const data = jsonOf(result);
+      assert.match(data.artifacts.service, /\[Service\]/);
+      assert.match(data.artifacts.timer, /OnCalendar=/);
+    },
+    ["--allow-deploy"]
+  );
+});
+
+test("with --allow-deploy: crondex_deploy on a bogus id returns an error result", async () => {
+  await withClient(
+    async (client) => {
+      const result = await client.callTool({
+        name: "crondex_deploy",
+        arguments: { id: "totally-not-a-real-job" },
+      });
+      assert.equal(result.isError, true);
+    },
+    ["--allow-deploy"]
+  );
 });

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1933,
+  "count": 1919,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -779,7 +779,7 @@
     },
     {
       "id": "aed-first-aid-kit-inspection-compliance-check",
-      "version": 1,
+      "version": 2,
       "name": "AED and First-Aid Kit Inspection Compliance Check",
       "description": "Checks the equipment inspection log for AED units and first-aid kits and flags any unit that's overdue for its scheduled check, plus any AED pad or battery approaching its expiry date. Use this if an AED has ever gone months without a documented check and nobody realized the battery indicator was flashing until an actual emergency.",
       "category": "fitness",
@@ -4036,9 +4036,9 @@
     },
     {
       "id": "broken-link-check",
-      "version": 1,
+      "version": 2,
       "name": "Broken Link Check",
-      "description": "Checks a list of URLs and reports any that are dead. Use this if your site or docs have outbound/internal links that quietly rot over time.",
+      "description": "Checks a list of URLs and reports any that are dead. Use this if your site or docs have outbound/internal links that quietly rot over time. Example: a publishing team can point urls_file at the outbound citation and source links pulled from published articles to catch dead links that crept in after articles went live.",
       "category": "content",
       "tags": [
         "links",
@@ -4057,31 +4057,6 @@
         "codex"
       ],
       "path": "jobs/content/broken-link-check.yaml"
-    },
-    {
-      "id": "broken-link-check-published-articles",
-      "version": 1,
-      "name": "Broken Link Check Across Published Articles",
-      "description": "Curls every outbound link listed in a file of published-article links and flags any that no longer return a working response. Use this if a published piece has ever quietly rotted with dead citation or source links because nobody rechecked them after the article went live.",
-      "category": "publishing",
-      "tags": [
-        "publishing",
-        "links",
-        "editorial",
-        "quality"
-      ],
-      "schedule": "0 6 * * 1",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/publishing/broken-link-check-published-articles.yaml"
     },
     {
       "id": "browser-tab-hygiene-reminder",
@@ -4544,7 +4519,7 @@
     },
     {
       "id": "cancellation-waitlist-fill-check",
-      "version": 1,
+      "version": 2,
       "name": "Cancellation Waitlist Fill Check",
       "description": "Flags newly opened appointment slots from cancellations that haven't been offered to anyone on the waitlist yet. Use this if a slot has ever opened up from a cancellation and just sat empty because nobody thought to check the waitlist before the day ended.",
       "category": "spa",
@@ -7220,32 +7195,6 @@
       "path": "jobs/agency/client-revenue-concentration-check.yaml"
     },
     {
-      "id": "client-review-response-lag-check",
-      "version": 1,
-      "name": "Client Review Response Lag Check",
-      "description": "Finds recent online reviews that haven't received an owner response yet and drafts a reply for the ones sitting longest. Use this if a bad review has ever sat unanswered for weeks, making the business look like nobody's paying attention.",
-      "category": "spa",
-      "tags": [
-        "spa",
-        "reviews",
-        "reputation",
-        "front-desk"
-      ],
-      "schedule": "0 10 * * *",
-      "timezone": "UTC",
-      "runner": "hybrid",
-      "modes": [
-        "script",
-        "agent-prompt"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/spa/client-review-response-lag-check.yaml"
-    },
-    {
       "id": "client-satisfaction-follow-up-drafts",
       "version": 1,
       "name": "Client Satisfaction Follow-Up Drafts",
@@ -7608,31 +7557,6 @@
         "codex"
       ],
       "path": "jobs/government/code-enforcement-violation-followup-tracker.yaml"
-    },
-    {
-      "id": "coding-kata-streak-check",
-      "version": 1,
-      "name": "Coding Kata Practice Streak Check",
-      "description": "Checks a log of solved coding katas/practice problems and warns if you've gone too long without solving one. Use this if you're prepping for interviews or just keeping your problem-solving sharp and your LeetCode/Codewars habit has a tendency to quietly disappear.",
-      "category": "learning",
-      "tags": [
-        "learning",
-        "coding",
-        "practice",
-        "streak"
-      ],
-      "schedule": "0 20 * * *",
-      "timezone": "America/Los_Angeles",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/learning/coding-kata-streak-check.yaml"
     },
     {
       "id": "coffee-machine-maintenance-schedule-check",
@@ -8419,9 +8343,9 @@
     },
     {
       "id": "compliance-filing-deadline-reminder",
-      "version": 1,
+      "version": 2,
       "name": "Corporate Compliance Filing Deadline Reminder",
-      "description": "Warns you before a recurring corporate compliance filing is due — annual reports, franchise tax, registered agent renewals. Use this if you've ever had a company administratively dissolved (and had to pay to reinstate it) because a routine state filing quietly lapsed.",
+      "description": "Warns you before a recurring corporate compliance filing is due — annual reports, franchise tax, registered agent renewals. Use this if you've ever had a company administratively dissolved (and had to pay to reinstate it) because a routine state filing quietly lapsed. This is a flat, single-entity filing list (filing_name,due_date); if you're tracking annual reports/renewals across multiple states for an entity that's foreign-qualified elsewhere, use `foreign-qualification-annual-report-tracker` instead, which is per-state/per-entity.",
       "category": "legal",
       "tags": [
         "legal",
@@ -9162,9 +9086,9 @@
     },
     {
       "id": "controlled-substance-count-discrepancy-check",
-      "version": 1,
+      "version": 2,
       "name": "Controlled Substance Count Discrepancy Check",
-      "description": "Compares the expected running count of controlled substances on the medication cart against the actual count that staff logged, and flags any mismatch. Use this if you want an early warning when a controlled-substance count doesn't add up, before it turns into a bigger compliance problem.",
+      "description": "Compares the expected running count of controlled substances on the medication cart against the actual count that staff logged, and flags any mismatch. Use this if you want an early warning when a controlled-substance count doesn't add up, before it turns into a bigger compliance problem. Distinct from jobs/healthcare/controlled-substance-inventory-reconciliation.yaml, which reviews a clinic's narrative dispensing/administration log rather than structured medication-cart count data from a care facility.",
       "category": "senior-living",
       "tags": [
         "senior-living",
@@ -9216,9 +9140,9 @@
     },
     {
       "id": "controlled-substance-inventory-reconciliation",
-      "version": 1,
+      "version": 2,
       "name": "Controlled Substance Inventory Reconciliation",
-      "description": "Reviews the practice's controlled-substance dispensing/administration log (e.g. in-office injectable opioids, ketamine, testosterone, Schedule II-V medications kept on site) for gaps or unreconciled counts. Use this if a discrepancy in a controlled-drug count has ever gone unnoticed for weeks in a human practice instead of being caught same-day — this covers a clinic's own in-office stock, the same DEA-style pattern as jobs/veterinary/controlled-substance-log-audit.yaml but for a human medical/dental practice rather than an animal clinic, so both are kept as separate jobs.",
+      "description": "Reviews the practice's controlled-substance dispensing/administration log (e.g. in-office injectable opioids, ketamine, testosterone, Schedule II-V medications kept on site) for gaps or unreconciled counts. Use this if a discrepancy in a controlled-drug count has ever gone unnoticed for weeks in a human practice instead of being caught same-day — this covers a clinic's own in-office stock, the same DEA-style pattern as jobs/veterinary/controlled-substance-log-audit.yaml but for a human medical/dental practice rather than an animal clinic, so both are kept as separate jobs. Also distinct from jobs/senior-living/controlled-substance-count-discrepancy-check.yaml, which reconciles structured medication-cart count data in a care facility rather than a narrative dispensing/administration log in a clinic.",
       "category": "healthcare",
       "tags": [
         "healthcare",
@@ -10129,7 +10053,7 @@
     },
     {
       "id": "creator-sponsor-exclusivity-conflict-check",
-      "version": 1,
+      "version": 2,
       "name": "Creator Sponsor Category Exclusivity Conflict Check",
       "description": "Checks upcoming sponsored posts across any platform for two sponsors in the same product category running too close together. Use this if you've ever signed a skincare brand for one post and a competing skincare brand for the next, breaking an exclusivity clause neither sponsor should have had to discover on their own.",
       "category": "creator",
@@ -11266,31 +11190,6 @@
       "path": "jobs/moving-relocation/customer-deposit-refund-backlog-check.yaml"
     },
     {
-      "id": "customer-facing-tls-certificate-expiry-check",
-      "version": 1,
-      "name": "Customer-Facing TLS Certificate Expiry Check",
-      "description": "Checks the TLS certificate on every customer-facing endpoint (portal, API, webmail, self-care app) for days remaining until expiry and warns once a threshold is crossed. Use this if a certificate on a customer-facing service has ever expired unnoticed and thrown up browser warnings before anyone on the team saw it coming.",
-      "category": "telecom",
-      "tags": [
-        "telecom",
-        "tls",
-        "certificates",
-        "customer-facing"
-      ],
-      "schedule": "0 8 * * *",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/telecom/customer-facing-tls-certificate-expiry-check.yaml"
-    },
-    {
       "id": "customer-health-score-monitor",
       "version": 1,
       "name": "Customer Health Score Monitor",
@@ -11477,9 +11376,9 @@
     },
     {
       "id": "cve-watch",
-      "version": 1,
+      "version": 2,
       "name": "CVE Watch",
-      "description": "Checks for newly published CVEs affecting packages in your stack. Use this if you want a heads-up on a critical vulnerability before it shows up in a routine dependency audit days later.",
+      "description": "Checks for newly published CVEs affecting packages in your stack. Use this if you want a heads-up on a critical vulnerability before it shows up in a routine dependency audit days later. This is an incremental, new-CVE-only feed checked since the last run — it does not flag stale/outdated packages or do a full sweep; for that, see devops/dependency-audit.",
       "category": "security",
       "tags": [
         "security",
@@ -12662,9 +12561,9 @@
     },
     {
       "id": "dependency-audit",
-      "version": 1,
+      "version": 2,
       "name": "Dependency Vulnerability Audit",
-      "description": "Checks your project's dependencies for known security vulnerabilities and packages that are way out of date, then summarizes what to fix first. Use this if you want a heads-up before something exploitable slips into production.",
+      "description": "Checks your project's dependencies for known security vulnerabilities and packages that are way out of date, then summarizes what to fix first. Use this if you want a heads-up before something exploitable slips into production. This is the full periodic sweep, covering every known vulnerability plus outdated packages, not just newly-published CVEs — for a lightweight daily incremental check on newly-published CVEs only, see security/cve-watch.",
       "category": "devops",
       "tags": [
         "security",
@@ -15121,40 +15020,15 @@
     },
     {
       "id": "end-of-day-shutdown-checklist",
-      "version": 1,
+      "version": 2,
       "name": "End-of-Day Shutdown Checklist",
-      "description": "Pulls together today's unfinished tasks, tomorrow's first meeting, and any unread high-priority messages into a short end-of-day wrap-up so you close out with a clear head instead of work bleeding into the evening. Use this if you tend to keep half-checking things after hours because you never gave the day a deliberate close.",
+      "description": "Pulls together what you actually got done today, today's unfinished tasks, tomorrow's first meeting, and any unread high-priority messages into a short end-of-day wrap-up so you close out with a clear head instead of work bleeding into the evening. Use this if you tend to keep half-checking things after hours because you never gave the day a deliberate close, or close your laptop without a clear sense of what actually happened.",
       "category": "productivity",
       "tags": [
         "shutdown-ritual",
         "end-of-day",
-        "wind-down"
-      ],
-      "schedule": "0 18 * * 1-5",
-      "timezone": "America/Los_Angeles",
-      "runner": "agent-prompt",
-      "modes": [
-        "agent-prompt"
-      ],
-      "compatible_agents": [
-        "claude",
-        "codex",
-        "hermes",
-        "openclaw",
-        "generic"
-      ],
-      "path": "jobs/productivity/end-of-day-shutdown-checklist.yaml"
-    },
-    {
-      "id": "end-of-day-wrap-message",
-      "version": 1,
-      "name": "End-of-Day Wrap Message",
-      "description": "Fires around the end of your work calendar and drafts a short wrap-up: what got done today, what's carrying over to tomorrow. Use this if you close your laptop most days without a clear sense of what actually happened or what's still pending.",
-      "category": "personal",
-      "tags": [
+        "wind-down",
         "reflection",
-        "end-of-day",
-        "productivity",
         "wrap-up"
       ],
       "schedule": "0 18 * * 1-5",
@@ -15170,7 +15044,7 @@
         "openclaw",
         "generic"
       ],
-      "path": "jobs/personal/end-of-day-wrap-message.yaml"
+      "path": "jobs/productivity/end-of-day-shutdown-checklist.yaml"
     },
     {
       "id": "end-of-life-aftercare-followup-tracker",
@@ -15861,32 +15735,6 @@
         "codex"
       ],
       "path": "jobs/agriculture/equipment-maintenance-due-reminder.yaml"
-    },
-    {
-      "id": "equipment-operator-certification-match-check",
-      "version": 1,
-      "name": "Equipment Operator Certification Match Check",
-      "description": "Cross-references the crew scheduled to run heavy equipment tomorrow against each worker's current equipment certifications, and flags any assignment where the scheduled operator isn't certified for that specific machine. Use this if an uncertified worker has ever been put on a crane, forklift, or aerial lift because the scheduler didn't check cert records against the equipment assignment sheet.",
-      "category": "construction",
-      "tags": [
-        "construction",
-        "safety",
-        "certification",
-        "equipment",
-        "crew-assignment"
-      ],
-      "schedule": "0 15 * * 0-4",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/construction/equipment-operator-certification-match-check.yaml"
     },
     {
       "id": "equipment-rental-return-reminder",
@@ -18195,31 +18043,6 @@
       "path": "jobs/petcare/flea-tick-treatment-verification-check.yaml"
     },
     {
-      "id": "fleet-inspection-expiry-check",
-      "version": 1,
-      "name": "Fleet Inspection Expiry Check",
-      "description": "Checks each fleet vehicle's state inspection or emissions sticker expiry date and flags anything expiring soon. Use this if a shop or fleet vehicle has ever gotten pulled over — or failed a customer handoff — because its inspection quietly lapsed.",
-      "category": "automotive",
-      "tags": [
-        "automotive",
-        "fleet",
-        "inspection",
-        "compliance"
-      ],
-      "schedule": "0 8 * * 1",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/automotive/fleet-inspection-expiry-check.yaml"
-    },
-    {
       "id": "fleet-insurance-expiry-check",
       "version": 1,
       "name": "Fleet Insurance Policy Expiry Check",
@@ -18242,31 +18065,6 @@
         "codex"
       ],
       "path": "jobs/fleet/fleet-insurance-expiry-check.yaml"
-    },
-    {
-      "id": "fleet-vehicle-idle-anomaly-check",
-      "version": 1,
-      "name": "Fleet Vehicle GPS Idle-Time Anomaly Check",
-      "description": "Reads exported fleet GPS/telematics logs and flags vehicles with idle time above your threshold for a day, which usually means wasted fuel, a tech running personal errands, or a truck sitting at the wrong job site too long. Use this if fuel costs have ever crept up without a clear explanation and nobody was reviewing the idle-time data to find out why.",
-      "category": "fieldservice",
-      "tags": [
-        "fieldservice",
-        "fleet",
-        "telematics",
-        "idle-time"
-      ],
-      "schedule": "0 6 * * *",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/fieldservice/fleet-vehicle-idle-anomaly-check.yaml"
     },
     {
       "id": "flight-checkin-reminder",
@@ -18569,9 +18367,9 @@
     },
     {
       "id": "foreign-qualification-annual-report-tracker",
-      "version": 1,
+      "version": 2,
       "name": "Foreign Qualification & Annual Report Deadline Tracker",
-      "description": "Warns you before a state annual report or foreign qualification renewal is due, per state, so the entity doesn't fall out of good standing or lose its registered agent coverage. Use this if you've ever discovered a state administrative dissolution or late-filing penalty only after it already happened because nobody was watching the per-state calendar.",
+      "description": "Warns you before a state annual report or foreign qualification renewal is due, per state, so the entity doesn't fall out of good standing or lose its registered agent coverage. Use this if you've ever discovered a state administrative dissolution or late-filing penalty only after it already happened because nobody was watching the per-state calendar. This is specifically for entities registered/qualified in multiple states (entity_name,state,due_date, one row per state); for a single flat list of filings on one entity, use `compliance-filing-deadline-reminder` instead.",
       "category": "legal",
       "tags": [
         "legal",
@@ -20413,9 +20211,9 @@
     },
     {
       "id": "guest-review-response-check",
-      "version": 1,
+      "version": 2,
       "name": "Guest Review Response Check",
-      "description": "Checks for recent guest reviews across your listing platforms that haven't gotten a response yet. Use this if a review has ever sat unanswered for weeks, which future guests read as nobody's paying attention.",
+      "description": "Checks for recent guest reviews across your listing platforms that haven't gotten a response yet and auto-drafts a reply for each one, prioritizing whichever have sat unanswered longest. Use this if a review has ever sat unanswered for weeks, which future guests read as nobody's paying attention.",
       "category": "hospitality",
       "tags": [
         "hospitality",
@@ -22747,15 +22545,17 @@
     },
     {
       "id": "interview-feedback-overdue-check",
-      "version": 1,
+      "version": 2,
       "name": "Interview Feedback Overdue Check",
-      "description": "Flags interviews that happened but still have no feedback submitted, so the decision doesn't stall waiting on one interviewer. Use this if a candidate has ever been left hanging because feedback from one interviewer never showed up and nobody chased it down.",
+      "description": "Flags interviews that happened but still have no feedback/scorecard submitted, so the decision doesn't stall waiting on one interviewer on the hiring loop. Use this if a candidate has ever been left hanging because feedback from one interviewer never showed up and nobody chased it down.",
       "category": "hiring",
       "tags": [
         "hiring",
         "interviews",
         "feedback",
-        "recruiting"
+        "recruiting",
+        "scorecard",
+        "interview-loop"
       ],
       "schedule": "0 9 * * *",
       "timezone": "UTC",
@@ -22798,31 +22598,6 @@
         "generic"
       ],
       "path": "jobs/hiring/interview-feedback-score-divergence-check.yaml"
-    },
-    {
-      "id": "interview-loop-feedback-nag",
-      "version": 1,
-      "name": "Interview Loop Feedback Nag",
-      "description": "Checks which interviewers on a hiring loop haven't submitted their scorecard within a set window after the interview. Use this if a hiring decision has ever stalled because one interviewer's feedback never showed up and nobody chased it down.",
-      "category": "team",
-      "tags": [
-        "team",
-        "hiring",
-        "interviews",
-        "feedback"
-      ],
-      "schedule": "0 9 * * 1-5",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/team/interview-loop-feedback-nag.yaml"
     },
     {
       "id": "interview-no-show-pattern-check",
@@ -22877,31 +22652,6 @@
         "generic"
       ],
       "path": "jobs/hiring/interview-panel-diversity-check.yaml"
-    },
-    {
-      "id": "interview-prep-problem-streak-check",
-      "version": 1,
-      "name": "Technical Interview Practice-Problem Streak Check",
-      "description": "Checks whether you've logged a technical interview practice problem (LeetCode-style, system design, etc.) recently, to keep an active streak before interview season creeps up. Use this if you tell yourself you'll \"grind problems\" and then don't touch it for three weeks.",
-      "category": "learning",
-      "tags": [
-        "learning",
-        "interview-prep",
-        "streak",
-        "career"
-      ],
-      "schedule": "0 19 * * *",
-      "timezone": "America/Los_Angeles",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/learning/interview-prep-problem-streak-check.yaml"
     },
     {
       "id": "interviewer-certification-check",
@@ -23212,9 +22962,9 @@
     },
     {
       "id": "irrigation-schedule-check",
-      "version": 1,
+      "version": 2,
       "name": "Irrigation Need Check",
-      "description": "Checks recent rainfall and forecast against a soil-moisture threshold to tell you whether irrigation is actually needed today. Use this if you've ever watered on a fixed schedule and either wasted water after rain or under-watered during a dry stretch.",
+      "description": "Checks recent rainfall and forecast against a soil-moisture threshold to tell you whether irrigation is actually needed today. Use this if you've ever watered on a fixed schedule and either wasted water after rain or under-watered during a dry stretch. Use this if you don't have soil sensors installed — see soil-moisture-sensor-threshold-alert for a sensor-based alternative.",
       "category": "agriculture",
       "tags": [
         "irrigation",
@@ -27168,7 +26918,7 @@
     },
     {
       "id": "membership-unused-session-expiry-check",
-      "version": 1,
+      "version": 2,
       "name": "Membership/Package Unused-Session Expiry Check",
       "description": "Flags members or package holders whose prepaid sessions or membership credits are about to expire unused. Use this if a client has ever paid for a monthly facial membership, banked three unused visits, and let them evaporate because nobody reminded them to book.",
       "category": "spa",
@@ -29928,16 +29678,19 @@
     },
     {
       "id": "operator-certification-equipment-match-check",
-      "version": 1,
+      "version": 2,
       "name": "Operator Certification-to-Equipment Match Check",
-      "description": "Cross-checks today's shift roster against operator equipment certifications and flags anyone assigned to a machine they aren't certified to run. Use this if an uncertified operator has ever ended up running a press or forklift because the scheduler didn't know their certification had lapsed.",
+      "description": "Cross-checks the shift roster or crew assignment sheet against operator equipment certifications and flags anyone assigned to a machine they aren't certified to run. Use this if an uncertified operator or crew member has ever ended up running a press, forklift, crane, or aerial lift because the scheduler didn't know their certification had lapsed or didn't check cert records against the equipment assignment sheet.",
       "category": "manufacturing",
       "tags": [
         "manufacturing",
+        "construction",
         "safety",
         "training",
         "certification",
-        "compliance"
+        "compliance",
+        "equipment",
+        "crew-assignment"
       ],
       "schedule": "0 5 * * 1-5",
       "timezone": "UTC",
@@ -33711,15 +33464,17 @@
     },
     {
       "id": "practice-streak-check",
-      "version": 1,
+      "version": 2,
       "name": "Skill Practice Streak Check",
-      "description": "Checks a practice log file for a skill you're building (language, instrument, coding kata) and warns if too many days have passed since the last logged session. Use this if a daily practice habit has ever quietly lapsed without you noticing until weeks had gone by.",
+      "description": "Checks a practice log file for a skill you're building (language, instrument, coding kata, technical interview practice problems) and warns if too many days have passed since the last logged session. Use this if a daily practice habit has ever quietly lapsed without you noticing until weeks had gone by. Generic and log-format agnostic — point log_file_path at any file with one dated entry per line (plain date, or a CSV with the date as the first column).",
       "category": "learning",
       "tags": [
         "learning",
         "practice",
         "streak",
-        "habit"
+        "habit",
+        "coding",
+        "interview-prep"
       ],
       "schedule": "0 20 * * *",
       "timezone": "America/Los_Angeles",
@@ -35564,41 +35319,17 @@
       "path": "jobs/veterinary/puppy-kitten-vaccine-series-compliance-check.yaml"
     },
     {
-      "id": "purchase-order-overdue-check",
-      "version": 1,
-      "name": "Purchase Order Overdue Check",
-      "description": "Checks open purchase orders to suppliers against their expected delivery date and flags anything that hasn't arrived on time. Use this if a supplier has ever gone quiet on a PO and you only found out stock wasn't coming when you were already out of the item.",
-      "category": "ecommerce",
-      "tags": [
-        "ecommerce",
-        "purchase-orders",
-        "suppliers",
-        "inventory"
-      ],
-      "schedule": "0 7 * * *",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/ecommerce/purchase-order-overdue-check.yaml"
-    },
-    {
       "id": "purchase-order-receiving-delay-check",
-      "version": 1,
+      "version": 2,
       "name": "Purchase Order Receiving Delay Check",
-      "description": "Checks open purchase orders against their expected delivery date and flags any that are overdue and not yet marked received. Use this if stock has ever run out because a purchase order was quietly late and nobody chased the supplier until shelves were already empty.",
+      "description": "Checks open purchase orders to suppliers against their expected delivery date and flags any that are overdue and not yet marked received. Use this if stock has ever run out — or a supplier has ever gone quiet on a PO — because a purchase order was quietly late and nobody chased it until shelves were already empty.",
       "category": "inventory",
       "tags": [
         "inventory",
         "purchase-orders",
         "receiving",
-        "suppliers"
+        "suppliers",
+        "ecommerce"
       ],
       "schedule": "0 7 * * 1-5",
       "timezone": "UTC",
@@ -38553,7 +38284,7 @@
     },
     {
       "id": "safety-equipment-inspection-check",
-      "version": 1,
+      "version": 2,
       "name": "Safety Equipment Inspection Check",
       "description": "Checks safety equipment (AEDs, fire extinguishers, first-aid kits) against their required inspection or expiry dates and flags anything overdue. Use this if an AED battery or first-aid kit has ever quietly expired without anyone noticing until an emergency made it obvious — distinct from the daily cleaning log, this tracks periodic safety-compliance inspections rather than day-to-day tidiness tasks.",
       "category": "fitness",
@@ -40977,9 +40708,9 @@
     },
     {
       "id": "soil-moisture-sensor-threshold-alert",
-      "version": 1,
+      "version": 2,
       "name": "Soil Moisture Sensor Threshold Alert",
-      "description": "Reads current soil moisture sensor readings per field/zone and alerts when any zone drops below a dry threshold or rises above a saturated threshold. Use this if you have in-field moisture probes or telemetry and want an automatic alert instead of checking the dashboard yourself every day.",
+      "description": "Reads current soil moisture sensor readings per field/zone and alerts when any zone drops below a dry threshold or rises above a saturated threshold. Use this if you have in-field moisture probes or telemetry and want an automatic alert instead of checking the dashboard yourself every day. If you don't have soil sensors installed, see irrigation-schedule-check for a rainfall/forecast-based alternative.",
       "category": "agriculture",
       "tags": [
         "agriculture",
@@ -41336,57 +41067,8 @@
       "path": "jobs/events/sponsor-deliverable-fulfillment-tracker.yaml"
     },
     {
-      "id": "sponsor-deliverable-tracker",
-      "version": 1,
-      "name": "Podcast Sponsor Deliverable Tracker",
-      "description": "Flags sponsor deliverables (read, mention, social post) coming due. Use this if you've ever had a sponsor follow up asking where their promised mention was.",
-      "category": "podcast",
-      "tags": [
-        "podcast",
-        "sponsorship",
-        "deliverables"
-      ],
-      "schedule": "0 9 * * 1",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/podcast/sponsor-deliverable-tracker.yaml"
-    },
-    {
-      "id": "sponsor-exclusivity-conflict-check",
-      "version": 1,
-      "name": "Podcast Sponsor Category Exclusivity Conflict Check",
-      "description": "Checks upcoming sponsor bookings for two sponsors in the same product category airing too close together. Use this if you've ever signed a mattress company for one episode and a competing mattress company for the next, breaking an exclusivity clause neither sponsor should have had to discover on their own.",
-      "category": "podcast",
-      "tags": [
-        "podcast",
-        "sponsorship",
-        "contracts",
-        "compliance"
-      ],
-      "schedule": "0 9 * * 2",
-      "timezone": "UTC",
-      "runner": "shell",
-      "modes": [
-        "script"
-      ],
-      "compatible_agents": [
-        "generic",
-        "claude",
-        "codex"
-      ],
-      "path": "jobs/podcast/sponsor-exclusivity-conflict-check.yaml"
-    },
-    {
       "id": "sponsorship-deliverable-tracker",
-      "version": 1,
+      "version": 2,
       "name": "Sponsorship Deliverable Tracker",
       "description": "Flags brand-deal deliverables (a video, post, story, or link placement) coming due across whatever platforms you post on. Use this if a sponsor has ever had to ask where their promised content was because the deadline only lived in an email thread from weeks ago.",
       "category": "creator",
@@ -41542,9 +41224,9 @@
     },
     {
       "id": "ssl-cert-expiry-check",
-      "version": 1,
+      "version": 2,
       "name": "SSL Certificate Expiry Check",
-      "description": "Checks how many days are left before a website's SSL certificate expires. Use this if you run a site and want a warning before the padlock breaks and visitors start seeing browser security errors.",
+      "description": "Checks how many days are left before a website's SSL certificate expires. Use this if you run a site and want a warning before the padlock breaks and visitors start seeing browser security errors. Works for any single TLS-terminated host — e.g. a set of customer-facing endpoints such as a portal, API, webmail, or self-care app can each be checked by running this job once per hostname (or by wrapping it in a small loop over that list) rather than needing a separate job per service type.",
       "category": "devops",
       "tags": [
         "ssl",
@@ -45490,7 +45172,7 @@
     },
     {
       "id": "trainer-session-package-expiry-check",
-      "version": 1,
+      "version": 2,
       "name": "Trainer Session Package Expiry Check",
       "description": "Flags members with a paid personal-training session package that's expiring soon with sessions still unused. Use this if a client has ever paid for ten sessions, used three, and let the rest expire because nobody nudged them to book before the window closed.",
       "category": "fitness",
@@ -47046,15 +46728,16 @@
     },
     {
       "id": "vehicle-idle-time-check",
-      "version": 1,
+      "version": 2,
       "name": "Vehicle Idle Time Check",
-      "description": "Checks each vehicle's daily engine idle time against a threshold and flags the ones burning excess fuel sitting still. Use this if a telematics report has ever shown a surprise fuel bill and nobody could tell how much of it came from vehicles just left running.",
+      "description": "Checks each vehicle's daily engine idle time against a threshold and flags the ones burning excess fuel sitting still. Use this if a telematics report has ever shown a surprise fuel bill and nobody could tell how much of it came from vehicles just left running. Excess idle can also mean a tech running personal errands or a truck sitting at the wrong job site too long, so this is useful for field-service fleets as well as general fleet operations.",
       "category": "fleet",
       "tags": [
         "fleet",
         "fuel",
         "idling",
-        "telematics"
+        "telematics",
+        "fieldservice"
       ],
       "schedule": "0 7 * * *",
       "timezone": "UTC",
@@ -47071,12 +46754,13 @@
     },
     {
       "id": "vehicle-inspection-due-check",
-      "version": 1,
+      "version": 2,
       "name": "Vehicle State/DOT Inspection Due Check",
-      "description": "Checks fleet vehicles against their state or DOT inspection due dates and warns before any lapse. Use this if a vehicle has ever gotten pulled off a job by an inspector because its inspection sticker quietly expired — separate from routine maintenance or registration renewal.",
+      "description": "Checks fleet vehicles against their state or DOT inspection due dates and warns before any lapse. Use this if a vehicle has ever gotten pulled off a job by an inspector because its inspection sticker quietly expired — separate from routine maintenance or registration renewal. Also applies to dealership or repair-shop fleets: a lapsed inspection or emissions sticker on a shop or loaner vehicle can fail a customer handoff just as easily as it can fail a roadside stop.",
       "category": "fleet",
       "tags": [
         "fleet",
+        "automotive",
         "inspection",
         "dot",
         "compliance"
@@ -48036,7 +47720,7 @@
     },
     {
       "id": "waitlist-conversion-outreach",
-      "version": 1,
+      "version": 2,
       "name": "Waitlist-to-Confirmed Conversion Outreach",
       "description": "Drafts outreach to people on an event waitlist when spots open up from cancellations, so seats don't sit empty while people who wanted in never find out. Use this if an event has ever had a waitlist and empty seats at the same time because nobody got around to reaching out.",
       "category": "events",
@@ -49196,37 +48880,8 @@
       "path": "jobs/automotive/wheel-alignment-calibration-due-check.yaml"
     },
     {
-      "id": "whistleblower-complaint-sla-check",
-      "version": 1,
-      "name": "Whistleblower/Ethics Complaint SLA Check",
-      "description": "Checks open whistleblower or ethics hotline complaints against your internal acknowledgment and investigation SLA, prioritizes them by severity, and drafts a status note for the compliance officer. Use this if a whistleblower complaint has ever sat unacknowledged past your own policy's response window because it wasn't visible outside one investigator's queue.",
-      "category": "government",
-      "tags": [
-        "government",
-        "whistleblower",
-        "ethics",
-        "complaints",
-        "sla",
-        "compliance"
-      ],
-      "schedule": "0 9 * * 1",
-      "timezone": "UTC",
-      "runner": "agent-prompt",
-      "modes": [
-        "agent-prompt"
-      ],
-      "compatible_agents": [
-        "claude",
-        "codex",
-        "hermes",
-        "openclaw",
-        "generic"
-      ],
-      "path": "jobs/government/whistleblower-complaint-sla-check.yaml"
-    },
-    {
       "id": "whistleblower-hotline-report-followup-tracker",
-      "version": 1,
+      "version": 2,
       "name": "Whistleblower Hotline Report Follow-Up Tracker",
       "description": "Checks open whistleblower or ethics hotline reports for ones nearing their internal investigation follow-up deadline and drafts a status summary for compliance, so a report doesn't stall without a documented next step. Use this if an ethics hotline report has ever sat open for weeks without any visible follow-up because tracking lived only in someone's inbox.",
       "category": "legal",
@@ -49235,7 +48890,8 @@
         "compliance",
         "ethics-hotline",
         "whistleblower",
-        "investigations"
+        "investigations",
+        "sla"
       ],
       "schedule": "0 8 * * 1",
       "timezone": "UTC",

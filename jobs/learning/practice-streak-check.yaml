@@ -1,20 +1,24 @@
 id: practice-streak-check
-version: 1
+version: 2
 name: Skill Practice Streak Check
 description: >
   Checks a practice log file for a skill you're building (language,
-  instrument, coding kata) and warns if too many days have passed since
-  the last logged session. Use this if a daily practice habit has ever
-  quietly lapsed without you noticing until weeks had gone by.
+  instrument, coding kata, technical interview practice problems) and
+  warns if too many days have passed since the last logged session.
+  Use this if a daily practice habit has ever quietly lapsed without you
+  noticing until weeks had gone by. Generic and log-format agnostic —
+  point log_file_path at any file with one dated entry per line
+  (plain date, or a CSV with the date as the first column).
 category: learning
-tags: [learning, practice, streak, habit]
+tags: [learning, practice, streak, habit, coding, interview-prep]
 schedule: "0 20 * * *"
 timezone: "America/Los_Angeles"
 runner: shell
 command: >
   last_line=$(tail -n1 "{{log_file_path}}" 2>/dev/null);
   if [ -z "$last_line" ]; then echo "WARNING: no practice sessions logged yet in {{log_file_path}}"; exit 1; fi;
-  last_ts=$(date -d "$last_line" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_line" +%s);
+  last_date=$(echo "$last_line" | cut -d',' -f1);
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null || date -jf "%Y-%m-%d" "$last_date" +%s);
   now_ts=$(date +%s);
   days_since=$(( (now_ts - last_ts) / 86400 ));
   if [ "$days_since" -ge "{{max_gap_days}}" ]; then echo "WARNING: no {{skill_name}} practice logged in $days_since days"; exit 1;
@@ -22,7 +26,7 @@ command: >
 variables:
   log_file_path:
     default: "./practice-log.txt"
-    description: "Path to a text file with one YYYY-MM-DD line per practice session, newest last."
+    description: "Path to a log file with one entry per practice session, newest last — either a plain YYYY-MM-DD line, or a CSV with the date as the first column."
   skill_name:
     default: "your skill"
     description: Name of the skill being tracked, for labeling output.

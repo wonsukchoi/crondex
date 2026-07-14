@@ -1,10 +1,14 @@
 id: ssl-cert-expiry-check
-version: 1
+version: 2
 name: SSL Certificate Expiry Check
 description: >
   Checks how many days are left before a website's SSL certificate expires.
   Use this if you run a site and want a warning before the padlock breaks
-  and visitors start seeing browser security errors.
+  and visitors start seeing browser security errors. Works for any single
+  TLS-terminated host — e.g. a set of customer-facing endpoints such as a
+  portal, API, webmail, or self-care app can each be checked by running
+  this job once per hostname (or by wrapping it in a small loop over that
+  list) rather than needing a separate job per service type.
 category: devops
 tags: [ssl, tls, security, uptime]
 schedule: "0 6 * * *"
@@ -30,4 +34,8 @@ variables:
     default: 14
     description: Alert if the cert expires within this many days.
 compatible_agents: [generic, claude, codex]
-notes: Zero-token, deterministic — no LLM mode needed for a plain expiry check.
+notes: >
+  Zero-token, deterministic — no LLM mode needed for a plain expiry check.
+  For monitoring a fixed group of customer-facing endpoints (portal, API,
+  webmail, self-care app, etc.), run one instance of this job per hostname
+  or invoke it in a loop over that list of hosts.

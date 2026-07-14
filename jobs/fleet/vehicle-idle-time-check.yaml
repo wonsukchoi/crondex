@@ -1,13 +1,16 @@
 id: vehicle-idle-time-check
-version: 1
+version: 2
 name: Vehicle Idle Time Check
 description: >
   Checks each vehicle's daily engine idle time against a threshold and
   flags the ones burning excess fuel sitting still. Use this if a
   telematics report has ever shown a surprise fuel bill and nobody could
-  tell how much of it came from vehicles just left running.
+  tell how much of it came from vehicles just left running. Excess idle
+  can also mean a tech running personal errands or a truck sitting at the
+  wrong job site too long, so this is useful for field-service fleets as
+  well as general fleet operations.
 category: fleet
-tags: [fleet, fuel, idling, telematics]
+tags: [fleet, fuel, idling, telematics, fieldservice]
 schedule: "0 7 * * *"
 timezone: "UTC"
 runner: shell
@@ -23,9 +26,9 @@ command: >
 variables:
   idle_report_csv_path:
     default: "./vehicle-idle-report.csv"
-    description: "Path to a daily telematics export CSV with columns: vehicle_id,report_date (YYYY-MM-DD),idle_minutes."
+    description: "Path to a daily telematics export CSV with columns: vehicle_id,report_date (YYYY-MM-DD),idle_minutes. Some providers also include a tech_name/driver column, which is fine — extra columns are ignored."
   max_idle_minutes:
     default: 60
     description: Maximum idle minutes per day before a vehicle is flagged for excess idling.
 compatible_agents: [generic, claude, codex]
-notes: Requires a telematics/GPS provider that exports a daily idle-minutes-per-vehicle report to CSV; format varies by provider so you may need to reshape the export first.
+notes: Requires a telematics/GPS provider that exports a daily idle-minutes-per-vehicle report to CSV; format varies by provider so you may need to reshape the export first. This flags outliers only — confirm with dispatch or GPS map history before assuming misuse, since long idle can also mean a legitimate long job.

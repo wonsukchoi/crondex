@@ -1,13 +1,14 @@
 id: purchase-order-receiving-delay-check
-version: 1
+version: 2
 name: Purchase Order Receiving Delay Check
 description: >
-  Checks open purchase orders against their expected delivery date and
-  flags any that are overdue and not yet marked received. Use this if
-  stock has ever run out because a purchase order was quietly late and
-  nobody chased the supplier until shelves were already empty.
+  Checks open purchase orders to suppliers against their expected
+  delivery date and flags any that are overdue and not yet marked
+  received. Use this if stock has ever run out — or a supplier has ever
+  gone quiet on a PO — because a purchase order was quietly late and
+  nobody chased it until shelves were already empty.
 category: inventory
-tags: [inventory, purchase-orders, receiving, suppliers]
+tags: [inventory, purchase-orders, receiving, suppliers, ecommerce]
 schedule: "0 7 * * 1-5"
 timezone: "UTC"
 runner: shell
@@ -30,4 +31,4 @@ variables:
     default: "./purchase-orders.csv"
     description: "Path to a CSV with columns: po_number,supplier_name,order_date (YYYY-MM-DD),expected_delivery_date (YYYY-MM-DD),received_date (blank if not yet received)."
 compatible_agents: [generic, claude, codex]
-notes: Assumes a maintained CSV export from your procurement/inventory system; distinct from supplier-lead-time-drift-check, which tracks aggregate lead-time trends rather than individual overdue POs.
+notes: Assumes a maintained CSV export from your procurement/inventory system; distinct from supplier-lead-time-drift-check (tracks aggregate lead-time trends rather than individual overdue POs), low-stock-reorder-alert in ecommerce (decides when to place an order) and shipping-delay-check in ecommerce (tracks outbound orders to customers) — this tracks inbound supplier orders after they've already been placed.

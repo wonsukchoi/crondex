@@ -1,14 +1,15 @@
 id: operator-certification-equipment-match-check
-version: 1
+version: 2
 name: Operator Certification-to-Equipment Match Check
 description: >
-  Cross-checks today's shift roster against operator equipment
-  certifications and flags anyone assigned to a machine they aren't
-  certified to run. Use this if an uncertified operator has ever ended
-  up running a press or forklift because the scheduler didn't know
-  their certification had lapsed.
+  Cross-checks the shift roster or crew assignment sheet against operator
+  equipment certifications and flags anyone assigned to a machine they
+  aren't certified to run. Use this if an uncertified operator or crew
+  member has ever ended up running a press, forklift, crane, or aerial
+  lift because the scheduler didn't know their certification had lapsed
+  or didn't check cert records against the equipment assignment sheet.
 category: manufacturing
-tags: [manufacturing, safety, training, certification, compliance]
+tags: [manufacturing, construction, safety, training, certification, compliance, equipment, crew-assignment]
 schedule: "0 5 * * 1-5"
 timezone: "UTC"
 runner: shell
@@ -33,4 +34,4 @@ variables:
     default: "./shift-assignments.csv"
     description: "CSV with header row, columns: operator_id,equipment_type,shift_date."
 compatible_agents: [generic, claude, codex]
-notes: Refresh both CSVs from the LMS/training record and the day's scheduling board before each run — this is a safety gate, review flagged assignments before the shift starts.
+notes: Refresh both CSVs from the LMS/training record and the day's scheduling board before each run — this is a safety gate, review flagged assignments before the shift starts. Applies equally to construction crews being assigned to cranes, forklifts, or aerial lifts, not just factory-floor equipment. Distinct from crew-safety-cert-expiry-check — that job watches certs approaching expiry in isolation; this one cross-checks actual equipment assignments against who's certified for that specific machine type.

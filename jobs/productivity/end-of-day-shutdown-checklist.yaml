@@ -1,29 +1,42 @@
 id: end-of-day-shutdown-checklist
-version: 1
+version: 2
 name: End-of-Day Shutdown Checklist
 description: >
-  Pulls together today's unfinished tasks, tomorrow's first meeting, and
-  any unread high-priority messages into a short end-of-day wrap-up so
-  you close out with a clear head instead of work bleeding into the
-  evening. Use this if you tend to keep half-checking things after
-  hours because you never gave the day a deliberate close.
+  Pulls together what you actually got done today, today's unfinished
+  tasks, tomorrow's first meeting, and any unread high-priority messages
+  into a short end-of-day wrap-up so you close out with a clear head
+  instead of work bleeding into the evening. Use this if you tend to
+  keep half-checking things after hours because you never gave the day
+  a deliberate close, or close your laptop without a clear sense of
+  what actually happened.
 category: productivity
-tags: [shutdown-ritual, end-of-day, wind-down]
+tags: [shutdown-ritual, end-of-day, wind-down, reflection, wrap-up]
 schedule: "0 18 * * 1-5"
 timezone: "America/Los_Angeles"
 runner: agent-prompt
 prompt: |
   Build my end-of-day shutdown checklist.
-  1. List tasks still open in {{task_source}} that were due today or
+  1. Look at today's completed calendar events, closed tasks/tickets,
+     and commits (whatever of {{activity_sources}} is available) over
+     the last {{lookback_hours}} hours, and summarize in 2-3 bullets
+     what got meaningfully done today.
+  2. List tasks still open in {{task_source}} that were due today or
      marked as today's focus.
-  2. Show tomorrow's first calendar event and its start time from
+  3. Show tomorrow's first calendar event and its start time from
      {{calendar_source}}, so I know what to prep before I log off.
-  3. Flag any unread high-priority messages from {{inbox_source}} that
+  4. Flag any unread high-priority messages from {{inbox_source}} that
      need a same-day reply.
-  4. Close with one line: either "clear to log off" or a short list of
-     the 1-3 things that genuinely can't wait until tomorrow.
+  5. Close with one line: either "clear to log off" or a short list of
+     the 1-3 things that genuinely can't wait until tomorrow. No forced
+     positivity — just an honest close.
   Keep the whole checklist under {{max_words}} words.
 variables:
+  activity_sources:
+    default: "your calendar, task tracker, and git commits"
+    description: Comma-separated list of sources to check for today's completed activity.
+  lookback_hours:
+    default: 10
+    description: Rough length of the workday to look back over for completed activity.
   task_source:
     default: "task tracker"
     description: Which task tracker/connector to pull today's open tasks from.
@@ -40,4 +53,6 @@ compatible_agents: [claude, codex, hermes, openclaw, generic]
 notes: >
   Read-only summary; does not close tasks or send replies itself. No
   script mode: judging what "genuinely can't wait" means requires
-  synthesis across sources, not a fixed filter.
+  synthesis across sources, not a fixed filter. Schedule this against
+  your actual calendar end time, not a fixed hour, if your agent can
+  read "last event ends at" dynamically.

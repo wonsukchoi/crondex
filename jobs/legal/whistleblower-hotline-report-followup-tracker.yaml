@@ -1,5 +1,5 @@
 id: whistleblower-hotline-report-followup-tracker
-version: 1
+version: 2
 name: Whistleblower Hotline Report Follow-Up Tracker
 description: >
   Checks open whistleblower or ethics hotline reports for ones nearing
@@ -9,7 +9,7 @@ description: >
   weeks without any visible follow-up because tracking lived only in
   someone's inbox.
 category: legal
-tags: [legal, compliance, ethics-hotline, whistleblower, investigations]
+tags: [legal, compliance, ethics-hotline, whistleblower, investigations, sla]
 schedule: "0 8 * * 1"
 timezone: "UTC"
 runner: hybrid
@@ -58,3 +58,17 @@ notes: >
   is a deadline-tracking aid only and should never be used to circulate
   reporter-identifying information beyond those with a legitimate need to
   know.
+context: >
+  Written from a general/private-sector hotline-intake angle (single
+  "follow_up_due_date" per report), but the same shell-plus-prompt pattern
+  applies to public-sector/government ethics complaint offices, which
+  more often track two separate SLA clocks instead of one follow-up date:
+  an acknowledgment SLA (e.g. 5 days to confirm receipt) and a longer
+  investigation SLA (e.g. 45 days to reach a decision). If your intake
+  system tracks both stages separately, add acknowledgment_sla_days and
+  investigation_sla_days variables and flag breaches of either clock,
+  rather than a single follow_up_due_date column; case output should
+  still be limited to case ID, days-since-intake/days-to-deadline, and
+  stage — never complainant-identifying detail — and routed only to the
+  compliance officer, consistent with this job's existing confidentiality
+  handling.

@@ -1,13 +1,14 @@
 id: interview-feedback-overdue-check
-version: 1
+version: 2
 name: Interview Feedback Overdue Check
 description: >
-  Flags interviews that happened but still have no feedback submitted, so
-  the decision doesn't stall waiting on one interviewer. Use this if a
-  candidate has ever been left hanging because feedback from one
-  interviewer never showed up and nobody chased it down.
+  Flags interviews that happened but still have no feedback/scorecard
+  submitted, so the decision doesn't stall waiting on one interviewer on
+  the hiring loop. Use this if a candidate has ever been left hanging
+  because feedback from one interviewer never showed up and nobody
+  chased it down.
 category: hiring
-tags: [hiring, interviews, feedback, recruiting]
+tags: [hiring, interviews, feedback, recruiting, scorecard, interview-loop]
 schedule: "0 9 * * *"
 timezone: "UTC"
 runner: agent-prompt
@@ -30,4 +31,10 @@ variables:
     default: 24
     description: Hours after an interview before a missing scorecard counts as urgent.
 compatible_agents: [claude, codex, hermes, openclaw, generic]
-notes: Draft-only — nudge messages should go out through whatever channel your team already uses for interviewer reminders.
+notes: >
+  Draft-only — nudge messages should go out through whatever channel your
+  team already uses for interviewer reminders. If your team tracks the
+  hiring loop via a maintained CSV/spreadsheet export instead of live ATS
+  access, point {{ats_system}} at that export and adapt the prompt to
+  parse it; this replaces the earlier shell/awk-based CSV variant of this
+  check.

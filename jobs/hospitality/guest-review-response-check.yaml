@@ -1,11 +1,12 @@
 id: guest-review-response-check
-version: 1
+version: 2
 name: Guest Review Response Check
 description: >
   Checks for recent guest reviews across your listing platforms that
-  haven't gotten a response yet. Use this if a review has ever sat
-  unanswered for weeks, which future guests read as nobody's paying
-  attention.
+  haven't gotten a response yet and auto-drafts a reply for each one,
+  prioritizing whichever have sat unanswered longest. Use this if a
+  review has ever sat unanswered for weeks, which future guests read as
+  nobody's paying attention.
 category: hospitality
 tags: [hospitality, reviews, guest-experience, reputation]
 schedule: "0 9 * * *"
@@ -14,13 +15,16 @@ runner: agent-prompt
 prompt: |
   Check {{review_platforms}} for reviews posted in the last
   {{lookback_hours}} hours with no owner/manager response yet.
-  1. List each: platform, rating, and a one-line summary of the review.
+  1. List each: platform, rating, days unanswered, and a one-line summary
+     of the review. Order the list with the longest-unanswered reviews
+     first — those are the most urgent.
   2. Draft a short, specific response per review (not a copy-paste
      template) — thank them and reference something specific from their
      stay if mentioned.
   3. Flag any review below {{alert_threshold_stars}} stars as needing a
-     more careful, service-recovery-style response rather than a quick
-     thank-you.
+     more careful, service-recovery-style response: acknowledge the
+     specific complaint and offer to make it right offline rather than
+     arguing in public.
 variables:
   review_platforms:
     default: "Google, TripAdvisor, Booking.com"

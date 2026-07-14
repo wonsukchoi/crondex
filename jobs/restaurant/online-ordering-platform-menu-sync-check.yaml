@@ -1,0 +1,28 @@
+id: online-ordering-platform-menu-sync-check
+version: 1
+name: Online Ordering Platform Menu Sync Check
+description: >
+  Checks that your online ordering menu (website or delivery app) is
+  reachable and pings back a normal response, catching silent outages
+  or sync failures. Use this if a menu page has ever gone down or
+  frozen out of sync without anyone noticing until an order failed.
+category: restaurant
+tags: [restaurant, online-ordering, menu-sync, uptime]
+schedule: "*/30 * * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  url="{{ordering_menu_url}}";
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url");
+  if [ "$code" = "200" ]; then
+    echo "OK: online ordering menu at $url responded 200";
+  else
+    echo "ALERT: online ordering menu at $url responded $code (expected 200)";
+    exit 1;
+  fi
+variables:
+  ordering_menu_url:
+    default: "https://example.com/order"
+    description: URL of your live online ordering menu page or platform API health endpoint to check.
+compatible_agents: [generic, claude, codex]
+notes: A 200 response only confirms the page loads, not that every item and price synced correctly — pair this with a periodic manual spot-check of item availability and pricing.

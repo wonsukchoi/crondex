@@ -1,0 +1,37 @@
+id: job-estimate-accuracy-variance-check
+version: 1
+name: Job Estimate Accuracy Variance Check
+description: >
+  Compares quoted labor hours against actual logged hours per job (not
+  cost, just time) to find where estimators are consistently
+  under-scoping or over-scoping jobs. Use this if your schedule has ever
+  been thrown off because a job "quoted at 2 hours" routinely runs 4,
+  and nobody had the data to recalibrate the estimating process.
+category: fieldservice
+tags: [fieldservice, estimating, scheduling, accuracy]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{variance_threshold_pct}}" '
+    NR==1 {next}
+    $6 == "completed" {
+      est_hrs = $4 + 0; actual_hrs = $5 + 0;
+      if (est_hrs > 0) {
+        pct_var = 100 * (actual_hrs - est_hrs) / est_hrs;
+        abs_var = pct_var; if (abs_var < 0) { abs_var = -abs_var }
+        if (abs_var >= threshold) {
+          printf "ESTIMATE VARIANCE: job %s (%s, estimator %s) — quoted %.1fh, actual %.1fh (%.1f%% variance)\n", $1, $2, $3, est_hrs, actual_hrs, pct_var;
+        }
+      }
+    }
+  ' "{{job_estimates_csv_path}}"
+variables:
+  job_estimates_csv_path:
+    default: "./job-estimates.csv"
+    description: "Path to a CSV with columns: job_id,job_type,estimator_name,estimated_hours,actual_hours,status (completed/in-progress)."
+  variance_threshold_pct:
+    default: 25
+    description: Absolute percentage variance between estimated and actual hours at which a job is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Feed flagged jobs back to whoever builds estimates to recalibrate — this job only surfaces the pattern, it doesn't adjust estimates itself.

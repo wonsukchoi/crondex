@@ -1,0 +1,33 @@
+id: delivery-driver-wait-time-complaint-tracker
+version: 1
+name: Delivery Driver Wait Time Complaint Tracker
+description: >
+  Summarizes third-party delivery driver wait times and any "order was
+  cold" style complaints from platform feedback to spot patterns by
+  daypart or platform. Use this if you've ever suspected slow handoffs
+  during a rush were quietly costing you delivery ratings and never
+  had the data pulled together to check.
+category: restaurant
+tags: [restaurant, delivery, driver-wait-time, third-party, customer-feedback]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Review the delivery driver wait-time and order-quality complaint log at
+  {{delivery_complaints_path}} for the past week. Summarize: (1) average
+  and worst driver wait times by daypart (breakfast/lunch/dinner/late-night),
+  flagging any daypart averaging above {{wait_time_alert_minutes}} minutes;
+  (2) the count and share of orders with "cold food" or "wrong temperature"
+  style complaints, broken out by delivery platform if the data allows it;
+  (3) any recurring pattern (specific day of week, menu item, or platform)
+  worth flagging to the kitchen or front-of-house team. Keep the summary
+  to a few bullet points a manager could read in under a minute.
+variables:
+  delivery_complaints_path:
+    default: "./delivery-driver-wait-log.csv"
+    description: Path to the delivery driver wait-time and complaint export, one row per order with timestamp, platform, wait minutes, and any complaint notes.
+  wait_time_alert_minutes:
+    default: 10
+    description: Average wait time in minutes above which a daypart should be flagged as a problem.
+compatible_agents: [claude, codex]
+notes: Most delivery platforms expose driver wait time and complaint tags in their merchant dashboard export — pull that into the CSV before running.

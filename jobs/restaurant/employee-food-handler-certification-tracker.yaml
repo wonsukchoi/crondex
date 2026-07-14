@@ -1,0 +1,35 @@
+id: employee-food-handler-certification-tracker
+version: 1
+name: Employee Food Handler Certification Tracker
+description: >
+  Checks each individual employee's food handler certification expiry
+  date and flags anyone whose card is expired or about to expire. Use
+  this if you've ever found out an employee's certification lapsed only
+  during a health inspection, distinct from tracking the business-level
+  permit itself.
+category: restaurant
+tags: [restaurant, food-handler, certification, employees, compliance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      daysleft = (expsec - nowsec) / 86400;
+      if (daysleft <= warndays) printf "CERT EXPIRING: %s cert expires %s, %d day(s) left\n", $1, $2, daysleft;
+    }
+  ' "{{employee_cert_csv}}"
+variables:
+  employee_cert_csv:
+    default: "./employee-food-handler-certs.csv"
+    description: "CSV with header row, columns: employee_name,cert_expiry_date."
+  warn_days_before_expiry:
+    default: 21
+    description: Start warning this many days before an employee's certification expires.
+compatible_agents: [generic, claude, codex]
+notes: This is distinct from the business-level food handler permit tracker — this one checks individual employee certification cards, which most jurisdictions require per person, not per establishment.

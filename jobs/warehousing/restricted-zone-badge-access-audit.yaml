@@ -1,0 +1,34 @@
+id: restricted-zone-badge-access-audit
+version: 1
+name: Restricted Zone Badge Access Audit
+description: >
+  Cross-checks badge access log entries into restricted warehouse zones
+  (high-value cage, hazmat room, server closet) against the current
+  authorized-personnel list and flags any entry by someone not on it.
+  Use this if a restricted area has ever been entered by someone whose
+  access should have expired or was never granted in the first place.
+category: warehousing
+tags: [warehousing, security, badge-access, restricted-zone, audit]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR { if (FNR>1) authorized[$1","$2]=1; next }
+    FNR==1 { next }
+    {
+      key = $2","$3;
+      if (!(key in authorized)) {
+        printf "UNAUTHORIZED ENTRY: badge %s into zone %s at %s\n", $2, $3, $1;
+      }
+    }
+  ' "{{authorized_personnel_csv_path}}" "{{badge_access_log_csv_path}}"
+variables:
+  authorized_personnel_csv_path:
+    default: "./authorized-zone-personnel.csv"
+    description: "Path to a CSV with columns: badge_id,zone_id for everyone currently authorized to enter each restricted zone."
+  badge_access_log_csv_path:
+    default: "./badge-access-log.csv"
+    description: "Path to a CSV with columns: timestamp,badge_id,zone_id recording every badge swipe into a restricted zone."
+compatible_agents: [generic, claude, codex]
+notes: This audits restricted-zone entries against the authorization list; it does not itself deprovision access — pair it with your offboarding/termination badge-deactivation process.

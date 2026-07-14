@@ -1,0 +1,45 @@
+id: technician-scorecard-composite-check
+version: 1
+name: Technician Performance Scorecard Composite Check
+description: >
+  Rolls up each technician's jobs-per-day, callback rate, and upsell
+  rate for the period into a single scorecard line so managers can spot
+  who's excelling and who needs coaching without pulling three separate
+  reports. Use this if technician performance has ever been judged
+  informally or by gut feeling because the numbers were scattered
+  across different systems.
+category: fieldservice
+tags: [fieldservice, performance, scorecard, technician]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_jobs="{{min_jobs_threshold}}" '
+    NR==1 {next}
+    {
+      tech = $1; jobs += 1; techjobs[tech] += 1;
+      if ($2 == "yes") { techcallbacks[tech] += 1 }
+      if ($3 == "yes") { techupsells[tech] += 1 }
+      techdays[tech] = $4;
+    }
+    END {
+      for (t in techjobs) {
+        if (techjobs[t] >= min_jobs) {
+          days = techdays[t] + 0; if (days == 0) { days = 1 }
+          jpd = techjobs[t] / days;
+          cb_rate = 100 * (techcallbacks[t] + 0) / techjobs[t];
+          up_rate = 100 * (techupsells[t] + 0) / techjobs[t];
+          printf "SCORECARD: %s — %d jobs, %.2f jobs/day, %.1f%% callback rate, %.1f%% upsell rate\n", t, techjobs[t], jpd, cb_rate, up_rate;
+        }
+      }
+    }
+  ' "{{tech_job_log_csv_path}}"
+variables:
+  tech_job_log_csv_path:
+    default: "./tech-job-log.csv"
+    description: "Path to a CSV with columns: tech_name,was_callback (yes/no),had_upsell (yes/no),days_worked_in_period."
+  min_jobs_threshold:
+    default: 5
+    description: Minimum jobs completed in the period before a technician is included, to avoid skewed rates on tiny samples.
+compatible_agents: [generic, claude, codex]
+notes: Use as a coaching input, not a standalone performance review — small sample sizes and job difficulty aren't accounted for here.

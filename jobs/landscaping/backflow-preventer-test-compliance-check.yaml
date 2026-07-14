@@ -1,0 +1,37 @@
+id: backflow-preventer-test-compliance-check
+version: 1
+name: Backflow Preventer Test Compliance Check
+description: >
+  Checks your irrigation properties CSV for backflow preventer devices
+  whose required annual test is coming due or overdue and flags them.
+  Use this if a property has ever gone out of compliance with the local
+  water utility because the annual backflow certification lapsed
+  unnoticed.
+category: landscaping
+tags: [landscaping, irrigation, compliance, backflow, regulatory]
+schedule: "0 8 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_left = (due_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        if (days_left < 0) printf "OVERDUE: %s (%s) backflow test overdue by %d day(s)\n", $1, $2, -days_left;
+        else printf "DUE SOON: %s (%s) backflow test due in %d day(s)\n", $1, $2, days_left;
+      }
+    }
+  ' "{{backflow_csv_path}}"
+variables:
+  backflow_csv_path:
+    default: "./backflow-preventer-tests.csv"
+    description: "Path to a CSV with columns: property_id,client_name,last_test_date (YYYY-MM-DD),next_test_due (YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a backflow preventer's next test due date to start flagging the property.
+compatible_agents: [generic, claude, codex]
+notes: Test intervals vary by municipality — check local water code for your exact requirement. File the certified test report with the water utility once complete.

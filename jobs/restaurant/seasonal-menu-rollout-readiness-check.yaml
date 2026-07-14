@@ -1,0 +1,34 @@
+id: seasonal-menu-rollout-readiness-check
+version: 1
+name: Seasonal Menu Rollout Readiness Check
+description: >
+  Runs through the standard pre-launch checklist for a seasonal or
+  limited-time menu rollout — recipes costed, staff trained, POS items
+  built, allergens labeled — on a recurring cadence in the run-up to
+  launch. Use this if a seasonal menu has ever launched with a recipe
+  that wasn't costed yet or a POS button that didn't exist.
+category: restaurant
+tags: [restaurant, menu-rollout, seasonal-menu, launch-readiness]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  echo "Seasonal menu rollout readiness check ({{rollout_checklist_path}}), target launch: {{launch_date}}:";
+  if [ -f "{{rollout_checklist_path}}" ]; then cat "{{rollout_checklist_path}}"; else
+  echo "- All new recipes costed and food-cost % confirmed";
+  echo "- Allergen labels drafted for each new item";
+  echo "- POS buttons/modifiers built and tested";
+  echo "- Line cooks trained and signed off on new recipes";
+  echo "- Suppliers confirmed for any new/seasonal ingredients";
+  echo "- Menu design/print or digital menu updated";
+  echo "- Front-of-house briefed on new items and talking points";
+  fi
+variables:
+  rollout_checklist_path:
+    default: "./seasonal-menu-checklist.txt"
+    description: Optional path to your own custom rollout checklist file; falls back to a standard baseline if not found.
+  launch_date:
+    default: "TBD"
+    description: Target launch date for the seasonal menu, shown in the output as a reminder of the deadline this checklist is building toward.
+compatible_agents: [generic, claude, codex]
+notes: Schedule this weekly in the weeks leading up to a seasonal rollout, then turn it off (or repoint the checklist) once the launch has happened.

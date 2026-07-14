@@ -1,0 +1,34 @@
+id: hood-suppression-inspection-due-check
+version: 1
+name: Hood Suppression System Inspection Due Check
+description: >
+  Flags when the kitchen hood fire-suppression system (Ansul or
+  equivalent) is coming due for its required inspection based on the
+  last service date. Use this if you've ever relied on memory to know
+  whether the hood system was serviced in the last six months.
+category: restaurant
+tags: [restaurant, fire-safety, hood-suppression, compliance, maintenance]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  last="{{last_inspection_date}}";
+  interval="{{inspection_interval_months}}";
+  cmd="date -d \"$last +$interval months\" +%Y-%m-%d 2>/dev/null || date -j -v+${interval}m -f %Y-%m-%d \"$last\" +%Y-%m-%d 2>/dev/null";
+  due=$(eval "$cmd");
+  today=$(date +%Y-%m-%d);
+  if [ "$today" \> "$due" ] || [ "$today" = "$due" ]; then
+    echo "OVERDUE: hood suppression inspection was due $due (last inspected $last)";
+    exit 1;
+  else
+    echo "OK: next hood suppression inspection due $due (last inspected $last)";
+  fi
+variables:
+  last_inspection_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) of the most recent hood suppression system inspection/service.
+  inspection_interval_months:
+    default: 6
+    description: Months between required inspections; most jurisdictions and NFPA 96 default to every 6 months.
+compatible_agents: [generic, claude, codex]
+notes: Confirm your local fire code's exact required interval — some jurisdictions or insurance policies require more frequent inspections than the NFPA 96 baseline.

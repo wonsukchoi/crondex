@@ -1,0 +1,43 @@
+id: warehouse-cold-storage-temperature-excursion-alert
+version: 1
+name: Warehouse Cold Storage Temperature Excursion Alert
+description: >
+  Checks cold storage / freezer zone temperature sensor readings against
+  the required range and flags any excursion long enough to put stored
+  product at risk. Use this if a cold-chain product has ever been
+  quietly compromised because a freezer drifted out of range overnight
+  and nobody was paged until the next morning walk-through.
+category: warehousing
+tags: [warehousing, cold-chain, temperature, food-safety, alert]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  curl -s --max-time 10 "{{sensor_api_url}}" |
+  grep -o '"zone":"[^"]*","temp_f":[0-9.-]*' |
+  head -c 2000
+prompt: |
+  Fetch the current temperature reading for each cold storage zone from
+  {{sensor_api_url}} (or your temperature monitoring system).
+  1. Flag any zone reading above {{max_temp_f}}°F or below
+     {{min_temp_f}}°F as an active excursion.
+  2. For each flagged zone, note how long the reading has been out of
+     range if trend history is available.
+  3. Recommend an action: dispatch maintenance, relocate at-risk
+     product, or no action needed, based on severity and duration.
+script_note: >
+  `command` dumps raw per-zone temperature readings with no threshold
+  check. `prompt` compares against the allowed range, estimates
+  excursion duration, and recommends an action.
+variables:
+  sensor_api_url:
+    default: "https://example.com/api/cold-storage/zones"
+    description: Endpoint returning current temperature per cold storage zone.
+  max_temp_f:
+    default: 40
+    description: Maximum allowed temperature (°F) before a zone is flagged as an excursion.
+  min_temp_f:
+    default: 28
+    description: Minimum allowed temperature (°F) before a zone is flagged as an excursion.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Covers in-warehouse cold storage zones only, distinct from in-transit reefer trailer monitoring, which belongs to a transportation/logistics job.

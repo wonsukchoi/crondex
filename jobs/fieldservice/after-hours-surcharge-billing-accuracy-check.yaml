@@ -1,0 +1,42 @@
+id: after-hours-surcharge-billing-accuracy-check
+version: 1
+name: Emergency/After-Hours Call Surcharge Billing Accuracy Check
+description: >
+  Compares each job's actual arrival timestamp against your defined
+  after-hours window and checks whether the invoice applied the
+  emergency surcharge correctly (charged when it shouldn't have been, or
+  missing when it should have been). Use this if after-hours surcharges
+  have ever been billed inconsistently — costing you margin on real
+  emergency calls, or annoying customers who got charged for a
+  daytime visit.
+category: fieldservice
+tags: [fieldservice, billing, surcharge, after-hours]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v start="{{after_hours_start}}" -v end="{{after_hours_end}}" '
+    NR==1 {next}
+    {
+      job_id = $1; customer = $2; arrival_hour = $3 + 0; surcharge_applied = $4; job_date = $5;
+      is_after_hours = (arrival_hour >= start || arrival_hour < end);
+      if (is_after_hours == 1 && surcharge_applied == "no") {
+        printf "SURCHARGE MISSING: job %s for %s — arrived %s:00 on %s, no after-hours surcharge billed\n", job_id, customer, arrival_hour, job_date;
+      }
+      if (is_after_hours == 0 && surcharge_applied == "yes") {
+        printf "SURCHARGE WRONGLY BILLED: job %s for %s — arrived %s:00 on %s, but after-hours surcharge was billed\n", job_id, customer, arrival_hour, job_date;
+      }
+    }
+  ' "{{arrival_billing_csv_path}}"
+variables:
+  arrival_billing_csv_path:
+    default: "./arrival-billing.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,arrival_hour (0-23),surcharge_applied (yes/no),job_date."
+  after_hours_start:
+    default: 18
+    description: Hour (24h, local time) after which a job is considered after-hours.
+  after_hours_end:
+    default: 7
+    description: Hour (24h, local time) before which a job is still considered after-hours.
+compatible_agents: [generic, claude, codex]
+notes: Review flagged jobs against your actual after-hours policy (weekends, holidays) before correcting invoices — this job only checks the arrival-hour window.

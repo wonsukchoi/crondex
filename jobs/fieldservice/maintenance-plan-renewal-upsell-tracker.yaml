@@ -1,0 +1,48 @@
+id: maintenance-plan-renewal-upsell-tracker
+version: 1
+name: Recurring Maintenance Plan Renewal Upsell Tracker
+description: >
+  Finds customers whose recurring maintenance plan (annual tune-up,
+  seasonal inspection membership) is expiring soon and drafts a renewal
+  or upgrade outreach message for each. Use this if maintenance plans
+  have ever silently lapsed at renewal time because nobody proactively
+  reached out before the coverage ran out.
+category: fieldservice
+tags: [fieldservice, maintenance-plan, renewal, upsell]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= warn) {
+        printf "PLAN EXPIRING: %s — %s plan expires %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{maintenance_plans_csv_path}}"
+script_note: >
+  The shell command only lists customers whose plan is expiring within
+  the warning window — it doesn't write anything. Drafting a
+  customer-specific renewal message, and suggesting an upgrade tier
+  based on service history, is what the prompt mode adds.
+prompt: >
+  Read the maintenance plan roster at {{maintenance_plans_csv_path}}
+  (columns: customer_name, plan_tier, expiration_date, equipment_covered).
+  Find every plan expiring within {{warn_days_before}} days. For each
+  one, draft a short renewal outreach message referencing what's covered
+  and, if the customer has multiple pieces of equipment on a basic tier,
+  suggest a higher tier plan as an upsell.
+variables:
+  maintenance_plans_csv_path:
+    default: "./maintenance-plans.csv"
+    description: "Path to a CSV with columns: customer_name,plan_tier,expiration_date (YYYY-MM-DD),equipment_covered."
+  warn_days_before:
+    default: 30
+    description: Days before plan expiration to start surfacing renewal outreach candidates.
+compatible_agents: [generic, claude, codex]
+notes: Draft-only — review and personalize before sending, especially any suggested upgrade tier.

@@ -1,0 +1,34 @@
+id: aeration-overseeding-schedule-check
+version: 1
+name: Aeration & Overseeding Schedule Check
+description: >
+  Checks your client turf list for properties currently inside their
+  seasonal aeration/overseeding window that haven't been scheduled yet
+  and flags them. Use this if the cool-season fall window or warm-season
+  spring window has ever closed before half your eligible clients got
+  scheduled.
+category: landscaping
+tags: [landscaping, aeration, overseeding, seasonal, turf]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    tolower($5) != "scheduled" {
+      cmd_s = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd_s | getline start_epoch; close(cmd_s);
+      cmd_e = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd_e | getline end_epoch; close(cmd_e);
+      if (today >= start_epoch && today <= end_epoch) {
+        printf "SCHEDULE NEEDED: %s (%s turf) — window %s to %s, status=%s\n", $1, $2, $3, $4, $5;
+      }
+    }
+  ' "{{aeration_schedule_csv_path}}"
+variables:
+  aeration_schedule_csv_path:
+    default: "./aeration-overseeding-schedule.csv"
+    description: "Path to a CSV with columns: client_name,turf_type (cool-season/warm-season),season_window_start (YYYY-MM-DD),season_window_end (YYYY-MM-DD),scheduled_status (scheduled/pending)."
+compatible_agents: [generic, claude, codex]
+notes: Cool-season turf is typically aerated/overseeded in early fall, warm-season turf in late spring — set season_window_start/end per client's turf type and region.

@@ -1,0 +1,37 @@
+id: equipment-service-history-staleness-check
+version: 1
+name: Customer Equipment Service History Staleness Check
+description: >
+  Scans customer equipment records (HVAC units, water heaters, panels)
+  for anything that hasn't been serviced in longer than your target
+  interval and surfaces it as a maintenance or upsell opportunity. Use
+  this if a customer's equipment has ever gone silent for years with no
+  outreach, until it broke down and became an emergency call instead of
+  a scheduled visit.
+category: fieldservice
+tags: [fieldservice, equipment, maintenance-history, upsell]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{staleness_months}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      months_since = (today - last_epoch) / 2592000;
+      if (months_since >= stale) {
+        printf "SERVICE STALE: %s — %s (%s) last serviced %s (%d months ago)\n", $1, $2, $3, $4, months_since;
+      }
+    }
+  ' "{{equipment_service_csv_path}}"
+variables:
+  equipment_service_csv_path:
+    default: "./equipment-service-history.csv"
+    description: "Path to a CSV with columns: customer_name,equipment_type,model,last_service_date (YYYY-MM-DD)."
+  staleness_months:
+    default: 12
+    description: Months since last service after which equipment is flagged as stale and worth an outreach.
+compatible_agents: [generic, claude, codex]
+notes: Read-only — this job surfaces candidates for a maintenance or tune-up call, it doesn't contact the customer.

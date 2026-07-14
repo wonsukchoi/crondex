@@ -1,0 +1,36 @@
+id: ppe-inspection-compliance-check
+version: 1
+name: Technician PPE & Safety Equipment Inspection Compliance Check
+description: >
+  Reviews logged safety-equipment inspections (harnesses, gas monitors,
+  ladders, insulated gloves) against your required inspection interval
+  and flags any technician overdue for a check. Use this if a tech has
+  ever shown up to a job with expired gloves or an unchecked gas monitor
+  because nobody was tracking the last inspection date.
+category: fieldservice
+tags: [fieldservice, safety, ppe, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{inspection_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since >= interval) {
+        printf "PPE OVERDUE: %s — %s last inspected %s (%d days ago)\n", $1, $2, $3, days_since;
+      }
+    }
+  ' "{{ppe_inspection_csv_path}}"
+variables:
+  ppe_inspection_csv_path:
+    default: "./ppe-inspections.csv"
+    description: "Path to a CSV with columns: tech_name,equipment_type,last_inspection_date (YYYY-MM-DD)."
+  inspection_interval_days:
+    default: 90
+    description: Maximum days allowed between inspections before equipment is flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: Cross-check flagged equipment against OSHA or local safety requirements — this job only tracks the last inspection date, it doesn't perform the inspection.

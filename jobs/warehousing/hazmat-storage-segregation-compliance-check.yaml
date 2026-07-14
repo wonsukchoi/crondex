@@ -1,0 +1,42 @@
+id: hazmat-storage-segregation-compliance-check
+version: 1
+name: Hazmat Storage Segregation Compliance Check
+description: >
+  Reviews the hazardous materials storage map against required
+  segregation rules (incompatible classes, distance, containment) and
+  flags any location where incompatible hazard classes are stored too
+  close together. Use this if incompatible chemicals have ever ended up
+  on adjacent shelves because a putaway happened without checking the
+  segregation chart.
+category: warehousing
+tags: [warehousing, hazmat, compliance, safety, storage]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the current hazmat storage location map from {{hazmat_location_map_source}}
+  and the segregation rule set from {{segregation_rules_source}} (hazard
+  class incompatibilities, minimum separation distance, secondary
+  containment requirements).
+  1. For each storage location, identify the hazard class(es) stored
+     there and in adjacent locations within {{min_separation_ft}} feet.
+  2. Flag any pairing of incompatible hazard classes stored closer than
+     the required separation, or without required secondary containment.
+  3. Group findings by severity: immediate corrective action vs.
+     recommend at next putaway.
+  4. Summarize total locations reviewed and count of violations found.
+variables:
+  hazmat_location_map_source:
+    default: "your WMS hazmat location report"
+    description: System of record mapping storage locations to the hazard class(es) currently stored there.
+  segregation_rules_source:
+    default: "your hazmat segregation chart (e.g. DOT/OSHA-based incompatibility table)"
+    description: Reference for which hazard classes cannot be co-located or must be separated.
+  min_separation_ft:
+    default: "20"
+    description: Minimum required separation distance in feet between incompatible hazard classes.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Focuses on physical segregation of stored materials, distinct from
+  manifest/documentation compliance checks — pair with your hazmat
+  shipping-paperwork job for the documentation side.

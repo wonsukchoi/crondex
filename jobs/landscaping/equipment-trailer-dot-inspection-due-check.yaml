@@ -1,0 +1,36 @@
+id: equipment-trailer-dot-inspection-due-check
+version: 1
+name: Equipment Trailer & Truck DOT Inspection Due Check
+description: >
+  Checks your fleet CSV of trucks and trailers for upcoming or overdue DOT
+  annual inspection dates and flags them within your warning window. Use
+  this if a truck or trailer has ever gotten pulled over or failed a
+  roadside check because its DOT inspection sticker had quietly expired.
+category: landscaping
+tags: [landscaping, fleet, dot-compliance, maintenance, safety]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_left = (due_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        if (days_left < 0) printf "OVERDUE: %s (%s, plate %s) DOT inspection overdue by %d day(s)\n", $1, $2, $3, -days_left;
+        else printf "DUE SOON: %s (%s, plate %s) DOT inspection due in %d day(s)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{fleet_csv_path}}"
+variables:
+  fleet_csv_path:
+    default: "./fleet-dot-inspections.csv"
+    description: "Path to a CSV with columns: vehicle_id,vehicle_type,plate,next_inspection_due (YYYY-MM-DD)."
+  warn_days:
+    default: 21
+    description: Days before a DOT annual inspection due date to start flagging a vehicle or trailer.
+compatible_agents: [generic, claude, codex]
+notes: Schedule the inspection with your DOT-certified inspector once flagged — this job only surfaces the date.

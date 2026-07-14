@@ -1,0 +1,36 @@
+id: crew-equipment-loss-theft-tracker
+version: 1
+name: Crew Equipment Loss & Theft Tracker
+description: >
+  Checks your equipment loss/theft log for open reports that have gone
+  without resolution longer than your follow-up window and flags them.
+  Use this if a stolen mower or trimmer has ever fallen through the
+  cracks because nobody followed up on the insurance claim or police
+  report after the initial report was filed.
+category: landscaping
+tags: [landscaping, equipment, theft, loss-prevention, insurance]
+schedule: "0 8 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{stale_days}}" '
+    NR==1 {next}
+    tolower($4) != "closed" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline rep_epoch; close(cmd);
+      age_days = (today - rep_epoch) / 86400;
+      if (age_days >= warn_days) {
+        printf "STALE: report %s — %s reported %s (%d days ago), status=%s\n", $1, $2, $3, age_days, $4;
+      }
+    }
+  ' "{{equipment_loss_csv_path}}"
+variables:
+  equipment_loss_csv_path:
+    default: "./equipment-loss-theft-log.csv"
+    description: "Path to a CSV with columns: report_id,item_description,date_reported (YYYY-MM-DD),status (open/insurance-filed/police-filed/closed)."
+  stale_days:
+    default: 14
+    description: Days a loss or theft report can stay unresolved before flagging it for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Follow up with the insurer or police report number directly once flagged — this job only surfaces which reports have stalled.

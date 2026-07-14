@@ -1,0 +1,36 @@
+id: inbound-dock-to-stock-cycle-time-watch
+version: 1
+name: Inbound Dock-to-Stock Cycle Time Watch
+description: >
+  Measures the elapsed time between inbound receipt at the dock and
+  putaway confirmation in the WMS, and flags receipts that are taking
+  too long to become sellable, countable inventory. Use this if pallets
+  have ever sat staged near the dock for days after receiving because
+  putaway fell behind, even though the system already showed them received.
+category: warehousing
+tags: [warehousing, receiving, dock-to-stock, cycle-time, inbound]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v hrs="{{max_dock_to_stock_hours}}" -v now="$now" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      age_hrs = (now - received_epoch) / 3600;
+      if (age_hrs >= hrs) {
+        printf "STALE RECEIPT: PO %s — received %s, still not put away (%d hrs)\n", $1, $2, age_hrs;
+      }
+    }
+  ' "{{receiving_log_csv_path}}"
+variables:
+  receiving_log_csv_path:
+    default: "./receiving-log.csv"
+    description: "Path to a CSV with columns: po_number,received_timestamp (YYYY-MM-DDTHH:MM),putaway_confirmed_timestamp (blank if not yet put away)."
+  max_dock_to_stock_hours:
+    default: 24
+    description: Hours after dock receipt before an un-put-away receipt is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: This watches dock-to-stock latency, not receiving accuracy — pair with a receiving discrepancy job for quantity/damage mismatches at intake.

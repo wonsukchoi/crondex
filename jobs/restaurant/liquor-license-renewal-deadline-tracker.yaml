@@ -1,0 +1,33 @@
+id: liquor-license-renewal-deadline-tracker
+version: 1
+name: Liquor License Renewal Deadline Tracker
+description: >
+  Warns when your liquor license (or any related alcohol permit) is
+  approaching its renewal deadline. Use this if you've ever discovered
+  a license lapsed only when a distributor or inspector pointed it out.
+category: restaurant
+tags: [restaurant, liquor-license, compliance, licensing]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      daysleft = (expsec - nowsec) / 86400;
+      if (daysleft <= warndays) printf "RENEWAL DUE: %s (license #%s) expires %s, %d day(s) left\n", $1, $3, $2, daysleft;
+    }
+  ' "{{license_registry_csv}}"
+variables:
+  license_registry_csv:
+    default: "./liquor-license-registry.csv"
+    description: "CSV with header row, columns: license_type,expiry_date,license_number."
+  warn_days_before_expiry:
+    default: 45
+    description: Start warning this many days before a license's expiry date, giving time for paperwork and any inspection requirements.
+compatible_agents: [generic, claude, codex]
+notes: Renewal lead time varies a lot by jurisdiction and license type — check your local alcohol control board's actual processing window and adjust warn_days_before_expiry accordingly.

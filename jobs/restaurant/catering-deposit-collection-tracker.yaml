@@ -1,0 +1,33 @@
+id: catering-deposit-collection-tracker
+version: 1
+name: Catering Deposit Collection Tracker
+description: >
+  Flags catering orders that are approaching their event date without a
+  deposit on file yet. Use this if you've ever found out the week of an
+  event that a catering order was never actually secured with a deposit.
+category: restaurant
+tags: [restaurant, catering, deposits, accounts-receivable]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_event}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline eventsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      daysleft = (eventsec - nowsec) / 86400;
+      if (daysleft <= warndays && daysleft >= 0 && $4 == "no") printf "NO DEPOSIT: order %s for %s, event %s, %d day(s) out\n", $1, $3, $2, daysleft;
+    }
+  ' "{{catering_orders_csv}}"
+variables:
+  catering_orders_csv:
+    default: "./catering-orders.csv"
+    description: "CSV with header row, columns: order_id,event_date,client_name,deposit_received (yes/no)."
+  warn_days_before_event:
+    default: 7
+    description: Flag orders within this many days of their event date that still show no deposit.
+compatible_agents: [generic, claude, codex]
+notes: Keep the deposit_received column current as payments come in; this only catches what's in the CSV, so it's only as good as how often the order sheet is updated.

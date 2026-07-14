@@ -1,0 +1,30 @@
+id: outbound-load-audit-accuracy-check
+version: 1
+name: Outbound Load Audit Accuracy Check
+description: >
+  Compares the final loaded-pallet manifest at the dock door against
+  the outbound order/BOL before the trailer leaves, and flags any
+  mismatch in quantity or destination. Use this if a trailer has ever
+  pulled away with the wrong pallet, or missing a pallet, because the
+  load wasn't checked against the order after picking and packing were
+  already verified.
+category: warehousing
+tags: [warehousing, outbound, load-audit, accuracy, shipping]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($3 != $4 || $5 != $6) {
+        printf "LOAD MISMATCH: order %s at door %s — expected %s qty %s, loaded %s qty %s\n", $1, $2, $5, $3, $6, $4;
+      }
+    }
+  ' "{{load_audit_csv_path}}"
+variables:
+  load_audit_csv_path:
+    default: "./outbound-load-audit.csv"
+    description: "Path to a CSV with columns: order_id,dock_door,expected_pallet_count,loaded_pallet_count,expected_destination,loaded_destination."
+compatible_agents: [generic, claude, codex]
+notes: This is the final pre-departure load check, distinct from pick-pack-error-rate-watch, which measures errors made earlier during picking/packing.

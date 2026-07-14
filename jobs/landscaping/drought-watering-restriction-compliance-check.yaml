@@ -1,0 +1,37 @@
+id: drought-watering-restriction-compliance-check
+version: 1
+name: Drought Watering Restriction Compliance Check
+description: >
+  Looks up the current outdoor watering restriction stage for your
+  service area and compares it against each client's irrigation schedule
+  to flag non-compliant watering days or times, then drafts a client
+  notification for any schedule that needs updating. Use this if a
+  client's irrigation controller has ever kept running on a schedule
+  that violated a drought stage the city announced weeks earlier.
+category: landscaping
+tags: [landscaping, irrigation, drought, water-restrictions, compliance]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: |
+  Look up the current outdoor watering restriction stage for {{service_area}}
+  (check the local water utility or municipal website — use {{water_utility_url}}
+  as a starting point if it's set, otherwise search for the current watering
+  restrictions for {{service_area}}). Compare the allowed watering days and
+  times under that restriction stage against the irrigation schedules in
+  {{irrigation_schedule_csv_path}} (columns: client_name,zone,
+  current_watering_days,current_watering_times). Flag any client schedule
+  that violates the current restriction stage, and draft a short client
+  notification proposing an updated watering schedule that stays compliant.
+variables:
+  service_area:
+    default: "your-city"
+    description: "City or water utility service area to check for the active drought/watering restriction stage."
+  water_utility_url:
+    default: "https://example.com/water-restrictions"
+    description: "Optional URL to your local water utility's current restriction stage page."
+  irrigation_schedule_csv_path:
+    default: "./client-irrigation-schedules.csv"
+    description: "Path to a CSV with columns: client_name,zone,current_watering_days,current_watering_times."
+compatible_agents: [claude, codex, generic]
+notes: Drought stages and allowed watering days vary by municipality and change with reservoir levels, so this job needs an agent look-up rather than a static script.

@@ -1,0 +1,36 @@
+id: prep-list-usage-variance-check
+version: 1
+name: Prep List vs. Actual Usage Variance Check
+description: >
+  Compares how much of each item was prepped against how much was
+  actually used or sold, flagging items where prep consistently runs
+  far above or below actual demand. Use this if the kitchen has ever
+  guessed at prep quantities and you suspected over-prepping (and
+  wasting) or under-prepping (and 86'ing) certain items but never
+  measured it.
+category: restaurant
+tags: [restaurant, prep-list, inventory, waste, kitchen]
+schedule: "0 22 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_pct}}" '
+    NR==1 { next }
+    {
+      prepped = $2; used = $3;
+      if (prepped > 0) {
+        variance = ((prepped - used) / prepped) * 100;
+        absvar = (variance < 0) ? -variance : variance;
+        if (absvar > tolerance) printf "VARIANCE: %s prepped %.1f, used %.1f (%.1f%% off)\n", $1, prepped, used, variance;
+      }
+    }
+  ' "{{prep_usage_csv}}"
+variables:
+  prep_usage_csv:
+    default: "./prep-list-usage.csv"
+    description: "CSV with header row, columns: item_name,quantity_prepped,quantity_used."
+  variance_tolerance_pct:
+    default: 15
+    description: Percentage variance between prepped and used quantity allowed before an item is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Pull quantity_used from POS sales counts or line-check counts at close; consistent over-prep points at waste, consistent under-prep points at recurring 86s worth adjusting the prep list for.

@@ -1,0 +1,52 @@
+id: commercial-contract-scope-creep-detector
+version: 1
+name: Commercial Contract Scope Creep Detector
+description: >
+  Compares logged visit hours against each client's contracted hours per
+  visit and flags visits that ran significantly over, then has an agent
+  review the flagged visits to recommend a change order or contract
+  re-pricing. Use this if crews have ever quietly absorbed extra work on
+  a commercial account until the contract's margin disappeared.
+category: landscaping
+tags: [landscaping, contracts, billing, scope-creep, commercial]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: hybrid
+command: >
+  awk -F',' -v threshold_pct="{{overage_threshold_pct}}" '
+    NR==1 {next}
+    {
+      contracted = $3 + 0;
+      actual = $4 + 0;
+      if (contracted > 0) {
+        diff_pct = ((actual - contracted) / contracted) * 100;
+        if (diff_pct >= threshold_pct) {
+          printf "SCOPE CREEP: %s on %s — contracted %.1fh, logged %.1fh (+%.0f%%) notes=%s\n", $1, $2, contracted, actual, diff_pct, $5;
+        }
+      }
+    }
+  ' "{{visit_hours_csv_path}}"
+script_note: >
+  The script only flags visits that ran over the contracted-hours threshold
+  with raw numbers — it can't tell you whether the extra work was a one-off
+  favor, an unbilled add-on the client should be charged for, or a sign the
+  contract itself is underpriced; that judgment call needs the prompt.
+prompt: |
+  Review the flagged scope-creep visits from running the crondex job command
+  against {{visit_hours_csv_path}} (visits logging {{overage_threshold_pct}}%
+  or more over contracted hours). For each flagged client and visit, read the
+  notes field and determine whether the extra time looks like: (a) unbilled
+  extra work that should trigger a change order or one-time invoice, (b) a
+  pattern suggesting the recurring contract itself needs re-pricing, or (c) a
+  one-off exception not worth acting on. Summarize findings grouped by
+  client, and draft a short client-facing note proposing a change order or
+  contract renegotiation where warranted.
+variables:
+  visit_hours_csv_path:
+    default: "./client-visit-hours.csv"
+    description: "Path to a CSV with columns: client_name,visit_date (YYYY-MM-DD),contracted_hours,actual_hours_logged,notes."
+  overage_threshold_pct:
+    default: 20
+    description: Percent over contracted hours a visit must run before it's flagged as potential scope creep.
+compatible_agents: [claude, codex, generic]
+notes: Use this before contract renewal season to catch accounts that need re-pricing rather than losing margin quietly year after year.

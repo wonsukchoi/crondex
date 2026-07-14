@@ -1,0 +1,38 @@
+id: tech-skill-certification-job-match-gap
+version: 1
+name: Technician Skill/Certification-to-Job-Type Matching Gap Check
+description: >
+  Cross-references the day's scheduled jobs against each assigned
+  technician's skill and certification list, and flags any job type
+  requiring a skill the assigned tech doesn't have on file. Use this if
+  a tech has ever been sent to a gas job without an EPA 608 cert, or a
+  panel upgrade without journeyman electrician credentials, because
+  dispatch scheduled on availability alone.
+category: fieldservice
+tags: [fieldservice, dispatch, skills, certification, scheduling]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1) { skills[$1] = skills[$1] "|" $2 }
+      next
+    }
+    FNR == 1 { next }
+    {
+      job_id = $1; tech = $2; required_skill = $3; job_date = $4;
+      if (index(skills[tech], required_skill) == 0) {
+        printf "SKILL GAP: job %s on %s — %s assigned but missing required skill %s\n", job_id, job_date, tech, required_skill;
+      }
+    }
+  ' "{{tech_skills_csv_path}}" "{{scheduled_jobs_csv_path}}"
+variables:
+  tech_skills_csv_path:
+    default: "./tech-skills.csv"
+    description: "Path to a CSV with columns: tech_name,skill_or_certification."
+  scheduled_jobs_csv_path:
+    default: "./scheduled-jobs.csv"
+    description: "Path to a CSV with columns: job_id,tech_name,required_skill,job_date."
+compatible_agents: [generic, claude, codex]
+notes: Run before shift start so dispatch can reassign a job before the tech is on the road — this job flags mismatches, it does not reassign jobs.

@@ -1,0 +1,36 @@
+id: holiday-lighting-install-removal-scheduler
+version: 1
+name: Holiday Lighting Install & Removal Scheduler
+description: >
+  Checks your holiday lighting client list for install or removal target
+  dates approaching that haven't been scheduled yet and flags them. Use
+  this if a holiday lighting client has ever complained their display
+  wasn't up before the neighborhood party, or wasn't taken down until
+  February.
+category: landscaping
+tags: [landscaping, holiday-lighting, seasonal, scheduling]
+schedule: "0 8 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    tolower($4) != "scheduled" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline target_epoch; close(cmd);
+      days_left = (target_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        printf "UNSCHEDULED: %s — %s target %s (%d days), status=%s\n", $1, $2, $3, days_left, $4;
+      }
+    }
+  ' "{{holiday_lighting_csv_path}}"
+variables:
+  holiday_lighting_csv_path:
+    default: "./holiday-lighting-schedule.csv"
+    description: "Path to a CSV with columns: client_name,service_type (install/removal),target_date (YYYY-MM-DD),scheduled_status (scheduled/pending)."
+  warn_days:
+    default: 10
+    description: Days before a holiday lighting install or removal target date to start flagging it as unscheduled.
+compatible_agents: [generic, claude, codex]
+notes: Only applies if your business offers holiday lighting install/removal as a seasonal add-on service.

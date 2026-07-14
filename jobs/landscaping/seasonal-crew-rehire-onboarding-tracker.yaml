@@ -1,0 +1,36 @@
+id: seasonal-crew-rehire-onboarding-tracker
+version: 1
+name: Seasonal Crew Rehire Onboarding Tracker
+description: >
+  Checks your seasonal crew list for workers whose season start date is
+  approaching but whose onboarding paperwork (I-9, tax forms, safety
+  orientation) still isn't marked complete, and flags them. Use this if a
+  returning seasonal crew member has ever shown up on day one without
+  their paperwork done, delaying the whole crew's start.
+category: landscaping
+tags: [landscaping, crew, seasonal, onboarding, hr]
+schedule: "0 7 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    tolower($3) != "complete" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      days_left = (start_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        printf "INCOMPLETE: %s season start %s (%d days), onboarding_status=%s\n", $1, $2, days_left, $3;
+      }
+    }
+  ' "{{seasonal_crew_csv_path}}"
+variables:
+  seasonal_crew_csv_path:
+    default: "./seasonal-crew-onboarding.csv"
+    description: "Path to a CSV with columns: worker_name,season_start_date (YYYY-MM-DD),onboarding_status (complete/pending)."
+  warn_days:
+    default: 14
+    description: Days before a seasonal worker's start date to flag incomplete onboarding paperwork.
+compatible_agents: [generic, claude, codex]
+notes: Chase down the missing I-9/tax forms or safety orientation directly with the worker once flagged — this job only surfaces who isn't ready.

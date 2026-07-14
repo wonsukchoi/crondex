@@ -1,0 +1,36 @@
+id: workers-comp-claim-followup-tracker
+version: 1
+name: Workers' Comp Claim Follow-Up Tracker
+description: >
+  Checks your workers' compensation claims log for open claims that
+  haven't had a follow-up logged within your check-in interval and flags
+  them. Use this if an injured crew member's claim has ever gone quiet
+  for weeks because nobody was tracking whose turn it was to check in
+  with the adjuster or the employee.
+category: landscaping
+tags: [landscaping, workers-comp, hr, safety, claims]
+schedule: "0 8 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{followup_interval_days}}" '
+    NR==1 {next}
+    tolower($4) != "closed" {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline followup_epoch; close(cmd);
+      age_days = (today - followup_epoch) / 86400;
+      if (age_days >= warn_days) {
+        printf "FOLLOWUP OVERDUE: claim %s — %s, injury %s, last followup %s (%d days ago), status=%s\n", $1, $2, $3, $5, age_days, $4;
+      }
+    }
+  ' "{{workers_comp_csv_path}}"
+variables:
+  workers_comp_csv_path:
+    default: "./workers-comp-claims.csv"
+    description: "Path to a CSV with columns: claim_id,employee_name,injury_date (YYYY-MM-DD),claim_status (open/pending-review/closed),last_followup_date (YYYY-MM-DD)."
+  followup_interval_days:
+    default: 14
+    description: Days since the last logged follow-up before an open workers' comp claim gets flagged for check-in.
+compatible_agents: [generic, claude, codex]
+notes: Check in with the adjuster and the employee directly once flagged — this job only surfaces which claims have gone quiet.

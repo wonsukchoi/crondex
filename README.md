@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1795 jobs across 60 categories:
+1843 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -201,7 +201,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 21 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
-| `fieldservice` | 20 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
+| `fieldservice` | 32 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 36 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 20 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
@@ -216,7 +216,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 32 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 32 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
-| `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
+| `landscaping` | 32 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
@@ -232,7 +232,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `productivity` | 32 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 32 | Property management — leases, rent, vacancy, inspections, tax. |
-| `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
+| `restaurant` | 32 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
@@ -246,7 +246,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `travel` | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 32 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 32 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
-| `warehousing` | 20 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
+| `warehousing` | 32 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->
 
 ---

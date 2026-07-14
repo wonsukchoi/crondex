@@ -1,0 +1,45 @@
+id: peak-season-labor-ramp-plan-check
+version: 1
+name: Peak Season Labor Ramp Plan Check
+description: >
+  Compares projected peak-season order volume against the current
+  headcount ramp plan (temp staffing, overtime authorization, training
+  pipeline) and flags gaps well before the peak actually hits. Use this
+  if a seasonal volume spike has ever arrived before staffing was ready
+  for it because the ramp plan was drafted too late or never revisited.
+category: warehousing
+tags: [warehousing, labor, seasonal, staffing, planning]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Pull the projected order/unit volume forecast for the upcoming peak
+  window from {{volume_forecast_source}} and the current staffing ramp
+  plan (temp labor agency commitments, overtime authorization, training
+  class schedule) from {{staffing_plan_source}}.
+  1. Calculate required headcount per week of the peak window using
+     {{units_per_labor_hour}} units per labor hour as the productivity
+     assumption.
+  2. Compare required headcount against currently committed/planned
+     headcount for each week.
+  3. Flag any week where the gap exceeds {{headcount_gap_alert_pct}}%
+     of required headcount, and note how many weeks of lead time remain
+     to close it (temp agency lead time, background check turnaround,
+     training class capacity).
+  4. Summarize overall readiness and the single biggest risk to hitting
+     peak staffing targets.
+variables:
+  volume_forecast_source:
+    default: "your demand planning / peak volume forecast"
+    description: Source for projected order or unit volume by week during the peak window.
+  staffing_plan_source:
+    default: "your staffing plan (temp agency commitments, OT plan, training schedule)"
+    description: Source of currently committed headcount ramp by week.
+  units_per_labor_hour:
+    default: "12"
+    description: Assumed productivity rate used to translate forecast volume into required labor hours.
+  headcount_gap_alert_pct:
+    default: 10
+    description: Percentage shortfall in any given week's headcount that triggers a flag.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is forward-looking capacity planning ahead of peak, distinct from shift-headcount-coverage-check, which watches day-to-day shift staffing in real time.

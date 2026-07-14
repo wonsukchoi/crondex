@@ -1,0 +1,37 @@
+id: permit-required-job-missing-permit-check
+version: 1
+name: Permit-Required Job Missing Permit Check
+description: >
+  Cross-references scheduled jobs flagged as permit-required against
+  your permit tracking log and flags any that are scheduled or already
+  in progress without a filed permit on record. Use this if a job has
+  ever been inspected, or reinspected, only to find out a permit was
+  never pulled because nobody double-checked before the crew rolled out.
+category: fieldservice
+tags: [fieldservice, permits, compliance, dispatch]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1) { permits[$1] = $2 }
+      next
+    }
+    FNR == 1 { next }
+    {
+      job_id = $1; customer = $2; permit_required = $3; job_date = $4;
+      if (permit_required == "yes" && (permits[job_id] == "" || permits[job_id] == "not_filed")) {
+        printf "MISSING PERMIT: job %s for %s on %s — permit required but not filed\n", job_id, customer, job_date;
+      }
+    }
+  ' "{{permit_log_csv_path}}" "{{scheduled_jobs_csv_path}}"
+variables:
+  permit_log_csv_path:
+    default: "./permit-log.csv"
+    description: "Path to a CSV with columns: job_id,permit_status (filed/not_filed/pending)."
+  scheduled_jobs_csv_path:
+    default: "./scheduled-permit-jobs.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,permit_required (yes/no),job_date."
+compatible_agents: [generic, claude, codex]
+notes: Confirm with your local permitting office before dispatching a crew — this job only flags a missing record, it doesn't file permits.

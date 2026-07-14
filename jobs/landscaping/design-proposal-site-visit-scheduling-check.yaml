@@ -1,0 +1,36 @@
+id: design-proposal-site-visit-scheduling-check
+version: 1
+name: Design Proposal Site Visit Scheduling Check
+description: >
+  Checks your design-proposal lead list for site walk-through requests
+  that haven't been scheduled within your SLA window and flags them. Use
+  this if a landscape design lead has ever gone cold because nobody
+  scheduled the initial site visit before the prospect called a
+  competitor.
+category: landscaping
+tags: [landscaping, sales, design, site-visit, leads]
+schedule: "0 8 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{sla_days}}" '
+    NR==1 {next}
+    tolower($4) != "scheduled" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline req_epoch; close(cmd);
+      age_days = (today - req_epoch) / 86400;
+      if (age_days >= warn_days) {
+        printf "SLA BREACH: lead %s — %s requested %s (%d days ago), status=%s\n", $1, $2, $3, age_days, $4;
+      }
+    }
+  ' "{{design_leads_csv_path}}"
+variables:
+  design_leads_csv_path:
+    default: "./design-proposal-leads.csv"
+    description: "Path to a CSV with columns: lead_id,prospect_name,request_date (YYYY-MM-DD),visit_scheduled_status (scheduled/pending)."
+  sla_days:
+    default: 3
+    description: Days a design-proposal site-visit request can go unscheduled before flagging it as an SLA breach.
+compatible_agents: [generic, claude, codex]
+notes: Call or email the prospect directly once flagged — this job only surfaces who's waiting past your SLA.

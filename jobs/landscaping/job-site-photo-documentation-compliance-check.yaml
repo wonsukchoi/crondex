@@ -1,0 +1,35 @@
+id: job-site-photo-documentation-compliance-check
+version: 1
+name: Job Site Photo Documentation Compliance Check
+description: >
+  Checks your recent job log for completed visits missing a before or
+  after photo and flags them within your lookback window. Use this if
+  you've ever needed proof of prior condition for a client dispute or
+  insurance claim and realized the crew never took the photo.
+category: landscaping
+tags: [landscaping, documentation, quality-control, client-disputes]
+schedule: "0 18 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback_days="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline job_epoch; close(cmd);
+      age_days = (today - job_epoch) / 86400;
+      if (age_days >= 0 && age_days <= lookback_days && (tolower($4) != "yes" || tolower($5) != "yes")) {
+        printf "MISSING PHOTOS: job %s for %s on %s — before=%s after=%s\n", $1, $2, $3, $4, $5;
+      }
+    }
+  ' "{{job_photo_log_csv_path}}"
+variables:
+  job_photo_log_csv_path:
+    default: "./job-photo-log.csv"
+    description: "Path to a CSV with columns: job_id,client_name,job_date (YYYY-MM-DD),before_photo (yes/no),after_photo (yes/no)."
+  lookback_days:
+    default: 7
+    description: How many days back to check completed jobs for missing before/after photo documentation.
+compatible_agents: [generic, claude, codex]
+notes: Follow up with the crew lead to backfill or explain the gap once flagged — this job only surfaces which jobs are missing photos.

@@ -1,0 +1,33 @@
+id: tip-pool-distribution-reconciliation
+version: 1
+name: Tip Pool Distribution Reconciliation
+description: >
+  Checks that total tips collected for a shift match the sum of what was
+  actually distributed across the tip pool, flagging any shortfall or
+  overage. Use this if you've ever had a server ask why their tip-out
+  looked off and had no quick way to check the math yourself.
+category: restaurant
+tags: [restaurant, tips, payroll, reconciliation]
+schedule: "0 23 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_usd}}" '
+    NR==1 { total = $1; next }
+    { distributed += $2 }
+    END {
+      diff = total - distributed;
+      absdiff = (diff < 0) ? -diff : diff;
+      if (absdiff > tolerance) printf "MISMATCH: total tips $%.2f vs distributed $%.2f (diff $%.2f)\n", total, distributed, diff;
+      else printf "OK: total tips $%.2f matches distributed $%.2f (diff $%.2f)\n", total, distributed, diff;
+    }
+  ' "{{tip_pool_csv}}"
+variables:
+  tip_pool_csv:
+    default: "./tip-pool.csv"
+    description: "CSV where row 1 col 1 is total tips collected for the shift, and every row's column 2 is an individual payout amount."
+  variance_tolerance_usd:
+    default: 0.5
+    description: Dollar variance allowed between total collected and total distributed before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Export totals from your POS tip report and payout records into the CSV before running; rounding on cash tip-outs can cause small legitimate variance, hence the tolerance.

@@ -1,0 +1,33 @@
+id: allergen-menu-labeling-accuracy-check
+version: 1
+name: Allergen Menu Labeling Accuracy Check
+description: >
+  Compares your current recipe ingredient lists against the allergen
+  labels printed on the menu and flags any dish whose ingredients
+  changed but whose allergen label wasn't updated. Use this if a
+  recipe has ever changed without anyone circling back to check
+  whether the "contains nuts" or "gluten-free" label was still accurate.
+category: restaurant
+tags: [restaurant, allergen, menu, compliance, food-safety]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Compare the recipe ingredient list at {{recipe_ingredients_path}} against
+  the allergen labels on the published menu at {{menu_allergen_labels_path}}.
+  For each dish, check whether any of the top allergens (peanuts, tree nuts,
+  dairy, eggs, wheat/gluten, soy, fish, shellfish, sesame) appear in the
+  ingredient list but are not disclosed in the menu's allergen label, or
+  are disclosed but no longer present in the ingredients. List every
+  mismatch by dish name, the allergen involved, and whether the label
+  needs an allergen added or removed. Flag any dish where you can't
+  confidently match ingredients to a menu entry so a human can check it.
+variables:
+  recipe_ingredients_path:
+    default: "./recipes/ingredients.csv"
+    description: Path to the current recipe ingredient list, one row per dish.
+  menu_allergen_labels_path:
+    default: "./menu/allergen-labels.csv"
+    description: Path to the published menu's allergen label export.
+compatible_agents: [claude, codex]
+notes: This is a cross-check, not a legal food-safety certification — verify any flagged mismatch against actual ingredient labels before updating guest-facing allergen claims.

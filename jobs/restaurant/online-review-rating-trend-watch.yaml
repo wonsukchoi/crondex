@@ -1,0 +1,34 @@
+id: online-review-rating-trend-watch
+version: 1
+name: Online Review Rating Trend Watch
+description: >
+  Tracks your average online review rating over time and flags a
+  meaningful downward trend before it tanks your overall score. Use
+  this if you've ever only noticed a slump in reviews after a bad
+  month was already baked into your public rating.
+category: restaurant
+tags: [restaurant, reviews, reputation, marketing]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v drop="{{alert_drop_threshold}}" '
+    NR==1 { next }
+    { period[NR]=$1; rating[NR]=$2; n++ }
+    END {
+      if (n < 2) { print "Not enough periods to compare."; exit 0 }
+      first = rating[2]; last = rating[n];
+      diff = first - last;
+      if (diff >= drop) printf "ALERT: avg rating dropped from %.2f (%s) to %.2f (%s), down %.2f\n", first, period[2], last, period[n], diff;
+      else printf "OK: avg rating %.2f (%s), was %.2f (%s)\n", last, period[n], first, period[2];
+    }
+  ' "{{review_ratings_csv}}"
+variables:
+  review_ratings_csv:
+    default: "./review-ratings-by-period.csv"
+    description: "CSV with header row, columns: period_label,avg_rating — one row per week or month, oldest first."
+  alert_drop_threshold:
+    default: 0.3
+    description: Minimum drop in average rating (e.g. 0.3 stars) between the earliest and latest period to trigger an alert.
+compatible_agents: [generic, claude, codex]
+notes: Pull ratings from your review platform exports or aggregator dashboard; combine Google, Yelp, and delivery-app ratings into a single weighted average before feeding them in for a fuller picture.

@@ -1,0 +1,45 @@
+id: subcontractor-1099-compliance-documentation-check
+version: 1
+name: Subcontractor/1099 Tech Compliance Documentation Check
+description: >
+  Checks each 1099 subcontractor technician's required documentation
+  (insurance certificate, signed contractor agreement, W-9) for missing
+  items or upcoming expirations. Use this if a subcontractor has ever
+  been dispatched on a job with a lapsed insurance certificate, exposing
+  the business to liability nobody had flagged.
+category: fieldservice
+tags: [fieldservice, subcontractor, "1099", compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      name = $1; w9_on_file = $2; agreement_on_file = $3; insurance_expiry = $4;
+      if (w9_on_file != "yes") {
+        printf "MISSING DOC: %s — W-9 not on file\n", name;
+      }
+      if (agreement_on_file != "yes") {
+        printf "MISSING DOC: %s — signed contractor agreement not on file\n", name;
+      }
+      if (insurance_expiry != "") {
+        cmd = "date -d \"" insurance_expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" insurance_expiry "\" +%s 2>/dev/null";
+        cmd | getline expiry_epoch; close(cmd);
+        days_left = (expiry_epoch - today) / 86400;
+        if (days_left <= warn) {
+          printf "INSURANCE EXPIRING: %s — certificate expires %s (%d days left)\n", name, insurance_expiry, days_left;
+        }
+      }
+    }
+  ' "{{subcontractor_compliance_csv_path}}"
+variables:
+  subcontractor_compliance_csv_path:
+    default: "./subcontractor-compliance.csv"
+    description: "Path to a CSV with columns: contractor_name,w9_on_file (yes/no),agreement_on_file (yes/no),insurance_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: Days before insurance expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Do not dispatch a 1099 tech with missing documentation — confirm with your insurance carrier and legal/HR advisor on requirements for your state.

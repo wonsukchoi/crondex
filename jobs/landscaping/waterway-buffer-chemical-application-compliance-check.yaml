@@ -1,0 +1,34 @@
+id: waterway-buffer-chemical-application-compliance-check
+version: 1
+name: Waterway Buffer Chemical Application Compliance Check
+description: >
+  Checks your chemical application log for entries where the logged
+  distance from a waterway is inside the required buffer zone and flags
+  the violation. Use this if a fertilizer or pesticide application has
+  ever been made too close to a stream, pond, or storm drain and only
+  been caught after a regulatory complaint.
+category: landscaping
+tags: [landscaping, pesticide, regulatory, waterway, compliance]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v margin="{{buffer_safety_margin_ft}}" '
+    NR==1 {next}
+    {
+      distance = $5 + 0;
+      required = $6 + 0 + margin;
+      if (distance < required) {
+        printf "BUFFER VIOLATION: %s (%s) applied %s on %s — %dft from waterway, requires %dft\n", $1, $2, $4, $3, distance, required;
+      }
+    }
+  ' "{{application_log_csv_path}}"
+variables:
+  application_log_csv_path:
+    default: "./chemical-application-log.csv"
+    description: "Path to a CSV with columns: property_id,client_name,application_date (YYYY-MM-DD),chemical_name,distance_to_waterway_ft,required_buffer_ft."
+  buffer_safety_margin_ft:
+    default: 0
+    description: Extra margin in feet to add on top of the required buffer before flagging (0 flags only true violations).
+compatible_agents: [generic, claude, codex]
+notes: Required buffer distances vary by state, chemical, and water body type — confirm the required_buffer_ft you log per application against your applicator license rules.

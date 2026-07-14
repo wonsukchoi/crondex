@@ -1,0 +1,34 @@
+id: private-event-booking-followup-tracker
+version: 1
+name: Private Event Booking Pipeline Follow-Up Tracker
+description: >
+  Flags private event and group booking inquiries that have gone quiet
+  without a follow-up in too long, so leads don't die from neglect. Use
+  this if an event inquiry has ever sat in an inbox for weeks with no
+  one circling back until the prospect booked somewhere else.
+category: restaurant
+tags: [restaurant, private-events, bookings, sales-pipeline, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v stalldays="{{stall_days_threshold}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    $4 != "booked" && $4 != "declined" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline lastsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      dayssince = (nowsec - lastsec) / 86400;
+      if (dayssince >= stalldays) printf "STALLED: %s inquiry (status: %s), last contact %s, %d day(s) ago\n", $1, $4, $3, dayssince;
+    }
+  ' "{{event_pipeline_csv}}"
+variables:
+  event_pipeline_csv:
+    default: "./private-event-pipeline.csv"
+    description: "CSV with header row, columns: lead_name,event_date,last_contact_date,status."
+  stall_days_threshold:
+    default: 5
+    description: Days since last contact before an open inquiry is flagged as stalled.
+compatible_agents: [generic, claude, codex]
+notes: Keep last_contact_date updated whenever anyone touches a lead (call, email, text) so the stall detection stays accurate; status should be one of open/negotiating/booked/declined or similar.

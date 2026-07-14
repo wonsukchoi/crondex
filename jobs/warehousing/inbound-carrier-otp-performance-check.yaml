@@ -1,0 +1,40 @@
+id: inbound-carrier-otp-performance-check
+version: 1
+name: Inbound Carrier On-Time Pickup Performance Check
+description: >
+  Compares each carrier's scheduled outbound pickup times against actual
+  departure times from the yard and flags carriers whose on-time pickup
+  rate is sliding. Use this if a carrier has ever quietly become the
+  reason outbound loads keep leaving late, without anyone tracking their
+  pickup performance separately from overall dock scheduling.
+category: warehousing
+tags: [warehousing, carrier, on-time-pickup, transportation, scorecard]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{min_otp_pct}}" '
+    NR==1 {next}
+    {
+      carrier=$1;
+      total[carrier]++;
+      if ($4 <= $3) { ontime[carrier]++; }
+    }
+    END {
+      for (c in total) {
+        pct = (ontime[c] / total[c]) * 100;
+        if (pct < threshold) {
+          printf "LOW OTP: carrier %s — %.1f%% on-time (%d of %d pickups)\n", c, pct, ontime[c], total[c];
+        }
+      }
+    }
+  ' "{{pickup_log_csv_path}}"
+variables:
+  pickup_log_csv_path:
+    default: "./carrier-pickup-log.csv"
+    description: "Path to a CSV with columns: carrier_name,load_id,scheduled_pickup_epoch,actual_pickup_epoch."
+  min_otp_pct:
+    default: 90
+    description: On-time pickup percentage below which a carrier is flagged for review.
+compatible_agents: [generic, claude, codex]
+notes: Scoped to pickup timeliness only, distinct from 3pl-performance-scorecard, which covers a 3PL's broader service metrics beyond just pickup timing.

@@ -1,0 +1,35 @@
+id: rf-scanner-fleet-battery-health-check
+version: 1
+name: RF Scanner Fleet Battery Health Check
+description: >
+  Reviews the handheld RF scanner fleet's battery cycle counts and
+  charge-hold times, and flags units whose batteries are degraded
+  enough to risk dying mid-shift. Use this if a picker has ever lost
+  productive time because their scanner died on the floor and the spare
+  cart was also empty.
+category: warehousing
+tags: [warehousing, rf-scanner, battery, mhe, maintenance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cycles="{{max_charge_cycles}}" -v hold="{{min_charge_hold_hours}}" '
+    NR==1 {next}
+    {
+      if ($3 >= cycles || $4 < hold) {
+        printf "REPLACE BATTERY: scanner %s — %d charge cycles, holds charge %.1f hrs\n", $1, $3, $4;
+      }
+    }
+  ' "{{scanner_fleet_log_csv_path}}"
+variables:
+  scanner_fleet_log_csv_path:
+    default: "./rf-scanner-fleet-log.csv"
+    description: "Path to a CSV with columns: scanner_id,device_model,charge_cycle_count,charge_hold_hours."
+  max_charge_cycles:
+    default: 500
+    description: Charge cycle count at or above which a battery is considered degraded and due for replacement.
+  min_charge_hold_hours:
+    default: "6"
+    description: Minimum hours a fully charged battery should hold charge before it is flagged as degraded.
+compatible_agents: [generic, claude, codex]
+notes: Covers scanner battery fleet health only — pair with a device-repair-ticket job if you also want breakage/screen-damage tracking.

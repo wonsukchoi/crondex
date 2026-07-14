@@ -1,0 +1,39 @@
+id: seasonal-staffing-surge-gap-check
+version: 1
+name: Seasonal Demand Surge Staffing Gap Check
+description: >
+  Compares projected job volume for the coming weeks (based on last
+  year's seasonal pattern or a manual forecast) against current
+  scheduled technician capacity, and flags weeks where demand is likely
+  to outpace staffing. Use this if you've ever been blindsided by an
+  AC-repair or furnace-repair rush and scrambled to find extra techs
+  after the calls had already started stacking up.
+category: fieldservice
+tags: [fieldservice, staffing, seasonal, capacity-planning]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer="{{capacity_buffer_pct}}" '
+    NR==1 {next}
+    {
+      week = $1; forecast_jobs = $2 + 0; available_techs = $3 + 0; jobs_per_tech_per_week = $4 + 0;
+      if (jobs_per_tech_per_week > 0) {
+        capacity = available_techs * jobs_per_tech_per_week;
+        required_capacity = forecast_jobs * (1 + buffer / 100);
+        if (required_capacity > capacity) {
+          gap_pct = 100 * (required_capacity - capacity) / capacity;
+          printf "STAFFING GAP: week of %s — forecast %d jobs, capacity for %d jobs (%.1f%% short)\n", week, forecast_jobs, capacity, gap_pct;
+        }
+      }
+    }
+  ' "{{staffing_forecast_csv_path}}"
+variables:
+  staffing_forecast_csv_path:
+    default: "./staffing-forecast.csv"
+    description: "Path to a CSV with columns: week_start_date,forecast_job_volume,available_techs,avg_jobs_per_tech_per_week."
+  capacity_buffer_pct:
+    default: 10
+    description: Extra capacity buffer (percent) required above raw forecast before a week is considered adequately staffed.
+compatible_agents: [generic, claude, codex]
+notes: Use this to plan overtime, seasonal hires, or subcontractor backup ahead of a surge — it only flags the gap, it doesn't schedule staff.

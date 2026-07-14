@@ -1,0 +1,43 @@
+id: checkout-step-dropoff-check
+version: 1
+name: Checkout Step Drop-Off Check
+description: >
+  Walks a step-by-step self-serve checkout/upgrade funnel and flags
+  whichever single step has the worst drop-off rate, rather than just an
+  overall conversion number. Use this if "checkout conversion is down"
+  is a known fact but nobody's pinned down whether people are bailing at
+  the plan picker, the payment form, or the confirmation step.
+category: growth
+tags: [growth, checkout, conversion, monetization]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{checkout_funnel_csv_path}}; worst_threshold={{worst_step_dropoff_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  worst_step=""; worst_pct=0; prev_count=0; prev_step="";
+  while IFS=',' read -r step count; do
+    [ "$step" = "step" ] && continue;
+    if [ -n "$prev_step" ] && [ "$prev_count" -gt 0 ]; then
+      dropped=$((prev_count - count));
+      pct=$(awk -v d="$dropped" -v p="$prev_count" 'BEGIN{printf "%.1f", (d/p)*100}');
+      echo "$prev_step -> $step: $prev_count -> $count (${pct}% drop-off)";
+      if awk -v pc="$pct" -v w="$worst_pct" 'BEGIN{exit !(pc>w)}'; then worst_pct="$pct"; worst_step="$prev_step -> $step"; fi
+    fi;
+    prev_step="$step"; prev_count="$count";
+  done < "$file";
+  echo "Worst step: $worst_step (${worst_pct}% drop-off)";
+  if awk -v w="$worst_pct" -v t="$worst_threshold" 'BEGIN{exit !(w>=t)}'; then echo "WARNING: a single step is losing ${worst_pct}% of users, above the ${worst_threshold}% threshold"; exit 1; fi
+variables:
+  checkout_funnel_csv_path:
+    default: "./checkout-funnel.csv"
+    description: "Path to a CSV with header: step,count, one row per step in order (e.g. plan_selected,payment_entered,confirmed), with count of users reaching that step."
+  worst_step_dropoff_pct:
+    default: 30
+    description: Drop-off percent at any single step that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from onboarding-funnel-dropoff-check (post-signup
+  activation steps) and paywall-upgrade-prompt-conversion-check (whether
+  a prompt converts at all) — this isolates which specific checkout step
+  is the biggest leak once a user has already decided to pay.

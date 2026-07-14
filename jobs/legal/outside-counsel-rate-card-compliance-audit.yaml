@@ -1,0 +1,55 @@
+id: outside-counsel-rate-card-compliance-audit
+version: 1
+name: Outside Counsel Rate Card Compliance Audit
+description: >
+  Compares billed hourly rates on outside counsel invoices against the
+  negotiated rate card for each timekeeper and flags any overbilled
+  rate, then drafts a summary for whoever manages the panel relationship.
+  Use this if outside counsel has ever quietly billed above the
+  negotiated rate and it only got caught months later, if at all.
+category: legal
+tags: [legal, outside-counsel, billing, rate-card, panel-management]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      billed = $4 + 0; approved = $5 + 0;
+      if (billed > approved) {
+        over = billed - approved;
+        printf "RATE VIOLATION: %s (%s) billed $%.2f vs approved $%.2f (+$%.2f) firm=%s\n", $1, $2, billed, approved, over, $3;
+      }
+    }
+  ' "{{invoice_rates_csv}}"
+prompt: |
+  Here are the rate card violations found on outside counsel invoices
+  (from the shell check): {{command_output}}. For each violation:
+  1. Group by firm.
+  2. Total the overbilled amount per firm.
+  3. Flag any firm whose total overbilled amount exceeds {{escalation_threshold_usd}}
+     dollars as needing escalation to the relationship partner.
+  4. Draft a short summary for panel management listing each firm, its
+     total overage, and which firms need escalation, suitable for pasting
+     into an outside counsel management review.
+variables:
+  invoice_rates_csv:
+    default: "./outside-counsel-invoice-rates.csv"
+    description: "CSV with header row, columns: timekeeper_name,role,firm,billed_rate,approved_rate."
+  escalation_threshold_usd:
+    default: "1000"
+    description: Total overbilled dollar amount per firm above which the drafted summary flags escalation.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of every rate-card violation
+  from a straight CSV comparison; the prompt adds per-firm totals,
+  an escalation threshold call, and a drafted summary for whoever manages
+  the panel relationship.
+notes: >
+  Requires exporting billed vs. approved rates per timekeeper into the
+  CSV from your e-billing system — this does not connect to any e-billing
+  vendor directly. Rate card terms and permitted exceptions (e.g.
+  approved rate increases) vary by engagement letter, so confirm any
+  flagged violation against the actual outside counsel guidelines before
+  disputing an invoice.

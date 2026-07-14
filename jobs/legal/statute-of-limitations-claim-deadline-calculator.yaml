@@ -1,0 +1,53 @@
+id: statute-of-limitations-claim-deadline-calculator
+version: 1
+name: Statute of Limitations Claim Deadline Calculator
+description: >
+  Reviews a list of potential or pending claims and estimates when each
+  one's statute of limitations likely expires given its claim type,
+  jurisdiction, and accrual date, then flags which ones need action
+  soonest. Use this if a claim has ever nearly time-barred because
+  nobody translated "the clock started on this date" into an actual
+  filing deadline.
+category: legal
+tags: [legal, litigation, statute-of-limitations, claims]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is a list of potential or pending claims that need statute of
+  limitations review, from {{claims_register_path}}: each row has
+  claim_name, claim_type (e.g. breach of contract, personal injury,
+  fraud, employment), jurisdiction, and accrual_date (when the clock
+  likely started running).
+
+  For each claim:
+  1. Identify the statute of limitations period that typically applies
+     for that claim_type in that jurisdiction, noting that periods vary
+     by state/country and by exact legal theory — flag any claim where
+     you're not confident of the period as "needs counsel confirmation"
+     rather than guessing.
+  2. Calculate the estimated filing deadline (accrual_date + limitations
+     period) where you are confident enough to do so.
+  3. Sort claims by estimated deadline, soonest first, and flag anything
+     within {{urgent_within_days}} days as urgent.
+  4. Draft a short summary listing each claim, its estimated deadline (or
+     "needs counsel confirmation"), and which ones need action first,
+     suitable for litigation counsel to review before any deadline is
+     relied on.
+
+  Claims register: {{claims_register_path}}
+variables:
+  claims_register_path:
+    default: "./potential-claims-register.csv"
+    description: "CSV with header row, columns: claim_name,claim_type,jurisdiction,accrual_date(YYYY-MM-DD)."
+  urgent_within_days:
+    default: 90
+    description: Days left before an estimated statute of limitations deadline at which a claim is flagged urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  This produces estimates only, not legal advice — statute of
+  limitations periods depend on exact claim theory, jurisdictional
+  nuance, tolling events, and discovery-rule exceptions that a script or
+  general model pass cannot reliably resolve. Every deadline this job
+  surfaces must be confirmed by litigation counsel before being relied
+  on to file or forgo a claim.

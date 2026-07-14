@@ -1,0 +1,50 @@
+id: pql-sales-handoff-sla-check
+version: 1
+name: PQL-to-Sales Handoff SLA Check
+description: >
+  Checks how long it took a sales rep to first respond after a
+  product-qualified lead was flagged, and reports any that breached the
+  response-time SLA. Use this if PQLs get correctly identified but then
+  sit untouched in a queue for days because there's no check on what
+  happens after the flag is raised.
+category: growth
+tags: [growth, pql, sales-handoff, product-led-growth]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{pql_handoff_csv_path}}; sla_hours={{response_sla_hours}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=0; breached=0;
+  while IFS=',' read -r account flagged_at responded_at; do
+    [ "$account" = "account" ] && continue;
+    [ -z "$flagged_at" ] && continue;
+    total=$((total+1));
+    if [ -z "$responded_at" ]; then
+      echo "  $account: no response yet since $flagged_at";
+      breached=$((breached+1));
+      continue;
+    fi;
+    flagged_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$flagged_at" +%s 2>/dev/null || date -d "$flagged_at" +%s 2>/dev/null);
+    responded_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$responded_at" +%s 2>/dev/null || date -d "$responded_at" +%s 2>/dev/null);
+    hours=$(awk -v f="$flagged_epoch" -v r="$responded_epoch" 'BEGIN{printf "%.1f", (r-f)/3600}');
+    if awk -v h="$hours" -v s="$sla_hours" 'BEGIN{exit !(h>s)}'; then
+      echo "  $account: responded in ${hours}h (breached ${sla_hours}h SLA)";
+      breached=$((breached+1));
+    fi;
+  done < "$file";
+  echo "Checked $total PQL handoffs, $breached breached the ${sla_hours}h response SLA";
+  if [ "$breached" -gt 0 ]; then exit 1; fi
+variables:
+  pql_handoff_csv_path:
+    default: "./pql-handoffs.csv"
+    description: "Path to a CSV with header: account,flagged_at,responded_at (timestamps in ISO 8601; responded_at blank if no response yet)."
+  response_sla_hours:
+    default: 24
+    description: Maximum hours a sales rep should take to first respond to a newly flagged PQL.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from product-qualified-lead-tracker (which
+  identifies PQLs in the first place) — this checks the operational
+  handoff after a PQL is flagged, since a great signal is worthless if
+  it sits in a CRM queue.

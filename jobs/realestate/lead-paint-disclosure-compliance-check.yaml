@@ -1,0 +1,30 @@
+id: lead-paint-disclosure-compliance-check
+version: 1
+name: Lead Paint Disclosure Compliance Check
+description: >
+  Flags pre-1978 units where a new or renewing lease is missing the
+  required lead-based paint disclosure form and EPA pamphlet
+  acknowledgment on file. Use this if you manage any building old enough
+  to be covered by lead paint disclosure rules and want to avoid a fair
+  housing or EPA compliance complaint over missing paperwork.
+category: realestate
+tags: [realestate, lead-paint, disclosure, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{built_before_year}}" '
+    NR==1 {next}
+    ($2 + 0) < cutoff && $3 == "no" {
+      print "MISSING LEAD PAINT DISCLOSURE: " $1 " (built " $2 "), tenant " $4;
+    }
+  ' "{{units_csv}}"
+variables:
+  units_csv:
+    default: "./lead-paint-disclosure-status.csv"
+    description: "CSV with header row, columns: unit,year_built,disclosure_on_file(yes/no),tenant_name."
+  built_before_year:
+    default: "1978"
+    description: Units built before this year require lead paint disclosure under federal rules; adjust for stricter local law.
+compatible_agents: [generic, claude, codex]
+notes: Federal lead paint disclosure rules apply to housing built before 1978; check local law for units that also need lead-safe certification for renovation work.

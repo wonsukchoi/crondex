@@ -1,0 +1,44 @@
+id: api-rate-limit-churn-correlation-check
+version: 1
+name: API Rate-Limit-Hit Churn Correlation Check
+description: >
+  Cross-references accounts that repeatedly hit API rate limits against
+  accounts that later churned, to check whether rate-limiting is quietly
+  driving people away instead of just being an infra safeguard. Use this
+  if a rate limit was set to protect infrastructure and nobody's ever
+  checked whether it's also protecting the business right out of revenue.
+category: growth
+tags: [growth, api, rate-limits, churn]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  rl_file={{rate_limit_events_csv_path}}; churn_file={{churned_accounts_csv_path}};
+  min_hits={{min_hits_threshold}};
+  [ -f "$rl_file" ] || { echo "ERROR: $rl_file not found"; exit 1; };
+  [ -f "$churn_file" ] || { echo "ERROR: $churn_file not found"; exit 1; };
+  rate_limited_accounts=$(tail -n +2 "$rl_file" | cut -d',' -f1 | sort | uniq -c | awk -v m="$min_hits" '$1>=m {print $2}' | sort -u);
+  churned_accounts=$(tail -n +2 "$churn_file" | cut -d',' -f1 | sort -u);
+  overlap=$(comm -12 <(echo "$rate_limited_accounts") <(echo "$churned_accounts") | grep -c . || true);
+  rl_count=$(echo "$rate_limited_accounts" | grep -c . || true);
+  echo "$rl_count accounts hit rate limits $min_hits+ times; $overlap of those later churned";
+  if [ "$rl_count" -gt 0 ]; then
+    pct=$(awk -v o="$overlap" -v r="$rl_count" 'BEGIN{printf "%.1f", (o/r)*100}');
+    echo "Overlap rate: ${pct}% of frequently rate-limited accounts churned";
+  fi;
+  if [ "$overlap" -gt 0 ]; then echo "WARNING: rate-limited accounts are showing up in churn — investigate limit thresholds for high-usage plans"; exit 1; fi
+variables:
+  rate_limit_events_csv_path:
+    default: "./api-rate-limit-events.csv"
+    description: "Path to a CSV with header: account_id,endpoint,timestamp, one row per rate-limit-hit event."
+  churned_accounts_csv_path:
+    default: "./churned-accounts.csv"
+    description: "Path to a CSV with header: account_id,churned_at, listing accounts that canceled or downgraded to zero."
+  min_hits_threshold:
+    default: 3
+    description: Minimum number of rate-limit hits within the tracked window for an account to count as "frequently rate-limited".
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Correlation only, not causation — a flagged overlap is a
+  reason to interview a few of those accounts or review whether their
+  plan tier's limit is simply too low for legitimate usage.

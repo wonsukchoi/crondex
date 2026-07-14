@@ -183,7 +183,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1747 jobs across 60 categories:
+1795 jobs across 60 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -207,7 +207,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 21 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
-| `growth` | 20 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
+| `growth` | 32 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 33 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 32 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 32 | Household reminders — maintenance, warranties, plants, safety. |
@@ -218,7 +218,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `investing` | 32 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 20 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
-| `legal` | 20 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 21 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
@@ -229,9 +229,9 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `photography` | 32 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |
-| `productivity` | 20 | Work habits — inbox, standups, focus, meetings, reports. |
+| `productivity` | 32 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 21 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
-| `realestate` | 20 | Property management — leases, rent, vacancy, inspections, tax. |
+| `realestate` | 32 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 20 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 33 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 20 | Pipeline ops — leads, deals, quota, CRM sync. |

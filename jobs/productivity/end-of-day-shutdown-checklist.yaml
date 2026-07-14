@@ -1,0 +1,43 @@
+id: end-of-day-shutdown-checklist
+version: 1
+name: End-of-Day Shutdown Checklist
+description: >
+  Pulls together today's unfinished tasks, tomorrow's first meeting, and
+  any unread high-priority messages into a short end-of-day wrap-up so
+  you close out with a clear head instead of work bleeding into the
+  evening. Use this if you tend to keep half-checking things after
+  hours because you never gave the day a deliberate close.
+category: productivity
+tags: [shutdown-ritual, end-of-day, wind-down]
+schedule: "0 18 * * 1-5"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Build my end-of-day shutdown checklist.
+  1. List tasks still open in {{task_source}} that were due today or
+     marked as today's focus.
+  2. Show tomorrow's first calendar event and its start time from
+     {{calendar_source}}, so I know what to prep before I log off.
+  3. Flag any unread high-priority messages from {{inbox_source}} that
+     need a same-day reply.
+  4. Close with one line: either "clear to log off" or a short list of
+     the 1-3 things that genuinely can't wait until tomorrow.
+  Keep the whole checklist under {{max_words}} words.
+variables:
+  task_source:
+    default: "task tracker"
+    description: Which task tracker/connector to pull today's open tasks from.
+  calendar_source:
+    default: "primary calendar"
+    description: Which calendar connector to check for tomorrow's first event.
+  inbox_source:
+    default: "primary inbox"
+    description: Which inbox/connector to check for unread high-priority messages.
+  max_words:
+    default: 150
+    description: Word cap on the shutdown checklist output.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only summary; does not close tasks or send replies itself. No
+  script mode: judging what "genuinely can't wait" means requires
+  synthesis across sources, not a fixed filter.

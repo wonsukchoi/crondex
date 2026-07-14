@@ -1,0 +1,37 @@
+id: board-resolution-signature-collection-tracker
+version: 1
+name: Board Resolution Signature Collection Tracker
+description: >
+  Flags board resolutions or written consents that are still missing
+  signatures past a target collection date, so an unsigned resolution
+  doesn't sit incomplete in the minute book. Use this if a board action
+  has ever been treated as final before every director or officer
+  actually signed off on it.
+category: legal
+tags: [legal, corporate-governance, board-resolutions, signatures]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "fully-executed" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline target_ts; close(cmd);
+      days_left = int((target_ts - today) / 86400);
+      if (days_left <= warn) print "INCOMPLETE: \"" $1 "\" (" $2 ") signatures=" $4 " target=" $3 " (" days_left " days)";
+    }
+  ' "{{resolutions_csv}}"
+variables:
+  resolutions_csv:
+    default: "board-resolutions.csv"
+    description: "CSV with header row, columns: resolution_title,resolution_type (board/written-consent),target_completion_date(YYYY-MM-DD),signature_status (e.g. 2-of-5, fully-executed)."
+  warn_days:
+    default: 10
+    description: Days before or past the target completion date to start warning about incomplete signature collection.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Update signature_status as each director or officer countersigns —
+  this only compares what's in the CSV to the target date, it does not
+  verify signature authenticity or quorum requirements, which corporate
+  counsel should confirm.

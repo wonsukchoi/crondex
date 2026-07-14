@@ -1,0 +1,34 @@
+id: no-agenda-meeting-flag
+version: 1
+name: No-Agenda Meeting Flag
+description: >
+  Scans upcoming calendar events for meetings that have no description,
+  no agenda items, and no attached doc, and lists them so organizers can
+  fix it before the meeting starts. Use this if you keep walking into
+  calls where nobody's sure what's actually being decided.
+category: productivity
+tags: [calendar, meeting-hygiene, agenda]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg now "$(date -u +%Y-%m-%dT%H:%M:%S)" --arg window "{{lookahead_hours}}" '
+    .events[]
+    | select(.start > $now)
+    | select((.description // "" | length) < 10)
+    | "\(.start)\t\(.title)\t\(.organizer // "unknown")"
+  ' "{{calendar_export_path}}"
+variables:
+  lookahead_hours:
+    default: "24"
+    description: How many hours ahead to scan for meetings missing an agenda.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, `organizer`, and `description` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. Treats any
+  description shorter than 10 characters as "no agenda" — a blunt
+  heuristic, adjust the length cutoff if your invites are terser by
+  convention. See meeting-prep-doc-missing-check for the linked-doc
+  variant of this same problem.

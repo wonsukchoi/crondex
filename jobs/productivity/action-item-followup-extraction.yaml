@@ -1,0 +1,38 @@
+id: action-item-followup-extraction
+version: 1
+name: Action Item Follow-Up Extraction
+description: >
+  Reads recent meeting notes and pulls out every action item into a
+  single follow-up list with owner and due date, then flags any that
+  are missing an owner entirely. Use this if action items get scribbled
+  into notes docs and then quietly forgotten because nothing tracks them
+  afterward.
+category: productivity
+tags: [meetings, action-items, followup]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read meeting notes from {{notes_source}} created or updated in the last
+  {{lookback_hours}} hours.
+  1. Extract every action item mentioned, however informally phrased
+     ("I'll send...", "someone should...", "@name to...").
+  2. For each, capture: the task, the owner (or "unassigned" if unclear),
+     the due date if stated, and which meeting it came from.
+  3. Group unassigned items separately and call them out first — those
+     are the ones most likely to fall through the cracks.
+  4. Output a flat follow-up list, newest meeting first.
+variables:
+  notes_source:
+    default: "meeting notes folder"
+    description: Where meeting notes live (doc folder, wiki space, or notes app connector).
+  lookback_hours:
+    default: 24
+    description: How far back to scan for meeting notes to extract action items from.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only extraction; does not create tasks in a tracker itself. Pair
+  with your task tracker's create-task capability if you want extracted
+  items to land there automatically. No script mode: parsing free-form
+  notes for implied ownership requires judgment a generic shell filter
+  can't reliably do.

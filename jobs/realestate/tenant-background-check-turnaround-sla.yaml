@@ -1,0 +1,34 @@
+id: tenant-background-check-turnaround-sla
+version: 1
+name: Tenant Background Check Turnaround SLA Monitor
+description: >
+  Flags submitted tenant screening background checks that have been
+  pending longer than the target turnaround SLA, so applicants aren't
+  left waiting without an update. Use this if an applicant has ever
+  lost interest in a unit, or accused you of discriminatory delay,
+  because their background check result sat unprocessed too long.
+category: realestate
+tags: [realestate, tenant-screening, background-check, sla]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{sla_hours}}" '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s";
+      cmd | getline sub_ts; close(cmd);
+      hours_pending = (today - sub_ts) / 3600;
+      if (hours_pending >= sla) printf "BACKGROUND CHECK SLA BREACH: %s submitted %.1f hour(s) ago, still pending (SLA %d hours)\n", $1, hours_pending, sla;
+    }
+  ' "{{screenings_csv}}"
+variables:
+  screenings_csv:
+    default: "./tenant-background-checks.csv"
+    description: "CSV with header row, columns: applicant_name,submitted_at(YYYY-MM-DD HH:MM),status(pending/complete)."
+  sla_hours:
+    default: 72
+    description: Target turnaround time in hours for a background check result.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from tenant-application-review-backlog-check, which covers the overall application review queue — this specifically tracks the third-party background/credit screening step's SLA.

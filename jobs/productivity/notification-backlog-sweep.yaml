@@ -1,0 +1,34 @@
+id: notification-backlog-sweep
+version: 1
+name: Notification Backlog Sweep
+description: >
+  Pulls unread notification counts across your connected tools (chat,
+  tracker, docs, code review) into one list, so you can see the whole
+  backlog at a glance instead of tool-hopping to check each one. Use
+  this if you only discover a stale mention or review request days
+  later because it was buried in a red badge you never opened.
+category: productivity
+tags: [notifications, backlog, tool-sprawl]
+schedule: "0 9,15 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check unread notification counts across the following connected tools:
+  {{tool_list}}.
+  1. For each tool, report the unread/unactioned count.
+  2. Highlight anything older than {{stale_hours}} hours as high priority.
+  3. Sum a single combined backlog number so I can see the trend over
+     time.
+  4. If any tool isn't connected, say so instead of guessing a count.
+variables:
+  tool_list:
+    default: "chat, issue tracker, docs, code review"
+    description: Comma-separated list of connected tools to check for unread notifications.
+  stale_hours:
+    default: 48
+    description: Age in hours after which an unread notification is called out as high priority.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only summary; does not mark anything as read. No script mode:
+  notification APIs and auth vary too much by tool for a generic shell
+  equivalent — this job assumes the agent has read access via connectors.

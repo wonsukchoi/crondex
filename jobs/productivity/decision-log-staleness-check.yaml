@@ -1,0 +1,36 @@
+id: decision-log-staleness-check
+version: 1
+name: Decision Log Staleness Check
+description: >
+  Checks your decision log for entries that were opened or referenced in
+  meeting notes but never actually got written down and closed out, and
+  flags the gap. Use this if decisions get made verbally in meetings but
+  the log everyone's supposed to check afterward doesn't reflect them.
+category: productivity
+tags: [decisions, documentation, staleness]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg today "$(date -u +%Y-%m-%d)" --argjson max_age {{max_open_days}} '
+    .decisions[]
+    | select(.status == "open")
+    | . as $d
+    | (($today | strptime("%Y-%m-%d") | mktime) - ($d.opened_date | strptime("%Y-%m-%d") | mktime)) / 86400 | floor as $age
+    | select($age >= $max_age)
+    | "\($age)d open\t\($d.id)\t\($d.title)\t\($d.owner // "unassigned")"
+  ' "{{decision_log_export_path}}" | sort -rn
+variables:
+  max_open_days:
+    default: "5"
+    description: Days a decision can sit "open" (undocumented/unclosed) before it's flagged as stale.
+  decision_log_export_path:
+    default: "/data/decision-log-export.json"
+    description: Path to a JSON export of the decision log containing a `decisions` array with `id`, `title`, `status`, `opened_date`, and `owner` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a decision log export snapshot. Assumes
+  decisions are logged with an "open" status the moment they're raised —
+  if your log only records decisions after they're finalized, this job
+  won't catch verbal-decision drift; see action-item-followup-extraction
+  for pulling decisions out of raw meeting notes instead.

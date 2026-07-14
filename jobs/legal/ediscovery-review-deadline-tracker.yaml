@@ -1,0 +1,36 @@
+id: ediscovery-review-deadline-tracker
+version: 1
+name: E-Discovery Review Batch Deadline Tracker
+description: >
+  Checks e-discovery document review batches for ones approaching their
+  review completion deadline and still not marked complete, so a review
+  batch doesn't slip past a production date unnoticed. Use this if a
+  document production has ever been late because a review batch was
+  still sitting untouched days before the deadline.
+category: legal
+tags: [legal, litigation, ediscovery, document-review]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "complete" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "BATCH DUE: \"" $1 "\" (" $2 " docs) reviewer=" $5 " status=" $4 " due=" $3 " (" days_left " days)";
+    }
+  ' "{{review_batches_csv}}"
+variables:
+  review_batches_csv:
+    default: "ediscovery-review-batches.csv"
+    description: "CSV with header row, columns: batch_name,doc_count,review_due_date(YYYY-MM-DD),status (not-started/in-progress/complete),reviewer."
+  warn_days:
+    default: 5
+    description: Days before a review batch's due date to start warning if it's not yet complete.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Sync review_batches_csv from your review platform's export or a manual
+  tracker after each reviewer update — this only compares status and
+  dates in the CSV, it does not connect to any specific review platform.

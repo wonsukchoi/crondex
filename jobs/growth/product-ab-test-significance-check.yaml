@@ -1,0 +1,55 @@
+id: product-ab-test-significance-check
+version: 1
+name: Product A/B Test Significance Check
+description: >
+  Runs a two-proportion z-test on a running in-product experiment's
+  conversion counts and reports whether the result has reached
+  statistical significance. Use this if experiments get called early
+  ("variant B looks better!") or left running for months after the
+  answer was already clear, because nobody wants to do the stats by hand.
+category: growth
+tags: [growth, ab-testing, experimentation, product]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  ac={{control_conversions}}; an={{control_visitors}}; bc={{variant_conversions}}; bn={{variant_visitors}};
+  alpha={{significance_threshold}};
+  [ "$an" -gt 0 ] && [ "$bn" -gt 0 ] || { echo "ERROR: visitor counts must be greater than zero"; exit 1; };
+  z=$(awk -v ac="$ac" -v an="$an" -v bc="$bc" -v bn="$bn" 'BEGIN{
+    pa=ac/an; pb=bc/bn; p=(ac+bc)/(an+bn);
+    se=sqrt(p*(1-p)*(1/an+1/bn));
+    if (se==0) { print "0"; exit }
+    z=(pb-pa)/se; if (z<0) z=-z; printf "%.3f", z;
+  }');
+  pa_pct=$(awk -v ac="$ac" -v an="$an" 'BEGIN{printf "%.2f", (ac/an)*100}');
+  pb_pct=$(awk -v bc="$bc" -v bn="$bn" 'BEGIN{printf "%.2f", (bc/bn)*100}');
+  echo "Control: $ac/$an (${pa_pct}%), Variant: $bc/$bn (${pb_pct}%), z-score: $z";
+  sig=$(awk -v z="$z" -v a="$alpha" 'BEGIN{
+    if (a=="0.01") crit=2.576; else if (a=="0.10") crit=1.645; else crit=1.96;
+    print (z>=crit) ? "yes" : "no";
+  }');
+  if [ "$sig" = "yes" ]; then echo "RESULT: statistically significant at alpha={{significance_threshold}} — safe to call a winner"; else echo "RESULT: not yet significant at alpha={{significance_threshold}} — keep running or check for underpowering"; exit 1; fi
+variables:
+  control_conversions:
+    default: 120
+    description: Number of conversions in the control (A) group.
+  control_visitors:
+    default: 2000
+    description: Number of visitors/participants exposed to the control (A) group.
+  variant_conversions:
+    default: 150
+    description: Number of conversions in the variant (B) group.
+  variant_visitors:
+    default: 2000
+    description: Number of visitors/participants exposed to the variant (B) group.
+  significance_threshold:
+    default: "0.05"
+    description: "Alpha level for the test; supports 0.01, 0.05, or 0.10."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token two-proportion z-test, not a full Bayesian or sequential
+  testing framework — use it as a fast gut-check, not a replacement for
+  your experimentation platform's built-in stats if you have one.
+  Distinct from marketing's email A/B test check — this is for in-product
+  experiments (pricing, onboarding flows, UI variants).

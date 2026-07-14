@@ -1,0 +1,48 @@
+id: feature-flag-rollout-pacing-check
+version: 1
+name: Feature Flag Rollout Pacing Check
+description: >
+  Compares a feature flag's current rollout percentage against the
+  pacing schedule it was supposed to follow and flags when it's stalled
+  or moving faster than planned. Use this if flags have ever sat at 10%
+  rollout for six weeks because nobody remembered to bump them, or shot
+  to 100% before anyone checked the error rate.
+category: growth
+tags: [growth, feature-flags, rollout, product]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  current={{current_rollout_pct}}; expected={{expected_rollout_pct}}; tolerance={{tolerance_pct}};
+  diff=$(awk "BEGIN{d=$current-$expected; print (d<0)?-d:d}");
+  echo "Flag {{flag_key}}: current rollout ${current}%, expected ${expected}% (day {{days_since_launch}} of plan)";
+  if awk "BEGIN{exit !($diff > $tolerance)}"; then
+    if awk "BEGIN{exit !($current < $expected)}"; then
+      echo "WARNING: rollout is behind schedule by ${diff} points — flag may be stuck";
+    else
+      echo "WARNING: rollout is ahead of schedule by ${diff} points — verify this was intentional";
+    fi;
+    exit 1;
+  else echo "OK: rollout is on pace"; fi
+variables:
+  flag_key:
+    default: "new-checkout-flow"
+    description: Identifier of the feature flag being tracked.
+  current_rollout_pct:
+    default: 25
+    description: The flag's current rollout percentage, pulled from your flag management tool.
+  expected_rollout_pct:
+    default: 50
+    description: The rollout percentage the flag should be at by now, per its planned pacing schedule.
+  days_since_launch:
+    default: 14
+    description: Days since the rollout began, for context in the output.
+  tolerance_pct:
+    default: 10
+    description: Allowed drift in percentage points between current and expected before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Pull current_rollout_pct from your feature flag platform
+  (LaunchDarkly, Split, a homegrown flag service) and set expected_rollout_pct
+  from the rollout plan you agreed on when the flag shipped. Best run as a
+  scheduled check per active flag, not a one-off.

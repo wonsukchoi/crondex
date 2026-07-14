@@ -1,0 +1,40 @@
+id: wip-limit-violation-check
+version: 1
+name: Work-in-Progress Limit Violation Check
+description: >
+  Counts how many tasks are sitting in "in progress" on your task
+  tracker and flags it when the count exceeds a sane single-tasking
+  limit. Use this if you keep starting new work before finishing what's
+  already open, and your "in progress" column has quietly become a
+  second backlog.
+category: productivity
+tags: [tasks, wip-limit, single-tasking]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson limit {{wip_limit}} --arg assignee "{{assignee}}" '
+    [.tasks[] | select(.status == "in_progress" and .assignee == $assignee)] as $wip
+    | if ($wip | length) > $limit then
+        "WARN: \($wip | length) tasks in progress for \($assignee), limit is {{wip_limit}}\n" +
+        ($wip | map("  - \(.title)") | join("\n"))
+      else
+        "\($wip | length) tasks in progress for \($assignee), within limit"
+      end
+  ' "{{task_export_path}}"
+variables:
+  wip_limit:
+    default: "3"
+    description: Maximum number of concurrent "in progress" tasks before flagging a violation.
+  assignee:
+    default: "me"
+    description: Which assignee's in-progress count to check.
+  task_export_path:
+    default: "/data/tasks-export.json"
+    description: Path to a JSON export of the task tracker containing a `tasks` array with `title`, `status`, and `assignee` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a task tracker export snapshot. The right
+  limit varies by person and role — 3 is a common single-tasking
+  default, not a rule. Pairs well with stale-todo-sweep and
+  task-overdue-aging-check for a fuller picture of tracker health.

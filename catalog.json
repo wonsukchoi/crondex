@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1747,
+  "count": 1795,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -413,6 +413,32 @@
         "codex"
       ],
       "path": "jobs/finance/accrued-revenue-recognition-check.yaml"
+    },
+    {
+      "id": "action-item-followup-extraction",
+      "version": 1,
+      "name": "Action Item Follow-Up Extraction",
+      "description": "Reads recent meeting notes and pulls out every action item into a single follow-up list with owner and due date, then flags any that are missing an owner entirely. Use this if action items get scribbled into notes docs and then quietly forgotten because nothing tracks them afterward.",
+      "category": "productivity",
+      "tags": [
+        "meetings",
+        "action-items",
+        "followup"
+      ],
+      "schedule": "0 17 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/productivity/action-item-followup-extraction.yaml"
     },
     {
       "id": "activities-calendar-participation-check",
@@ -1427,6 +1453,31 @@
       "path": "jobs/devops/api-rate-limit-check.yaml"
     },
     {
+      "id": "api-rate-limit-churn-correlation-check",
+      "version": 1,
+      "name": "API Rate-Limit-Hit Churn Correlation Check",
+      "description": "Cross-references accounts that repeatedly hit API rate limits against accounts that later churned, to check whether rate-limiting is quietly driving people away instead of just being an infra safeguard. Use this if a rate limit was set to protect infrastructure and nobody's ever checked whether it's also protecting the business right out of revenue.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "api",
+        "rate-limits",
+        "churn"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/api-rate-limit-churn-correlation-check.yaml"
+    },
+    {
       "id": "appliance-recall-check",
       "version": 1,
       "name": "Appliance Recall Check",
@@ -1583,6 +1634,32 @@
         "generic"
       ],
       "path": "jobs/healthcare/appointment-slot-utilization-check.yaml"
+    },
+    {
+      "id": "arbitration-clause-deadline-tracker",
+      "version": 1,
+      "name": "Arbitration Clause Demand Deadline Tracker",
+      "description": "Warns you before the deadline to invoke a contract's arbitration clause or respond to an arbitration demand passes, since these deadlines are often shorter and stricter than ordinary litigation timelines. Use this if a right to compel arbitration, or a deadline to respond to one, has ever nearly lapsed because it wasn't tracked separately from the general litigation calendar.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "litigation",
+        "arbitration",
+        "adr",
+        "deadlines"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/arbitration-clause-deadline-tracker.yaml"
     },
     {
       "id": "arc-review-copy-followup",
@@ -2640,6 +2717,33 @@
       "path": "jobs/hr/benefits-enrollment-deadline-reminder.yaml"
     },
     {
+      "id": "beta-program-engagement-tracker",
+      "version": 1,
+      "name": "Beta Program Engagement Tracker",
+      "description": "Reviews activity and feedback from customer advisory board / beta program members and flags participants who've gone quiet, plus summarizes recurring themes in the feedback that's come in. Use this if a beta or advisory program was set up with great intentions, but now it's unclear who's actually engaged versus who joined a Slack channel once and disappeared.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "beta-program",
+        "customer-advisory-board",
+        "engagement"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/growth/beta-program-engagement-tracker.yaml"
+    },
+    {
       "id": "bgp-route-leak-detection",
       "version": 1,
       "name": "BGP Route Leak / Hijack Detection",
@@ -2991,6 +3095,31 @@
         "codex"
       ],
       "path": "jobs/nonprofit/board-member-term-expiry-check.yaml"
+    },
+    {
+      "id": "board-resolution-signature-collection-tracker",
+      "version": 1,
+      "name": "Board Resolution Signature Collection Tracker",
+      "description": "Flags board resolutions or written consents that are still missing signatures past a target collection date, so an unsigned resolution doesn't sit incomplete in the minute book. Use this if a board action has ever been treated as final before every director or officer actually signed off on it.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "corporate-governance",
+        "board-resolutions",
+        "signatures"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/board-resolution-signature-collection-tracker.yaml"
     },
     {
       "id": "board-term-limit-compliance-check",
@@ -3615,6 +3744,30 @@
         "codex"
       ],
       "path": "jobs/publishing/broken-link-check-published-articles.yaml"
+    },
+    {
+      "id": "browser-tab-hygiene-reminder",
+      "version": 1,
+      "name": "Browser Tab Hygiene Reminder",
+      "description": "Checks a browser session export for open tab count and flags it once it crosses a threshold, so you get nudged to close or bookmark before it spirals. Use this if you routinely end the day with triple-digit tabs open and no idea which ones still matter.",
+      "category": "productivity",
+      "tags": [
+        "browser",
+        "tabs",
+        "digital-hygiene"
+      ],
+      "schedule": "0 16 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/browser-tab-hygiene-reminder.yaml"
     },
     {
       "id": "budget-appropriation-deadline-check",
@@ -4353,6 +4506,31 @@
         "codex"
       ],
       "path": "jobs/investing/capital-gains-distribution-watch.yaml"
+    },
+    {
+      "id": "capital-improvement-budget-variance-check",
+      "version": 1,
+      "name": "Capital Improvement Project Budget Variance Check",
+      "description": "Compares actual spend against budget for each active capital improvement project (roof replacement, parking lot repaving, etc.) and flags any project that has exceeded its budget or is on pace to. Use this if a capital project has ever quietly blown through its budget before anyone flagged it to ownership.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "capital-improvements",
+        "budget",
+        "reporting"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/capital-improvement-budget-variance-check.yaml"
     },
     {
       "id": "capital-project-budget-variance-check",
@@ -5512,6 +5690,31 @@
       "path": "jobs/ecommerce/checkout-conversion-drop-watch.yaml"
     },
     {
+      "id": "checkout-step-dropoff-check",
+      "version": 1,
+      "name": "Checkout Step Drop-Off Check",
+      "description": "Walks a step-by-step self-serve checkout/upgrade funnel and flags whichever single step has the worst drop-off rate, rather than just an overall conversion number. Use this if \"checkout conversion is down\" is a known fact but nobody's pinned down whether people are bailing at the plan picker, the payment form, or the confirmation step.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "checkout",
+        "conversion",
+        "monetization"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/checkout-step-dropoff-check.yaml"
+    },
+    {
       "id": "chimney-inspection-reminder",
       "version": 1,
       "name": "Chimney Inspection Reminder",
@@ -5767,6 +5970,31 @@
         "generic"
       ],
       "path": "jobs/moving-relocation/claims-insurance-valuation-mismatch-check.yaml"
+    },
+    {
+      "id": "claims-made-insurance-notification-deadline-tracker",
+      "version": 1,
+      "name": "Claims-Made Insurance Notification Deadline Tracker",
+      "description": "Flags incidents or potential claims that still need to be reported to a claims-made insurance policy within its reporting window, since missing that window can void coverage entirely regardless of when the underlying incident happened. Use this if a claim has ever been denied, or nearly was, because it was reported to the insurer after the claims-made policy's notification deadline passed.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "insurance",
+        "claims-made-policy",
+        "notification-deadline"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/claims-made-insurance-notification-deadline-tracker.yaml"
     },
     {
       "id": "claims-reserve-adequacy-review",
@@ -7246,6 +7474,31 @@
       "path": "jobs/insurance/commission-statement-reconciliation-tracker.yaml"
     },
     {
+      "id": "common-area-amenity-booking-conflict-check",
+      "version": 1,
+      "name": "Common-Area Amenity Booking Conflict Check",
+      "description": "Scans upcoming reservations for shared amenities like the pool, clubhouse, or gym and flags any overlapping bookings for the same space and time slot. Use this if two residents have ever shown up for the same clubhouse slot because the booking log let a double-booking through.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "amenities",
+        "reservations",
+        "resident-experience"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/common-area-amenity-booking-conflict-check.yaml"
+    },
+    {
       "id": "community-event-rsvp-followup-check",
       "version": 1,
       "name": "Community Event RSVP Followup Check",
@@ -7319,6 +7572,30 @@
         "codex"
       ],
       "path": "jobs/coworking/community-manager-checklist-completion-check.yaml"
+    },
+    {
+      "id": "commute-buffer-before-first-meeting-check",
+      "version": 1,
+      "name": "Commute Buffer Before First Meeting Check",
+      "description": "Checks whether tomorrow's first in-person or off-site calendar event leaves enough travel buffer given an estimated commute time, and flags it if you'd need to leave earlier than planned. Use this if you've ever been late to a first meeting because the calendar didn't account for how long it actually takes to get there.",
+      "category": "productivity",
+      "tags": [
+        "calendar",
+        "commute",
+        "travel-buffer"
+      ],
+      "schedule": "0 18 * * 0-4",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/commute-buffer-before-first-meeting-check.yaml"
     },
     {
       "id": "comp-void-anomaly-tracker",
@@ -7996,6 +8273,31 @@
         "codex"
       ],
       "path": "jobs/hiring/contingent-conversion-window-tracker.yaml"
+    },
+    {
+      "id": "contract-obligation-clause-tracker",
+      "version": 1,
+      "name": "Contract Obligation Clause Tracker",
+      "description": "Watches for upcoming trigger dates on specific contract obligations buried inside clauses — renewal notice windows, price escalators, minimum purchase commitments, exclusivity reviews — that aren't the contract's own expiry date. Use this if a contract has ever renewed on unfavorable terms, or a price escalator kicked in unnoticed, because the obligation was tracked nowhere but the contract's fine print.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "contracts",
+        "obligation-tracking",
+        "clauses"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/contract-obligation-clause-tracker.yaml"
     },
     {
       "id": "contract-renewal-opportunity-tracker",
@@ -11011,6 +11313,30 @@
       "path": "jobs/sales/deal-slippage-quarter-end-check.yaml"
     },
     {
+      "id": "decision-log-staleness-check",
+      "version": 1,
+      "name": "Decision Log Staleness Check",
+      "description": "Checks your decision log for entries that were opened or referenced in meeting notes but never actually got written down and closed out, and flags the gap. Use this if decisions get made verbally in meetings but the log everyone's supposed to check afterward doesn't reflect them.",
+      "category": "productivity",
+      "tags": [
+        "decisions",
+        "documentation",
+        "staleness"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/decision-log-staleness-check.yaml"
+    },
+    {
       "id": "deck-stain-reseal-reminder",
       "version": 1,
       "name": "Deck/Fence Stain & Reseal Reminder",
@@ -12401,6 +12727,36 @@
       "path": "jobs/personal/downloads-folder-auto-organize.yaml"
     },
     {
+      "id": "dpa-renewal-tracker",
+      "version": 1,
+      "name": "Data Processing Agreement Renewal Tracker",
+      "description": "Watches vendor and customer data processing agreements (DPAs) for upcoming renewal or expiry dates and drafts a review checklist so standard contractual clauses, subprocessor lists, and transfer mechanisms get re-checked before signing rather than auto-renewing unread. Use this if a DPA has ever renewed with a stale subprocessor list or an outdated transfer mechanism because nobody reviewed it at renewal time.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "data-privacy",
+        "dpa",
+        "gdpr",
+        "ccpa",
+        "vendor-management"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/dpa-renewal-tracker.yaml"
+    },
+    {
       "id": "draft-review-queue-aging-check",
       "version": 1,
       "name": "Draft Review Queue Aging Check",
@@ -13132,6 +13488,31 @@
       "path": "jobs/healthcare/ed-hospital-discharge-followup-check.yaml"
     },
     {
+      "id": "ediscovery-review-deadline-tracker",
+      "version": 1,
+      "name": "E-Discovery Review Batch Deadline Tracker",
+      "description": "Checks e-discovery document review batches for ones approaching their review completion deadline and still not marked complete, so a review batch doesn't slip past a production date unnoticed. Use this if a document production has ever been late because a review batch was still sitting untouched days before the deadline.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "litigation",
+        "ediscovery",
+        "document-review"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/ediscovery-review-deadline-tracker.yaml"
+    },
+    {
       "id": "editing-backlog-aging-check",
       "version": 1,
       "name": "Editing Backlog Aging Check",
@@ -13565,6 +13946,32 @@
       "path": "jobs/hr/employee-engagement-survey-action-tracker.yaml"
     },
     {
+      "id": "employee-handbook-acknowledgment-compliance-check",
+      "version": 1,
+      "name": "Employee Handbook Acknowledgment Compliance Check",
+      "description": "Checks which employees still haven't signed off on the current version of the employee handbook past its rollout deadline, so a missing acknowledgment doesn't surface as a gap only during a dispute or audit. Use this if you've ever needed to prove an employee acknowledged a policy and found the record was missing.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "employment",
+        "handbook",
+        "policy-acknowledgment",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/employee-handbook-acknowledgment-compliance-check.yaml"
+    },
+    {
       "id": "employee-shift-gap-check",
       "version": 1,
       "name": "Employee Shift Gap Check",
@@ -13666,6 +14073,32 @@
         "codex"
       ],
       "path": "jobs/logistics/empty-mile-deadhead-percentage-watch.yaml"
+    },
+    {
+      "id": "end-of-day-shutdown-checklist",
+      "version": 1,
+      "name": "End-of-Day Shutdown Checklist",
+      "description": "Pulls together today's unfinished tasks, tomorrow's first meeting, and any unread high-priority messages into a short end-of-day wrap-up so you close out with a clear head instead of work bleeding into the evening. Use this if you tend to keep half-checking things after hours because you never gave the day a deliberate close.",
+      "category": "productivity",
+      "tags": [
+        "shutdown-ritual",
+        "end-of-day",
+        "wind-down"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "America/Los_Angeles",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/productivity/end-of-day-shutdown-checklist.yaml"
     },
     {
       "id": "end-of-day-wrap-message",
@@ -15560,6 +15993,31 @@
       "path": "jobs/ecommerce/failed-payment-dunning-check.yaml"
     },
     {
+      "id": "fair-housing-complaint-response-deadline-check",
+      "version": 1,
+      "name": "Fair Housing Complaint Response Deadline Check",
+      "description": "Flags open fair housing complaints (from a tenant, applicant, or agency) that are approaching or past the required internal response deadline. Use this if a fair housing complaint has ever gone unanswered past a deadline because it wasn't tracked separately from general maintenance or tenant tickets.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "fair-housing",
+        "compliance",
+        "complaints"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/fair-housing-complaint-response-deadline-check.yaml"
+    },
+    {
       "id": "fall-cleanup-contract-renewal-reminder",
       "version": 1,
       "name": "Fall Cleanup Contract Renewal Reminder",
@@ -15787,6 +16245,31 @@
         "codex"
       ],
       "path": "jobs/growth/feature-adoption-rate-tracker.yaml"
+    },
+    {
+      "id": "feature-flag-rollout-pacing-check",
+      "version": 1,
+      "name": "Feature Flag Rollout Pacing Check",
+      "description": "Compares a feature flag's current rollout percentage against the pacing schedule it was supposed to follow and flags when it's stalled or moving faster than planned. Use this if flags have ever sat at 10% rollout for six weeks because nobody remembered to bump them, or shot to 100% before anyone checked the error rate.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "feature-flags",
+        "rollout",
+        "product"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/feature-flag-rollout-pacing-check.yaml"
     },
     {
       "id": "feature-flag-staleness-audit",
@@ -16651,6 +17134,32 @@
         "codex"
       ],
       "path": "jobs/sales/forecast-submission-compliance-check.yaml"
+    },
+    {
+      "id": "foreign-qualification-annual-report-tracker",
+      "version": 1,
+      "name": "Foreign Qualification & Annual Report Deadline Tracker",
+      "description": "Warns you before a state annual report or foreign qualification renewal is due, per state, so the entity doesn't fall out of good standing or lose its registered agent coverage. Use this if you've ever discovered a state administrative dissolution or late-filing penalty only after it already happened because nobody was watching the per-state calendar.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "corporate",
+        "foreign-qualification",
+        "annual-report",
+        "registered-agent"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/legal/foreign-qualification-annual-report-tracker.yaml"
     },
     {
       "id": "foreign-tax-credit-documentation-reminder",
@@ -19837,6 +20346,31 @@
       "path": "jobs/crypto/impermanent-loss-threshold-watch.yaml"
     },
     {
+      "id": "in-app-message-fatigue-check",
+      "version": 1,
+      "name": "In-App Message Fatigue Check",
+      "description": "Counts how many in-app messages (tooltips, banners, modals, survey prompts) each active user was shown in the lookback window and flags users being over-messaged. Use this if five different teams each ship their own in-app prompt independently, and users end up getting interrupted by a new popup every time they open the product.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "in-app-messaging",
+        "engagement",
+        "activation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/in-app-message-fatigue-check.yaml"
+    },
+    {
       "id": "in-kind-donation-acknowledgment-check",
       "version": 1,
       "name": "In-Kind Donation Acknowledgment Check",
@@ -21823,6 +22357,31 @@
       "path": "jobs/marketing/lead-magnet-conversion-rate-check.yaml"
     },
     {
+      "id": "lead-paint-disclosure-compliance-check",
+      "version": 1,
+      "name": "Lead Paint Disclosure Compliance Check",
+      "description": "Flags pre-1978 units where a new or renewing lease is missing the required lead-based paint disclosure form and EPA pamphlet acknowledgment on file. Use this if you manage any building old enough to be covered by lead paint disclosure rules and want to avoid a fair housing or EPA compliance complaint over missing paperwork.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "lead-paint",
+        "disclosure",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/lead-paint-disclosure-compliance-check.yaml"
+    },
+    {
       "id": "lead-response-time-check",
       "version": 1,
       "name": "Lead Response Time Check",
@@ -22022,6 +22581,31 @@
         "generic"
       ],
       "path": "jobs/fleet/lease-return-condition-check.yaml"
+    },
+    {
+      "id": "lease-violation-notice-to-cure-tracker",
+      "version": 1,
+      "name": "Lease Violation Notice-to-Cure Tracker",
+      "description": "Tracks open lease violation notices (unauthorized pet, noise complaints, unauthorized occupant, etc.) and flags any where the tenant's cure deadline has passed without a resolution logged. Use this if a lease violation has ever quietly gone unresolved because nobody followed up once the notice was sent.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "lease-violations",
+        "compliance",
+        "notice-to-cure"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/lease-violation-notice-to-cure-tracker.yaml"
     },
     {
       "id": "leave-of-absence-return-tracker",
@@ -22274,6 +22858,31 @@
         "codex"
       ],
       "path": "jobs/construction/lien-waiver-collection-tracker.yaml"
+    },
+    {
+      "id": "life-safety-system-inspection-check",
+      "version": 1,
+      "name": "Fire and Life-Safety System Inspection Due Check",
+      "description": "Flags fire alarm, sprinkler, and life-safety system inspections that are due or overdue across the portfolio, based on each system's last inspection date and the required inspection interval. Use this if you've ever discovered a sprinkler certification lapsed only after a fire marshal or insurer asked for the paperwork.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "life-safety",
+        "fire-inspection",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/life-safety-system-inspection-check.yaml"
     },
     {
       "id": "lift-hoist-inspection-due-check",
@@ -23210,6 +23819,34 @@
       "path": "jobs/travel/loyalty-status-requalification-pace-check.yaml"
     },
     {
+      "id": "ma-due-diligence-checklist-completion-tracker",
+      "version": 1,
+      "name": "M&A Due Diligence Checklist Completion Tracker",
+      "description": "Checks an active deal's due diligence checklist for items that are still outstanding or past their target completion date and drafts a status update for the deal team. Use this if a due diligence gap has ever surfaced late in a deal because nobody was tracking checklist completion against the closing timeline in one place.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "m-and-a",
+        "due-diligence",
+        "deal-management"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/ma-due-diligence-checklist-completion-tracker.yaml"
+    },
+    {
       "id": "macro-usage-staleness-check",
       "version": 1,
       "name": "Macro/Canned Response Staleness Check",
@@ -24025,6 +24662,30 @@
         "generic"
       ],
       "path": "jobs/pharmacy/medication-therapy-management-outreach.yaml"
+    },
+    {
+      "id": "meeting-cost-estimator",
+      "version": 1,
+      "name": "Meeting Cost Estimator",
+      "description": "Checks your calendar export for recurring meetings, multiplies attendee count by duration and an hourly rate to estimate their weekly dollar cost, and flags the most expensive ones. Use this if standing meetings keep getting added but nobody ever tallies what they actually cost in people-hours.",
+      "category": "productivity",
+      "tags": [
+        "calendar",
+        "meeting-cost",
+        "recurring-meetings"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/meeting-cost-estimator.yaml"
     },
     {
       "id": "meeting-free-day-protection-check",
@@ -24981,6 +25642,31 @@
         "generic"
       ],
       "path": "jobs/productivity/morning-briefing-digest.yaml"
+    },
+    {
+      "id": "mortgage-loan-covenant-compliance-check",
+      "version": 1,
+      "name": "Mortgage Loan Covenant Compliance Check",
+      "description": "Compares each property's current debt-service coverage ratio (DSCR) against the minimum required by its loan covenant and flags any property that has fallen below threshold. Use this if you've ever found out about a covenant breach only when the lender's servicer called, instead of catching it from your own numbers first.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "mortgage",
+        "loan-covenants",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/mortgage-loan-covenant-compliance-check.yaml"
     },
     {
       "id": "move-in-move-out-inspection-tracker",
@@ -26306,6 +26992,30 @@
       "path": "jobs/crypto/nft-royalty-enforcement-watch.yaml"
     },
     {
+      "id": "no-agenda-meeting-flag",
+      "version": 1,
+      "name": "No-Agenda Meeting Flag",
+      "description": "Scans upcoming calendar events for meetings that have no description, no agenda items, and no attached doc, and lists them so organizers can fix it before the meeting starts. Use this if you keep walking into calls where nobody's sure what's actually being decided.",
+      "category": "productivity",
+      "tags": [
+        "calendar",
+        "meeting-hygiene",
+        "agenda"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/no-agenda-meeting-flag.yaml"
+    },
+    {
       "id": "no-show-rate-by-provider-tracker",
       "version": 1,
       "name": "No-Show Rate by Provider Tracker",
@@ -26432,6 +27142,32 @@
         "codex"
       ],
       "path": "jobs/utilities/non-revenue-water-loss-check.yaml"
+    },
+    {
+      "id": "notification-backlog-sweep",
+      "version": 1,
+      "name": "Notification Backlog Sweep",
+      "description": "Pulls unread notification counts across your connected tools (chat, tracker, docs, code review) into one list, so you can see the whole backlog at a glance instead of tool-hopping to check each one. Use this if you only discover a stale mention or review request days later because it was buried in a red badge you never opened.",
+      "category": "productivity",
+      "tags": [
+        "notifications",
+        "backlog",
+        "tool-sprawl"
+      ],
+      "schedule": "0 9,15 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/productivity/notification-backlog-sweep.yaml"
     },
     {
       "id": "nps-trend-tracker",
@@ -26836,6 +27572,30 @@
         "codex"
       ],
       "path": "jobs/self-storage/online-reservation-move-in-conversion-check.yaml"
+    },
+    {
+      "id": "ooo-handoff-completeness-check",
+      "version": 1,
+      "name": "Out-of-Office Handoff Completeness Check",
+      "description": "Checks whether upcoming out-of-office calendar blocks have a matching handoff doc, a delegated owner for open tasks, and an auto-reply set up, then flags whatever's missing. Use this if you've ever come back from time off to a pile of things that needed a decision nobody was authorized to make while you were gone.",
+      "category": "productivity",
+      "tags": [
+        "out-of-office",
+        "handoff",
+        "delegation"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/ooo-handoff-completeness-check.yaml"
     },
     {
       "id": "open-data-portal-publication-sla-check",
@@ -27244,6 +28004,35 @@
         "codex"
       ],
       "path": "jobs/legal/outside-counsel-invoice-budget-check.yaml"
+    },
+    {
+      "id": "outside-counsel-rate-card-compliance-audit",
+      "version": 1,
+      "name": "Outside Counsel Rate Card Compliance Audit",
+      "description": "Compares billed hourly rates on outside counsel invoices against the negotiated rate card for each timekeeper and flags any overbilled rate, then drafts a summary for whoever manages the panel relationship. Use this if outside counsel has ever quietly billed above the negotiated rate and it only got caught months later, if at all.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "outside-counsel",
+        "billing",
+        "rate-card",
+        "panel-management"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/outside-counsel-rate-card-compliance-audit.yaml"
     },
     {
       "id": "overbooking-risk-alert",
@@ -30333,6 +31122,31 @@
       "path": "jobs/travel/post-trip-expense-report-deadline-reminder.yaml"
     },
     {
+      "id": "pql-sales-handoff-sla-check",
+      "version": 1,
+      "name": "PQL-to-Sales Handoff SLA Check",
+      "description": "Checks how long it took a sales rep to first respond after a product-qualified lead was flagged, and reports any that breached the response-time SLA. Use this if PQLs get correctly identified but then sit untouched in a queue for days because there's no check on what happens after the flag is raised.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "pql",
+        "sales-handoff",
+        "product-led-growth"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/pql-sales-handoff-sla-check.yaml"
+    },
+    {
       "id": "practice-streak-check",
       "version": 1,
       "name": "Skill Practice Streak Check",
@@ -30716,6 +31530,31 @@
       "path": "jobs/retail/price-tag-audit-accuracy-check.yaml"
     },
     {
+      "id": "pricing-page-bounce-rate-watch",
+      "version": 1,
+      "name": "Pricing Page Bounce Rate Watch",
+      "description": "Pulls the pricing page's bounce rate from your analytics API and flags when it climbs above a healthy ceiling. Use this if the pricing page is the highest-intent page on the site but nobody watches its bounce rate the way they'd watch checkout conversion, even though a spike usually means confusing tiers, a broken layout, or a recent price change scaring people off.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "pricing-page",
+        "bounce-rate",
+        "monetization"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/pricing-page-bounce-rate-watch.yaml"
+    },
+    {
       "id": "print-lab-order-status-check",
       "version": 1,
       "name": "Print Lab Order Status Check",
@@ -30999,6 +31838,31 @@
         "codex"
       ],
       "path": "jobs/insurance/producer-ce-credit-hour-tracker.yaml"
+    },
+    {
+      "id": "product-ab-test-significance-check",
+      "version": 1,
+      "name": "Product A/B Test Significance Check",
+      "description": "Runs a two-proportion z-test on a running in-product experiment's conversion counts and reports whether the result has reached statistical significance. Use this if experiments get called early (\"variant B looks better!\") or left running for months after the answer was already clear, because nobody wants to do the stats by hand.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "ab-testing",
+        "experimentation",
+        "product"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/product-ab-test-significance-check.yaml"
     },
     {
       "id": "product-chemical-expiry-check",
@@ -31466,6 +32330,31 @@
         "generic"
       ],
       "path": "jobs/cleaning-services/property-damage-waiver-expiry-check.yaml"
+    },
+    {
+      "id": "property-listing-syndication-staleness-check",
+      "version": 1,
+      "name": "Property Listing Syndication Staleness Check",
+      "description": "Checks each active vacancy listing's syndication endpoint and flags listings that haven't been refreshed recently or that return an error, so a unit doesn't sit invisible on Zillow or the MLS while marked \"active\" internally. Use this if a listing has ever gone stale on a syndication site while your internal system still showed it as live.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "listings",
+        "syndication",
+        "marketing"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/property-listing-syndication-staleness-check.yaml"
     },
     {
       "id": "property-maintenance-inspection-reminder",
@@ -32678,6 +33567,33 @@
       "path": "jobs/cleaning-services/recurring-invoice-generation-check.yaml"
     },
     {
+      "id": "recurring-meeting-relevance-review",
+      "version": 1,
+      "name": "Recurring Meeting Relevance Review",
+      "description": "Looks at your recurring meetings and their recent attendance/duration patterns, then asks whether each one still earns its spot on the calendar. Use this if standing meetings tend to outlive the reason they were created and nobody ever revisits whether they're still needed.",
+      "category": "productivity",
+      "tags": [
+        "calendar",
+        "recurring-meetings",
+        "review"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/productivity/recurring-meeting-relevance-review.yaml"
+    },
+    {
       "id": "recurring-payment-failure-check",
       "version": 1,
       "name": "Recurring Payment Failure Check",
@@ -33159,6 +34075,31 @@
         "codex"
       ],
       "path": "jobs/utilities/renewable-portfolio-standard-compliance-check.yaml"
+    },
+    {
+      "id": "rent-delinquency-trend-watch",
+      "version": 1,
+      "name": "Rent Delinquency Trend Watch",
+      "description": "Compares this period's portfolio-wide rent delinquency rate against the trailing average and flags a meaningful upward trend, rather than looking at any single tenant's late payment. Use this if delinquency has ever crept up property-wide over several months before anyone noticed the pattern.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "delinquency",
+        "rent-roll",
+        "trend"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/rent-delinquency-trend-watch.yaml"
     },
     {
       "id": "rent-increase-notice-deadline-check",
@@ -36228,6 +37169,31 @@
       "path": "jobs/hiring/sign-on-bonus-clawback-tracker.yaml"
     },
     {
+      "id": "signup-email-verification-abandonment-check",
+      "version": 1,
+      "name": "Signup Email Verification Abandonment Check",
+      "description": "Measures what percent of new self-serve signups never click the email verification link, and flags when abandonment climbs above normal. Use this if signups look healthy in the top-of-funnel numbers but activation is quietly leaking because people sign up, get distracted before checking their inbox, and never come back to verify.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "email-verification",
+        "onboarding",
+        "activation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/signup-email-verification-abandonment-check.yaml"
+    },
+    {
       "id": "silver-medalist-reengagement-tracker",
       "version": 1,
       "name": "Silver-Medalist Re-engagement Tracker",
@@ -36724,6 +37690,31 @@
         "codex"
       ],
       "path": "jobs/utilities/smart-meter-firmware-rollout-tracker.yaml"
+    },
+    {
+      "id": "smoke-co-detector-compliance-check",
+      "version": 1,
+      "name": "Smoke and Carbon Monoxide Detector Compliance Check",
+      "description": "Flags units where the smoke or carbon monoxide detector inspection and battery check is overdue based on local code's required testing interval. Use this if a habitability inspection has ever cited you for a dead smoke detector that should have been caught on a routine check.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "habitability",
+        "smoke-detector",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/smoke-co-detector-compliance-check.yaml"
     },
     {
       "id": "smoke-detector-battery-check",
@@ -38110,6 +39101,33 @@
       "path": "jobs/senior-living/state-survey-readiness-checklist-tracker.yaml"
     },
     {
+      "id": "statute-of-limitations-claim-deadline-calculator",
+      "version": 1,
+      "name": "Statute of Limitations Claim Deadline Calculator",
+      "description": "Reviews a list of potential or pending claims and estimates when each one's statute of limitations likely expires given its claim type, jurisdiction, and accrual date, then flags which ones need action soonest. Use this if a claim has ever nearly time-barred because nobody translated \"the clock started on this date\" into an actual filing deadline.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "litigation",
+        "statute-of-limitations",
+        "claims"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/statute-of-limitations-claim-deadline-calculator.yaml"
+    },
+    {
       "id": "sterile-compounding-environmental-monitoring-check",
       "version": 1,
       "name": "Sterile Compounding Environmental Monitoring Check",
@@ -39285,6 +40303,31 @@
       "path": "jobs/support/support-headcount-volume-ratio-check.yaml"
     },
     {
+      "id": "support-ticket-spike-post-release-check",
+      "version": 1,
+      "name": "Support Ticket Spike Post-Release Check",
+      "description": "Compares support ticket volume in the days right after a release against the pre-release baseline and flags an unusually large jump. Use this if a release has ever shipped a regression that only became obvious a week later, once someone happened to notice support tickets piling up.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "support-tickets",
+        "release-quality",
+        "retention"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/support-ticket-spike-post-release-check.yaml"
+    },
+    {
       "id": "surgery-prep-check",
       "version": 1,
       "name": "Surgery Prep Check",
@@ -40169,6 +41212,31 @@
       "path": "jobs/realestate/tenant-application-review-backlog-check.yaml"
     },
     {
+      "id": "tenant-background-check-turnaround-sla",
+      "version": 1,
+      "name": "Tenant Background Check Turnaround SLA Monitor",
+      "description": "Flags submitted tenant screening background checks that have been pending longer than the target turnaround SLA, so applicants aren't left waiting without an update. Use this if an applicant has ever lost interest in a unit, or accused you of discriminatory delay, because their background check result sat unprocessed too long.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "tenant-screening",
+        "background-check",
+        "sla"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/tenant-background-check-turnaround-sla.yaml"
+    },
+    {
       "id": "tenant-contact-info-staleness-check",
       "version": 1,
       "name": "Tenant Contact Info Staleness Check",
@@ -40800,6 +41868,30 @@
         "codex"
       ],
       "path": "jobs/fleet/toll-violation-tracker.yaml"
+    },
+    {
+      "id": "tool-license-utilization-audit",
+      "version": 1,
+      "name": "Tool License Utilization Audit",
+      "description": "Checks a SaaS seat/license export for accounts that haven't logged in within a set window, and totals the monthly cost of seats nobody's using. Use this if your team keeps paying for tool seats that were provisioned for someone who left or a trial that quietly renewed.",
+      "category": "productivity",
+      "tags": [
+        "saas",
+        "licenses",
+        "cost-hygiene"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/tool-license-utilization-audit.yaml"
     },
     {
       "id": "tooling-die-wear-check",
@@ -41976,6 +43068,31 @@
       "path": "jobs/healthcare/unsigned-encounter-note-check.yaml"
     },
     {
+      "id": "unused-seat-invite-check",
+      "version": 1,
+      "name": "Unused Seat Invite Check",
+      "description": "Finds team invites that were sent by an account admin but never accepted within a reasonable window, and lists them for a nudge or cleanup. Use this if admins invite teammates during onboarding, half those invites go stale in someone's inbox, and it's never tracked separately from whether existing seats are actually being used.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "seats",
+        "invites",
+        "activation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/unused-seat-invite-check.yaml"
+    },
+    {
       "id": "unused-streaming-subscription-check",
       "version": 1,
       "name": "Unused Streaming Subscription Check",
@@ -42864,6 +43981,31 @@
       "path": "jobs/legal/vendor-coi-expiry-tracker.yaml"
     },
     {
+      "id": "vendor-contractor-coi-expiry-check",
+      "version": 1,
+      "name": "Vendor and Contractor Certificate of Insurance Expiry Check",
+      "description": "Flags maintenance vendors and contractors whose certificate of insurance (COI) on file has expired or is about to expire, so nobody gets dispatched to a job site without valid coverage. Use this if a contractor has ever kept working on your properties after their liability policy lapsed because nobody was tracking COI dates.",
+      "category": "realestate",
+      "tags": [
+        "realestate",
+        "vendors",
+        "insurance",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/realestate/vendor-contractor-coi-expiry-check.yaml"
+    },
+    {
       "id": "vendor-early-pay-discount-tracker",
       "version": 1,
       "name": "Vendor Early-Pay Discount Tracker",
@@ -43174,6 +44316,31 @@
         "generic"
       ],
       "path": "jobs/ecommerce/vip-tier-reclassification-check.yaml"
+    },
+    {
+      "id": "viral-k-factor-trend-watch",
+      "version": 1,
+      "name": "Viral K-Factor Trend Watch",
+      "description": "Computes the viral coefficient (invites sent per user times the conversion rate of those invites) for the current period and compares it against the prior period. Use this if a referral or invite loop was built to be \"viral\" and nobody's tracked since launch whether it's actually compounding growth or just producing a trickle of invites.",
+      "category": "growth",
+      "tags": [
+        "growth",
+        "virality",
+        "k-factor",
+        "referrals"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/growth/viral-k-factor-trend-watch.yaml"
     },
     {
       "id": "virtual-office-mail-forwarding-sla-check",
@@ -44537,6 +45704,35 @@
       "path": "jobs/government/whistleblower-complaint-sla-check.yaml"
     },
     {
+      "id": "whistleblower-hotline-report-followup-tracker",
+      "version": 1,
+      "name": "Whistleblower Hotline Report Follow-Up Tracker",
+      "description": "Checks open whistleblower or ethics hotline reports for ones nearing their internal investigation follow-up deadline and drafts a status summary for compliance, so a report doesn't stall without a documented next step. Use this if an ethics hotline report has ever sat open for weeks without any visible follow-up because tracking lived only in someone's inbox.",
+      "category": "legal",
+      "tags": [
+        "legal",
+        "compliance",
+        "ethics-hotline",
+        "whistleblower",
+        "investigations"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/legal/whistleblower-hotline-report-followup-tracker.yaml"
+    },
+    {
       "id": "wifi-bandwidth-utilization-alert",
       "version": 1,
       "name": "Wifi Bandwidth Utilization Alert",
@@ -44613,6 +45809,30 @@
         "generic"
       ],
       "path": "jobs/growth/winback-reactivation-campaign-tracker.yaml"
+    },
+    {
+      "id": "wip-limit-violation-check",
+      "version": 1,
+      "name": "Work-in-Progress Limit Violation Check",
+      "description": "Counts how many tasks are sitting in \"in progress\" on your task tracker and flags it when the count exceeds a sane single-tasking limit. Use this if you keep starting new work before finishing what's already open, and your \"in progress\" column has quietly become a second backlog.",
+      "category": "productivity",
+      "tags": [
+        "tasks",
+        "wip-limit",
+        "single-tasking"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/productivity/wip-limit-violation-check.yaml"
     },
     {
       "id": "wishlist-abandonment-check",

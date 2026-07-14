@@ -1,0 +1,39 @@
+id: contract-obligation-clause-tracker
+version: 1
+name: Contract Obligation Clause Tracker
+description: >
+  Watches for upcoming trigger dates on specific contract obligations
+  buried inside clauses — renewal notice windows, price escalators,
+  minimum purchase commitments, exclusivity reviews — that aren't the
+  contract's own expiry date. Use this if a contract has ever renewed on
+  unfavorable terms, or a price escalator kicked in unnoticed, because
+  the obligation was tracked nowhere but the contract's fine print.
+category: legal
+tags: [legal, contracts, obligation-tracking, clauses]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline trigger_ts; close(cmd);
+      days_left = int((trigger_ts - today) / 86400);
+      if (days_left <= warn) print "OBLIGATION DUE: \"" $1 "\" — " $2 " (" $3 ") triggers in " days_left " days (" $4 ")";
+    }
+  ' "{{obligations_csv}}"
+variables:
+  obligations_csv:
+    default: "contract-obligations.csv"
+    description: "CSV with header row, columns: contract_name,obligation_type (e.g. renewal-notice, price-escalator, minimum-purchase, exclusivity-review),clause_reference,trigger_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before an obligation's trigger date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This tracks individual clause obligations you've extracted and logged
+  separately from the contract's overall expiry — see
+  `contract-renewal-reminder` for whole-contract renewal/expiry tracking.
+  Update contract-obligations.csv when a new obligation is identified
+  during contract review.

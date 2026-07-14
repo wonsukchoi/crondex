@@ -1,0 +1,44 @@
+id: commute-buffer-before-first-meeting-check
+version: 1
+name: Commute Buffer Before First Meeting Check
+description: >
+  Checks whether tomorrow's first in-person or off-site calendar event
+  leaves enough travel buffer given an estimated commute time, and flags
+  it if you'd need to leave earlier than planned. Use this if you've
+  ever been late to a first meeting because the calendar didn't account
+  for how long it actually takes to get there.
+category: productivity
+tags: [calendar, commute, travel-buffer]
+schedule: "0 18 * * 0-4"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg tomorrow "$(date -u -d tomorrow +%Y-%m-%d 2>/dev/null || date -u -v+1d +%Y-%m-%d)" --argjson commute {{commute_minutes}} '
+    .events
+    | map(select(.start | startswith($tomorrow)))
+    | map(select(.location_type == "in-person" or .location_type == "offsite"))
+    | sort_by(.start)
+    | .[0] as $first
+    | if $first == null then
+        "no in-person/offsite events tomorrow"
+      else
+        (($first.start | fromdateiso8601) - (now)) / 60 as $mins_until
+        | if $mins_until < $commute then
+            "WARN: \($first.title) at \($first.start) needs ~\($commute)min commute, tight timing"
+          else
+            "\($first.title) at \($first.start), commute buffer OK"
+          end
+      end
+  ' "{{calendar_export_path}}"
+variables:
+  commute_minutes:
+    default: "30"
+    description: Estimated one-way commute time in minutes to the first in-person/offsite meeting.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, and `location_type` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot, run the evening
+  before. Uses a flat estimated commute time rather than live traffic
+  data — swap in a routing API call if you have one connected.

@@ -1,0 +1,65 @@
+id: dpa-renewal-tracker
+version: 1
+name: Data Processing Agreement Renewal Tracker
+description: >
+  Watches vendor and customer data processing agreements (DPAs) for
+  upcoming renewal or expiry dates and drafts a review checklist so
+  standard contractual clauses, subprocessor lists, and transfer
+  mechanisms get re-checked before signing rather than auto-renewing
+  unread. Use this if a DPA has ever renewed with a stale subprocessor
+  list or an outdated transfer mechanism because nobody reviewed it at
+  renewal time.
+category: legal
+tags: [legal, data-privacy, dpa, gdpr, ccpa, vendor-management]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline renew_ts; close(cmd);
+      days_left = int((renew_ts - today) / 86400);
+      if (days_left <= warn) print "DPA RENEWAL: " $1 " (" $2 ") renews/expires in " days_left " days (" $3 ")";
+    }
+  ' "{{dpas_csv}}"
+prompt: |
+  Here is the list of data processing agreements approaching renewal
+  (from the shell check): {{command_output}}. For each one:
+  1. Note the counterparty and renewal date.
+  2. Draft a short pre-renewal review checklist covering: whether the
+     subprocessor list is current, whether the international transfer
+     mechanism (e.g. SCCs, an adequacy decision) still matches how data
+     actually flows, whether breach notification timelines still meet
+     {{applicable_regulations_hint}} requirements, and whether data
+     retention/deletion terms match current practice.
+  3. Flag anything renewing within {{urgent_within_days}} days as needing
+     review this week.
+  4. Draft a short summary for privacy/legal ops listing each DPA, its
+     renewal date, and the review checklist, suitable for assigning to a
+     reviewer before the renewal date passes.
+variables:
+  dpas_csv:
+    default: "./data-processing-agreements.csv"
+    description: "CSV with header row, columns: counterparty_name,dpa_type (vendor/customer),renewal_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before a DPA's renewal or expiry date to start flagging it for review.
+  urgent_within_days:
+    default: 7
+    description: Days left at which a DPA renewal becomes urgent in the drafted summary.
+  applicable_regulations_hint:
+    default: "GDPR and CCPA/CPRA"
+    description: Short reminder of which privacy regulations' requirements the review checklist should reference.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of DPAs approaching renewal
+  from date math alone; the prompt adds a substantive pre-renewal review
+  checklist and a drafted assignment summary, since a DPA renewal needs
+  more than a date check to be safe to auto-approve.
+notes: >
+  This is a scheduling and checklist aid, not a substitute for privacy
+  counsel's substantive review of subprocessor lists, transfer
+  mechanisms, or breach notification terms before any DPA is renewed or
+  re-signed.

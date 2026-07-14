@@ -1,0 +1,37 @@
+id: foreign-qualification-annual-report-tracker
+version: 1
+name: Foreign Qualification & Annual Report Deadline Tracker
+description: >
+  Warns you before a state annual report or foreign qualification renewal
+  is due, per state, so the entity doesn't fall out of good standing or
+  lose its registered agent coverage. Use this if you've ever discovered
+  a state administrative dissolution or late-filing penalty only after it
+  already happened because nobody was watching the per-state calendar.
+category: legal
+tags: [legal, corporate, foreign-qualification, annual-report, registered-agent]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: " $1 " (" $2 ") annual report/renewal due in " days_left " days (" $3 ")";
+    }
+  ' "{{state_filings_csv}}"
+variables:
+  state_filings_csv:
+    default: "state-foreign-qualifications.csv"
+    description: "CSV with header row, columns: entity_name,state,next_filing_due_date(YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before a state's annual report or foreign qualification renewal to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Filing requirements, fees, and registered agent renewal dates vary by
+  state — keep state-foreign-qualifications.csv updated from your
+  registered agent service or Secretary of State portals. This tracks
+  dates you supply; it does not file anything on your behalf.

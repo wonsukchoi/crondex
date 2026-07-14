@@ -1,0 +1,40 @@
+id: arbitration-clause-deadline-tracker
+version: 1
+name: Arbitration Clause Demand Deadline Tracker
+description: >
+  Warns you before the deadline to invoke a contract's arbitration
+  clause or respond to an arbitration demand passes, since these
+  deadlines are often shorter and stricter than ordinary litigation
+  timelines. Use this if a right to compel arbitration, or a deadline to
+  respond to one, has ever nearly lapsed because it wasn't tracked
+  separately from the general litigation calendar.
+category: legal
+tags: [legal, litigation, arbitration, adr, deadlines]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $5 != "resolved" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "ARBITRATION DEADLINE: \"" $1 "\" (" $2 ") action=" $3 " due=" $4 " (" days_left " days) status=" $5;
+    }
+  ' "{{arbitration_matters_csv}}"
+variables:
+  arbitration_matters_csv:
+    default: "arbitration-matters.csv"
+    description: "CSV with header row, columns: matter_name,counterparty,required_action (e.g. file-demand, respond-to-demand, appoint-arbitrator),deadline_date(YYYY-MM-DD),status (open/resolved)."
+  warn_days:
+    default: 10
+    description: Days before an arbitration deadline to start warning if the matter is still open.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Arbitration clause deadlines (demand windows, response periods,
+  arbitrator selection timelines) are set by the governing arbitration
+  rules and the contract itself and vary widely — confirm the actual
+  deadline with litigation counsel before relying on deadline_date, and
+  update status to "resolved" once the deadline is met or the matter
+  settles.

@@ -1,0 +1,36 @@
+id: signup-email-verification-abandonment-check
+version: 1
+name: Signup Email Verification Abandonment Check
+description: >
+  Measures what percent of new self-serve signups never click the email
+  verification link, and flags when abandonment climbs above normal.
+  Use this if signups look healthy in the top-of-funnel numbers but
+  activation is quietly leaking because people sign up, get distracted
+  before checking their inbox, and never come back to verify.
+category: growth
+tags: [growth, email-verification, onboarding, activation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{signups_csv_path}}; max_abandon={{max_abandonment_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total=$(tail -n +2 "$file" | wc -l | tr -d ' ');
+  if [ "$total" -eq 0 ]; then echo "No signups recorded in $file"; exit 0; fi;
+  unverified=$(tail -n +2 "$file" | awk -F',' '$2=="unverified" {c++} END{print c+0}');
+  pct=$(awk -v u="$unverified" -v t="$total" 'BEGIN{printf "%.1f", (u/t)*100}');
+  echo "Email verification abandonment: $unverified/$total signups still unverified (${pct}%)";
+  if awk -v p="$pct" -v m="$max_abandon" 'BEGIN{exit !(p > m)}'; then echo "WARNING: abandonment rate ${pct}% exceeds ${max_abandon}% threshold"; exit 1; fi
+variables:
+  signups_csv_path:
+    default: "./signup-verification-status.csv"
+    description: "Path to a CSV with header: user_email,status (status is 'verified' or 'unverified'), covering signups from the lookback window you care about."
+  max_abandonment_pct:
+    default: 25
+    description: Maximum acceptable percent of signups left unverified before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. If abandonment is consistently high, consider whether the
+  verification email is landing in spam, whether the CTA is clear, or
+  whether verification could be deferred until a more natural moment in
+  the product instead of blocking at signup.

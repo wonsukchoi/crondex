@@ -1,0 +1,31 @@
+id: lease-violation-notice-to-cure-tracker
+version: 1
+name: Lease Violation Notice-to-Cure Tracker
+description: >
+  Tracks open lease violation notices (unauthorized pet, noise complaints,
+  unauthorized occupant, etc.) and flags any where the tenant's cure
+  deadline has passed without a resolution logged. Use this if a lease
+  violation has ever quietly gone unresolved because nobody followed up
+  once the notice was sent.
+category: realestate
+tags: [realestate, lease-violations, compliance, notice-to-cure]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline cure_ts; close(cmd);
+      days_over = int((today - cure_ts) / 86400);
+      if (days_over > 0) print "CURE DEADLINE PASSED: " $1 " (unit " $2 "), violation: " $5 ", " days_over " day(s) overdue, still open";
+    }
+  ' "{{violations_csv}}"
+variables:
+  violations_csv:
+    default: "./lease-violation-notices.csv"
+    description: "CSV with header row, columns: tenant_name,unit,cure_deadline(YYYY-MM-DD),status(open/resolved),violation_type."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from eviction-notice-deadline-tracker, which covers formal eviction filings — this catches earlier-stage notice-to-cure letters before they escalate to eviction.

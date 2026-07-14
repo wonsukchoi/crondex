@@ -1,0 +1,34 @@
+id: browser-tab-hygiene-reminder
+version: 1
+name: Browser Tab Hygiene Reminder
+description: >
+  Checks a browser session export for open tab count and flags it once
+  it crosses a threshold, so you get nudged to close or bookmark before
+  it spirals. Use this if you routinely end the day with triple-digit
+  tabs open and no idea which ones still matter.
+category: productivity
+tags: [browser, tabs, digital-hygiene]
+schedule: "0 16 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson threshold {{tab_count_threshold}} '
+    (.windows | map(.tabs | length) | add) as $total
+    | if $total >= $threshold then
+        "\($total) tabs open across \(.windows | length) windows (threshold: {{tab_count_threshold}})"
+      else
+        "\($total) tabs open, under threshold"
+      end
+  ' "{{browser_session_export_path}}"
+variables:
+  tab_count_threshold:
+    default: "40"
+    description: Total open tab count across all windows before flagging.
+  browser_session_export_path:
+    default: "/data/browser-session-export.json"
+    description: Path to a JSON browser session export containing a `windows` array, each with a `tabs` array.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a browser session export snapshot; does not
+  close tabs itself. Session export format varies by browser/extension —
+  adjust the jq path to match whatever exporter you use.

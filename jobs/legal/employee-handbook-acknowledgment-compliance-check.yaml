@@ -1,0 +1,41 @@
+id: employee-handbook-acknowledgment-compliance-check
+version: 1
+name: Employee Handbook Acknowledgment Compliance Check
+description: >
+  Checks which employees still haven't signed off on the current version
+  of the employee handbook past its rollout deadline, so a missing
+  acknowledgment doesn't surface as a gap only during a dispute or audit.
+  Use this if you've ever needed to prove an employee acknowledged a
+  policy and found the record was missing.
+category: legal
+tags: [legal, employment, handbook, policy-acknowledgment, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{rollout_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{rollout_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  echo "Handbook version {{handbook_version}} rollout deadline: {{rollout_deadline}} (${days_left} days from today)";
+  awk -F',' '
+    NR==1 {next}
+    $3 != "{{handbook_version}}" || $4 != "acknowledged" {
+      print "NOT ACKNOWLEDGED: " $1 " (" $2 ") current_ack_version=" $3 " status=" $4;
+    }
+  ' "{{acknowledgments_csv}}"
+variables:
+  acknowledgments_csv:
+    default: "handbook-acknowledgments.csv"
+    description: "CSV with header row, columns: employee_name,department,acknowledged_version,status (acknowledged/pending)."
+  handbook_version:
+    default: "2026-01"
+    description: The current handbook version employees are expected to have acknowledged.
+  rollout_deadline:
+    default: "2026-08-15"
+    description: Date by which every employee should have acknowledged the current handbook version.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Export acknowledgments_csv from your HRIS or e-signature tool after
+  each handbook rollout — this only compares recorded acknowledgment
+  version and status, it does not deliver the handbook or collect
+  signatures itself.

@@ -1,0 +1,33 @@
+id: smoke-co-detector-compliance-check
+version: 1
+name: Smoke and Carbon Monoxide Detector Compliance Check
+description: >
+  Flags units where the smoke or carbon monoxide detector inspection and
+  battery check is overdue based on local code's required testing
+  interval. Use this if a habitability inspection has ever cited you for
+  a dead smoke detector that should have been caught on a routine check.
+category: realestate
+tags: [realestate, habitability, smoke-detector, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{check_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      if (days_since >= interval) print "DETECTOR CHECK OVERDUE: unit " $1 " last checked " days_since " day(s) ago (interval " interval " days)";
+    }
+  ' "{{detectors_csv}}"
+variables:
+  detectors_csv:
+    default: "./smoke-co-detector-checks.csv"
+    description: "CSV with header row, columns: unit,last_checked_date(YYYY-MM-DD)."
+  check_interval_days:
+    default: 365
+    description: Required interval in days between smoke/CO detector inspections; many jurisdictions require annual checks, some require checks at every turnover.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from life-safety-system-inspection-check, which covers building-wide fire alarm/sprinkler systems — this tracks per-unit smoke and CO detector checks required for habitability compliance.

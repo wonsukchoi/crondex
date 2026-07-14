@@ -1,0 +1,37 @@
+id: rent-delinquency-trend-watch
+version: 1
+name: Rent Delinquency Trend Watch
+description: >
+  Compares this period's portfolio-wide rent delinquency rate against the
+  trailing average and flags a meaningful upward trend, rather than
+  looking at any single tenant's late payment. Use this if delinquency
+  has ever crept up property-wide over several months before anyone
+  noticed the pattern.
+category: realestate
+tags: [realestate, delinquency, rent-roll, trend]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{trend_increase_pct}}" '
+    NR==1 {next}
+    { sum += $2; count++ }
+    END {
+      if (count == 0) { print "No delinquency history rows found"; exit; }
+      avg = sum / count;
+      current = $2;
+      if (avg > 0) {
+        pct_change = (current - avg) / avg * 100;
+        if (pct_change >= threshold) printf "DELINQUENCY TREND ALERT: current rate %.2f%% vs trailing average %.2f%% (+%.1f%%)\n", current, avg, pct_change;
+      }
+    }
+  ' "{{delinquency_history_csv}}"
+variables:
+  delinquency_history_csv:
+    default: "./delinquency-rate-history.csv"
+    description: "CSV with header row, columns: period,delinquency_rate_pct, ordered oldest to newest with the current period as the last row."
+  trend_increase_pct:
+    default: 15
+    description: Percent increase over the trailing average that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from rent-payment-late-check, which flags individual late tenants day to day — this watches the aggregate delinquency rate for a portfolio-level trend worth escalating to ownership.

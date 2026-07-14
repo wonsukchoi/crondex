@@ -1,0 +1,60 @@
+id: whistleblower-hotline-report-followup-tracker
+version: 1
+name: Whistleblower Hotline Report Follow-Up Tracker
+description: >
+  Checks open whistleblower or ethics hotline reports for ones nearing
+  their internal investigation follow-up deadline and drafts a status
+  summary for compliance, so a report doesn't stall without a documented
+  next step. Use this if an ethics hotline report has ever sat open for
+  weeks without any visible follow-up because tracking lived only in
+  someone's inbox.
+category: legal
+tags: [legal, compliance, ethics-hotline, whistleblower, investigations]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $5 != "closed" {
+      "date +%s" | getline now_epoch; close("date +%s");
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_left = int((due_epoch - now_epoch) / 86400);
+      printf "OPEN REPORT: %s category=%s investigator=%s follow_up_due=%s (%d days) status=%s\n", $1, $2, $3, $4, days_left, $5;
+    }
+  ' "{{hotline_reports_csv}}"
+prompt: |
+  Here is the raw list of open whistleblower/ethics hotline reports
+  approaching their follow-up deadline (from the shell check):
+  {{command_output}}. For each report:
+  1. Group by category ({{category_hint}}).
+  2. Flag anything with fewer than {{urgent_within_days}} days left, or
+     already past due, as needing action today.
+  3. Draft a short, non-identifying status update for compliance
+     leadership summarizing how many reports are open per category,
+     which are urgent, and which investigators own them — do not include
+     any reporter-identifying details even if present in the raw data,
+     since hotline reports may be confidential or anonymous.
+variables:
+  hotline_reports_csv:
+    default: "./ethics-hotline-reports.csv"
+    description: "CSV with header row, columns: report_id,category (e.g. harassment, financial-misconduct, safety, retaliation),investigator,follow_up_due_date(YYYY-MM-DD),status (open/closed)."
+  category_hint:
+    default: "harassment, financial misconduct, safety, retaliation, or other"
+    description: Short reminder of the report categories your hotline intake uses.
+  urgent_within_days:
+    default: 3
+    description: Days left before the follow-up deadline at which an open report becomes urgent in the drafted summary.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of open reports and days
+  remaining from CSV date math alone; the prompt adds category grouping,
+  urgency triage, and a drafted, confidentiality-conscious summary for
+  compliance leadership.
+notes: >
+  Handle report_id and any underlying case details per your whistleblower
+  policy and applicable confidentiality/anti-retaliation law — this job
+  is a deadline-tracking aid only and should never be used to circulate
+  reporter-identifying information beyond those with a legitimate need to
+  know.

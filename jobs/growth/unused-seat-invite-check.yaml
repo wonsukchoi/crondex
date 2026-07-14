@@ -1,0 +1,45 @@
+id: unused-seat-invite-check
+version: 1
+name: Unused Seat Invite Check
+description: >
+  Finds team invites that were sent by an account admin but never
+  accepted within a reasonable window, and lists them for a nudge or
+  cleanup. Use this if admins invite teammates during onboarding, half
+  those invites go stale in someone's inbox, and it's never tracked
+  separately from whether existing seats are actually being used.
+category: growth
+tags: [growth, seats, invites, activation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{invites_csv_path}}; stale_days={{stale_after_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today_epoch=$(date +%s);
+  stale=0; total=0;
+  while IFS=',' read -r account invitee sent_at status; do
+    [ "$account" = "account" ] && continue;
+    [ "$status" = "pending" ] || continue;
+    total=$((total+1));
+    sent_epoch=$(date -j -f "%Y-%m-%d" "$sent_at" +%s 2>/dev/null || date -d "$sent_at" +%s 2>/dev/null);
+    age_days=$(awk -v t="$today_epoch" -v s="$sent_epoch" 'BEGIN{printf "%.0f", (t-s)/86400}');
+    if [ "$age_days" -ge "$stale_days" ]; then
+      echo "  $account -> $invitee: pending $age_days days (sent $sent_at)";
+      stale=$((stale+1));
+    fi;
+  done < "$file";
+  echo "$stale of $total pending invites are stale (>= ${stale_days} days unaccepted)";
+  if [ "$stale" -gt 0 ]; then exit 1; fi
+variables:
+  invites_csv_path:
+    default: "./team-invites.csv"
+    description: "Path to a CSV with header: account,invitee_email,sent_at,status (sent_at as YYYY-MM-DD, status 'pending' or 'accepted')."
+  stale_after_days:
+    default: 14
+    description: Days a pending invite can go unaccepted before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from seat-utilization-upsell-check (which looks
+  at whether purchased seats are being actively used) — this catches
+  invites that never converted into a seat being occupied at all, a
+  common activation leak on multi-seat accounts.

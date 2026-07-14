@@ -1,0 +1,32 @@
+id: tool-license-utilization-audit
+version: 1
+name: Tool License Utilization Audit
+description: >
+  Checks a SaaS seat/license export for accounts that haven't logged in
+  within a set window, and totals the monthly cost of seats nobody's
+  using. Use this if your team keeps paying for tool seats that were
+  provisioned for someone who left or a trial that quietly renewed.
+category: productivity
+tags: [saas, licenses, cost-hygiene]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg today "$(date -u +%Y-%m-%d)" --argjson idle_days {{idle_days_threshold}} '
+    .seats[]
+    | select(.last_login_date == null or (($today | strptime("%Y-%m-%d") | mktime) - (.last_login_date | strptime("%Y-%m-%d") | mktime)) / 86400 >= $idle_days)
+    | "\(.tool_name)\t\(.user_email)\tlast login: \(.last_login_date // "never")\t$\(.monthly_cost_usd)/mo"
+  ' "{{license_export_path}}" | sort
+variables:
+  idle_days_threshold:
+    default: "60"
+    description: Days without a login before a seat is flagged as likely unused.
+  license_export_path:
+    default: "/data/license-export.json"
+    description: Path to a JSON export containing a `seats` array with `tool_name`, `user_email`, `last_login_date`, and `monthly_cost_usd` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a license/seat export snapshot; does not
+  revoke seats itself. Some tools don't expose last-login data via
+  export — check your admin console's usage report if `last_login_date`
+  is consistently null.

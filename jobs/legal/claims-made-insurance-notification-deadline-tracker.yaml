@@ -1,0 +1,39 @@
+id: claims-made-insurance-notification-deadline-tracker
+version: 1
+name: Claims-Made Insurance Notification Deadline Tracker
+description: >
+  Flags incidents or potential claims that still need to be reported to
+  a claims-made insurance policy within its reporting window, since
+  missing that window can void coverage entirely regardless of when the
+  underlying incident happened. Use this if a claim has ever been denied,
+  or nearly was, because it was reported to the insurer after the
+  claims-made policy's notification deadline passed.
+category: legal
+tags: [legal, insurance, claims-made-policy, notification-deadline]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $5 != "reported" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "MUST REPORT: \"" $1 "\" policy=" $2 " incident_date=" $3 " report_by=" $4 " (" days_left " days) status=" $5;
+    }
+  ' "{{incidents_csv}}"
+variables:
+  incidents_csv:
+    default: "claims-made-incidents.csv"
+    description: "CSV with header row, columns: incident_description,policy_name,incident_date(YYYY-MM-DD),report_by_date(YYYY-MM-DD),status (unreported/reported)."
+  warn_days:
+    default: 14
+    description: Days before the policy's notification deadline to start warning if the incident is still unreported.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Claims-made policies typically require notice within the policy period
+  or a defined extended reporting period regardless of when the incident
+  occurred — confirm the exact reporting window and any tail coverage
+  terms with the broker or carrier before relying on report_by_date, and
+  mark status "reported" as soon as notice is actually sent.

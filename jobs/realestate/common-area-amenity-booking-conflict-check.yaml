@@ -1,0 +1,29 @@
+id: common-area-amenity-booking-conflict-check
+version: 1
+name: Common-Area Amenity Booking Conflict Check
+description: >
+  Scans upcoming reservations for shared amenities like the pool,
+  clubhouse, or gym and flags any overlapping bookings for the same
+  space and time slot. Use this if two residents have ever shown up for
+  the same clubhouse slot because the booking log let a double-booking
+  through.
+category: realestate
+tags: [realestate, amenities, reservations, resident-experience]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      key = $1 "|" $2 "|" $3;
+      if (key in seen) print "DOUBLE-BOOKED: " $1 " on " $2 " at " $3 " reserved by both " seen[key] " and " $4;
+      else seen[key] = $4;
+    }
+  ' "{{reservations_csv}}"
+variables:
+  reservations_csv:
+    default: "./amenity-reservations.csv"
+    description: "CSV with header row, columns: amenity_name,reservation_date(YYYY-MM-DD),time_slot,resident_name."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from amenity-reservation-noshow-check (tracks who fails to show), this catches scheduling conflicts before they happen; run daily against the upcoming week's bookings.

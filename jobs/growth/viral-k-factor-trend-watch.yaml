@@ -1,0 +1,50 @@
+id: viral-k-factor-trend-watch
+version: 1
+name: Viral K-Factor Trend Watch
+description: >
+  Computes the viral coefficient (invites sent per user times the
+  conversion rate of those invites) for the current period and compares
+  it against the prior period. Use this if a referral or invite loop was
+  built to be "viral" and nobody's tracked since launch whether it's
+  actually compounding growth or just producing a trickle of invites.
+category: growth
+tags: [growth, virality, k-factor, referrals]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{invites_csv_path}}; prev_k={{previous_k_factor}}; drop_threshold={{drop_threshold_pct}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  users=$(tail -n +2 "$file" | cut -d',' -f1 | sort -u | wc -l | tr -d ' ');
+  invites=$(tail -n +2 "$file" | wc -l | tr -d ' ');
+  converted=$(tail -n +2 "$file" | awk -F',' '$3=="converted" {c++} END{print c+0}');
+  if [ "$users" -eq 0 ] || [ "$invites" -eq 0 ]; then echo "No invite activity recorded in $file"; exit 0; fi;
+  invites_per_user=$(awk -v i="$invites" -v u="$users" 'BEGIN{printf "%.2f", i/u}');
+  conv_rate=$(awk -v c="$converted" -v i="$invites" 'BEGIN{printf "%.3f", c/i}');
+  k=$(awk -v ipu="$invites_per_user" -v cr="$conv_rate" 'BEGIN{printf "%.3f", ipu*cr}');
+  echo "K-factor: $k ($invites_per_user invites/user * ${conv_rate} conversion rate; $users inviting users, $converted converted invites)";
+  echo "Previous period K-factor: $prev_k";
+  change=$(awk -v k="$k" -v p="$prev_k" 'BEGIN{ if(p==0){print 0} else {printf "%.1f", (($k-$p)/$p)*100} }' 2>/dev/null || echo 0);
+  if awk -v k="$k" -v p="$prev_k" 'BEGIN{exit !(p>0 && k < p)}'; then
+    drop=$(awk -v k="$k" -v p="$prev_k" 'BEGIN{printf "%.1f", (($p-$k)/$p)*100}');
+    if awk -v d="$drop" -v t="$drop_threshold" 'BEGIN{exit !(d>=t)}'; then echo "WARNING: K-factor dropped ${drop}% since last period"; exit 1; fi;
+  fi;
+  echo "OK"
+variables:
+  invites_csv_path:
+    default: "./referral-invites.csv"
+    description: "Path to a CSV with header: inviter_email,invitee_email,status (status is 'sent' or 'converted')."
+  previous_k_factor:
+    default: "0.15"
+    description: K-factor computed for the prior period, to compare against (update after each run).
+  drop_threshold_pct:
+    default: 20
+    description: Percent drop in K-factor from the previous period that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. A K-factor above 1 means the loop is self-sustaining
+  (each user brings more than one new user); most products run well
+  below that and treat K-factor as a growth multiplier to improve over
+  time rather than a threshold to cross. Distinct from
+  referral-program-performance-tracker (payouts/program health) — this
+  is the underlying viral math.

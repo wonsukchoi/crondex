@@ -1,0 +1,31 @@
+id: mortgage-loan-covenant-compliance-check
+version: 1
+name: Mortgage Loan Covenant Compliance Check
+description: >
+  Compares each property's current debt-service coverage ratio (DSCR)
+  against the minimum required by its loan covenant and flags any
+  property that has fallen below threshold. Use this if you've ever
+  found out about a covenant breach only when the lender's servicer
+  called, instead of catching it from your own numbers first.
+category: realestate
+tags: [realestate, mortgage, loan-covenants, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_dscr="{{min_dscr}}" '
+    NR==1 {next}
+    {
+      dscr = ($3 > 0) ? ($2 / $3) : 0;
+      if (dscr < min_dscr) printf "COVENANT BREACH RISK: %s DSCR %.2f is below required minimum %.2f (NOI $%.2f / debt service $%.2f)\n", $1, dscr, min_dscr, $2, $3;
+    }
+  ' "{{loan_metrics_csv}}"
+variables:
+  loan_metrics_csv:
+    default: "./loan-covenant-metrics.csv"
+    description: "CSV with header row, columns: property_name,trailing_12mo_noi,annual_debt_service."
+  min_dscr:
+    default: "1.20"
+    description: Minimum debt-service coverage ratio required by the loan covenant.
+compatible_agents: [generic, claude, codex]
+notes: DSCR thresholds vary by lender and loan agreement; confirm the exact covenant ratio and cure-period terms in the loan documents before treating a breach as final.

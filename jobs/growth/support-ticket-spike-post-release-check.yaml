@@ -1,0 +1,49 @@
+id: support-ticket-spike-post-release-check
+version: 1
+name: Support Ticket Spike Post-Release Check
+description: >
+  Compares support ticket volume in the days right after a release
+  against the pre-release baseline and flags an unusually large jump.
+  Use this if a release has ever shipped a regression that only became
+  obvious a week later, once someone happened to notice support tickets
+  piling up.
+category: growth
+tags: [growth, support-tickets, release-quality, retention]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{tickets_csv_path}}; release_date={{release_date}}; spike_multiplier={{spike_multiplier}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  baseline=$(awk -F',' -v r="$release_date" '$1<r {c++} END{print c+0}' "$file");
+  baseline_days={{baseline_window_days}};
+  post=$(awk -F',' -v r="$release_date" '$1>=r {c++} END{print c+0}' "$file");
+  post_days={{post_release_window_days}};
+  baseline_daily=$(awk -v b="$baseline" -v d="$baseline_days" 'BEGIN{ if(d==0){print 0} else {printf "%.2f", b/d} }');
+  post_daily=$(awk -v p="$post" -v d="$post_days" 'BEGIN{ if(d==0){print 0} else {printf "%.2f", p/d} }');
+  echo "Baseline: ${baseline_daily} tickets/day, post-release ({{release_date}}): ${post_daily} tickets/day";
+  if awk -v pd="$post_daily" -v bd="$baseline_daily" -v m="$spike_multiplier" 'BEGIN{exit !(bd>0 && pd >= bd*m)}'; then
+    echo "WARNING: post-release ticket rate is ${spike_multiplier}x or more of baseline — check for a shipped regression";
+    exit 1;
+  else echo "OK: post-release ticket volume within normal range"; fi
+variables:
+  tickets_csv_path:
+    default: "./support-tickets.csv"
+    description: "Path to a CSV with header: created_date,ticket_id (created_date in YYYY-MM-DD, sorted ascending)."
+  release_date:
+    default: "2026-07-01"
+    description: Date the release shipped, in YYYY-MM-DD format.
+  baseline_window_days:
+    default: 14
+    description: Number of days before release_date included in the baseline count.
+  post_release_window_days:
+    default: 3
+    description: Number of days after release_date to evaluate for a spike.
+  spike_multiplier:
+    default: 2
+    description: How many times the baseline daily rate the post-release rate must reach to be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, ticket-count based. Doesn't categorize by topic — pair with
+  a manual or agent-driven read of the spiking tickets to confirm it's
+  actually release-related and not an unrelated event (outage, holiday).

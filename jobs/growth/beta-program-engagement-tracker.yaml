@@ -1,0 +1,44 @@
+id: beta-program-engagement-tracker
+version: 1
+name: Beta Program Engagement Tracker
+description: >
+  Reviews activity and feedback from customer advisory board / beta
+  program members and flags participants who've gone quiet, plus
+  summarizes recurring themes in the feedback that's come in. Use this
+  if a beta or advisory program was set up with great intentions, but
+  now it's unclear who's actually engaged versus who joined a Slack
+  channel once and disappeared.
+category: growth
+tags: [growth, beta-program, customer-advisory-board, engagement]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review activity for members of the {{program_name}} beta/advisory
+  program over the last {{lookback_days}} days, pulling from
+  {{activity_source_hint}}.
+  1. Identify members who have not logged in, replied, or given
+     feedback at all in the window — these are at risk of silently
+     churning out of the program.
+  2. Summarize the 2-3 most recurring themes across the feedback that
+     was submitted (feature requests, complaints, praise) in this window.
+  3. Suggest one concrete re-engagement action for each disengaged
+     member (e.g. a direct check-in, an invite to a specific upcoming
+     session) and one action to follow up on the strongest feedback theme.
+variables:
+  program_name:
+    default: "Customer Advisory Board"
+    description: Name of the beta/advisory program being tracked.
+  lookback_days:
+    default: 30
+    description: Window of activity to evaluate for engagement.
+  activity_source_hint:
+    default: "the program's Slack/Discord channel, feedback form submissions, and product usage logs for enrolled accounts"
+    description: Where member activity and feedback data comes from.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No generic script mode — spotting disengagement patterns and
+  summarizing themes across free-text feedback needs judgment that a
+  script can't reliably provide. Distinct from nps-trend-tracker (a
+  numeric sentiment score) — this is a smaller, higher-touch program
+  where individual member relationships matter.

@@ -1,0 +1,39 @@
+id: pricing-page-bounce-rate-watch
+version: 1
+name: Pricing Page Bounce Rate Watch
+description: >
+  Pulls the pricing page's bounce rate from your analytics API and flags
+  when it climbs above a healthy ceiling. Use this if the pricing page
+  is the highest-intent page on the site but nobody watches its bounce
+  rate the way they'd watch checkout conversion, even though a spike
+  usually means confusing tiers, a broken layout, or a recent price change
+  scaring people off.
+category: growth
+tags: [growth, pricing-page, bounce-rate, monetization]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s --max-time 15 -H "Authorization: Bearer {{analytics_api_token}}" "{{analytics_api_url}}");
+  bounce=$(echo "$stats" | grep -o '"bounce_rate":[0-9.]*' | head -n1 | cut -d: -f2);
+  if [ -z "$bounce" ]; then echo "ERROR: could not read bounce_rate from {{analytics_api_url}}"; exit 1; fi;
+  echo "Pricing page bounce rate: ${bounce}%";
+  if awk -v b="$bounce" -v m="{{max_bounce_rate_pct}}" 'BEGIN{exit !(b > m)}'; then
+    echo "WARNING: bounce rate ${bounce}% exceeds ceiling of {{max_bounce_rate_pct}}%";
+    exit 1;
+  else echo "OK: bounce rate within acceptable range"; fi
+variables:
+  analytics_api_url:
+    default: "https://api.example.com/v1/pages/pricing/bounce-rate"
+    description: Web analytics endpoint returning the pricing page's current bounce rate as bounce_rate.
+  analytics_api_token:
+    default: "your-api-token"
+    description: API token for the web analytics platform.
+  max_bounce_rate_pct:
+    default: 60
+    description: Bounce rate percent above which the pricing page is considered underperforming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Point at your web analytics tool's (GA4, Plausible,
+  PostHog) API for the pricing page URL specifically, not sitewide
+  bounce rate — sitewide numbers hide a pricing-page-specific problem.

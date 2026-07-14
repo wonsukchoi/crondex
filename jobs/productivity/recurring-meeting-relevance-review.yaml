@@ -1,0 +1,48 @@
+id: recurring-meeting-relevance-review
+version: 1
+name: Recurring Meeting Relevance Review
+description: >
+  Looks at your recurring meetings and their recent attendance/duration
+  patterns, then asks whether each one still earns its spot on the
+  calendar. Use this if standing meetings tend to outlive the reason
+  they were created and nobody ever revisits whether they're still
+  needed.
+category: productivity
+tags: [calendar, recurring-meetings, review]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  jq -r '
+    .events[]
+    | select(.recurring == true)
+    | "\(.title)\t\(.attendees | length) invited\t\(.recent_accept_rate // "n/a")\tlast \(.duration_minutes)min"
+  ' "{{calendar_export_path}}"
+prompt: |
+  Review the recurring meetings listed below (from {{calendar_export_path}}):
+  {{recurring_meetings_summary}}
+  For each one, weigh in on whether it should continue as-is, shrink
+  (shorter, fewer attendees), change cadence, or be killed — based on
+  attendance/accept rate, whether it commonly runs short or gets
+  cancelled, and how long it's been running unchanged. Group the verdict
+  into: Keep, Shrink, Change Cadence, Retire. Keep the whole review under
+  {{max_words}} words.
+script_note: >
+  `command` lists recurring meetings with raw attendee/accept-rate stats,
+  zero tokens. `prompt` additionally judges whether each meeting still
+  earns its slot and proposes a keep/shrink/retire verdict.
+variables:
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `title`, `recurring`, `attendees`, `recent_accept_rate`, and `duration_minutes` fields.
+  recurring_meetings_summary:
+    default: "the command output above"
+    description: Reference to the recurring-meeting stats the prompt should reason over.
+  max_words:
+    default: 300
+    description: Word cap on the review output.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Run monthly by default — recurring meetings rarely need weekly
+  re-litigation. Read-only; produces recommendations, does not cancel
+  meetings itself.

@@ -1,0 +1,35 @@
+id: fair-housing-complaint-response-deadline-check
+version: 1
+name: Fair Housing Complaint Response Deadline Check
+description: >
+  Flags open fair housing complaints (from a tenant, applicant, or
+  agency) that are approaching or past the required internal response
+  deadline. Use this if a fair housing complaint has ever gone
+  unanswered past a deadline because it wasn't tracked separately from
+  general maintenance or tenant tickets.
+category: realestate
+tags: [realestate, fair-housing, compliance, complaints]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= 0) print "FAIR HOUSING RESPONSE OVERDUE: complaint " $1 " (" $2 "), due " $3 ", still open";
+      else if (days_left <= {{warn_days}}) print "FAIR HOUSING RESPONSE DUE SOON: complaint " $1 " (" $2 "), " days_left " day(s) left, still open";
+    }
+  ' "{{complaints_csv}}"
+variables:
+  complaints_csv:
+    default: "./fair-housing-complaints.csv"
+    description: "CSV with header row, columns: complaint_id,description,response_due_date(YYYY-MM-DD),status(open/closed)."
+  warn_days:
+    default: 3
+    description: Days before the response deadline to start warning, in addition to always flagging overdue complaints.
+compatible_agents: [generic, claude, codex]
+notes: Treat any fair housing complaint as high-priority; this job flags timing only, always route the complaint to legal/compliance review regardless of days remaining.

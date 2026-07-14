@@ -1,0 +1,28 @@
+id: property-listing-syndication-staleness-check
+version: 1
+name: Property Listing Syndication Staleness Check
+description: >
+  Checks each active vacancy listing's syndication endpoint and flags
+  listings that haven't been refreshed recently or that return an error,
+  so a unit doesn't sit invisible on Zillow or the MLS while marked
+  "active" internally. Use this if a listing has ever gone stale on a
+  syndication site while your internal system still showed it as live.
+category: realestate
+tags: [realestate, listings, syndication, marketing]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=',' read -r unit url last_synced; do
+    [ "$unit" = "unit" ] && continue;
+    status=$(curl --max-time 15 -s -o /dev/null -w "%{http_code}" "$url");
+    if [ "$status" != "200" ]; then
+      echo "LISTING SYNDICATION ERROR: unit $unit ($url) returned HTTP $status";
+    fi;
+  done < "{{listings_csv}}"
+variables:
+  listings_csv:
+    default: "./active-listings.csv"
+    description: "CSV with header row, columns: unit,listing_url,last_synced_date(YYYY-MM-DD). Example listing_url: https://example.com/listings/unit-101."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from rental-vacancy-check, which tracks days-on-market — this checks that the syndicated listing itself is actually live and reachable; add a staleness check on last_synced_date if your syndication provider exposes a feed timestamp.

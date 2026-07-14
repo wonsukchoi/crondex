@@ -1,0 +1,40 @@
+id: meeting-cost-estimator
+version: 1
+name: Meeting Cost Estimator
+description: >
+  Checks your calendar export for recurring meetings, multiplies attendee
+  count by duration and an hourly rate to estimate their weekly dollar
+  cost, and flags the most expensive ones. Use this if standing meetings
+  keep getting added but nobody ever tallies what they actually cost in
+  people-hours.
+category: productivity
+tags: [calendar, meeting-cost, recurring-meetings]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson rate {{hourly_rate_usd}} --argjson threshold {{flag_threshold_usd}} '
+    .events[]
+    | select(.recurring == true)
+    | . as $e
+    | ((($e.end | fromdateiso8601) - ($e.start | fromdateiso8601)) / 3600) as $hours
+    | (($e.attendees | length) * $hours * $rate) as $cost
+    | select($cost >= $threshold)
+    | "\($cost | floor)/wk\t\($e.title)\t\($e.attendees | length) attendees\t\($hours)h"
+  ' "{{calendar_export_path}}" | sort -rn
+variables:
+  hourly_rate_usd:
+    default: "75"
+    description: Blended fully-loaded hourly rate used to estimate attendee cost.
+  flag_threshold_usd:
+    default: "500"
+    description: Minimum estimated weekly cost before a recurring meeting gets flagged.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `end`, `title`, `recurring`, and `attendees` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only estimate against a calendar export snapshot. `attendees` is
+  assumed to be an array; the rate is a rough blended average, not
+  per-person salary data. Meant to prompt a conversation, not as payroll
+  accounting.

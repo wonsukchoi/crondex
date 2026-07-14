@@ -1,0 +1,35 @@
+id: in-app-message-fatigue-check
+version: 1
+name: In-App Message Fatigue Check
+description: >
+  Counts how many in-app messages (tooltips, banners, modals, survey
+  prompts) each active user was shown in the lookback window and flags
+  users being over-messaged. Use this if five different teams each ship
+  their own in-app prompt independently, and users end up getting
+  interrupted by a new popup every time they open the product.
+category: growth
+tags: [growth, in-app-messaging, engagement, activation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{message_log_csv_path}}; max={{max_messages_per_user}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  total_users=$(tail -n +2 "$file" | cut -d',' -f1 | sort -u | wc -l | tr -d ' ');
+  over_limit=$(tail -n +2 "$file" | cut -d',' -f1 | sort | uniq -c | awk -v m="$max" '$1>m {c++} END{print c+0}');
+  echo "$total_users unique users messaged; $over_limit exceeded $max messages in the window";
+  tail -n +2 "$file" | cut -d',' -f1 | sort | uniq -c | sort -rn | awk -v m="$max" '$1>m {print "  " $2 ": " $1 " messages"}' | head -10;
+  if [ "$over_limit" -gt 0 ]; then echo "WARNING: $over_limit users are over the fatigue threshold"; exit 1; fi
+variables:
+  message_log_csv_path:
+    default: "./in-app-message-log.csv"
+    description: "Path to a CSV with header: user_email,message_id,shown_at (one row per impression across all in-app messaging tools/teams)."
+  max_messages_per_user:
+    default: 5
+    description: Maximum in-app messages a single user should see within the lookback window before it counts as fatigue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Works best if you can export impressions from every tool
+  that fires in-app messages (product tours, survey widgets, feature
+  announcement banners) into one combined log — fatigue is a cross-team
+  problem that no single tool's own dashboard will show you.

@@ -1,0 +1,41 @@
+id: ooo-handoff-completeness-check
+version: 1
+name: Out-of-Office Handoff Completeness Check
+description: >
+  Checks whether upcoming out-of-office calendar blocks have a matching
+  handoff doc, a delegated owner for open tasks, and an auto-reply set
+  up, then flags whatever's missing. Use this if you've ever come back
+  from time off to a pile of things that needed a decision nobody was
+  authorized to make while you were gone.
+category: productivity
+tags: [out-of-office, handoff, delegation]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg now "$(date -u +%Y-%m-%dT%H:%M:%S)" --argjson window {{lookahead_days}} '
+    .events[]
+    | select(.type == "out-of-office")
+    | select(.start > $now)
+    | . as $o
+    | [
+        (if $o.handoff_doc_url != null then null else "no handoff doc" end),
+        (if $o.delegate != null then null else "no delegate assigned" end),
+        (if $o.autoreply_set == true then null else "autoreply not confirmed" end)
+      ] | map(select(. != null)) as $gaps
+    | select(($gaps | length) > 0)
+    | "\($o.start)\t\($o.title)\tmissing: \($gaps | join(", "))"
+  ' "{{calendar_export_path}}"
+variables:
+  lookahead_days:
+    default: "14"
+    description: How many days ahead to check for upcoming out-of-office blocks.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `type`, `start`, `title`, `handoff_doc_url`, `delegate`, and `autoreply_set` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot. Assumes OOO blocks
+  are tagged with `type: "out-of-office"` and carry the listed metadata
+  fields — most calendar tools need a custom field or naming convention
+  added to populate `handoff_doc_url` and `delegate`.

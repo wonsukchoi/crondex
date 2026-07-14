@@ -1,0 +1,57 @@
+id: ma-due-diligence-checklist-completion-tracker
+version: 1
+name: M&A Due Diligence Checklist Completion Tracker
+description: >
+  Checks an active deal's due diligence checklist for items that are
+  still outstanding or past their target completion date and drafts a
+  status update for the deal team. Use this if a due diligence gap has
+  ever surfaced late in a deal because nobody was tracking checklist
+  completion against the closing timeline in one place.
+category: legal
+tags: [legal, m-and-a, due-diligence, deal-management]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4 != "complete" {
+      "date +%s" | getline now_epoch; close("date +%s");
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline target_epoch; close(cmd);
+      days_left = int((target_epoch - now_epoch) / 86400);
+      printf "OUTSTANDING: %s [%s] owner=%s status=%s target=%s (%d days)\n", $1, $2, $5, $4, $3, days_left;
+    }
+  ' "{{diligence_checklist_csv}}"
+prompt: |
+  Here is the raw list of outstanding M&A due diligence checklist items
+  for the {{deal_name}} deal (from the shell check): {{command_output}}.
+  For each item:
+  1. Group by workstream/category (e.g. corporate, IP, employment,
+     litigation, tax) using the bracketed tag on each line.
+  2. Flag anything with fewer than {{urgent_within_days}} days left
+     before the deal's target closing date as urgent.
+  3. Draft a short status update for the deal team listing what's
+     outstanding, what's urgent, and each item's current owner, suitable
+     for pasting into the deal room or a status email.
+variables:
+  diligence_checklist_csv:
+    default: "./ma-due-diligence-checklist.csv"
+    description: "CSV with header row, columns: item,category,target_completion_date(YYYY-MM-DD),status (complete/in-progress/not-started),owner."
+  deal_name:
+    default: "the current deal"
+    description: Name or codename of the deal, used in the drafted status update.
+  urgent_within_days:
+    default: 5
+    description: Days left before target completion at which an outstanding item becomes urgent.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of every outstanding checklist
+  item and its days remaining from CSV math alone; the prompt adds
+  workstream grouping, urgency triage, and a drafted status update the
+  deal team can act on without re-reading every row.
+notes: >
+  Deal-specific closing timelines and workstream ownership shift as
+  diligence progresses — keep the checklist CSV current as items open,
+  transfer owners, or close. This is a tracking aid, not a substitute for
+  the deal team's own diligence review.

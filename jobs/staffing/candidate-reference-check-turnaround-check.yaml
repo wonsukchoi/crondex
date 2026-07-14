@@ -1,0 +1,36 @@
+id: candidate-reference-check-turnaround-check
+version: 1
+name: Candidate Reference Check Turnaround Check
+description: >
+  Flags candidates whose reference checks have been sitting open too long
+  before a placement decision. Use this if a client has ever pushed back an
+  offer because references were requested but nobody chased them down.
+category: staffing
+tags: [staffing, references, candidates, turnaround]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      candidate=$1; status=$2; requested=$3;
+      if (status != "outstanding") next;
+      cmd = "date -d \"" requested "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" requested "\" +%s 2>/dev/null";
+      cmd | getline req_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_open = int((now_epoch - req_epoch) / 86400);
+      if (days_open >= days) {
+        printf "WARNING: %s reference check outstanding %d days (requested %s)\n", candidate, days_open, requested;
+      }
+    }
+  ' "{{reference_checks_csv_path}}"
+variables:
+  reference_checks_csv_path:
+    default: "./reference-checks.csv"
+    description: "Path to a CSV with columns: candidate_name,status(outstanding/complete),requested_date(YYYY-MM-DD)."
+  stale_after_days:
+    default: 5
+    description: Days a reference check can sit outstanding before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Following up with references or the candidate is a manual recruiter step.

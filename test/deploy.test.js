@@ -186,6 +186,19 @@ test("buildK8sCronJob: escapes embedded double quotes so the YAML stays valid", 
   assert.match(manifest, /\\"b\\"/);
 });
 
+test("buildK8sCronJob: emits spec.timeZone with a 1.27+ note when the job sets a timezone", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", timezone: "America/New_York", path: "x.yaml" };
+  const manifest = buildK8sCronJob(job, "echo hi", false);
+  assert.match(manifest, /timeZone: "America\/New_York"/);
+  assert.match(manifest, /1\.27\+/);
+});
+
+test("buildK8sCronJob: no timeZone field when the job has no timezone set", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const manifest = buildK8sCronJob(job, "echo hi", false);
+  assert.doesNotMatch(manifest, /timeZone:/);
+});
+
 test("cronToAwsCron: weekday-restricted schedule sets day-of-month to ? and maps weekday names", () => {
   assert.equal(cronToAwsCron("0 14 * * 1-5"), "cron(0 14 ? * MON-FRI *)");
 });

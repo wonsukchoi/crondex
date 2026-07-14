@@ -1,0 +1,26 @@
+id: elearning-video-broken-link-check
+version: 1
+name: E-Learning Video/Resource Broken Link Check
+description: >
+  Checks the video and resource links in your course outline and flags any
+  that no longer load. Use this if a course has ever sat published for
+  months with a dead video link nobody caught until a learner complained.
+category: learning
+tags: [learning, courses, links, video]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=, read -r lesson url; do
+    [ "$lesson" = "lesson" ] && continue;
+    http_code=$(curl -s -o /dev/null -L -w "%{http_code}" "$url");
+    if [ "$http_code" -ge 400 ] || [ "$http_code" -eq 000 ]; then
+      echo "BROKEN: $lesson -> $url (HTTP $http_code)";
+    fi;
+  done < "{{course_links_csv_path}}"
+variables:
+  course_links_csv_path:
+    default: "./course-links.csv"
+    description: "Path to a CSV with header row, columns: lesson,url — one row per video or resource link in the course."
+compatible_agents: [generic, claude, codex]
+notes: Only checks reachability (HTTP status), not whether the video content itself still plays or matches the lesson.

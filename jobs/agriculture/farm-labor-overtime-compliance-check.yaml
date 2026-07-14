@@ -1,0 +1,33 @@
+id: farm-labor-overtime-compliance-check
+version: 1
+name: Farm Labor Overtime Compliance Check
+description: >
+  Checks logged farm worker hours against your state's agricultural overtime
+  threshold and flags anyone over it. Use this if payroll has ever run
+  without anyone checking overtime thresholds first, risking a wage-and-hour
+  compliance issue that's cheaper to catch before the pay run than after.
+category: agriculture
+tags: [agriculture, labor, overtime, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{weekly_overtime_threshold_hours}}" '
+    NR==1 {next}
+    {
+      worker=$1; hours=$2;
+      if (hours+0 > threshold) {
+        overtime = hours - threshold;
+        printf "OVERTIME: %s logged %s hours this week (%.1f hours over threshold)\n", worker, hours, overtime;
+      }
+    }
+  ' "{{worker_hours_csv_path}}"
+variables:
+  worker_hours_csv_path:
+    default: "./farm-worker-weekly-hours.csv"
+    description: "Path to a CSV with columns: worker_name,weekly_hours."
+  weekly_overtime_threshold_hours:
+    default: 55
+    description: "Weekly hours threshold above which agricultural overtime applies. Set to your state's actual threshold — this varies widely (e.g. some states use 40, others phase in higher thresholds)."
+compatible_agents: [generic, claude, codex]
+notes: Confirm your state and any seasonal/small-employer exemptions before relying on this for payroll compliance — agricultural overtime rules vary significantly by state and are still being phased in in several.

@@ -1,0 +1,33 @@
+id: episode-clip-repurposing-check
+version: 1
+name: Episode Clip Repurposing Gap Check
+description: >
+  Reviews recently published episodes and flags ones that never got cut into
+  short-form clips for social. Use this if episodes routinely go out to
+  Apple/Spotify but the social promotion step quietly gets skipped.
+category: podcast
+tags: [podcast, social, clips, repurposing, promotion]
+schedule: "0 10 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look at episodes published in the last {{lookback_days}} days in
+  {{episode_tracker}}.
+  1. For each episode, check whether at least {{min_clips_per_episode}}
+     short-form clips (Reels/Shorts/TikTok) were posted from it.
+  2. Flag episodes with zero or too few clips, and note how many days since
+     publish so the oldest gaps surface first.
+  3. Suggest one strong 30-60 second moment per flagged episode worth cutting,
+     based on the show notes or transcript if available.
+variables:
+  episode_tracker:
+    default: "your episode tracker (spreadsheet, Notion, or CMS)"
+    description: Where published episodes and their promo status are tracked.
+  lookback_days:
+    default: 21
+    description: How many days back to review for missing clips.
+  min_clips_per_episode:
+    default: 2
+    description: Minimum number of short-form clips expected per episode before it's considered covered.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only review and suggestions — cutting and posting clips is still a manual (or separate tool) step.

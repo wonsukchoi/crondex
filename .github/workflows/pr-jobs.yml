@@ -1,0 +1,106 @@
+name: pr-jobs
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "jobs/**"
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: validate job schema
+        id: schema
+        continue-on-error: true
+        run: npm run validate
+
+      - name: lint shell commands
+        id: shellcheck
+        continue-on-error: true
+        run: npm run lint-shell
+
+      - name: check for near-duplicate jobs
+        id: duplicates
+        continue-on-error: true
+        run: npm run check-duplicates
+
+      - name: comment summary on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checks = [
+              { label: "Schema validation", key: "schema" },
+              { label: "Shellcheck lint", key: "shellcheck" },
+              { label: "Duplicate check", key: "duplicates" },
+            ];
+
+            const outcomes = {
+              schema: "${{ steps.schema.outcome }}",
+              shellcheck: "${{ steps.shellcheck.outcome }}",
+              duplicates: "${{ steps.duplicates.outcome }}",
+            };
+
+            const icon = (outcome) => (outcome === "success" ? "✅" : "❌");
+
+            const lines = checks.map(
+              (c) => `| ${c.label} | ${icon(outcomes[c.key])} ${outcomes[c.key]} |`
+            );
+
+            const anyFailed = Object.values(outcomes).some((o) => o !== "success");
+
+            const body = [
+              "### jobs/ PR checks",
+              "",
+              "| Check | Result |",
+              "| --- | --- |",
+              ...lines,
+              "",
+              anyFailed
+                ? "One or more checks failed — see the workflow run logs for details."
+                : "All checks passed.",
+            ].join("\n");
+
+            const marker = "<!-- pr-jobs-summary -->";
+            const fullBody = `${marker}\n${body}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      - name: fail if any check failed
+        if: steps.schema.outcome != 'success' || steps.shellcheck.outcome != 'success' || steps.duplicates.outcome != 'success'
+        run: |
+          echo "::error::One or more jobs/ checks failed — see the PR comment for a summary."
+          exit 1

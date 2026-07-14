@@ -1,0 +1,35 @@
+id: spa-inventory-shrinkage-check
+version: 1
+name: Spa Retail & Backbar Inventory Shrinkage Check
+description: >
+  Compares expected inventory counts (opening count minus recorded usage and
+  sales) to actual counted stock and flags products with unexplained
+  shrinkage. Use this if backbar or retail product has ever gone missing
+  faster than sales and treatment usage can account for, without anyone
+  noticing until a full audit.
+category: spa
+tags: [spa, inventory, shrinkage, loss-prevention]
+schedule: "0 20 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v pct="{{shrinkage_threshold_pct}}" '
+    NR==1 {next}
+    {
+      product=$1; expected=$2; actual=$3;
+      if (expected+0 <= 0) next;
+      shrinkage_pct = ((expected - actual) / expected) * 100;
+      if (shrinkage_pct >= pct) {
+        printf "SHRINKAGE: %s expected %s units, counted %s (%.1f%% shrinkage)\n", product, expected, actual, shrinkage_pct;
+      }
+    }
+  ' "{{inventory_count_csv_path}}"
+variables:
+  inventory_count_csv_path:
+    default: "./spa-inventory-count.csv"
+    description: "Path to a CSV with columns: product_name,expected_units,actual_counted_units."
+  shrinkage_threshold_pct:
+    default: 5
+    description: Percent shrinkage before a product gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Investigating a flagged product (miscount vs. theft vs. unlogged sample use) is a manual manager step.

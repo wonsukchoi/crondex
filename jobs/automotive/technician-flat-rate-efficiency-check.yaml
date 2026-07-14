@@ -1,0 +1,40 @@
+id: technician-flat-rate-efficiency-check
+version: 1
+name: Technician Flat-Rate Efficiency Check
+description: >
+  Compares each technician's billed flat-rate hours to their actual clocked
+  hours for the week and flags efficiency well below or suspiciously above
+  norms. Use this if tech productivity has ever only gotten reviewed at
+  formal evaluation time instead of catching a slump or a billing anomaly
+  the same week it happens.
+category: automotive
+tags: [automotive, technicians, productivity, flat-rate]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v low="{{low_efficiency_pct}}" -v high="{{high_efficiency_pct}}" '
+    NR==1 {next}
+    {
+      tech=$1; flat_rate_hours=$2; clocked_hours=$3;
+      if (clocked_hours+0 <= 0) next;
+      efficiency = (flat_rate_hours / clocked_hours) * 100;
+      if (efficiency < low) {
+        printf "LOW: %s billed %.1f%% efficiency (%s flat-rate hrs / %s clocked hrs)\n", tech, efficiency, flat_rate_hours, clocked_hours;
+      } else if (efficiency > high) {
+        printf "REVIEW: %s billed %.1f%% efficiency (%s flat-rate hrs / %s clocked hrs) — verify against ROs\n", tech, efficiency, flat_rate_hours, clocked_hours;
+      }
+    }
+  ' "{{tech_hours_csv_path}}"
+variables:
+  tech_hours_csv_path:
+    default: "./technician-weekly-hours.csv"
+    description: "Path to a CSV with columns: technician_name,flat_rate_hours_billed,clocked_hours."
+  low_efficiency_pct:
+    default: 70
+    description: Efficiency percentage below which a technician gets flagged as low.
+  high_efficiency_pct:
+    default: 140
+    description: Efficiency percentage above which a technician's billed hours get flagged for a sanity check against repair orders.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. A low or unusually high efficiency number needs a human look at the underlying ROs before any conclusion.

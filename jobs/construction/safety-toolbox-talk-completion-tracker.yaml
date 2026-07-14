@@ -1,0 +1,32 @@
+id: safety-toolbox-talk-completion-tracker
+version: 1
+name: Jobsite Safety Toolbox Talk Completion Tracker
+description: >
+  Checks whether each active jobsite has logged its required weekly toolbox
+  safety talk and flags sites that missed one. Use this if an OSHA visit or
+  post-incident review has ever turned up a gap in toolbox talk records that
+  nobody caught week to week.
+category: construction
+tags: [construction, safety, toolbox-talks, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{grace_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_ts; close(cmd);
+      days_since = int((today - last_ts) / 86400);
+      if (days_since > (7 + warn)) print "MISSED: jobsite " $1 " last toolbox talk " days_since " days ago (" $2 ")";
+    }
+  ' {{jobsite_toolbox_talks_csv}}
+variables:
+  jobsite_toolbox_talks_csv:
+    default: "jobsite-toolbox-talks.csv"
+    description: "CSV with header row, columns: jobsite_name,last_toolbox_talk_date(YYYY-MM-DD)."
+  grace_days:
+    default: 2
+    description: Extra days beyond the weekly cadence before a missed talk gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Keep jobsite-toolbox-talks.csv updated as each site's foreman logs their weekly talk.

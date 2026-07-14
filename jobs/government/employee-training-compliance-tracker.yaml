@@ -1,0 +1,31 @@
+id: employee-training-compliance-tracker
+version: 1
+name: Government Employee Mandatory Training Compliance Tracker
+description: >
+  Checks municipal/county employees' required training completions (ethics,
+  harassment prevention, cybersecurity, etc.) against their due dates and
+  flags anyone overdue. Use this if compliance training has ever gone unmet
+  past its deadline with no one tracking it centrally until an audit asked.
+category: government
+tags: [government, training, compliance, hr]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" '
+    NR>1 && $4 == "incomplete" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      if (today > due_ts) {
+        days_overdue = int((today - due_ts) / 86400);
+        print "OVERDUE: " $1 " — " $2 " overdue by " days_overdue " days";
+      }
+    }
+  ' {{training_records_csv}}
+variables:
+  training_records_csv:
+    default: "employee-training-records.csv"
+    description: "CSV with header row, columns: employee_name,training_name,due_date(YYYY-MM-DD),status(incomplete/complete)."
+compatible_agents: [generic, claude, codex]
+notes: Keep employee-training-records.csv synced with your LMS export — one row per required training per employee.

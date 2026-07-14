@@ -1,0 +1,38 @@
+id: hoa-board-election-deadline-tracker
+version: 1
+name: HOA Board Election Deadline Tracker
+description: >
+  Tracks upcoming HOA board election milestones (nomination close, ballot
+  mailing, meeting date) and flags any coming up within your warning window.
+  Use this if a board election has ever slipped past its required notice
+  period because nobody was tracking the milestone dates in one place.
+category: realestate
+tags: [realestate, hoa, elections, governance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      milestone=$1; due=$2;
+      cmd = "date -d \"" due "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" due "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = int((due_epoch - now_epoch) / 86400);
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "UPCOMING: %s due %s (%d days out)\n", milestone, due, diff_days;
+      } else if (diff_days < 0) {
+        printf "MISSED: %s was due %s\n", milestone, due;
+      }
+    }
+  ' "{{election_milestones_csv_path}}"
+variables:
+  election_milestones_csv_path:
+    default: "./hoa-election-milestones.csv"
+    description: "Path to a CSV with columns: milestone_name,due_date(YYYY-MM-DD), e.g. nomination_close, ballot_mailing, annual_meeting."
+  warn_within_days:
+    default: 14
+    description: Days before a milestone's due date at which it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Confirm your governing documents' actual notice-period requirements — this only tracks the dates you feed it.

@@ -131,6 +131,15 @@ the tests exist to catch.
   possible, look at how `jobs/devops/repo-health-check.yaml` or
   `jobs/devops/cost-alert.yaml` split raw-data-only vs. LLM-interpreted.
 
+## Category floor
+
+Every category is expected to carry at least 32 jobs (`CRONDEX_CATEGORY_FLOOR`
+env var to override) — a thin, half-populated category isn't useful to browse.
+`npm run check-category-floor` reads `catalog.json` and fails, listing
+offenders, if any category falls short; it's wired into CI. If you're adding
+a new category folder, either bring it to the floor in the same PR or expect
+CI to flag it until a follow-up does.
+
 ## Editing an existing job
 
 Same validate/build-catalog steps, plus:

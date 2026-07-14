@@ -1,0 +1,34 @@
+id: audiobook-narrator-payment-schedule-check
+version: 1
+name: Audiobook Narrator Payment Schedule Check
+description: >
+  Checks scheduled narrator/producer payments (per-finished-hour fee,
+  milestone payout) against due dates and flags ones due soon or overdue.
+  Use this if a narrator has ever had to chase down a late payment because
+  nobody was tracking the audiobook production payment schedule separately
+  from royalties.
+category: publishing
+tags: [publishing, audiobooks, narrators, payments]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" '
+    NR>1 && $4 == "unpaid" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_diff = int((due_ts - today) / 86400);
+      if (days_diff < 0) print "OVERDUE: " $1 " payment for " $2 " was due " days_diff*-1 " days ago";
+      else if (days_diff <= {{warn_within_days}}) print "DUE SOON: " $1 " payment for " $2 " due in " days_diff " days";
+    }
+  ' {{narrator_payments_csv}}
+variables:
+  narrator_payments_csv:
+    default: "narrator-payments.csv"
+    description: "CSV with header row, columns: narrator_name,title,due_date(YYYY-MM-DD),status(unpaid/paid)."
+  warn_within_days:
+    default: 7
+    description: Days before a payment's due date at which it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Keep narrator-payments.csv updated as production milestones are hit and payments are issued.

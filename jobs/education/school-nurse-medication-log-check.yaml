@@ -1,0 +1,33 @@
+id: school-nurse-medication-log-check
+version: 1
+name: School Nurse Medication Administration Log Check
+description: >
+  Checks that students with a scheduled daily medication have a logged
+  administration entry for today and flags any missed doses. Use this if a
+  student's medication has ever gone unadministered during the school day
+  because the log wasn't checked until end of day.
+category: education
+tags: [education, health-office, medication, students]
+schedule: "0 13 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today="{{check_date}}";
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      student=$1; medication=$2; scheduled_date=$3; administered=$4;
+      if (scheduled_date == today && administered != "yes") {
+        printf "MISSED DOSE: %s — %s scheduled for %s not logged as administered\n", student, medication, scheduled_date;
+      }
+    }
+  ' "{{medication_log_csv_path}}"
+variables:
+  medication_log_csv_path:
+    default: "./student-medication-log.csv"
+    description: "Path to a CSV with columns: student_name,medication,scheduled_date(YYYY-MM-DD),administered(yes/no)."
+  check_date:
+    default: "2026-07-15"
+    description: "Date (YYYY-MM-DD) to check administration for. In a real deployment, generate this as today's date at run time."
+compatible_agents: [generic, claude, codex]
+notes: Read-only check against the log the health office maintains — it does not administer or verify medication itself. Follow your district's medication policy for any missed-dose escalation.

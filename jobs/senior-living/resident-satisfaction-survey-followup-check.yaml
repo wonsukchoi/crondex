@@ -1,0 +1,40 @@
+id: resident-satisfaction-survey-followup-check
+version: 1
+name: Resident Satisfaction Survey Follow-up Check
+description: >
+  Flags resident (or family) satisfaction surveys that came back with a low
+  score and haven't had a documented follow-up yet. Use this if a low
+  satisfaction score has ever sat in a spreadsheet with no one circling back
+  to the resident or family about what went wrong.
+category: senior-living
+tags: [senior-living, resident-satisfaction, surveys, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{low_score_threshold}}" -v days="{{followup_grace_days}}" '
+    NR==1 {next}
+    {
+      resident=$1; score=$2; submitted=$3; followed_up=$4;
+      if (score+0 > threshold || followed_up == "yes") next;
+      cmd = "date -d \"" submitted "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" submitted "\" +%s 2>/dev/null";
+      cmd | getline sub_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = int((now_epoch - sub_epoch) / 86400);
+      if (days_since >= days) {
+        printf "WARNING: %s scored %s on %s, no follow-up logged after %d days\n", resident, score, submitted, days_since;
+      }
+    }
+  ' "{{satisfaction_surveys_csv_path}}"
+variables:
+  satisfaction_surveys_csv_path:
+    default: "./resident-satisfaction-surveys.csv"
+    description: "Path to a CSV with columns: resident_or_family_name,score(1-10),submitted_date(YYYY-MM-DD),followed_up(yes/no)."
+  low_score_threshold:
+    default: 6
+    description: Score at or below which a survey is considered low.
+  followup_grace_days:
+    default: 3
+    description: Days a low score can go without a logged follow-up before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Making the actual follow-up call or visit is a manual staff step.

@@ -1,0 +1,38 @@
+id: tenant-renters-insurance-compliance-check
+version: 1
+name: Tenant Renters Insurance Compliance Check
+description: >
+  Checks tenants required to carry renters insurance against their policy's
+  expiration date and flags anyone lapsed or expiring soon. Use this if a
+  lease has ever required proof of renters insurance but nobody tracked
+  whether it actually stayed current after move-in.
+category: realestate
+tags: [realestate, insurance, tenants, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      unit=$1; tenant=$2; expiry=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = int((exp_epoch - now_epoch) / 86400);
+      if (diff_days < 0) {
+        printf "LAPSED: unit %s — %s renters insurance expired %s\n", unit, tenant, expiry;
+      } else if (diff_days <= days) {
+        printf "EXPIRING SOON: unit %s — %s renters insurance expires %s (%d days out)\n", unit, tenant, expiry, diff_days;
+      }
+    }
+  ' "{{tenant_insurance_csv_path}}"
+variables:
+  tenant_insurance_csv_path:
+    default: "./tenant-renters-insurance.csv"
+    description: "Path to a CSV with columns: unit,tenant_name,policy_expiry_date(YYYY-MM-DD)."
+  warn_within_days:
+    default: 30
+    description: Days before expiry at which a tenant's policy gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Requesting updated proof of insurance from the tenant is a manual property-manager step.

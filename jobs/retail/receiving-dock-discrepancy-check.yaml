@@ -1,0 +1,35 @@
+id: receiving-dock-discrepancy-check
+version: 1
+name: Receiving Dock Discrepancy Check
+description: >
+  Compares purchase order quantities to what was actually received on the
+  dock and flags shipments with a shortage or overage past your tolerance.
+  Use this if a vendor shortage has ever only surfaced weeks later during a
+  stock count instead of the day the truck was unloaded.
+category: retail
+tags: [retail, receiving, inventory, vendors]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v pct="{{tolerance_pct}}" '
+    NR==1 {next}
+    {
+      po=$1; sku=$2; ordered=$3; received=$4;
+      if (ordered+0 <= 0) next;
+      diff_pct = ((received - ordered) / ordered) * 100;
+      abs_diff = diff_pct < 0 ? -diff_pct : diff_pct;
+      if (abs_diff > pct) {
+        printf "DISCREPANCY: PO %s SKU %s ordered %s, received %s (%.1f%% variance)\n", po, sku, ordered, received, diff_pct;
+      }
+    }
+  ' "{{receiving_log_csv_path}}"
+variables:
+  receiving_log_csv_path:
+    default: "./receiving-log.csv"
+    description: "Path to a CSV with columns: po_number,sku,quantity_ordered,quantity_received."
+  tolerance_pct:
+    default: 2
+    description: Percent variance between ordered and received quantity allowed before a line gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Filing a shortage claim with the vendor is a manual receiving/purchasing step.

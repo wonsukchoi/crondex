@@ -1,0 +1,31 @@
+id: annual-eye-exam-reminder
+version: 1
+name: Annual Eye Exam Reminder
+description: >
+  Reminds you when it's been about a year since your last eye exam. Use this
+  if you've ever realized your glasses or contacts prescription was years
+  out of date because there was no separate reminder for eye care outside
+  your general checkups.
+category: personal
+tags: [personal, health, eye-care, reminders]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last_exam_epoch=$(date -d "{{last_exam_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{last_exam_date}}" +%s);
+  now_epoch=$(date +%s);
+  months_since=$(( (now_epoch - last_exam_epoch) / 2592000 ));
+  if [ "$months_since" -ge {{reminder_after_months}} ]; then
+    echo "REMINDER: last eye exam was $months_since months ago (on {{last_exam_date}}) — time to book another";
+  else
+    echo "OK: last eye exam was $months_since months ago, next reminder at {{reminder_after_months}} months";
+  fi
+variables:
+  last_exam_date:
+    default: "2025-01-01"
+    description: Date (YYYY-MM-DD) of your last eye exam. Update after each exam.
+  reminder_after_months:
+    default: 12
+    description: Months since the last exam before you get reminded to book another.
+compatible_agents: [generic, claude, codex]
+notes: Update last_exam_date after each visit so the reminder resets correctly.

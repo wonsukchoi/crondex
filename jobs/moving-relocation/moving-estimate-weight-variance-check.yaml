@@ -1,0 +1,35 @@
+id: moving-estimate-weight-variance-check
+version: 1
+name: Moving Estimate vs Actual Weight Variance Check
+description: >
+  Compares a shipment's binding/non-binding estimated weight to the actual
+  scale weight and flags large variances. Use this if a customer has ever
+  been blindsided by a final bill much higher than the estimate because
+  nobody flagged the weight gap before delivery.
+category: moving-relocation
+tags: [moving-relocation, estimates, billing, weight]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v pct="{{variance_threshold_pct}}" '
+    NR==1 {next}
+    {
+      job_id=$1; est_weight=$2; actual_weight=$3;
+      if (est_weight+0 <= 0) next;
+      variance = ((actual_weight - est_weight) / est_weight) * 100;
+      abs_variance = variance < 0 ? -variance : variance;
+      if (abs_variance >= pct) {
+        printf "VARIANCE: job %s estimated %s lbs, actual %s lbs (%.1f%% variance)\n", job_id, est_weight, actual_weight, variance;
+      }
+    }
+  ' "{{shipment_weights_csv_path}}"
+variables:
+  shipment_weights_csv_path:
+    default: "./shipment-weights.csv"
+    description: "Path to a CSV with columns: job_id,estimated_weight_lbs,actual_weight_lbs."
+  variance_threshold_pct:
+    default: 10
+    description: Percent variance between estimated and actual weight before a shipment gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Explaining a large variance to the customer before delivery is a manual dispatcher/sales step.

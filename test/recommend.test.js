@@ -127,3 +127,53 @@ test("rankJobs: vague/stopword-only query returns nothing", () => {
 test("rankJobs: no jobs score above zero returns empty", () => {
   assert.deepEqual(rankJobs([jobFixture()], "gardening"), []);
 });
+
+test("canonicalize: new synonym groups map catalog-adjacent words together", () => {
+  assert.equal(canonicalize("certificate"), canonicalize("certification"));
+  assert.equal(canonicalize("license"), canonicalize("permit"));
+  assert.equal(canonicalize("warranty"), canonicalize("guarantee"));
+  assert.equal(canonicalize("subscription"), canonicalize("membership"));
+  assert.equal(canonicalize("vendor"), canonicalize("supplier"));
+  assert.equal(canonicalize("credential"), canonicalize("password"));
+  assert.equal(canonicalize("capacity"), canonicalize("utilization"));
+  assert.equal(canonicalize("headcount"), canonicalize("staffing"));
+  // expire/renewal groups were merged — "renew" should now line up with "expiry".
+  assert.equal(canonicalize("renew"), canonicalize("expiry"));
+  assert.equal(canonicalize("lapse"), canonicalize("expire"));
+});
+
+test("rankJobs: 'certificate' query ranks a job tagged 'certification' via the new cert synonym group", () => {
+  const job = jobFixture({
+    id: "operator-cert-check",
+    name: "Operator Certification Check",
+    tags: ["certification"],
+    description: "Confirms operator certifications are still valid.",
+  });
+  const ranked = rankJobs([job], "certificate renewal reminder");
+  assert.equal(ranked.length, 1);
+  assert.ok(ranked[0].score > 0);
+});
+
+test("rankJobs: 'membership' query matches a job tagged 'subscription'", () => {
+  const job = jobFixture({
+    id: "subscription-check",
+    name: "Subscription Check",
+    tags: ["subscription"],
+    description: "Tracks active subscriptions.",
+  });
+  const ranked = rankJobs([job], "membership tracker");
+  assert.equal(ranked.length, 1);
+  assert.ok(ranked[0].score > 0);
+});
+
+test("rankJobs: 'supplier' query matches a job tagged 'vendor'", () => {
+  const job = jobFixture({
+    id: "vendor-check",
+    name: "Vendor Review",
+    tags: ["vendor"],
+    description: "Reviews vendor contracts.",
+  });
+  const ranked = rankJobs([job], "supplier review");
+  assert.equal(ranked.length, 1);
+  assert.ok(ranked[0].score > 0);
+});

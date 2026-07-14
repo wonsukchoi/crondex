@@ -1,0 +1,36 @@
+id: gift-card-balance-expiry-check
+version: 1
+name: Gift Card Balance Expiry Check
+description: >
+  Checks issued gift cards with a remaining balance against their expiration
+  date and flags ones expiring soon. Use this if a customer has ever
+  complained a gift card balance vanished with no reminder before it lapsed.
+category: ecommerce
+tags: [ecommerce, gift-cards, expiry, customer-experience]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      code=$1; balance=$2; expiry=$3;
+      if (balance+0 <= 0) next;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = int((exp_epoch - now_epoch) / 86400);
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "EXPIRING SOON: gift card %s ($%.2f balance) expires %s (%d days out)\n", code, balance, expiry, diff_days;
+      }
+    }
+  ' "{{gift_cards_csv_path}}"
+variables:
+  gift_cards_csv_path:
+    default: "./gift-cards.csv"
+    description: "Path to a CSV with columns: gift_card_code,remaining_balance,expiry_date(YYYY-MM-DD)."
+  warn_within_days:
+    default: 30
+    description: Days before expiry at which a gift card with a balance gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Check your local jurisdiction's rules on gift card expiration before enforcing one — many places restrict or ban it.

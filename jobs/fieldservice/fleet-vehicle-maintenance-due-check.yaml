@@ -1,0 +1,33 @@
+id: fleet-vehicle-maintenance-due-check
+version: 1
+name: Field Service Fleet Vehicle Maintenance Due Check
+description: >
+  Checks company service vehicles' scheduled maintenance (oil change,
+  inspection, tire rotation) against mileage or date thresholds and flags
+  ones due soon. Use this if a service van has ever broken down mid-route
+  because routine maintenance quietly slipped past its interval.
+category: fieldservice
+tags: [fieldservice, fleet, vehicles, maintenance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v miles_buffer="{{mileage_warn_buffer}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; current_miles=$2; next_service_miles=$3;
+      remaining = next_service_miles - current_miles;
+      if (remaining <= miles_buffer) {
+        printf "DUE SOON: %s at %s miles, next service at %s (%s miles remaining)\n", vehicle, current_miles, next_service_miles, remaining;
+      }
+    }
+  ' "{{fleet_mileage_csv_path}}"
+variables:
+  fleet_mileage_csv_path:
+    default: "./fleet-mileage.csv"
+    description: "Path to a CSV with columns: vehicle_id,current_mileage,next_service_due_mileage."
+  mileage_warn_buffer:
+    default: 500
+    description: Miles remaining before next service at which a vehicle gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Scheduling the actual service appointment is a manual fleet-manager step.

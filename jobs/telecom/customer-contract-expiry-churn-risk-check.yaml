@@ -1,0 +1,39 @@
+id: customer-contract-expiry-churn-risk-check
+version: 1
+name: Telecom Customer Contract Expiry Churn Risk Check
+description: >
+  Checks customer service contracts approaching their term end date and
+  flags them for a renewal outreach before they can quietly roll to
+  month-to-month or churn to a competitor. Use this if a contract has ever
+  expired with no renewal conversation because sales only found out after
+  the customer already left.
+category: telecom
+tags: [telecom, contracts, churn, renewals]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_within_days}}" '
+    NR==1 {next}
+    {
+      customer=$1; contract_id=$2; end_date=$3;
+      cmd = "date -d \"" end_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" end_date "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = int((end_epoch - now_epoch) / 86400);
+      if (diff_days >= 0 && diff_days <= days) {
+        printf "CHURN RISK: %s contract %s ends %s (%d days out) — needs renewal outreach\n", customer, contract_id, end_date, diff_days;
+      } else if (diff_days < 0) {
+        printf "EXPIRED: %s contract %s ended %s with no renewal on file\n", customer, contract_id, end_date;
+      }
+    }
+  ' "{{customer_contracts_csv_path}}"
+variables:
+  customer_contracts_csv_path:
+    default: "./customer-contracts.csv"
+    description: "Path to a CSV with columns: customer_name,contract_id,end_date(YYYY-MM-DD)."
+  warn_within_days:
+    default: 45
+    description: Days before contract end date at which a customer gets flagged for renewal outreach.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. The actual renewal conversation and offer are a manual account-manager step.

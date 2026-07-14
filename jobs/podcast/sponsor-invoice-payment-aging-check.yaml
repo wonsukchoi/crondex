@@ -1,0 +1,31 @@
+id: sponsor-invoice-payment-aging-check
+version: 1
+name: Podcast Sponsor Invoice Payment Aging Check
+description: >
+  Flags sponsor invoices that have gone unpaid past their due date. Use this
+  if a sponsor has ever quietly run over 30-60 days late and nobody noticed
+  until cash flow got tight.
+category: podcast
+tags: [podcast, sponsors, invoicing, cash-flow]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{overdue_days}} '
+    NR>1 && $4 == "unpaid" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_overdue = int((today - due_ts) / 86400);
+      if (days_overdue >= warn) print "WARNING: invoice " $1 " for sponsor " $2 " is " days_overdue " days overdue";
+    }
+  ' {{sponsor_invoices_csv}}
+variables:
+  sponsor_invoices_csv:
+    default: "sponsor-invoices.csv"
+    description: "CSV with header row, columns: invoice_id,sponsor_name,due_date(YYYY-MM-DD),status(unpaid/paid)."
+  overdue_days:
+    default: 15
+    description: Days past due before an unpaid invoice is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Keep sponsor-invoices.csv updated as invoices are sent and paid — one row per invoice.

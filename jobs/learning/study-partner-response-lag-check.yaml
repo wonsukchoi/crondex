@@ -1,0 +1,36 @@
+id: study-partner-response-lag-check
+version: 1
+name: Study/Accountability Partner Response Lag Check
+description: >
+  Flags check-ins with a study or accountability partner that have gone
+  unanswered too long. Use this if a study-buddy arrangement has ever fizzled
+  out simply because nobody noticed the replies stopped coming.
+category: learning
+tags: [learning, accountability, study-group, followup]
+schedule: "0 9 * * 1,4"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      partner=$1; status=$2; sent=$3;
+      if (status != "awaiting_reply") next;
+      cmd = "date -d \"" sent "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" sent "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = int((now_epoch - sent_epoch) / 86400);
+      if (days_since >= days) {
+        printf "WARNING: check-in to %s unanswered for %d days (sent %s)\n", partner, days_since, sent;
+      }
+    }
+  ' "{{checkins_csv_path}}"
+variables:
+  checkins_csv_path:
+    default: "./study-checkins.csv"
+    description: "Path to a CSV with columns: partner_name,status(awaiting_reply/replied),sent_date(YYYY-MM-DD)."
+  stale_after_days:
+    default: 4
+    description: Days a check-in can go unanswered before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check. Nudging the partner or rescheduling the next session is a manual follow-up.

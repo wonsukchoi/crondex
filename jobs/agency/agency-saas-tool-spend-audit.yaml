@@ -1,0 +1,35 @@
+id: agency-saas-tool-spend-audit
+version: 1
+name: Agency SaaS Tool Spend & License Utilization Audit
+description: >
+  Reviews the agency's software subscriptions against active seat usage and
+  flags tools that are overpaid, underused, or redundant with each other.
+  Use this if nobody has audited the tool stack in a while and you suspect
+  you're paying for seats or overlapping subscriptions nobody uses.
+category: agency
+tags: [agency, saas, spend, tools, operations]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the agency's SaaS subscription list in {{saas_inventory_source}}
+  for the current billing cycle.
+  1. For each tool, compare licensed/paid seats to actively used seats over
+     the last {{lookback_days}} days.
+  2. Flag any tool below {{utilization_floor_pct}}% seat utilization as a
+     downgrade or cancellation candidate.
+  3. Flag any pair of tools that appear to serve the same core purpose
+     (e.g. two project-management tools) as a consolidation candidate.
+  4. Summarize potential monthly savings if the flagged changes were made.
+variables:
+  saas_inventory_source:
+    default: "your SaaS management tool or spend spreadsheet"
+    description: Where subscription costs and seat/usage data are tracked.
+  lookback_days:
+    default: 30
+    description: Rolling window in days used to measure seat activity.
+  utilization_floor_pct:
+    default: 60
+    description: Seat utilization percentage below which a tool gets flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only analysis — cancelling or downgrading a subscription is a manual ops/finance decision.

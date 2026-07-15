@@ -1,0 +1,35 @@
+id: database-index-bloat-check
+version: 1
+name: Database Index Bloat Check
+description: >
+  Runs a bloat-estimate query against a Postgres database and flags
+  indexes whose estimated bloat ratio exceeds a configurable threshold.
+  Use this if query performance has ever degraded slowly over months
+  because dead tuples piled up in an index nobody was watching —
+  distinct from database-migration-drift-check.yaml, which checks
+  schema drift, not index storage bloat.
+category: devops
+tags: [devops, database, postgres, index, performance, maintenance]
+schedule: "0 5 * * 0"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -A -F',' -c "
+    SELECT indexrelname, pg_size_pretty(pg_relation_size(indexrelid)),
+           round(100 * (1 - (avg_leaf_density / 100.0)), 1) AS est_bloat_pct
+    FROM pg_stat_user_indexes
+    JOIN pg_index USING (indexrelid)
+    WHERE pg_relation_size(indexrelid) > 10 * 1024 * 1024
+  " | awk -F',' -v threshold="{{bloat_threshold_pct}}" '
+    { if ($3+0 > threshold+0) { printf "BLOATED: %s (%s) est. %s%% bloat\n", $1, $2, $3; n++ } }
+    END { printf "%d index(es) above the %s%% bloat threshold.\n", n+0, threshold; }
+  '
+variables:
+  database_url:
+    default: "postgresql://user:pass@localhost:5432/dbname"
+    description: Postgres connection string for the database to check.
+  bloat_threshold_pct:
+    default: 30
+    description: Estimated bloat percentage above which an index is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Requires the psql CLI and a Postgres database; the bloat estimate query is a simplified approximation, not a substitute for pgstattuple on a critical index before deciding to REINDEX.

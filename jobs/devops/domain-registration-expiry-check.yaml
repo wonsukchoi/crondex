@@ -1,0 +1,35 @@
+id: domain-registration-expiry-check
+version: 1
+name: Domain Registration Expiry Check
+description: >
+  Checks each domain's registration expiry date via WHOIS and flags any
+  approaching or past expiry. Use this if a domain has ever lapsed and
+  gotten snapped up by a squatter because the auto-renew setting was
+  wrong or the card on file expired — distinct from
+  ssl-cert-expiry-check.yaml, which watches TLS certificate expiry, not
+  the underlying domain name registration itself.
+category: devops
+tags: [devops, domain, whois, expiry, dns]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  for domain in {{domains}}; do
+    expiry=$(whois "$domain" 2>/dev/null | grep -iE "^(Registry Expiry Date|Expiration Date|paid-till):" | head -1 | sed -E 's/^[^:]+:\s*//');
+    if [ -z "$expiry" ]; then echo "WARN: could not determine expiry for $domain"; continue; fi;
+    exp_epoch=$(date -d "$expiry" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$expiry" +%s 2>/dev/null);
+    now_epoch=$(date +%s);
+    days_left=$(( (exp_epoch - now_epoch) / 86400 ));
+    if [ "$days_left" -le "{{warn_days}}" ]; then
+      echo "EXPIRING: $domain expires $expiry ($days_left day(s) left)";
+    fi
+  done
+variables:
+  domains:
+    default: "example.com"
+    description: Space-separated list of domain names to check registration expiry for.
+  warn_days:
+    default: 30
+    description: Days before expiry to start flagging a domain.
+compatible_agents: [generic, claude, codex]
+notes: Requires a `whois` CLI on PATH; output format varies by TLD/registrar, so the field match may need adjusting for some registries.

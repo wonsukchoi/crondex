@@ -1,0 +1,39 @@
+id: unused-api-key-cleanup-check
+version: 1
+name: Unused API Key Cleanup Check
+description: >
+  Checks an API key usage log for keys with no recorded activity within
+  a configurable window and flags them as candidates for revocation. Use
+  this if an old API key has ever sat around unused and forgotten, wide
+  open as an attack surface nobody was watching — distinct from
+  secrets-rotation-overdue-check.yaml, which tracks whether an active
+  key was rotated on schedule, not whether a key is unused entirely.
+category: devops
+tags: [devops, api-key, security, cleanup, access]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_age="{{max_idle_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_used_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - last_used_epoch) / 86400;
+      if (age_days > max_age+0) {
+        printf "UNUSED: key %s last used %s (%d day(s) ago)\n", $1, $2, age_days;
+        unused++;
+      }
+    }
+    END { printf "%d API key(s) idle past %s days — candidates for revocation.\n", unused+0, max_age; }
+  ' "{{api_key_usage_csv_path}}"
+variables:
+  api_key_usage_csv_path:
+    default: "./api_key_usage.csv"
+    description: "Path to a CSV with columns: key_id_or_name,last_used_date (YYYY-MM-DD)."
+  max_idle_days:
+    default: 90
+    description: Maximum days a key can go without use before it's flagged as a revocation candidate.
+compatible_agents: [generic, claude, codex]
+notes: Read-only candidate list — confirm nothing depends on a key before revoking it.

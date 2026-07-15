@@ -1,0 +1,54 @@
+id: slo-error-budget-burn-rate-check
+version: 1
+name: SLO Error Budget Burn Rate Check
+description: >
+  Calculates the error-budget burn rate from a logged SLO measurement
+  history and flags it when burning fast enough to exhaust the budget
+  before the period ends. Use this if an SLO has ever been quietly blown
+  through mid-quarter because nobody was watching the burn rate, only
+  the final number — distinct from error-rate-spike-watch.yaml, which
+  flags a raw error-rate spike rather than budget-relative burn pace.
+category: devops
+tags: [devops, slo, error-budget, reliability, sre]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_hours}}" -v budget="{{error_budget_pct}}" -v period_days="{{slo_period_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - entry_epoch) / 3600;
+      if (age_hours < 0 || age_hours > cutoff) next;
+      total_requests += $2+0;
+      bad_requests += $3+0;
+    }
+    END {
+      if (total_requests > 0) {
+        error_rate = (bad_requests / total_requests) * 100;
+        burn_rate = error_rate / (budget+0);
+        hours_to_exhaust = (budget+0 / 100) * period_days * 24 / (error_rate/100 + 0.0001);
+        printf "ERROR RATE: %.3f%% over last %s hour(s), burn rate %.2fx budget\n", error_rate, cutoff, burn_rate;
+        if (burn_rate > 1) printf "ALERT: burning error budget %.2fx faster than sustainable for the %s-day period\n", burn_rate, period_days;
+      } else {
+        print "No SLO measurement data found in the lookback window.";
+      }
+    }
+  ' "{{slo_measurements_csv_path}}"
+variables:
+  slo_measurements_csv_path:
+    default: "./slo_measurements.csv"
+    description: "Path to a CSV with columns: timestamp (YYYY-MM-DDTHH:MM),total_requests,bad_requests. One row per measurement interval."
+  lookback_hours:
+    default: 6
+    description: How many trailing hours of measurements to include in the burn-rate calculation.
+  error_budget_pct:
+    default: 0.1
+    description: Total error budget as a percentage of requests allowed to fail over the SLO period.
+  slo_period_days:
+    default: 30
+    description: Length of the SLO measurement period in days (e.g. 30 for a monthly SLO).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — a burn rate above 1x means the current error rate would exhaust the whole period's budget before the period ends.

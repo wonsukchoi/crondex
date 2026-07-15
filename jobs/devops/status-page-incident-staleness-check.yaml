@@ -1,0 +1,42 @@
+id: status-page-incident-staleness-check
+version: 1
+name: Status Page Incident Staleness Check
+description: >
+  Checks a status page's active incident list and flags any incident
+  that's still open past a configurable age without a recent update.
+  Use this if a status page incident has ever sat "investigating" for
+  days after the actual issue was fixed, because nobody remembered to
+  close it out — distinct from webhook-delivery-failure-check.yaml,
+  which watches webhook delivery health rather than public incident
+  communication.
+category: devops
+tags: [devops, status-page, incident, communication, monitoring]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -sf "{{status_page_api_url}}" |
+  grep -o '"status":"[a-z_]*"[^}]*"created_at":"[^"]*"' |
+  awk -F'"' -v max_age_hours="{{max_open_hours}}" '
+    {
+      for (i=1;i<=NF;i++) { if ($i=="status") status=$(i+2); if ($i=="created_at") created=$(i+2); }
+      cmd = "date -d \"" created "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M:%SZ\" \"" created "\" +%s 2>/dev/null";
+      cmd | getline created_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - created_epoch) / 3600;
+      if (status != "resolved" && age_hours > max_age_hours+0) {
+        printf "STALE INCIDENT: status=%s created=%s (%.1f hour(s) open)\n", status, created, age_hours;
+        n++;
+      }
+    }
+    END { printf "%d stale open incident(s).\n", n+0; }
+  '
+variables:
+  status_page_api_url:
+    default: "https://status.example.com/api/v2/incidents/unresolved.json"
+    description: URL of the status page's unresolved-incidents API endpoint (Statuspage.io-compatible JSON shape by default).
+  max_open_hours:
+    default: 48
+    description: Hours an incident can stay open without resolution before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Read-only check against a public/authenticated status page API — adjust the field parsing if your status page provider's JSON shape differs from Statuspage.io's.

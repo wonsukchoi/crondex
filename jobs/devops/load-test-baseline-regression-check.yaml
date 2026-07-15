@@ -1,0 +1,42 @@
+id: load-test-baseline-regression-check
+version: 1
+name: Load Test Baseline Regression Check
+description: >
+  Compares the latest load test result against a stored baseline and
+  flags a regression when latency or error rate degrades past a
+  configurable margin. Use this if a performance regression has ever
+  shipped unnoticed because load test results were eyeballed once and
+  never compared against history — distinct from
+  ci-build-time-regression-watch.yaml, which watches build/CI pipeline
+  duration, not application runtime performance under load.
+category: devops
+tags: [devops, load-test, performance, regression, baseline]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  latest_p95=$(tail -1 "{{load_test_results_csv_path}}" | awk -F',' '{print $2}');
+  latest_error_rate=$(tail -1 "{{load_test_results_csv_path}}" | awk -F',' '{print $3}');
+  baseline_p95=$(awk -F',' 'NR==2{print $2}' "{{baseline_csv_path}}");
+  baseline_error_rate=$(awk -F',' 'NR==2{print $3}' "{{baseline_csv_path}}");
+  awk -v lp95="$latest_p95" -v ler="$latest_error_rate" -v bp95="$baseline_p95" -v ber="$baseline_error_rate" -v margin="{{regression_margin_pct}}" '
+    BEGIN {
+      p95_delta = ((lp95 - bp95) / bp95) * 100;
+      err_delta = ler - ber;
+      printf "p95 latency: %.1f%% vs baseline; error rate: %s%% vs %s%% baseline\n", p95_delta, ler, ber;
+      if (p95_delta > margin+0) printf "REGRESSION: p95 latency degraded %.1f%% (margin %s%%)\n", p95_delta, margin;
+      if (err_delta > 0.5) printf "REGRESSION: error rate rose %.2f percentage point(s)\n", err_delta;
+    }
+  '
+variables:
+  load_test_results_csv_path:
+    default: "./load_test_results.csv"
+    description: "Path to a CSV with columns: timestamp,p95_latency_ms,error_rate_pct. Last row is treated as the latest run."
+  baseline_csv_path:
+    default: "./load_test_baseline.csv"
+    description: "Path to a single-row baseline CSV with the same columns as load_test_results_csv_path."
+  regression_margin_pct:
+    default: 15
+    description: Percentage p95 latency degradation vs. baseline allowed before flagging a regression.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token comparison — expects both CSVs to already be populated by whatever load testing tool produces the results (k6, Locust, Gatling, etc).

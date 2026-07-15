@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1976,
+  "count": 1988,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -5731,6 +5731,32 @@
       "path": "jobs/moving-relocation/cdl-license-expiry-check.yaml"
     },
     {
+      "id": "cdn-bandwidth-anomaly-check",
+      "version": 1,
+      "name": "CDN Bandwidth Anomaly Check",
+      "description": "Compares today's CDN bandwidth usage against a trailing average and flags an unusual spike, which can mean a hotlinking/scraping problem or a surprise bill. Use this if CDN bandwidth has ever spiked hard enough to blow through a billing tier before anyone noticed — distinct from cdn-cache-purge-reminder.yaml, which is about cache freshness, not traffic volume anomalies.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "cdn",
+        "bandwidth",
+        "cost",
+        "anomaly"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/cdn-bandwidth-anomaly-check.yaml"
+    },
+    {
       "id": "cdn-cache-purge-reminder",
       "version": 1,
       "name": "CDN Cache Purge Reminder",
@@ -8865,6 +8891,32 @@
         "codex"
       ],
       "path": "jobs/logistics/container-demurrage-fee-watch.yaml"
+    },
+    {
+      "id": "container-image-scan-staleness-check",
+      "version": 1,
+      "name": "Container Image Scan Staleness Check",
+      "description": "Checks a container image inventory log for images whose last vulnerability scan is older than a configurable window and flags them. Use this if a production image has ever gone months without a fresh CVE scan because nobody re-ran it after the initial build — distinct from license-compliance-check.yaml, which audits dependency license terms, not vulnerability scan freshness.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "containers",
+        "security",
+        "vulnerability-scan",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/container-image-scan-staleness-check.yaml"
     },
     {
       "id": "content-calendar-gap-check",
@@ -12058,6 +12110,33 @@
       "path": "jobs/devops/database-connection-pool-exhaustion-check.yaml"
     },
     {
+      "id": "database-index-bloat-check",
+      "version": 1,
+      "name": "Database Index Bloat Check",
+      "description": "Runs a bloat-estimate query against a Postgres database and flags indexes whose estimated bloat ratio exceeds a configurable threshold. Use this if query performance has ever degraded slowly over months because dead tuples piled up in an index nobody was watching — distinct from database-migration-drift-check.yaml, which checks schema drift, not index storage bloat.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "database",
+        "postgres",
+        "index",
+        "performance",
+        "maintenance"
+      ],
+      "schedule": "0 5 * * 0",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/database-index-bloat-check.yaml"
+    },
+    {
       "id": "database-migration-drift-check",
       "version": 1,
       "name": "Database Migration Drift Check",
@@ -13752,6 +13831,32 @@
         "codex"
       ],
       "path": "jobs/security/domain-registration-dnssec-check.yaml"
+    },
+    {
+      "id": "domain-registration-expiry-check",
+      "version": 1,
+      "name": "Domain Registration Expiry Check",
+      "description": "Checks each domain's registration expiry date via WHOIS and flags any approaching or past expiry. Use this if a domain has ever lapsed and gotten snapped up by a squatter because the auto-renew setting was wrong or the card on file expired — distinct from ssl-cert-expiry-check.yaml, which watches TLS certificate expiry, not the underlying domain name registration itself.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "domain",
+        "whois",
+        "expiry",
+        "dns"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/domain-registration-expiry-check.yaml"
     },
     {
       "id": "donation-acknowledgment-lag-check",
@@ -22724,6 +22829,32 @@
       "path": "jobs/productivity/inbox-triage.yaml"
     },
     {
+      "id": "incident-postmortem-action-item-check",
+      "version": 1,
+      "name": "Incident Postmortem Action Item Check",
+      "description": "Checks a logged postmortem action-item tracker for open items past their due date and flags them. Use this if a postmortem has ever produced a solid list of follow-up fixes that then quietly never got done — distinct from repo-health-check.yaml, which audits repository hygiene in general, not incident-specific remediation commitments.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "incident",
+        "postmortem",
+        "follow-up",
+        "reliability"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/incident-postmortem-action-item-check.yaml"
+    },
+    {
       "id": "incident-report-followup-tracker",
       "version": 1,
       "name": "Incident Report Follow-Up Tracker",
@@ -25852,6 +25983,32 @@
         "codex"
       ],
       "path": "jobs/events/load-in-load-out-schedule-reminder.yaml"
+    },
+    {
+      "id": "load-test-baseline-regression-check",
+      "version": 1,
+      "name": "Load Test Baseline Regression Check",
+      "description": "Compares the latest load test result against a stored baseline and flags a regression when latency or error rate degrades past a configurable margin. Use this if a performance regression has ever shipped unnoticed because load test results were eyeballed once and never compared against history — distinct from ci-build-time-regression-watch.yaml, which watches build/CI pipeline duration, not application runtime performance under load.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "load-test",
+        "performance",
+        "regression",
+        "baseline"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/load-test-baseline-regression-check.yaml"
     },
     {
       "id": "loading-dock-elevator-maintenance-check",
@@ -30325,6 +30482,32 @@
       "path": "jobs/team/on-call-fatigue-check.yaml"
     },
     {
+      "id": "on-call-handoff-checklist-check",
+      "version": 1,
+      "name": "On-Call Handoff Checklist Check",
+      "description": "Checks a logged on-call handoff record for the current shift transition and flags it if required fields (open incidents, known issues, pending actions) were left blank. Use this if an on-call handoff has ever happened with nothing written down, leaving the incoming engineer to discover open issues the hard way — distinct from incident-postmortem-action-item-check.yaml, which tracks postmortem follow-ups rather than the shift-handoff moment itself.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "on-call",
+        "incident",
+        "handoff",
+        "process"
+      ],
+      "schedule": "0 9,17 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/on-call-handoff-checklist-check.yaml"
+    },
+    {
       "id": "onboarding-completion-stall-check",
       "version": 1,
       "name": "Onboarding Completion Stall Check",
@@ -30833,6 +31016,32 @@
         "codex"
       ],
       "path": "jobs/devops/orphaned-branch-cleanup.yaml"
+    },
+    {
+      "id": "orphaned-cloud-resource-check",
+      "version": 1,
+      "name": "Orphaned Cloud Resource Check",
+      "description": "Checks a tagged-resource inventory export for resources missing an owner/team tag or a linked active workload, and flags them as candidates for cleanup. Use this if unattached volumes, idle load balancers, or leftover snapshots have ever quietly kept costing money after the project that created them ended — distinct from cost-alert.yaml, which watches total spend against a budget threshold rather than identifying which specific resources are orphaned.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "cloud",
+        "cost",
+        "cleanup",
+        "tagging"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/orphaned-cloud-resource-check.yaml"
     },
     {
       "id": "orphaned-page-internal-link-check",
@@ -40611,6 +40820,32 @@
       "path": "jobs/photography/second-shooter-payment-tracker.yaml"
     },
     {
+      "id": "secrets-rotation-overdue-check",
+      "version": 1,
+      "name": "Secrets Rotation Overdue Check",
+      "description": "Checks a secrets inventory log against a configurable rotation interval and flags any credential (API key, database password, signing key) that hasn't been rotated recently enough. Use this if a long-lived secret has ever quietly stayed unrotated for years because nobody tracked rotation dates separately from the secret's own expiry — distinct from ssl-cert-expiry-check.yaml, which watches TLS certificate expiry, not credential rotation cadence.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "secrets",
+        "rotation",
+        "security",
+        "credentials"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/secrets-rotation-overdue-check.yaml"
+    },
+    {
       "id": "secrets-scan",
       "version": 1,
       "name": "Committed Secrets Scan",
@@ -41892,6 +42127,32 @@
         "codex"
       ],
       "path": "jobs/personal/sleep-schedule-consistency-check.yaml"
+    },
+    {
+      "id": "slo-error-budget-burn-rate-check",
+      "version": 1,
+      "name": "SLO Error Budget Burn Rate Check",
+      "description": "Calculates the error-budget burn rate from a logged SLO measurement history and flags it when burning fast enough to exhaust the budget before the period ends. Use this if an SLO has ever been quietly blown through mid-quarter because nobody was watching the burn rate, only the final number — distinct from error-rate-spike-watch.yaml, which flags a raw error-rate spike rather than budget-relative burn pace.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "slo",
+        "error-budget",
+        "reliability",
+        "sre"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/slo-error-budget-burn-rate-check.yaml"
     },
     {
       "id": "slotting-velocity-review-check",
@@ -43360,6 +43621,32 @@
         "generic"
       ],
       "path": "jobs/senior-living/state-survey-readiness-checklist-tracker.yaml"
+    },
+    {
+      "id": "status-page-incident-staleness-check",
+      "version": 1,
+      "name": "Status Page Incident Staleness Check",
+      "description": "Checks a status page's active incident list and flags any incident that's still open past a configurable age without a recent update. Use this if a status page incident has ever sat \"investigating\" for days after the actual issue was fixed, because nobody remembered to close it out — distinct from webhook-delivery-failure-check.yaml, which watches webhook delivery health rather than public incident communication.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "status-page",
+        "incident",
+        "communication",
+        "monitoring"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/status-page-incident-staleness-check.yaml"
     },
     {
       "id": "statute-of-limitations-claim-deadline-calculator",
@@ -47635,6 +47922,32 @@
         "codex"
       ],
       "path": "jobs/healthcare/unsigned-encounter-note-check.yaml"
+    },
+    {
+      "id": "unused-api-key-cleanup-check",
+      "version": 1,
+      "name": "Unused API Key Cleanup Check",
+      "description": "Checks an API key usage log for keys with no recorded activity within a configurable window and flags them as candidates for revocation. Use this if an old API key has ever sat around unused and forgotten, wide open as an attack surface nobody was watching — distinct from secrets-rotation-overdue-check.yaml, which tracks whether an active key was rotated on schedule, not whether a key is unused entirely.",
+      "category": "devops",
+      "tags": [
+        "devops",
+        "api-key",
+        "security",
+        "cleanup",
+        "access"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/devops/unused-api-key-cleanup-check.yaml"
     },
     {
       "id": "unused-seat-invite-check",

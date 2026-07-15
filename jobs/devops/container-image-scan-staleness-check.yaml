@@ -1,0 +1,39 @@
+id: container-image-scan-staleness-check
+version: 1
+name: Container Image Scan Staleness Check
+description: >
+  Checks a container image inventory log for images whose last
+  vulnerability scan is older than a configurable window and flags them.
+  Use this if a production image has ever gone months without a fresh
+  CVE scan because nobody re-ran it after the initial build — distinct
+  from license-compliance-check.yaml, which audits dependency license
+  terms, not vulnerability scan freshness.
+category: devops
+tags: [devops, containers, security, vulnerability-scan, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_age="{{max_age_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline scanned_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - scanned_epoch) / 86400;
+      if (age_days > max_age+0) {
+        printf "STALE SCAN: %s last scanned %s (%d day(s) ago)\n", $1, $2, age_days;
+        stale++;
+      }
+    }
+    END { printf "%d image(s) with a stale vulnerability scan.\n", stale+0; }
+  ' "{{image_inventory_csv_path}}"
+variables:
+  image_inventory_csv_path:
+    default: "./container_image_inventory.csv"
+    description: "Path to a CSV with columns: image_name_tag,last_scanned_date (YYYY-MM-DD)."
+  max_age_days:
+    default: 14
+    description: Maximum days since an image's last vulnerability scan before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Read-only staleness check — triggering an actual rescan still needs to happen through the image registry's scanning tool.

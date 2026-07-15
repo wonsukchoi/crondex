@@ -1,0 +1,37 @@
+id: on-call-handoff-checklist-check
+version: 1
+name: On-Call Handoff Checklist Check
+description: >
+  Checks a logged on-call handoff record for the current shift transition
+  and flags it if required fields (open incidents, known issues, pending
+  actions) were left blank. Use this if an on-call handoff has ever
+  happened with nothing written down, leaving the incoming engineer to
+  discover open issues the hard way — distinct from
+  incident-postmortem-action-item-check.yaml, which tracks postmortem
+  follow-ups rather than the shift-handoff moment itself.
+category: devops
+tags: [devops, on-call, incident, handoff, process]
+schedule: "0 9,17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $1 == today {
+      seen=1;
+      if ($3 == "" || $4 == "" || $5 == "") {
+        printf "INCOMPLETE HANDOFF: %s -> %s on %s missing open_incidents, known_issues, or pending_actions\n", $2, $3, $1;
+        incomplete++;
+      }
+    }
+    END {
+      if (!seen) print "No handoff record found for today.";
+      else printf "%d incomplete handoff record(s) today.\n", incomplete+0;
+    }
+  ' "{{handoff_log_csv_path}}"
+variables:
+  handoff_log_csv_path:
+    default: "./oncall_handoff_log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),outgoing_engineer,open_incidents,known_issues,pending_actions."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token process check — expects one handoff row logged per shift transition.

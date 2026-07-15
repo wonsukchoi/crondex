@@ -1,0 +1,33 @@
+id: orphaned-cloud-resource-check
+version: 1
+name: Orphaned Cloud Resource Check
+description: >
+  Checks a tagged-resource inventory export for resources missing an
+  owner/team tag or a linked active workload, and flags them as
+  candidates for cleanup. Use this if unattached volumes, idle load
+  balancers, or leftover snapshots have ever quietly kept costing money
+  after the project that created them ended — distinct from
+  cost-alert.yaml, which watches total spend against a budget threshold
+  rather than identifying which specific resources are orphaned.
+category: devops
+tags: [devops, cloud, cost, cleanup, tagging]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($2 == "" || $3 == "untagged") {
+        printf "ORPHANED CANDIDATE: %s (type=%s) has no owner tag or linked workload\n", $1, $4;
+        n++;
+      }
+    }
+    END { printf "%d resource(s) flagged as orphaned candidates.\n", n+0; }
+  ' "{{resource_inventory_csv_path}}"
+variables:
+  resource_inventory_csv_path:
+    default: "./cloud_resource_inventory.csv"
+    description: "Path to a CSV with columns: resource_id,owner_tag,link_status (linked/untagged),resource_type. One row per cloud resource."
+compatible_agents: [generic, claude, codex]
+notes: Read-only candidate list — verify each resource is actually unused before deleting anything.

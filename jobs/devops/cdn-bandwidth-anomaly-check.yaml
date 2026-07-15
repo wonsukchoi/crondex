@@ -1,0 +1,48 @@
+id: cdn-bandwidth-anomaly-check
+version: 1
+name: CDN Bandwidth Anomaly Check
+description: >
+  Compares today's CDN bandwidth usage against a trailing average and
+  flags an unusual spike, which can mean a hotlinking/scraping problem
+  or a surprise bill. Use this if CDN bandwidth has ever spiked hard
+  enough to blow through a billing tier before anyone noticed —
+  distinct from cdn-cache-purge-reminder.yaml, which is about cache
+  freshness, not traffic volume anomalies.
+category: devops
+tags: [devops, cdn, bandwidth, cost, anomaly]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{baseline_days}}" -v multiplier="{{spike_multiplier}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = int((now_epoch - entry_epoch) / 86400);
+      if (age_days == 0) { today_gb = $2+0; next; }
+      if (age_days >= 1 && age_days <= cutoff+0) { sum += $2+0; n++; }
+    }
+    END {
+      if (n > 0 && today_gb > 0) {
+        avg = sum / n;
+        printf "TODAY: %.1f GB vs %d-day average %.1f GB\n", today_gb, cutoff, avg;
+        if (avg > 0 && today_gb > avg * multiplier+0) printf "ALERT: today'\''s bandwidth is %.1fx the trailing average\n", today_gb / avg;
+      } else {
+        print "Not enough data to compare (need a today row plus baseline history).";
+      }
+    }
+  ' "{{bandwidth_log_csv_path}}"
+variables:
+  bandwidth_log_csv_path:
+    default: "./cdn_bandwidth_log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),bandwidth_gb. One row per day, including today."
+  baseline_days:
+    default: 14
+    description: How many trailing days (excluding today) to average for the baseline comparison.
+  spike_multiplier:
+    default: 3
+    description: How many times the trailing average today's bandwidth must exceed to be flagged as a spike.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — expects a bandwidth log CSV kept up to date by an export from the CDN provider's usage API or dashboard.

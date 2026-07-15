@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-07-15
+
+### Added
+
+- Deepened `devops`: +12 jobs (38 -> 50) — secrets rotation, orphaned
+  cloud resources, on-call handoff checklist, postmortem action items,
+  container image scan staleness, unused API key cleanup, domain
+  registration expiry, status page incident staleness, SLO error-budget
+  burn rate, load test baseline regression, database index bloat, CDN
+  bandwidth anomaly. Catalog now 1988 jobs across 61 categories.
+
 ## [0.59.0] - 2026-07-15
 
 ### Added

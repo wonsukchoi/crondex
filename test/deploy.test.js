@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import yaml from "js-yaml";
 import {
   resolveVariables,
   substitutePlaceholders,
@@ -107,6 +108,34 @@ test("buildGithubActionsWorkflow: prompt mode leaves a TODO and prints the resol
   const yamlText = buildGithubActionsWorkflow(job, { prompt: "Do the thing with {{x}}", mode: "prompt" });
   assert.match(yamlText, /TODO/);
   assert.match(yamlText, /Do the thing with \{\{x\}\}/);
+});
+
+test("buildGithubActionsWorkflow: job name with a colon and quote still produces valid, round-trippable YAML", () => {
+  const job = { name: 'Ops: "critical" check', schedule: "0 9 * * *", timezone: "UTC", path: "x.yaml" };
+  const yamlText = buildGithubActionsWorkflow(job, { command: "echo hi", mode: "script" });
+  const parsed = yaml.load(yamlText);
+  assert.equal(parsed.name, 'Ops: "critical" check');
+});
+
+test("buildGithubActionsWorkflow: job name starting with a YAML indicator character stays valid", () => {
+  const job = { name: "- leading dash name", schedule: "0 9 * * *", timezone: "UTC", path: "x.yaml" };
+  const yamlText = buildGithubActionsWorkflow(job, { command: "echo hi", mode: "script" });
+  const parsed = yaml.load(yamlText);
+  assert.equal(parsed.name, "- leading dash name");
+});
+
+test("buildGithubActionsWorkflow: plain job name still parses as the expected string", () => {
+  const job = { name: "My Job", schedule: "0 9 * * *", timezone: "UTC", path: "x.yaml" };
+  const yamlText = buildGithubActionsWorkflow(job, { command: "echo hi", mode: "script" });
+  const parsed = yaml.load(yamlText);
+  assert.equal(parsed.name, "My Job");
+});
+
+test("buildSystemdUnits: job name with an embedded newline collapses to one Description= line", () => {
+  const job = { id: "my-job", name: "Line one\nLine two", schedule: "0 6 * * *" };
+  const { service, timer } = buildSystemdUnits(job, "echo hi", false);
+  assert.match(service, /^Description=Line one Line two \(crondex:my-job\)$/m);
+  assert.match(timer, /^Description=Line one Line two timer \(crondex:my-job\)$/m);
 });
 
 test("cronToSystemdCalendar: daily schedule with no weekday restriction", () => {

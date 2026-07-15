@@ -62,16 +62,29 @@ the new default order.
   bar was calibrated for a catalog-growth-first roadmap; re-evaluate
   Terraform in particular (common enough infra-as-code target) now that
   deploy correctness is the actual moat.
-- **Edge-case correctness** — audit `lib/deploy.js` per-target for cron
-  expressions that don't translate cleanly (step ranges, `dow` edge
-  cases already fixed once — check for siblings), and expand
-  `test/deploy.test.js` coverage per target rather than just per
-  cron-syntax-feature.
-- **Deploy-output verification** — `smoke-test` runs the job's own
-  command; it doesn't verify the *generated deploy artifact* (the actual
-  crontab line, the actual YAML workflow) is syntactically valid for its
-  target. Closing that gap is a direct, credible answer to "is the hard
-  part actually tested."
+- **Edge-case correctness** — first pass done (0.70.0, unpublished as of
+  this writing): systemd range syntax (`-` vs `..`), the AWS EventBridge
+  regression that fix briefly introduced, an AWS dom+dow-both-restricted
+  case, and an unquoted `job.name` in the GitHub Actions YAML emission —
+  four real bugs, all found by actually auditing `lib/deploy.js`
+  per-target rather than assuming the existing tests covered it. Only
+  crontab/docker/k8s-cronjob/github-actions/cloud-scheduler pass the raw
+  cron string straight through to a dialect that already accepts it
+  (verified against all 2182 catalog jobs); systemd and eventbridge were
+  the only two doing real field translation, and are now the two most
+  test-covered. Remaining: this was one focused pass, not an exhaustive
+  one — revisit if a new target is added or a translation bug surfaces.
+- **Deploy-output verification** — done (0.70.0, unpublished): added
+  `scripts/verify-deploy-artifacts.js` / `npm run verify-deploy-artifacts`,
+  wired into CI. Checks the *generated artifact* itself (not the job's
+  own command, that's `smoke-test`'s job) — k8s/github-actions YAML
+  actually parses with the right shape, eventbridge/cloud-scheduler
+  snippets have valid bash syntax. This is exactly what caught the
+  unquoted-`job.name` bug above. Not yet covered: crontab/systemd/docker's
+  `bash -lc '...'` escaping — lower priority, that's a provably-correct
+  generic escaping idiom (already unit-tested with synthetic edge cases
+  in `test/deploy.test.js`), not per-job-content-dependent the way YAML
+  emission is.
 
 ## 2. Trust/provenance signal (primary)
 

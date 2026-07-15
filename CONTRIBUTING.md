@@ -49,12 +49,23 @@ or [file a bug](../../issues/new?template=bug-report.yml) instead.
 5. Install deps once, then validate and rebuild the catalog:
    ```bash
    npm install
-   npm run validate          # checks your job against the schema
-   npm run lint-shell        # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
-   npm run check-duplicates  # flags near-duplicate tag/description overlap with an existing job
-   npm run smoke-test        # actually runs shell/hybrid jobs sandboxed, with real default values (see below)
-   npm run build-catalog     # regenerates catalog.json — commit this too
+   npm run validate                 # checks your job against the schema
+   npm run lint-shell               # shellcheck over every shell/hybrid job's command (needs shellcheck on PATH)
+   npm run check-duplicates         # flags near-duplicate tag/description overlap with an existing job
+   npm run verify-deploy-artifacts  # checks every deploy target's *generated output* is well-formed (see below)
+   npm run smoke-test               # actually runs shell/hybrid jobs sandboxed, with real default values (see below)
+   npm run build-catalog            # regenerates catalog.json — commit this too
    ```
+
+   `verify-deploy-artifacts` is different from `smoke-test`: it doesn't run your
+   job's command at all, it checks that `lib/deploy.js`'s generated *artifacts* for
+   your job — the k8s CronJob manifest, the GitHub Actions workflow, the EventBridge/
+   Cloud Scheduler CLI snippet — actually parse as valid YAML / valid shell syntax.
+   This is where a job whose `name` contains a colon, or a schedule with an unusual
+   field combination, can silently break the generated output even though the job
+   itself is perfectly valid — three real bugs of exactly this shape were found this
+   way (see CHANGELOG 0.70.0). It's cheap and makes no network calls, so — unlike
+   `smoke-test` — it IS wired into CI.
 
    `smoke-test` isn't part of CI (some job defaults make real network calls, which
    would make the gate slow and flaky) — run it locally for a `shell`/`hybrid` job

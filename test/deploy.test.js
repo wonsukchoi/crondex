@@ -113,8 +113,20 @@ test("cronToSystemdCalendar: daily schedule with no weekday restriction", () => 
   assert.equal(cronToSystemdCalendar("0 6 * * *"), "*-*-* 6:0:00");
 });
 
-test("cronToSystemdCalendar: weekday range maps to day names", () => {
-  assert.equal(cronToSystemdCalendar("0 14 * * 1-5"), "Mon-Fri *-*-* 14:0:00");
+test("cronToSystemdCalendar: weekday range maps to day names with .. (systemd's range operator, not -)", () => {
+  assert.equal(cronToSystemdCalendar("0 14 * * 1-5"), "Mon..Fri *-*-* 14:0:00");
+});
+
+test("cronToSystemdCalendar: numeric range maps with .. instead of cron's -", () => {
+  assert.equal(cronToSystemdCalendar("0 9 1-15 * *"), "*-*-1..15 9:0:00");
+});
+
+test("cronToSystemdCalendar: numeric range with step keeps the step after the .. range", () => {
+  assert.equal(cronToSystemdCalendar("0-30/5 * * * *"), "*-*-* *:0..30/5:00");
+});
+
+test("cronToSystemdCalendar: numeric range inside a comma list still converts", () => {
+  assert.equal(cronToSystemdCalendar("0 9 1,10-15 * *"), "*-*-1,10..15 9:0:00");
 });
 
 test("cronToSystemdCalendar: */n step becomes 0/n", () => {

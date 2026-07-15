@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-07-16
+
+### Fixed
+
+- `deploy --target systemd`: weekday and numeric cron ranges (e.g. `1-5`,
+  `1-15`) now translate to systemd's `..` range syntax instead of a bare
+  `-`, which systemd's calendar parser doesn't accept as a range
+  operator (it's reserved as the date-literal separator, e.g.
+  `2012-10-10`). Every generated `OnCalendar=` line with a day-of-week
+  or numeric range was previously invalid — affects roughly 280 of 2182
+  catalog jobs whose schedule uses a range in any field.
+
 ## [0.64.0] - 2026-07-15
 
 ### Added

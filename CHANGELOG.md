@@ -8,7 +8,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.70.0] - 2026-07-16
 
+### Added
+
+- `npm run verify-deploy-artifacts` (`scripts/verify-deploy-artifacts.js`),
+  wired into CI. Checks the *generated deploy artifact* itself — not the
+  job's own command, `smoke-test`'s job — actually parses: k8s-cronjob
+  and github-actions YAML round-trips through `js-yaml` with the
+  expected shape, eventbridge/cloud-scheduler snippets have valid bash
+  syntax. Cheap and deterministic (no network calls), unlike
+  `smoke-test`, so it's a real CI gate. Verified against all 2182
+  catalog jobs: 0 failures.
+
 ### Fixed
+
+- `deploy --target github-actions`: `name: ${job.name}` was emitted as
+  a bare YAML plain scalar. `job.name` has no schema restriction (just
+  `type: string`), so a name containing a colon, a leading YAML
+  indicator character (`#`, `-`, `"`, ...), or a raw newline would
+  produce invalid YAML. No catalog job currently has such a name, but
+  user-authored jobs aren't restricted either — this is exactly the
+  kind of bug `verify-deploy-artifacts` above exists to catch. Now
+  properly quoted. `deploy --target systemd`'s `Description=` lines get
+  a matching defensive fix (embedded newlines collapsed to spaces,
+  since a raw newline would split a unit-file value across invalid
+  extra lines).
 
 - `deploy --target systemd`: weekday and numeric cron ranges (e.g. `1-5`,
   `1-15`) now translate to systemd's `..` range syntax instead of a bare

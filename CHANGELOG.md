@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-07-15
+
+### Added
+
+- Deepened `dental`: +12 jobs (32 -> 44) — schedule utilization,
+  HSA/FSA reimbursement tracking, payer recredentialing, recall-campaign
+  contact gaps, x-ray retake rate, financing follow-up, online booking
+  abandonment, NPI registry staleness, instrument tray turnaround,
+  denture reline, pediatric fluoride consent expiry, emergency slot
+  utilization. Catalog now 1976 jobs across 61 categories.
+
 ## [0.58.0] - 2026-07-15
 
 ### Added

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-07-15
+
+### Added
+
+- New `banking` category: 32 bank/credit-union operations jobs
+  (KYC/AML/BSA compliance, SAR/CTR filing, dormant accounts,
+  teller/vault cash controls, Reg CC/DD/E compliance, loan covenants
+  and turnaround, escheatment precursors, fraud holds). Distinct from
+  `finance` (own-business bookkeeping) and `investing`
+  (portfolio/brokerage). Catalog now 2032 jobs across 62 categories.
+
 ## [0.61.0] - 2026-07-15
 
 ### Added

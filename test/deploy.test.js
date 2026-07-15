@@ -236,6 +236,14 @@ test("cronToAwsCron: step-in-range inside a comma list still throws", () => {
   assert.throws(() => cronToAwsCron("0 14 * * 0,1-5/2"), /unsupported day-of-week step-in-range syntax/);
 });
 
+test("cronToAwsCron: both day-of-month and day-of-week restricted throws a clear error instead of silently dropping one", () => {
+  assert.throws(() => cronToAwsCron("0 9 15 * 1-5"), /both day-of-month.*and day-of-week.*are restricted/);
+});
+
+test("cronToAwsCron: day-of-month restricted with day-of-week unrestricted is still fine", () => {
+  assert.equal(cronToAwsCron("0 9 15 * *"), "cron(0 9 15 * ? *)");
+});
+
 test("buildEventBridgeCommand: embeds the AWS cron expression and leaves the target as a TODO", () => {
   const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
   const out = buildEventBridgeCommand(job, "do the thing", false);

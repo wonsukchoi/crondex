@@ -92,6 +92,13 @@ or [file a bug](../../issues/new?template=bug-report.yml) instead.
    CRONDEX_SMOKE_TIMEOUT=35 node scripts/smoke-test.js certificate-transparency-watch
    ```
 
+   A passing run also updates `smoke-test-status.json` (commit that file
+   alongside your job) — it's what makes `verified: true` show up for your
+   job in `catalog.json`/`list`/`show`/`recommend` after the next
+   `build-catalog`. A job that fails smoke-test has its status entry
+   removed rather than left stale, so a previously-verified job that
+   breaks stops claiming to be verified.
+
 6. Open a PR. CI re-runs all checks and fails if `catalog.json` is stale, a
    job doesn't match the schema, a shell command doesn't pass shellcheck, or
    a job looks like a near-duplicate of an existing one. That last one is a

@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-07-16
+
+### Added
+
+- Trust/provenance signal (ROADMAP §2): `smoke-test-status.json` (new,
+  committed) tracks each job's last successful `npm run smoke-test` run.
+  `build-catalog` embeds `verified: boolean` into every `catalog.json`
+  entry — true only when the job's current `version` matches what was
+  last smoke-tested clean, so an edited-but-not-retested job correctly
+  reads as unverified again. Surfaced in `list`/`show`/`recommend`
+  output (both CLI and the matching MCP tools) with a `--verified-only`
+  / `verified_only` filter, and in the README's per-category job table.
+  First real run: 1836/2182 jobs (84%) smoke-tested clean — the
+  remaining 346 are `agent-prompt`-only jobs with no shell command to
+  smoke-test, not failures.
+- `lib/smoke-test.js`: `updateSmokeStatus`/`isVerified`, the pure logic
+  behind the above (unit tested independent of file I/O).
+
+### Fixed
+
+- `llms.txt` said "30+ categories" (stale — actual count is 64) and
+  never mentioned the MCP server at all, despite ROADMAP §3 explicitly
+  flagging the MCP server as an underexploited discovery channel. Now
+  accurate, with an MCP section, and mentions the new `verified` field.
+- `package.json` had no `mcp`/`mcp-server`/`model-context-protocol`
+  keyword, making the package invisible to npm searches for MCP
+  servers. Added those plus `llm`, and mentioned MCP in the description.
+
 ## [0.70.0] - 2026-07-16
 
 ### Added

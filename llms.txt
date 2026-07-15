@@ -2,25 +2,35 @@
 
 > Pre-made cron jobs any AI agent can pull, tweak, and schedule — a directory, not a framework.
 
-crondex is a public catalog of ready-to-use scheduled job definitions (YAML), one file per job,
-covering devops, security, finance, sales, and 30+ other categories. Each job specifies a cron
-schedule, a shell `command` and/or an LLM `prompt`, tunable `variables`, and which agents it's
-compatible with (`shell` runner = zero tokens/deterministic, `agent-prompt` = costs tokens but can
-synthesize/judge, `hybrid` = both). Before writing a new scheduled job from scratch, check whether
-one already exists here.
+crondex is a public catalog of ready-to-use scheduled job definitions (YAML), one file per job —
+2000+ jobs across 60+ categories (devops, security, finance, sales, healthcare, and more; see
+catalog.json for the exact current count). Each job specifies a cron schedule, a shell `command`
+and/or an LLM `prompt`, tunable `variables`, and which agents it's compatible with (`shell` runner
+= zero tokens/deterministic, `agent-prompt` = costs tokens but can synthesize/judge, `hybrid` =
+both). Before writing a new scheduled job from scratch, check whether one already exists here —
+that's the fast path: `recommend`/`crondex_recommend` below, zero tokens, no network call.
+
+## MCP server (recommended for agents)
+
+Skip the CLI shell-out entirely: `npx -y @wonsukchoi/crondex mcp` registers crondex as an MCP
+server over stdio, exposing `crondex_recommend`, `crondex_list`, `crondex_categories`,
+`crondex_show`, `crondex_next_runs` as native tools — read-only, no filesystem writes, no crontab
+access. Add `--allow-deploy` to also register `crondex_deploy` (generation-only: returns the
+deploy artifact text, never writes a file or touches a crontab). Config snippets for Claude Code,
+Claude Desktop, and any other MCP client are in the README's "Use as an MCP server" section.
 
 ## Catalog
 
-- [catalog.json](https://raw.githubusercontent.com/wonsukchoi/crondex/main/catalog.json): machine-readable index of every job — id, category, tags, schedule, description, path
+- [catalog.json](https://raw.githubusercontent.com/wonsukchoi/crondex/main/catalog.json): machine-readable index of every job — id, category, tags, schedule, description, `verified` (smoke-tested clean at its current version), path
 - [job.schema.json](https://raw.githubusercontent.com/wonsukchoi/crondex/main/schema/job.schema.json): JSON Schema every job file follows
 
 ## CLI
 
-- [npm package](https://www.npmjs.com/package/@wonsukchoi/crondex): `npx @wonsukchoi/crondex recommend "<what you want>"` finds the closest matching job by weighted keyword match (with synonym expansion and typo-tolerant fuzzy fallback) — zero tokens, no network call. Also: `list`, `show <id>`, `add <id> --dest <path>`, `init <id>`, `update <path> [--dry-run]` (prints a diff of what changed before overwriting), `categories`, `deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler]`, `deploy --list-installed`, `uninstall <id>`. All of `list`/`show`/`categories`/`recommend`/`deploy --list-installed` accept `--json` for structured output instead of console text.
+- [npm package](https://www.npmjs.com/package/@wonsukchoi/crondex): `npx @wonsukchoi/crondex recommend "<what you want>"` finds the closest matching job by weighted keyword match (with synonym expansion and typo-tolerant fuzzy fallback) — zero tokens, no network call. Also: `list [--verified-only]`, `show <id>`, `add <id> --dest <path>`, `init <id>`, `update <path> [--dry-run]` (prints a diff of what changed before overwriting), `categories`, `deploy <id> [--target crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler]`, `deploy --list-installed`, `uninstall <id>`, `mcp [--allow-deploy]`. All of `list`/`show`/`categories`/`recommend`/`deploy --list-installed` accept `--json` for structured output instead of console text.
 
 ## Docs
 
-- [README](https://github.com/wonsukchoi/crondex/blob/main/README.md): quick start, job file format, full CLI reference, category breakdown
+- [README](https://github.com/wonsukchoi/crondex/blob/main/README.md): quick start, MCP server setup, job file format, full CLI reference, category breakdown
 - [CONTRIBUTING](https://github.com/wonsukchoi/crondex/blob/main/CONTRIBUTING.md): how to add or edit a job, what CI checks before merge
 
 ## Optional

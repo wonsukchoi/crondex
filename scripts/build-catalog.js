@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Scans jobs/**/*.yaml and regenerates catalog.json at the repo root.
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
+import { isVerified } from "../lib/smoke-test.js";
 import {
   modesForRunner,
   findMissingDescriptions,
@@ -16,6 +17,11 @@ import {
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
+const STATUS_PATH = join(ROOT, "smoke-test-status.json");
+
+// Missing file (a fresh clone before anyone's run `npm run smoke-test` locally) means
+// nothing's been verified yet, not an error — every job just gets verified: false.
+const smokeStatus = existsSync(STATUS_PATH) ? JSON.parse(readFileSync(STATUS_PATH, "utf8")) : {};
 
 function walk(dir) {
   const out = [];
@@ -42,6 +48,7 @@ const jobs = walk(JOBS_DIR)
       runner: doc.runner,
       modes: modesForRunner(doc.runner),
       compatible_agents: doc.compatible_agents ?? [],
+      verified: isVerified(smokeStatus, doc),
       path: relative(ROOT, file),
     };
   })

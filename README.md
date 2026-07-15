@@ -188,74 +188,74 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2182 jobs across 64 categories:
+2182 jobs across 64 categories (1836 smoke-tested clean):
 
-| category | jobs | description |
-|---|---|---|
-| `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
-| `agriculture` | 32 | Farm operations — weather risk, irrigation, equipment, market prices. |
-| `automotive` | 32 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
-| `banking` | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
-| `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
-| `cleaning-services` | 32 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
-| `construction` | 32 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
-| `content` | 32 | Site/content health — SEO, broken links, freshness, repurposing. |
-| `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
-| `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
-| `dental` | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
-| `devops` | 50 | Infra health — backups, deploys, dependencies, monitoring. |
-| `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
-| `events` | 32 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
-| `fieldservice` | 32 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
-| `finance` | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
-| `fitness` | 32 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
-| `gaming` | 32 | Streaming and community server ops — schedules, patches, tournaments. |
-| `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
-| `growth` | 32 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
-| `healthcare` | 45 | Clinic ops — appointments, recalls, licenses, lab results. |
-| `hiring` | 32 | Recruiting pipeline — candidates, offers, interviews, reqs. |
-| `home` | 32 | Household reminders — maintenance, warranties, plants, safety. |
-| `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
-| `hr` | 44 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
-| `insurance` | 32 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
-| `inventory` | 32 | Stock accuracy — counts, shrinkage, expiry, overstock. |
-| `investing` | 32 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
-| `landscaping` | 32 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
-| `law-firm` | 32 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
-| `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
-| `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 45 | Shipping ops — customs, freight, delays, fees. |
-| `manufacturing` | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
-| `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
-| `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
-| `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
-| `payments` | 32 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
-| `personal` | 32 | Daily life reminders — bills, habits, meals, screen time. |
-| `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
-| `pharmacy` | 44 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
-| `photography` | 32 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
-| `podcast` | 32 | Show ops — publish cadence, guests, sponsors, ratings. |
-| `productivity` | 32 | Work habits — inbox, standups, focus, meetings, reports. |
-| `publishing` | 32 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
-| `realestate` | 32 | Property management — leases, rent, vacancy, inspections, tax. |
-| `restaurant` | 32 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
-| `retail` | 32 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
-| `sales` | 32 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 45 | Security posture — keys, certs, access, scans, firewalls. |
-| `self-storage` | 32 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
-| `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
-| `spa` | 32 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
-| `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
-| `support` | 45 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
-| `team` | 44 | Team ops — 1:1s, on-call, PTO, anniversaries. |
-| `telecom` | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
-| `travel` | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `utilities` | 32 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
-| `veterinary` | 32 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
-| `warehousing` | 32 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
+| category | jobs | smoke-tested | description |
+|---|---|---|---|
+| `agency` | 32 | 29 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
+| `agriculture` | 32 | 25 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `automotive` | 32 | 26 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
+| `banking` | 32 | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
+| `childcare` | 32 | 28 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `cleaning-services` | 32 | 27 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
+| `construction` | 32 | 26 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
+| `content` | 32 | 15 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `coworking` | 32 | 28 | Shared-workspace membership ops — desks, room booking, community, amenities. |
+| `creator` | 32 | 21 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
+| `crypto` | 32 | 14 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `dental` | 44 | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
+| `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
+| `ecommerce` | 32 | 24 | Storefront ops — carts, stock, returns, reviews. |
+| `education` | 32 | 23 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
+| `events` | 32 | 28 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `fieldservice` | 32 | 30 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
+| `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
+| `fitness` | 32 | 28 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fleet` | 32 | 24 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `gaming` | 32 | 23 | Streaming and community server ops — schedules, patches, tournaments. |
+| `government` | 32 | 29 | Public-sector ops — records requests, permits, constituent casework. |
+| `growth` | 32 | 25 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
+| `healthcare` | 45 | 39 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `hiring` | 32 | 21 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `home` | 32 | 30 | Household reminders — maintenance, warranties, plants, safety. |
+| `hospitality` | 32 | 26 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
+| `hr` | 44 | 38 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `insurance` | 32 | 25 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
+| `inventory` | 32 | 29 | Stock accuracy — counts, shrinkage, expiry, overstock. |
+| `investing` | 32 | 25 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `landscaping` | 32 | 29 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
+| `law-firm` | 32 | 31 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
+| `learning` | 32 | 30 | Personal learning — certs, courses, flashcards, reading. |
+| `legal` | 32 | 30 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `logistics` | 45 | 32 | Shipping ops — customs, freight, delays, fees. |
+| `manufacturing` | 32 | 29 | Production ops — downtime, defects, maintenance, suppliers, materials. |
+| `marketing` | 32 | 22 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
+| `moving-relocation` | 32 | 30 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
+| `nonprofit` | 32 | 27 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `payments` | 32 | 29 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
+| `personal` | 32 | 28 | Daily life reminders — bills, habits, meals, screen time. |
+| `petcare` | 32 | 28 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
+| `pharmacy` | 44 | 36 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
+| `photography` | 32 | 30 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
+| `podcast` | 32 | 23 | Show ops — publish cadence, guests, sponsors, ratings. |
+| `productivity` | 32 | 22 | Work habits — inbox, standups, focus, meetings, reports. |
+| `publishing` | 32 | 29 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
+| `realestate` | 32 | 32 | Property management — leases, rent, vacancy, inspections, tax. |
+| `restaurant` | 32 | 22 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
+| `retail` | 32 | 26 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
+| `sales` | 32 | 27 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
+| `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
+| `senior-living` | 32 | 31 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
+| `spa` | 32 | 30 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
+| `staffing` | 32 | 27 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
+| `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `team` | 44 | 43 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `telecom` | 32 | 28 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
+| `travel` | 32 | 28 | Trip logistics — flights, passports, visas, insurance, miles. |
+| `utilities` | 32 | 29 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
+| `veterinary` | 32 | 24 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
+| `warehousing` | 32 | 25 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 <!-- END JOB SUMMARY -->
 
 ---

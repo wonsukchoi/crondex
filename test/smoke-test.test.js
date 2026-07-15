@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveJobCommand, buildSandboxScript } from "../lib/smoke-test.js";
+import { resolveJobCommand, buildSandboxScript, updateSmokeStatus, isVerified } from "../lib/smoke-test.js";
 
 test("resolveJobCommand: substitutes placeholders with each variable's real default", () => {
   const job = {
@@ -27,4 +27,41 @@ test("buildSandboxScript: defines a command_not_found_handle fallback", () => {
 test("buildSandboxScript: appends the resolved command after the sandbox preamble", () => {
   const script = buildSandboxScript("echo the-actual-command");
   assert.match(script, /echo the-actual-command$/);
+});
+
+test("updateSmokeStatus: a pass records the job's current version and test date", () => {
+  const status = updateSmokeStatus({}, { id: "my-job", version: 2 }, true, "2026-07-16");
+  assert.deepEqual(status, { "my-job": { version: 2, tested_at: "2026-07-16" } });
+});
+
+test("updateSmokeStatus: a fail removes any existing entry for that job", () => {
+  const before = { "my-job": { version: 1, tested_at: "2026-01-01" } };
+  const status = updateSmokeStatus(before, { id: "my-job", version: 2 }, false, "2026-07-16");
+  assert.deepEqual(status, {});
+});
+
+test("updateSmokeStatus: does not mutate the input map", () => {
+  const before = { "other-job": { version: 1, tested_at: "2026-01-01" } };
+  updateSmokeStatus(before, { id: "my-job", version: 1 }, true, "2026-07-16");
+  assert.deepEqual(before, { "other-job": { version: 1, tested_at: "2026-01-01" } });
+});
+
+test("updateSmokeStatus: leaves other jobs' entries untouched", () => {
+  const before = { "other-job": { version: 3, tested_at: "2026-01-01" } };
+  const status = updateSmokeStatus(before, { id: "my-job", version: 1 }, true, "2026-07-16");
+  assert.deepEqual(status["other-job"], { version: 3, tested_at: "2026-01-01" });
+});
+
+test("isVerified: true when the status entry's version matches the job's current version", () => {
+  const status = { "my-job": { version: 2, tested_at: "2026-07-16" } };
+  assert.equal(isVerified(status, { id: "my-job", version: 2 }), true);
+});
+
+test("isVerified: false when the job was edited (version bumped) since its last pass", () => {
+  const status = { "my-job": { version: 1, tested_at: "2026-01-01" } };
+  assert.equal(isVerified(status, { id: "my-job", version: 2 }), false);
+});
+
+test("isVerified: false when there's no status entry at all", () => {
+  assert.equal(isVerified({}, { id: "never-tested", version: 1 }), false);
 });

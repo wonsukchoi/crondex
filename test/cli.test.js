@@ -11,8 +11,11 @@ import { tmpdir } from "node:os";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CLI = join(ROOT, "bin/crondex.js");
 
+// maxBuffer bumped from Node's 1MB default — full-catalog --json output (2000+ jobs,
+// each with id/description/tags/schedule/etc.) comfortably exceeds that once the
+// catalog has real size, which surfaced as a spurious ENOBUFS in CI, not a real bug.
 function run(args, opts = {}) {
-  return execFileSync("node", [CLI, ...args], { encoding: "utf8", ...opts });
+  return execFileSync("node", [CLI, ...args], { encoding: "utf8", maxBuffer: 20 * 1024 * 1024, ...opts });
 }
 
 test("list: with no args prints the catalog info line and at least one job", () => {
@@ -45,6 +48,29 @@ test("show --json: returns parsed job object with a command field", () => {
   assert.ok(job.command);
 });
 
+test("show --json: includes a verified boolean field", () => {
+  const out = run(["show", "ssl-cert-expiry-check", "--json"]);
+  const job = JSON.parse(out);
+  assert.equal(typeof job.verified, "boolean");
+});
+
+test("show (non-json): prints a smoke-tested status line before the raw YAML", () => {
+  const out = run(["show", "ssl-cert-expiry-check"]);
+  assert.match(out, /smoke-tested/);
+});
+
+test("list --json: every job has a verified boolean field", () => {
+  const out = run(["list", "--category", "devops", "--json"]);
+  const jobs = JSON.parse(out);
+  assert.ok(jobs.every((j) => typeof j.verified === "boolean"));
+});
+
+test("list --verified-only: only returns jobs with verified: true", () => {
+  const out = run(["list", "--verified-only", "--json"]);
+  const jobs = JSON.parse(out);
+  assert.ok(jobs.every((j) => j.verified === true));
+});
+
 test("show unknown-job-id: exits nonzero with an error message", () => {
   assert.throws(() => run(["show", "not-a-real-job-id"]), /no job named/);
 });
@@ -62,6 +88,12 @@ test("recommend: finds a relevant job for a plain-language query", () => {
   const out = run(["recommend", "warn me before my SSL cert expires", "--json"]);
   const results = JSON.parse(out);
   assert.ok(results.some((r) => r.id === "ssl-cert-expiry-check"));
+});
+
+test("recommend --verified-only: never returns an unverified job", () => {
+  const out = run(["recommend", "warn me before my SSL cert expires", "--verified-only", "--json"]);
+  const results = JSON.parse(out);
+  assert.ok(results.every((r) => r.verified === true));
 });
 
 test("add: writes the job YAML to --dest and refuses to overwrite", () => {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   modesForRunner,
   countByCategory,
+  countVerifiedByCategory,
   findMissingDescriptions,
   buildSummaryLines,
   spliceReadmeSummary,
@@ -27,6 +28,22 @@ test("countByCategory: tallies jobs per category", () => {
   assert.equal(counts.get("security"), 1);
 });
 
+test("countVerifiedByCategory: only counts jobs with verified: true", () => {
+  const jobs = [
+    { category: "devops", verified: true },
+    { category: "devops", verified: false },
+    { category: "security", verified: true },
+  ];
+  const counts = countVerifiedByCategory(jobs);
+  assert.equal(counts.get("devops"), 1);
+  assert.equal(counts.get("security"), 1);
+});
+
+test("countVerifiedByCategory: jobs missing the field entirely count as unverified", () => {
+  const counts = countVerifiedByCategory([{ category: "devops" }]);
+  assert.equal(counts.get("devops"), undefined);
+});
+
 test("findMissingDescriptions: flags categories with no description entry", () => {
   const missing = findMissingDescriptions(["devops", "newcategory"], { devops: "Infra stuff." });
   assert.deepEqual(missing, ["newcategory"]);
@@ -38,13 +55,17 @@ test("findMissingDescriptions: all present returns empty", () => {
 });
 
 test("buildSummaryLines: builds a sorted markdown table with counts and descriptions", () => {
-  const jobs = [{ category: "security" }, { category: "devops" }, { category: "devops" }];
+  const jobs = [
+    { category: "security", verified: true },
+    { category: "devops" },
+    { category: "devops", verified: true },
+  ];
   const lines = buildSummaryLines(jobs, { devops: "Infra stuff.", security: "Security stuff." });
-  assert.equal(lines[0], "3 jobs across 2 categories:");
-  assert.equal(lines[2], "| category | jobs | description |");
+  assert.equal(lines[0], "3 jobs across 2 categories (2 smoke-tested clean):");
+  assert.equal(lines[2], "| category | jobs | smoke-tested | description |");
   // devops sorts before security
-  assert.match(lines[4], /`devops`.*\| 2 \|.*Infra stuff\./);
-  assert.match(lines[5], /`security`.*\| 1 \|.*Security stuff\./);
+  assert.match(lines[4], /`devops` \| 2 \| 1 \| Infra stuff\./);
+  assert.match(lines[5], /`security` \| 1 \| 1 \| Security stuff\./);
 });
 
 test("buildSummaryLines: missing description renders as empty cell, not 'undefined'", () => {

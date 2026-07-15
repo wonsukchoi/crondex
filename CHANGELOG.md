@@ -17,6 +17,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `2012-10-10`). Every generated `OnCalendar=` line with a day-of-week
   or numeric range was previously invalid — affects roughly 280 of 2182
   catalog jobs whose schedule uses a range in any field.
+- `deploy --target eventbridge`: numeric ranges (day-of-month, month,
+  hour, minute) now correctly keep cron's `-` — AWS's own dialect uses
+  the opposite convention from systemd here. (This was a regression
+  introduced and caught within the same unpublished pre-release: the
+  systemd fix above initially shared its range-rewriting function with
+  the AWS translator.)
+- `deploy --target eventbridge`: a schedule that restricts both
+  day-of-month and day-of-week (cron/Vixie semantics: OR — "on the
+  15th, or any Friday") now throws a clear error instead of silently
+  discarding the day-of-month restriction. AWS's `cron()` grammar
+  requires exactly one of the two to be `?` and has no way to express
+  the OR case. No catalog job currently hits this, but the CLI accepts
+  arbitrary user-authored jobs, not just catalog ones.
+
+All three found and fixed by auditing `lib/deploy.js` per-target for
+cron expressions that don't translate cleanly (verified against all
+2182 catalog job schedules, zero translation errors on either target
+after the fixes).
 
 ## [0.64.0] - 2026-07-15
 

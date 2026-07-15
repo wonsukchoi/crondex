@@ -1,0 +1,42 @@
+id: hts-tariff-classification-accuracy-audit
+version: 1
+name: HTS Tariff Classification Accuracy Audit
+description: >
+  Reviews a sample of recent international shipments' assigned HTS/tariff
+  codes against their product descriptions and flags mismatches or
+  high-risk classifications. Use this if a mis-classified product has ever
+  triggered a customs hold, duty overpayment, or penalty because the wrong
+  HTS code slipped through.
+category: logistics
+tags: [logistics, customs, tariff-classification, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the shipment records in {{recent_shipments_csv_path}} (columns:
+  shipment_id, product_description, hts_code, declared_value, origin_country)
+  covering the last {{lookback_days}} days.
+
+  For each row, assess whether the assigned hts_code plausibly matches the
+  product_description based on standard HTS chapter/heading conventions.
+  Flag rows where:
+    - The HTS code's typical chapter doesn't align with the described product.
+    - The description is too vague to support the specificity of the code used.
+    - The code falls in a commonly audited or high-duty/high-scrutiny category
+      (e.g. textiles, electronics with anti-dumping exposure, dual-use goods).
+
+  For each flagged shipment, report shipment_id, the concern, and a
+  suggested HTS chapter/heading range to review with a licensed customs
+  broker — do not assign a replacement code yourself.
+variables:
+  recent_shipments_csv_path:
+    default: "./recent-international-shipments.csv"
+    description: "Path to a CSV export of recent international shipments with columns: shipment_id,product_description,hts_code,declared_value,origin_country."
+  lookback_days:
+    default: 30
+    description: How many days of recent shipments to include in the sample audit.
+compatible_agents: [claude, codex, generic]
+notes: >
+  A plausibility screen to catch obvious classification drift, not a
+  binding tariff ruling — final HTS classification calls should go through
+  a licensed customs broker or your compliance team.

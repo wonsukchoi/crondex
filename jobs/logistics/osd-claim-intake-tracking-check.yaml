@@ -1,0 +1,44 @@
+id: osd-claim-intake-tracking-check
+version: 1
+name: OS&D Claim Intake Tracking Check
+description: >
+  Tracks overage, shortage, and damage (OS&D) reports logged at receiving
+  and flags any that haven't yet been triaged or routed to a formal claim
+  after a configurable window. Use this if an OS&D report has ever sat in
+  a receiving log unactioned because nobody moved it from "noted at the
+  dock" to an actual claim.
+category: logistics
+tags: [logistics, receiving, osd, claims]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{max_untriaged_hours}}" '
+    NR==1 {next}
+    {
+      status = $4;
+      gsub(/^[ \t]+|[ \t]+$/, "", status);
+      if (tolower(status) == "logged" || tolower(status) == "untriaged" || status == "") {
+        cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $3 "\" +%s 2>/dev/null";
+        cmd | getline logged_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_hours = (now_epoch - logged_epoch) / 3600;
+        if (age_hours >= hours) {
+          printf "UNTRIAGED OS&D: report %s — %s reported at %s (%.1fh old, status: %s)\n", $1, $2, $3, age_hours, status;
+        }
+      }
+    }
+  ' "{{osd_reports_csv_path}}"
+variables:
+  osd_reports_csv_path:
+    default: "./osd-receiving-reports.csv"
+    description: "Path to a CSV with columns: report_id,osd_type (overage/shortage/damage),logged_timestamp,triage_status."
+  max_untriaged_hours:
+    default: 24
+    description: Hours an OS&D report may sit without being triaged or routed to a claim before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes receiving logs OS&D exceptions with a status field updated once
+  triaged — this is the intake backstop that catches reports before they
+  become a claim, distinct from tracking deadlines on claims already
+  opened or their status with the insurer.

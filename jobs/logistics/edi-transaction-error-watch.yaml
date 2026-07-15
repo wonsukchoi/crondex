@@ -1,0 +1,36 @@
+id: edi-transaction-error-watch
+version: 1
+name: EDI Transaction Error Watch
+description: >
+  Scans EDI transaction logs (e.g. 214 shipment status, 210 freight
+  invoice, 990 tender response) for failed or rejected transactions and
+  flags them for follow-up. Use this if a rejected EDI transaction has
+  ever sat unnoticed until a trading partner called asking why their
+  status update or invoice never arrived.
+category: logistics
+tags: [logistics, edi, integration, data-quality]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v types="{{transaction_types}}" '
+    NR==1 {next}
+    {
+      status = $3;
+      if (status ~ /^(REJECT|FAIL|ERROR)/) {
+        printf "EDI ERROR: %s transaction %s for partner %s — status %s at %s\n", $2, $1, $4, status, $5;
+      }
+    }
+  ' "{{edi_log_csv_path}}"
+variables:
+  edi_log_csv_path:
+    default: "./edi-transaction-log.csv"
+    description: "Path to a CSV export of EDI transaction log entries with columns: transaction_id,transaction_type,status,trading_partner,timestamp."
+  transaction_types:
+    default: "210,214,990"
+    description: "Comma-separated EDI transaction set codes to include in scope (informational — filter your log export before feeding it in if you need a subset)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your EDI translator or VAN exposes a transaction log export with
+  a status column — this flags rejects for someone to retransmit or
+  investigate, it does not resubmit transactions itself.

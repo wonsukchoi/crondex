@@ -1,0 +1,41 @@
+id: private-fleet-cost-per-mile-benchmark-check
+version: 1
+name: Private Fleet Cost-Per-Mile Benchmark Check
+description: >
+  Compares your private fleet's fully-loaded cost per mile on each lane
+  against the contracted common-carrier rate for that same lane and flags
+  lanes where the cheaper option differs from what's actually running. Use
+  this if you've ever suspected your private fleet is running lanes that
+  would be cheaper outsourced, or vice versa, but nobody's compared the
+  numbers lane by lane.
+category: logistics
+tags: [logistics, private-fleet, cost-per-mile, benchmarking]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{variance_alert_percent}}" '
+    NR==1 {next}
+    {
+      lane = $1; fleet_cpm = $2; carrier_cpm = $3; miles = $4;
+      diff_pct = ((fleet_cpm - carrier_cpm) / carrier_cpm) * 100;
+      if (diff_pct >= threshold) {
+        printf "OUTSOURCE CANDIDATE: lane %s — private fleet $%.2f/mi vs carrier $%.2f/mi (%.1f%% more expensive, %s mi/mo)\n", lane, fleet_cpm, carrier_cpm, diff_pct, miles;
+      } else if (diff_pct <= -threshold) {
+        printf "IN-HOUSE ADVANTAGE: lane %s — private fleet $%.2f/mi vs carrier $%.2f/mi (%.1f%% cheaper, %s mi/mo)\n", lane, fleet_cpm, carrier_cpm, -diff_pct, miles;
+      }
+    }
+  ' "{{lane_cost_comparison_csv_path}}"
+variables:
+  lane_cost_comparison_csv_path:
+    default: "./lane-cost-comparison.csv"
+    description: "CSV with header row, columns: lane,private_fleet_cost_per_mile,contracted_carrier_cost_per_mile,monthly_miles."
+  variance_alert_percent:
+    default: 10
+    description: Minimum percentage difference between fleet and carrier cost per mile before flagging the lane as a switch candidate.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Fleet cost per mile should be fully loaded (fuel, driver pay, maintenance,
+  insurance, depreciation) or the comparison against contracted carrier
+  rates will be misleading. Flags are directional signals for a deeper
+  network study, not an automatic reassignment decision.

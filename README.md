@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2133 jobs across 64 categories:
+2146 jobs across 64 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -227,7 +227,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `law-firm` | 32 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
 | `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |
+| `logistics` | 45 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |

@@ -1,0 +1,45 @@
+id: denied-party-screening-check
+version: 1
+name: Denied Party Screening Check
+description: >
+  Screens the consignees and other parties on upcoming international
+  shipments against a denied/restricted-party list and flags any matches
+  before the shipment moves. Use this if an international order has ever
+  gone out without anyone confirming the receiving party wasn't on a trade
+  compliance watchlist.
+category: logistics
+tags: [logistics, trade-compliance, international, screening]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare the parties listed in {{pending_shipments_csv_path}} (columns:
+  shipment_id, party_name, party_country, role) against the denied/restricted
+  party reference list at {{denied_party_list_path}}.
+
+  For each shipment party, check for exact and close-fuzzy name matches
+  (allowing for common misspellings, transliteration variants, and
+  abbreviations) against the reference list. For every match:
+    - Report shipment_id, party_name, matched list entry, and match
+      confidence (exact/high/medium).
+    - Note the party's role (consignee, notify party, freight forwarder, etc.).
+
+  Do not clear a shipment yourself — flag matches at {{min_match_confidence}}
+  confidence or higher for a human compliance reviewer to confirm or dismiss
+  before the shipment is released.
+variables:
+  pending_shipments_csv_path:
+    default: "./pending-international-shipments.csv"
+    description: "Path to a CSV of upcoming international shipments with columns: shipment_id,party_name,party_country,role."
+  denied_party_list_path:
+    default: "./denied-party-reference-list.csv"
+    description: "Path to your consolidated denied/restricted-party screening list (e.g. exported from an OFAC/BIS/EU consolidated list provider)."
+  min_match_confidence:
+    default: "medium"
+    description: Minimum match confidence level (exact, high, medium) at which a hit gets surfaced for review.
+compatible_agents: [claude, codex, generic]
+notes: >
+  This is a pre-shipment screening backstop, not a substitute for a
+  licensed trade compliance screening tool — fuzzy name matching needs a
+  human to confirm true positives and can miss aliases not in your
+  reference list. Keep the reference list current.

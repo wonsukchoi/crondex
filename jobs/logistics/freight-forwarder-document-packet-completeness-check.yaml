@@ -1,0 +1,50 @@
+id: freight-forwarder-document-packet-completeness-check
+version: 1
+name: Freight Forwarder Document Packet Completeness Check
+description: >
+  Checks each international shipment's document packet against the required
+  set (commercial invoice, packing list, certificate of origin, and any
+  shipment-specific paperwork) and flags what's missing ahead of the
+  departure or booking cutoff. Use this if a shipment has ever missed its
+  vessel or flight cutoff because one required document wasn't ready when
+  the freight forwarder needed it.
+category: logistics
+tags: [logistics, international, freight-forwarder, documentation, export]
+schedule: "0 9,15 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff_hours="{{cutoff_warning_hours}}" '
+    BEGIN { split("commercial_invoice,packing_list,certificate_of_origin", required, ",") }
+    NR==1 { for (i=1; i<=NF; i++) col[$i]=i; next }
+    {
+      cmd = "date -d \"" $(col["departure_cutoff"]) "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $(col["departure_cutoff"]) "\" +%s 2>/dev/null";
+      cmd | getline cutoff_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_left = (cutoff_epoch - now_epoch) / 3600;
+      if (hours_left > cutoff_hours) next;
+      missing = "";
+      for (i in required) {
+        field = required[i];
+        if (col[field] == "" || $(col[field]) == "" || tolower($(col[field])) == "no") {
+          missing = missing " " field;
+        }
+      }
+      if (missing != "") {
+        printf "MISSING DOCS: shipment %s — cutoff in %.1fh, missing:%s\n", $(col["shipment_id"]), hours_left, missing;
+      }
+    }
+  ' "{{shipment_document_status_csv_path}}"
+variables:
+  shipment_document_status_csv_path:
+    default: "./shipment-document-status.csv"
+    description: "CSV with header row including columns: shipment_id,departure_cutoff (YYYY-MM-DD HH:MM),commercial_invoice,packing_list,certificate_of_origin — each doc column holds yes/no or a filename/blank."
+  cutoff_warning_hours:
+    default: 24
+    description: Hours before departure/booking cutoff at which to start flagging incomplete document packets.
+compatible_agents: [generic, claude, codex]
+notes: >
+  The required-document list is hardcoded to commercial invoice, packing
+  list, and certificate of origin — extend the `required` array in the
+  script and add matching CSV columns for shipment-specific paperwork like
+  letters of credit, fumigation certs, or dangerous goods declarations.

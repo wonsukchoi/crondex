@@ -1,0 +1,42 @@
+id: backhaul-matching-opportunity-watch
+version: 1
+name: Backhaul Matching Opportunity Watch
+description: >
+  Scans upcoming empty or deadhead legs against a pool of available loads
+  near the same lane and flags legs that could be matched with a backhaul.
+  Use this if your trucks have ever run empty back to origin while a paying
+  load on the same route sat unbooked.
+category: logistics
+tags: [logistics, backhaul, empty-miles, load-matching]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window="{{lane_match_window_hours}}" '
+    FNR==1 { file++; next }
+    file==1 { empty_leg[$1] = $2 "," $3 "," $4; next }
+    file==2 {
+      for (leg in empty_leg) {
+        split(empty_leg[leg], parts, ",");
+        if (parts[1] == $2 && parts[2] == $3) {
+          printf "BACKHAUL MATCH: empty leg %s (%s -> %s, empty %s) matches available load %s ($%s)\n", leg, parts[1], parts[2], parts[3], $1, $4;
+        }
+      }
+    }
+  ' "{{empty_legs_csv_path}}" "{{available_loads_csv_path}}"
+variables:
+  empty_legs_csv_path:
+    default: "./empty-legs.csv"
+    description: "CSV with header row, columns: truck_id,origin,destination,empty_start_datetime — upcoming legs with no load assigned."
+  available_loads_csv_path:
+    default: "./available-loads.csv"
+    description: "CSV with header row, columns: load_id,origin,destination,rate — open loads from your load board or TMS."
+  lane_match_window_hours:
+    default: 24
+    description: How many hours of slack around the empty leg's timing to consider a load a viable backhaul match.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matches on exact origin/destination pairs only — for radius or nearby-city
+  matching, pre-filter the CSVs or swap in a geocoding step before this
+  runs. Treat matches as candidates to verify for timing and equipment fit,
+  not automatic bookings.

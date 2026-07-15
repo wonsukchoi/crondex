@@ -1,0 +1,44 @@
+id: eld-malfunction-diagnostic-event-check
+version: 1
+name: ELD Malfunction & Diagnostic Event Check
+description: >
+  Scans electronic logging device (ELD) diagnostic and malfunction event
+  logs for unresolved device issues and flags them by how long they've
+  gone unaddressed. Use this if a malfunctioning ELD has ever kept
+  recording bad or missing duty-status data for days because nobody
+  noticed the device itself was throwing errors.
+category: logistics
+tags: [logistics, eld, telematics, compliance]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{max_unresolved_hours}}" '
+    NR==1 {next}
+    {
+      resolved = $5;
+      gsub(/^[ \t]+|[ \t]+$/, "", resolved);
+      if (tolower(resolved) != "yes" && tolower(resolved) != "resolved") {
+        cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $3 "\" +%s 2>/dev/null";
+        cmd | getline event_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        age_hours = (now_epoch - event_epoch) / 3600;
+        if (age_hours >= hours) {
+          printf "UNRESOLVED ELD EVENT: driver %s, device %s — %s at %s (%.1fh unresolved)\n", $1, $2, $4, $3, age_hours;
+        }
+      }
+    }
+  ' "{{eld_diagnostic_events_csv_path}}"
+variables:
+  eld_diagnostic_events_csv_path:
+    default: "./eld-diagnostic-events.csv"
+    description: "Path to a CSV export from your ELD/telematics provider with columns: driver_name,device_id,event_timestamp,event_type (e.g. malfunction/diagnostic code),resolved_status."
+  max_unresolved_hours:
+    default: 8
+    description: Hours a malfunction or diagnostic event may remain unresolved before it's flagged, FMCSA requires drivers to note unresolved malfunctions and correct within 8 days but operational triage should be much faster.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes your ELD/telematics provider exposes a diagnostic/malfunction
+  event export with a resolution status column — this flags device health
+  issues, not hours-of-service violations, which are covered by a
+  separate check against logged driving hours.

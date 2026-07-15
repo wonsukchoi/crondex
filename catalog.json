@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2133,
+  "count": 2146,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2956,6 +2956,31 @@
         "codex"
       ],
       "path": "jobs/staffing/background-check-turnaround-sla-check.yaml"
+    },
+    {
+      "id": "backhaul-matching-opportunity-watch",
+      "version": 1,
+      "name": "Backhaul Matching Opportunity Watch",
+      "description": "Scans upcoming empty or deadhead legs against a pool of available loads near the same lane and flags legs that could be matched with a backhaul. Use this if your trucks have ever run empty back to origin while a paying load on the same route sat unbooked.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "backhaul",
+        "empty-miles",
+        "load-matching"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/backhaul-matching-opportunity-watch.yaml"
     },
     {
       "id": "backup-drive-rotation-schedule-check",
@@ -13797,6 +13822,31 @@
       "path": "jobs/senior-living/dementia-care-staff-certification-renewal-check.yaml"
     },
     {
+      "id": "denied-party-screening-check",
+      "version": 1,
+      "name": "Denied Party Screening Check",
+      "description": "Screens the consignees and other parties on upcoming international shipments against a denied/restricted-party list and flags any matches before the shipment moves. Use this if an international order has ever gone out without anyone confirming the receiving party wasn't on a trade compliance watchlist.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "trade-compliance",
+        "international",
+        "screening"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/logistics/denied-party-screening-check.yaml"
+    },
+    {
       "id": "dental-cleaning-recall-reminder",
       "version": 1,
       "name": "Dental Cleaning Recall Reminder",
@@ -15347,6 +15397,31 @@
       "path": "jobs/moving-relocation/dot-vehicle-annual-inspection-check.yaml"
     },
     {
+      "id": "double-brokering-fraud-check",
+      "version": 1,
+      "name": "Double Brokering Fraud Check",
+      "description": "Compares the carrier that was tendered and contracted on a load against the carrier that actually shows up to pick it up, and flags any mismatch. Use this if a load has ever been re-brokered to an unvetted carrier without authorization, a common freight fraud pattern that leaves the shipper exposed if the load is lost, damaged, or stolen.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "fraud",
+        "carrier",
+        "double-brokering"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/double-brokering-fraud-check.yaml"
+    },
+    {
       "id": "downloads-folder-auto-organize",
       "version": 1,
       "name": "Downloads Folder Auto-Organize",
@@ -16185,6 +16260,31 @@
       "path": "jobs/healthcare/ed-hospital-discharge-followup-check.yaml"
     },
     {
+      "id": "edi-transaction-error-watch",
+      "version": 1,
+      "name": "EDI Transaction Error Watch",
+      "description": "Scans EDI transaction logs (e.g. 214 shipment status, 210 freight invoice, 990 tender response) for failed or rejected transactions and flags them for follow-up. Use this if a rejected EDI transaction has ever sat unnoticed until a trading partner called asking why their status update or invoice never arrived.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "edi",
+        "integration",
+        "data-quality"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/edi-transaction-error-watch.yaml"
+    },
+    {
       "id": "ediscovery-review-deadline-tracker",
       "version": 1,
       "name": "E-Discovery Review Batch Deadline Tracker",
@@ -16312,6 +16412,31 @@
         "codex"
       ],
       "path": "jobs/hr/eeo1-filing-deadline-reminder.yaml"
+    },
+    {
+      "id": "eld-malfunction-diagnostic-event-check",
+      "version": 1,
+      "name": "ELD Malfunction & Diagnostic Event Check",
+      "description": "Scans electronic logging device (ELD) diagnostic and malfunction event logs for unresolved device issues and flags them by how long they've gone unaddressed. Use this if a malfunctioning ELD has ever kept recording bad or missing duty-status data for days because nobody noticed the device itself was throwing errors.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "eld",
+        "telematics",
+        "compliance"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/eld-malfunction-diagnostic-event-check.yaml"
     },
     {
       "id": "elearning-video-broken-link-check",
@@ -20845,6 +20970,32 @@
       "path": "jobs/logistics/freight-claim-filing-deadline-tracker.yaml"
     },
     {
+      "id": "freight-forwarder-document-packet-completeness-check",
+      "version": 1,
+      "name": "Freight Forwarder Document Packet Completeness Check",
+      "description": "Checks each international shipment's document packet against the required set (commercial invoice, packing list, certificate of origin, and any shipment-specific paperwork) and flags what's missing ahead of the departure or booking cutoff. Use this if a shipment has ever missed its vessel or flight cutoff because one required document wasn't ready when the freight forwarder needed it.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "international",
+        "freight-forwarder",
+        "documentation",
+        "export"
+      ],
+      "schedule": "0 9,15 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/freight-forwarder-document-packet-completeness-check.yaml"
+    },
+    {
       "id": "freight-invoice-rate-audit",
       "version": 1,
       "name": "Freight Invoice Rate Audit",
@@ -23773,6 +23924,31 @@
       "path": "jobs/investing/hsa-investment-sweep-threshold-check.yaml"
     },
     {
+      "id": "hts-tariff-classification-accuracy-audit",
+      "version": 1,
+      "name": "HTS Tariff Classification Accuracy Audit",
+      "description": "Reviews a sample of recent international shipments' assigned HTS/tariff codes against their product descriptions and flags mismatches or high-risk classifications. Use this if a mis-classified product has ever triggered a customs hold, duty overpayment, or penalty because the wrong HTS code slipped through.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "customs",
+        "tariff-classification",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/logistics/hts-tariff-classification-accuracy-audit.yaml"
+    },
+    {
       "id": "humidity-sensor-battery-check",
       "version": 1,
       "name": "Humidity Sensor Battery Check",
@@ -24551,6 +24727,33 @@
       "path": "jobs/security/incident-response-escalation-contact-check.yaml"
     },
     {
+      "id": "incoterms-documentation-compliance-check",
+      "version": 1,
+      "name": "Incoterms Documentation Compliance Check",
+      "description": "Reviews each international shipment's stated Incoterm against its documentation package and flags cases where the paperwork assigns insurance, freight, or customs responsibility to the wrong party for that term. Use this if a shipment has ever arrived with a customs or insurance dispute because the documents didn't actually match what the quoted Incoterm obligated each side to do.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "international",
+        "incoterms",
+        "compliance",
+        "documentation"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "generic"
+      ],
+      "path": "jobs/logistics/incoterms-documentation-compliance-check.yaml"
+    },
+    {
       "id": "infection-control-outbreak-line-listing-tracker",
       "version": 1,
       "name": "Infection Control Outbreak Line-Listing Tracker",
@@ -24990,6 +25193,32 @@
         "codex"
       ],
       "path": "jobs/banking/interest-rate-change-notification-lag-check.yaml"
+    },
+    {
+      "id": "intermodal-ramp-dwell-time-watch",
+      "version": 1,
+      "name": "Intermodal Ramp Dwell Time Watch",
+      "description": "Checks how long each intermodal container has been sitting at a rail ramp since arrival and flags any past a configurable dwell threshold. Use this if a container has ever racked up per-diem or ramp storage charges because nobody noticed it sitting past its free time.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "intermodal",
+        "rail",
+        "dwell-time",
+        "per-diem"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/intermodal-ramp-dwell-time-watch.yaml"
     },
     {
       "id": "internal-mobility-application-tracker",
@@ -33481,6 +33710,31 @@
       "path": "jobs/dental/ortho-retainer-check-in-reminder.yaml"
     },
     {
+      "id": "osd-claim-intake-tracking-check",
+      "version": 1,
+      "name": "OS&D Claim Intake Tracking Check",
+      "description": "Tracks overage, shortage, and damage (OS&D) reports logged at receiving and flags any that haven't yet been triaged or routed to a formal claim after a configurable window. Use this if an OS&D report has ever sat in a receiving log unactioned because nobody moved it from \"noted at the dock\" to an actual claim.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "receiving",
+        "osd",
+        "claims"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/osd-claim-intake-tracking-check.yaml"
+    },
+    {
       "id": "osha-jobsite-inspection-readiness-check",
       "version": 1,
       "name": "OSHA Jobsite Inspection Readiness Check",
@@ -38095,6 +38349,31 @@
         "codex"
       ],
       "path": "jobs/restaurant/private-event-booking-followup-tracker.yaml"
+    },
+    {
+      "id": "private-fleet-cost-per-mile-benchmark-check",
+      "version": 1,
+      "name": "Private Fleet Cost-Per-Mile Benchmark Check",
+      "description": "Compares your private fleet's fully-loaded cost per mile on each lane against the contracted common-carrier rate for that same lane and flags lanes where the cheaper option differs from what's actually running. Use this if you've ever suspected your private fleet is running lanes that would be cheaper outsourced, or vice versa, but nobody's compared the numbers lane by lane.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "private-fleet",
+        "cost-per-mile",
+        "benchmarking"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/private-fleet-cost-per-mile-benchmark-check.yaml"
     },
     {
       "id": "privileged-account-inactivity-check",
@@ -54237,6 +54516,31 @@
       "path": "jobs/productivity/weekly-report.yaml"
     },
     {
+      "id": "weigh-station-bypass-compliance-check",
+      "version": 1,
+      "name": "Weigh Station Bypass Compliance Check",
+      "description": "Checks each vehicle's weigh-station bypass program status (e.g. PrePass, Drivewyze) and flags any that are lapsed, suspended, or missing enrollment entirely. Use this if a truck has ever gotten pulled into a weigh station it should have bypassed because its transponder or account had quietly lapsed.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "compliance",
+        "weigh-station",
+        "fleet"
+      ],
+      "schedule": "0 5 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/weigh-station-bypass-compliance-check.yaml"
+    },
+    {
       "id": "welcome-email-drip-check",
       "version": 1,
       "name": "Welcome Email Drip Check",
@@ -54913,6 +55217,31 @@
         "codex"
       ],
       "path": "jobs/warehousing/yard-trailer-detention-watch.yaml"
+    },
+    {
+      "id": "yard-trailer-dwell-time-check",
+      "version": 1,
+      "name": "Yard Trailer Dwell Time Check",
+      "description": "Checks trailers checked into the yard against a configurable dwell time threshold and flags any that have been sitting too long. Use this if trailers have ever piled up in the yard unnoticed, tying up equipment and slots that inbound loads needed.",
+      "category": "logistics",
+      "tags": [
+        "logistics",
+        "yard",
+        "trailer",
+        "dwell-time"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/logistics/yard-trailer-dwell-time-check.yaml"
     },
     {
       "id": "yield-farming-apy-comparison",

@@ -1,0 +1,39 @@
+id: intermodal-ramp-dwell-time-watch
+version: 1
+name: Intermodal Ramp Dwell Time Watch
+description: >
+  Checks how long each intermodal container has been sitting at a rail ramp
+  since arrival and flags any past a configurable dwell threshold. Use this
+  if a container has ever racked up per-diem or ramp storage charges
+  because nobody noticed it sitting past its free time.
+category: logistics
+tags: [logistics, intermodal, rail, dwell-time, per-diem]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_dwell_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline arrival_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      dwell_hours = (now_epoch - arrival_epoch) / 3600;
+      if (dwell_hours >= threshold) {
+        printf "DWELL ALERT: container %s at ramp %s — %.1f hours since arrival (threshold %s)\n", $1, $2, dwell_hours, threshold;
+      }
+    }
+  ' "{{ramp_containers_csv_path}}"
+variables:
+  ramp_containers_csv_path:
+    default: "./intermodal-ramp-containers.csv"
+    description: "CSV with header row, columns: container_number,ramp_code,arrival_datetime (YYYY-MM-DD HH:MM) — export from your rail carrier or TMS."
+  max_dwell_hours:
+    default: 48
+    description: Hours a container may sit at the ramp before flagging — set below your rail carrier's free-time/per-diem clock.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Free-time rules vary by railroad and ramp, so set max_dwell_hours with
+  margin ahead of the actual per-diem clock, not at it. Assumes arrival
+  timestamps are exported or manually tracked from the rail carrier's
+  tracking portal.

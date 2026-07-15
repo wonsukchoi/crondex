@@ -1,0 +1,38 @@
+id: yard-trailer-dwell-time-check
+version: 1
+name: Yard Trailer Dwell Time Check
+description: >
+  Checks trailers checked into the yard against a configurable dwell time
+  threshold and flags any that have been sitting too long. Use this if
+  trailers have ever piled up in the yard unnoticed, tying up equipment
+  and slots that inbound loads needed.
+category: logistics
+tags: [logistics, yard, trailer, dwell-time]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v limit="{{max_dwell_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline checkin_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      dwell_hours = (now_epoch - checkin_epoch) / 3600;
+      if (dwell_hours >= limit) {
+        printf "DWELL EXCEEDED: trailer %s at %s — checked in %s (%.1fh in yard)\n", $1, $3, $2, dwell_hours;
+      }
+    }
+  ' "{{yard_checkins_csv_path}}"
+variables:
+  yard_checkins_csv_path:
+    default: "./yard-trailer-checkins.csv"
+    description: "Path to a CSV with columns: trailer_number,checkin_timestamp (ISO 8601),yard_location."
+  max_dwell_hours:
+    default: 48
+    description: Hours a trailer may sit in the yard before it's flagged, tune to your yard's turn targets.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes trailer check-in timestamps are exported from your yard
+  management system or gate log — this flags stale trailers, it does not
+  reassign or move equipment itself.

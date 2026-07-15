@@ -1,0 +1,37 @@
+id: double-brokering-fraud-check
+version: 1
+name: Double Brokering Fraud Check
+description: >
+  Compares the carrier that was tendered and contracted on a load against
+  the carrier that actually shows up to pick it up, and flags any
+  mismatch. Use this if a load has ever been re-brokered to an unvetted
+  carrier without authorization, a common freight fraud pattern that
+  leaves the shipper exposed if the load is lost, damaged, or stolen.
+category: logistics
+tags: [logistics, fraud, carrier, double-brokering]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      tendered = $2; pickup_carrier = $3;
+      gsub(/^[ \t]+|[ \t]+$/, "", tendered);
+      gsub(/^[ \t]+|[ \t]+$/, "", pickup_carrier);
+      if (tolower(tendered) != tolower(pickup_carrier)) {
+        printf "CARRIER MISMATCH: load %s — tendered to %s, picked up by %s\n", $1, tendered, pickup_carrier;
+      }
+    }
+  ' "{{load_tender_vs_pickup_csv_path}}"
+variables:
+  load_tender_vs_pickup_csv_path:
+    default: "./load-tender-vs-pickup.csv"
+    description: "Path to a CSV with columns: load_id,tendered_carrier_name,pickup_carrier_name (pickup carrier as verified at check-in or via tracking)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes pickup carrier identity is captured at check-in (driver ID,
+  MC number lookup, or tracking integration) separately from the
+  originally tendered carrier — this flags mismatches for manual
+  verification, it does not itself confirm fraudulent intent since
+  legitimate authorized interlining can also trigger it.

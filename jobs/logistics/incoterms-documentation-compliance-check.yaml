@@ -1,0 +1,51 @@
+id: incoterms-documentation-compliance-check
+version: 1
+name: Incoterms Documentation Compliance Check
+description: >
+  Reviews each international shipment's stated Incoterm against its
+  documentation package and flags cases where the paperwork assigns
+  insurance, freight, or customs responsibility to the wrong party for that
+  term. Use this if a shipment has ever arrived with a customs or insurance
+  dispute because the documents didn't actually match what the quoted
+  Incoterm obligated each side to do.
+category: logistics
+tags: [logistics, international, incoterms, compliance, documentation]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  You are reviewing international shipment documentation for Incoterms
+  compliance. For each shipment listed in {{shipment_manifest_path}}:
+
+  1. Identify the stated Incoterm (e.g. EXW, FOB, CIF, DAP, DDP) and named
+     place.
+  2. Check whether the accompanying documents (commercial invoice, bill of
+     lading, insurance certificate, customs declaration) assign
+     responsibility for freight cost, cargo insurance, and import
+     customs/duties to the party the Incoterm actually obligates — for
+     example, flag a CIF shipment with no insurance certificate, or a DDP
+     shipment where the buyer is listed as the importer of record.
+  3. For each mismatch found, state: shipment ID, stated Incoterm, what the
+     term requires, what the documents actually show, and which party is
+     exposed to unexpected cost or liability as a result.
+  4. Summarize shipments that are fully compliant separately from those
+     needing correction before {{departure_cutoff}}.
+
+  Reference document set: {{documentation_source}}.
+variables:
+  shipment_manifest_path:
+    default: "./international-shipments.csv"
+    description: "Path or reference to the manifest of international shipments with their stated Incoterm and linked document set."
+  documentation_source:
+    default: "shared drive folder or freight forwarder portal export"
+    description: Where the underlying commercial invoice, insurance cert, BOL, and customs docs can be found for each shipment.
+  departure_cutoff:
+    default: "72 hours before scheduled departure"
+    description: How far ahead of departure mismatches should be flagged so there's time to correct documentation.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Requires judgment to map document contents to Incoterms obligations, which
+  is why this runs as an agent prompt rather than a fixed script — Incoterm
+  rules (2020 edition) assign risk and cost transfer points that vary by
+  term and are easy to get subtly wrong. Treat flagged mismatches as
+  requiring human/customs-broker confirmation before shipment release.

@@ -1,0 +1,45 @@
+id: weigh-station-bypass-compliance-check
+version: 1
+name: Weigh Station Bypass Compliance Check
+description: >
+  Checks each vehicle's weigh-station bypass program status (e.g. PrePass,
+  Drivewyze) and flags any that are lapsed, suspended, or missing enrollment
+  entirely. Use this if a truck has ever gotten pulled into a weigh station
+  it should have bypassed because its transponder or account had quietly
+  lapsed.
+category: logistics
+tags: [logistics, compliance, weigh-station, fleet]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      vehicle = $1; program = $2; status = $3; expiry = $4;
+      if (tolower(status) != "active") {
+        printf "NON-COMPLIANT: vehicle %s — %s status is \"%s\"\n", vehicle, program, status;
+        next;
+      }
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (expiry_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days) {
+        printf "EXPIRING SOON: vehicle %s — %s expires %s (%d days)\n", vehicle, program, expiry, days_left;
+      }
+    }
+  ' "{{bypass_enrollment_csv_path}}"
+variables:
+  bypass_enrollment_csv_path:
+    default: "./weigh-station-bypass-enrollment.csv"
+    description: "CSV with header row, columns: vehicle_id,program_name,status,expiry_date (YYYY-MM-DD) — export from PrePass/Drivewyze or your fleet management system."
+  warn_days_before_expiry:
+    default: 14
+    description: Days before enrollment expiry to start warning, so renewal can happen before the vehicle loses bypass eligibility.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Bypass eligibility can also depend on safety score (e.g. SMS/CSA
+  percentile) thresholds set by the program, which this check does not
+  evaluate — treat a status of "active" here as account-level only, not a
+  guarantee of bypass approval at every station.

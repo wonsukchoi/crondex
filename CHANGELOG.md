@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-07-15
+
+### Added
+
+- Deepened `support`: +12 jobs (33 -> 45) — CSAT detractor follow-up,
+  onboarding ticket SLA, macro effectiveness, support tool outage
+  impact, proactive outage notification lag, shift coverage gaps,
+  ticket merge/duplicate rate, cost-per-ticket trend, survey fatigue
+  opt-out rate, internal-note leak check, renewal-risk escalation, KB
+  article negative feedback spike. Catalog now 2056 jobs across 62
+  categories.
+
 ## [0.63.0] - 2026-07-15
 
 ### Added

@@ -1,0 +1,33 @@
+id: support-tool-outage-impact-check
+version: 1
+name: Support Tool Outage Impact Check
+description: >
+  Pings the helpdesk/support platform's status endpoint and, if it
+  reports degraded or down, estimates ticket queue impact from the
+  logged average ticket arrival rate. Use this if the support tooling
+  itself has ever gone down during business hours and the team only
+  found out from a pile of angry Slack messages — distinct from
+  after-hours-ticket-response-gap-check.yaml, which checks for slow
+  responses during off-hours, not whether the tooling is actually
+  reachable.
+category: support
+tags: [support, tooling, outage, uptime, monitoring]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  status=$(curl -sf -o /dev/null -w "%{http_code}" "{{status_check_url}}" 2>/dev/null);
+  if [ "$status" != "200" ]; then
+    echo "SUPPORT TOOL UNREACHABLE: $status from {{status_check_url}} — estimated ~{{avg_tickets_per_hour}} ticket(s)/hour piling up until it recovers";
+  else
+    echo "OK: support tool reachable ($status)";
+  fi
+variables:
+  status_check_url:
+    default: "https://status.example.com/api/health"
+    description: Health-check or status endpoint of the helpdesk/support platform.
+  avg_tickets_per_hour:
+    default: 20
+    description: Typical average tickets received per hour, used only to estimate queue impact in the alert message.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token uptime check — a single failed ping can be a transient blip; consider requiring 2+ consecutive failures before paging someone if run every 15 minutes.

@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2044 jobs across 62 categories:
+2056 jobs across 62 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -247,7 +247,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 32 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 32 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
-| `support` | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `support` | 45 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 32 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 32 | Trip logistics — flights, passports, visas, insurance, miles. |

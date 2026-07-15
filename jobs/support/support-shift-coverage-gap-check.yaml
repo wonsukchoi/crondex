@@ -1,0 +1,39 @@
+id: support-shift-coverage-gap-check
+version: 1
+name: Support Shift Coverage Gap Check
+description: >
+  Checks the support team's regular weekly shift schedule for any
+  hour with zero agents scheduled and flags the gap. Use this if a
+  routine scheduling gap (not a holiday) has ever left an hour with no
+  coverage at all because two people swapped shifts and nobody
+  backfilled — distinct from holiday-coverage-gap-check.yaml, which
+  looks ahead at holiday-specific staffing thinness, not routine
+  weekly schedule gaps.
+category: support
+tags: [support, scheduling, coverage, staffing]
+schedule: "0 8 * * 0"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    { covered[$1","$2] += $3+0 }
+    END {
+      for (day = 0; day <= 6; day++) {
+        for (hour = 0; hour <= 23; hour++) {
+          key = day","hour;
+          if (!(key in covered) || covered[key] == 0) {
+            printf "GAP: day %d, hour %02d has zero agents scheduled\n", day, hour;
+            n++;
+          }
+        }
+      }
+      printf "%d shift coverage gap(s) found.\n", n+0;
+    }
+  ' "{{shift_schedule_csv_path}}"
+variables:
+  shift_schedule_csv_path:
+    default: "./support_shift_schedule.csv"
+    description: "Path to a CSV with columns: day_of_week (0=Sunday..6=Saturday),hour (0-23),agents_scheduled. One row per scheduled shift block."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token schedule check — only flags a routine weekly template gap, not one-off call-outs; pair with holiday-coverage-gap-check.yaml for holiday-specific thinness.

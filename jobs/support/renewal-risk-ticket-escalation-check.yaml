@@ -1,0 +1,39 @@
+id: renewal-risk-ticket-escalation-check
+version: 1
+name: Renewal-Risk Ticket Escalation Check
+description: >
+  Cross-references open tickets against a list of accounts flagged
+  as at-risk-of-churn or near renewal, and flags tickets from those
+  accounts that haven't been escalated to customer success/account
+  management. Use this if a churn-risk account has ever filed a
+  support ticket that sat in the general queue instead of getting the
+  white-glove attention the account's risk level called for — distinct
+  from vip-ticket-priority-check.yaml, which flags VIP-tier accounts
+  generally, not accounts specifically flagged as renewal-risk right
+  now.
+category: support
+tags: [support, renewal, churn-risk, escalation, customer-success]
+schedule: "0 9,14 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) at_risk[$1]=$2; next }
+    FNR==1 { next }
+    {
+      if (($2 in at_risk) && $3 == "no") {
+        printf "NOT ESCALATED: ticket %s from at-risk account %s (risk reason: %s)\n", $1, $2, at_risk[$2];
+        n++;
+      }
+    }
+    END { printf "%d ticket(s) from at-risk accounts not escalated.\n", n+0; }
+  ' "{{at_risk_accounts_csv_path}}" "{{open_tickets_csv_path}}"
+variables:
+  at_risk_accounts_csv_path:
+    default: "./at_risk_accounts.csv"
+    description: "Path to a CSV with columns: account_name,risk_reason. One row per account flagged as churn-risk or near renewal."
+  open_tickets_csv_path:
+    default: "./open_tickets_with_account.csv"
+    description: "Path to a CSV with columns: ticket_id,account_name,escalated_to_cs (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Read-only escalation list — expects the at-risk account list to already be maintained by customer success/RevOps.

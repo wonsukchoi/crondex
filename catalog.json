@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2044,
+  "count": 2056,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -11535,6 +11535,32 @@
         "codex"
       ],
       "path": "jobs/crypto/crypto-tax-lot-export-reminder.yaml"
+    },
+    {
+      "id": "csat-detractor-followup-check",
+      "version": 1,
+      "name": "CSAT Detractor Follow-Up Check",
+      "description": "Flags individual low-scoring (detractor) CSAT survey responses that haven't had a follow-up outreach logged within a configurable window. Use this if an unhappy customer has ever left a bad survey score and then never heard back from anyone — distinct from csat-score-watch.yaml, which tracks the aggregate score trend, not whether any specific detractor response actually got a follow-up.",
+      "category": "support",
+      "tags": [
+        "support",
+        "csat",
+        "detractor",
+        "follow-up",
+        "customer-experience"
+      ],
+      "schedule": "0 10 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/csat-detractor-followup-check.yaml"
     },
     {
       "id": "csat-score-watch",
@@ -24028,6 +24054,32 @@
       "path": "jobs/hiring/internal-mobility-application-tracker.yaml"
     },
     {
+      "id": "internal-note-public-leak-check",
+      "version": 1,
+      "name": "Internal Note Public Leak Check",
+      "description": "Scans logged ticket replies for internal-note markers or keywords (e.g. \"internal only\", account-value tags, another customer's name) that ended up in a reply marked public, and flags them. Use this if an internal note has ever accidentally gone out as a public reply, leaking something never meant for the customer to see — distinct from canned-response-content-quality-check.yaml, which reviews macro content quality, not accidental internal/public visibility mistakes on individual replies.",
+      "category": "support",
+      "tags": [
+        "support",
+        "data-leak",
+        "internal-note",
+        "quality",
+        "security"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/internal-note-public-leak-check.yaml"
+    },
+    {
       "id": "internal-search-zero-results-report",
       "version": 1,
       "name": "Internal Search Zero-Results Report",
@@ -24959,6 +25011,32 @@
         "codex"
       ],
       "path": "jobs/devops/k8s-pod-restart-watch.yaml"
+    },
+    {
+      "id": "kb-article-negative-feedback-spike-check",
+      "version": 1,
+      "name": "KB Article Negative Feedback Spike Check",
+      "description": "Tracks \"was this helpful\" feedback per help center article and flags one whose negative-feedback rate spikes over a trailing window. Use this if an article has ever quietly started getting mostly \"no\" votes after a product change made its instructions wrong — distinct from knowledge-base-article-staleness-check.yaml, which flags articles by review-date age, not by an active negative-feedback signal that something is wrong right now.",
+      "category": "support",
+      "tags": [
+        "support",
+        "knowledge-base",
+        "feedback",
+        "quality",
+        "self-serve"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/kb-article-negative-feedback-spike-check.yaml"
     },
     {
       "id": "kb-localization-lag-check",
@@ -27424,6 +27502,32 @@
         "generic"
       ],
       "path": "jobs/legal/ma-due-diligence-checklist-completion-tracker.yaml"
+    },
+    {
+      "id": "macro-effectiveness-resolution-rate-check",
+      "version": 1,
+      "name": "Macro Effectiveness Resolution Rate Check",
+      "description": "Calculates, per canned response (macro), the rate of tickets it was used on that closed without a reopen versus needed further back-and-forth, and flags macros performing below a threshold. Use this if a frequently-used macro has ever quietly been a bad answer that just generates more follow-up tickets — distinct from macro-usage-staleness-check.yaml, which flags macros nobody's used recently, not whether the ones in active use actually work.",
+      "category": "support",
+      "tags": [
+        "support",
+        "macro",
+        "effectiveness",
+        "resolution-rate",
+        "quality"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/macro-effectiveness-resolution-rate-check.yaml"
     },
     {
       "id": "macro-usage-staleness-check",
@@ -31493,6 +31597,32 @@
         "codex"
       ],
       "path": "jobs/growth/onboarding-funnel-dropoff-check.yaml"
+    },
+    {
+      "id": "onboarding-ticket-response-time-check",
+      "version": 1,
+      "name": "Onboarding Ticket Response Time Check",
+      "description": "Checks tickets from customers still in their onboarding window against a tighter first-response SLA than standard tickets, and flags misses. Use this if a brand-new customer has ever had a rocky first week because their ticket sat in the same queue as everyone else's — distinct from first-response-time-drift-check.yaml, which watches the overall response-time trend, not a stricter SLA carve-out for still-onboarding accounts specifically.",
+      "category": "support",
+      "tags": [
+        "support",
+        "onboarding",
+        "sla",
+        "first-response",
+        "new-customer"
+      ],
+      "schedule": "0 */2 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/onboarding-ticket-response-time-check.yaml"
     },
     {
       "id": "oncall-handoff-reminder",
@@ -36545,6 +36675,32 @@
       "path": "jobs/security/privileged-account-inactivity-check.yaml"
     },
     {
+      "id": "proactive-outage-notification-lag-check",
+      "version": 1,
+      "name": "Proactive Outage Notification Lag Check",
+      "description": "Checks the time between a logged product incident's detection and the customer-facing status notification going out, and flags a lag past a configurable target. Use this if customers have ever found out about an outage from filing their own tickets before the company said anything — distinct from support-tool-outage-impact-check.yaml, which watches the support platform's own uptime, not communication lag on a product-side incident.",
+      "category": "support",
+      "tags": [
+        "support",
+        "outage",
+        "incident",
+        "communication",
+        "status-page"
+      ],
+      "schedule": "0 */1 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/proactive-outage-notification-lag-check.yaml"
+    },
+    {
       "id": "probation-period-review-reminder",
       "version": 1,
       "name": "Probation Period Review Reminder",
@@ -39199,6 +39355,32 @@
         "codex"
       ],
       "path": "jobs/utilities/renewable-portfolio-standard-compliance-check.yaml"
+    },
+    {
+      "id": "renewal-risk-ticket-escalation-check",
+      "version": 1,
+      "name": "Renewal-Risk Ticket Escalation Check",
+      "description": "Cross-references open tickets against a list of accounts flagged as at-risk-of-churn or near renewal, and flags tickets from those accounts that haven't been escalated to customer success/account management. Use this if a churn-risk account has ever filed a support ticket that sat in the general queue instead of getting the white-glove attention the account's risk level called for — distinct from vip-ticket-priority-check.yaml, which flags VIP-tier accounts generally, not accounts specifically flagged as renewal-risk right now.",
+      "category": "support",
+      "tags": [
+        "support",
+        "renewal",
+        "churn-risk",
+        "escalation",
+        "customer-success"
+      ],
+      "schedule": "0 9,14 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/renewal-risk-ticket-escalation-check.yaml"
     },
     {
       "id": "renewal-usage-decline-early-warning",
@@ -46204,6 +46386,32 @@
       "path": "jobs/cleaning-services/supply-low-stock-reorder-check.yaml"
     },
     {
+      "id": "support-cost-per-ticket-trend-check",
+      "version": 1,
+      "name": "Support Cost-Per-Ticket Trend Check",
+      "description": "Divides logged support team operating cost by ticket volume for a trailing period and flags a trend where cost-per-ticket is rising past a configurable threshold. Use this if support costs have ever crept up per-ticket without anyone noticing until budget review — distinct from support-headcount-volume-ratio-check.yaml, which compares headcount to volume directly, not the fully-loaded dollar cost per ticket including tooling and overhead.",
+      "category": "support",
+      "tags": [
+        "support",
+        "cost",
+        "efficiency",
+        "budget",
+        "metrics"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/support-cost-per-ticket-trend-check.yaml"
+    },
+    {
       "id": "support-headcount-volume-ratio-check",
       "version": 1,
       "name": "Support Headcount vs. Volume Ratio Check",
@@ -46231,6 +46439,31 @@
       "path": "jobs/support/support-headcount-volume-ratio-check.yaml"
     },
     {
+      "id": "support-shift-coverage-gap-check",
+      "version": 1,
+      "name": "Support Shift Coverage Gap Check",
+      "description": "Checks the support team's regular weekly shift schedule for any hour with zero agents scheduled and flags the gap. Use this if a routine scheduling gap (not a holiday) has ever left an hour with no coverage at all because two people swapped shifts and nobody backfilled — distinct from holiday-coverage-gap-check.yaml, which looks ahead at holiday-specific staffing thinness, not routine weekly schedule gaps.",
+      "category": "support",
+      "tags": [
+        "support",
+        "scheduling",
+        "coverage",
+        "staffing"
+      ],
+      "schedule": "0 8 * * 0",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/support-shift-coverage-gap-check.yaml"
+    },
+    {
       "id": "support-ticket-spike-post-release-check",
       "version": 1,
       "name": "Support Ticket Spike Post-Release Check",
@@ -46254,6 +46487,32 @@
         "codex"
       ],
       "path": "jobs/growth/support-ticket-spike-post-release-check.yaml"
+    },
+    {
+      "id": "support-tool-outage-impact-check",
+      "version": 1,
+      "name": "Support Tool Outage Impact Check",
+      "description": "Pings the helpdesk/support platform's status endpoint and, if it reports degraded or down, estimates ticket queue impact from the logged average ticket arrival rate. Use this if the support tooling itself has ever gone down during business hours and the team only found out from a pile of angry Slack messages — distinct from after-hours-ticket-response-gap-check.yaml, which checks for slow responses during off-hours, not whether the tooling is actually reachable.",
+      "category": "support",
+      "tags": [
+        "support",
+        "tooling",
+        "outage",
+        "uptime",
+        "monitoring"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/support-tool-outage-impact-check.yaml"
     },
     {
       "id": "surgery-prep-check",
@@ -46305,6 +46564,32 @@
         "codex"
       ],
       "path": "jobs/veterinary/surgical-schedule-utilization-check.yaml"
+    },
+    {
+      "id": "survey-fatigue-optout-rate-check",
+      "version": 1,
+      "name": "Survey Fatigue Opt-Out Rate Check",
+      "description": "Calculates the rate of customers opting out of or ignoring CSAT surveys over a trailing window and flags it against a threshold, which can signal survey fatigue from over-surveying. Use this if survey response rates have ever quietly declined because the same customers keep getting asked after every single ticket — distinct from csat-survey-response-rate-check.yaml, which tracks the raw response rate number, not the opt-out/unsubscribe signal specifically as a fatigue indicator.",
+      "category": "support",
+      "tags": [
+        "support",
+        "survey",
+        "fatigue",
+        "opt-out",
+        "customer-experience"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/survey-fatigue-optout-rate-check.yaml"
     },
     {
       "id": "swppp-stormwater-compliance-check",
@@ -47566,6 +47851,31 @@
         "codex"
       ],
       "path": "jobs/support/ticket-backlog-aging-check.yaml"
+    },
+    {
+      "id": "ticket-merge-duplicate-rate-check",
+      "version": 1,
+      "name": "Ticket Merge/Duplicate Rate Check",
+      "description": "Scans open tickets for likely duplicates (same customer, same subject keywords, opened close together) that haven't been merged, and flags the count. Use this if the same issue has ever spawned three separate tickets from one confused customer, splitting the conversation and wasting agent time on each — distinct from repeat-contact-same-issue-watch.yaml, which tracks a customer re-contacting about a resolved issue, not simultaneous unmerged duplicate tickets sitting open right now.",
+      "category": "support",
+      "tags": [
+        "support",
+        "duplicate",
+        "merge",
+        "ticket-hygiene"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/support/ticket-merge-duplicate-rate-check.yaml"
     },
     {
       "id": "ticket-refund-deadline-enforcement-check",

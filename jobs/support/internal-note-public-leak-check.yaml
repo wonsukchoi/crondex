@@ -1,0 +1,43 @@
+id: internal-note-public-leak-check
+version: 1
+name: Internal Note Public Leak Check
+description: >
+  Scans logged ticket replies for internal-note markers or keywords
+  (e.g. "internal only", account-value tags, another customer's name)
+  that ended up in a reply marked public, and flags them. Use this if
+  an internal note has ever accidentally gone out as a public reply,
+  leaking something never meant for the customer to see — distinct
+  from canned-response-content-quality-check.yaml, which reviews macro
+  content quality, not accidental internal/public visibility mistakes
+  on individual replies.
+category: support
+tags: [support, data-leak, internal-note, quality, security]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v keywords="{{leak_keywords}}" '
+    NR==1 {next}
+    $2 == "public" {
+      n_kw = split(keywords, kw_arr, "|");
+      body = tolower($3);
+      for (i=1; i<=n_kw; i++) {
+        pattern = tolower(kw_arr[i]);
+        if (index(body, pattern) > 0) {
+          printf "POSSIBLE LEAK: reply %s marked public contains internal marker \"%s\"\n", $1, kw_arr[i];
+          n++;
+          break;
+        }
+      }
+    }
+    END { printf "%d public reply(ies) flagged for possible internal-note leakage.\n", n+0; }
+  ' "{{ticket_replies_csv_path}}"
+variables:
+  ticket_replies_csv_path:
+    default: "./ticket_replies.csv"
+    description: "Path to a CSV with columns: reply_id,visibility (public/internal),body_text."
+  leak_keywords:
+    default: "internal only|do not send|account value|ARR|internal note"
+    description: Pipe-separated list of internal-only marker phrases to scan for in replies marked public.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token keyword scan — a simple substring match, not a substitute for a real DLP tool; tune leak_keywords to your team's actual internal-note conventions.

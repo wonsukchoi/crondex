@@ -1,0 +1,40 @@
+id: proactive-outage-notification-lag-check
+version: 1
+name: Proactive Outage Notification Lag Check
+description: >
+  Checks the time between a logged product incident's detection and
+  the customer-facing status notification going out, and flags a lag
+  past a configurable target. Use this if customers have ever found
+  out about an outage from filing their own tickets before the company
+  said anything — distinct from support-tool-outage-impact-check.yaml,
+  which watches the support platform's own uptime, not communication
+  lag on a product-side incident.
+category: support
+tags: [support, outage, incident, communication, status-page]
+schedule: "0 */1 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target_minutes="{{target_notification_minutes}}" '
+    NR==1 {next}
+    $3 == "" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline detected_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      minutes = (now_epoch - detected_epoch) / 60;
+      if (minutes > target_minutes+0) {
+        printf "OVERDUE NOTIFICATION: incident %s detected %s, no customer notice yet (%.0f min)\n", $1, $2, minutes;
+        n++;
+      }
+    }
+    END { printf "%d incident(s) past the target notification window with no customer notice.\n", n+0; }
+  ' "{{incident_log_csv_path}}"
+variables:
+  incident_log_csv_path:
+    default: "./incident_notification_log.csv"
+    description: "Path to a CSV with columns: incident_id,detected_at (YYYY-MM-DDTHH:MM),customer_notified_at (blank if not yet sent)."
+  target_notification_minutes:
+    default: 30
+    description: Minutes after detection that a customer-facing status notification is expected before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token check — actually posting the notification still needs a human decision on messaging and scope.

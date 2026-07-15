@@ -1,0 +1,40 @@
+id: onboarding-ticket-response-time-check
+version: 1
+name: Onboarding Ticket Response Time Check
+description: >
+  Checks tickets from customers still in their onboarding window against
+  a tighter first-response SLA than standard tickets, and flags misses.
+  Use this if a brand-new customer has ever had a rocky first week
+  because their ticket sat in the same queue as everyone else's —
+  distinct from first-response-time-drift-check.yaml, which watches the
+  overall response-time trend, not a stricter SLA carve-out for
+  still-onboarding accounts specifically.
+category: support
+tags: [support, onboarding, sla, first-response, new-customer]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v sla_minutes="{{onboarding_sla_minutes}}" '
+    NR==1 {next}
+    $2 == "yes" && $5 == "" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline created_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      minutes_open = (now_epoch - created_epoch) / 60;
+      if (minutes_open > sla_minutes+0) {
+        printf "SLA MISS: ticket %s from onboarding account %s open %.0f min (SLA %s)\n", $1, $4, minutes_open, sla_minutes;
+        n++;
+      }
+    }
+    END { printf "%d onboarding ticket(s) past the first-response SLA.\n", n+0; }
+  ' "{{tickets_csv_path}}"
+variables:
+  tickets_csv_path:
+    default: "./support_tickets.csv"
+    description: "Path to a CSV with columns: ticket_id,is_onboarding_account (yes/no),created_at (YYYY-MM-DDTHH:MM),account_name,first_response_at (blank if not yet responded)."
+  onboarding_sla_minutes:
+    default: 30
+    description: First-response SLA in minutes for tickets from accounts still in their onboarding window.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token SLA check — expects the ticket export to already flag which accounts are within their onboarding window.

@@ -1,0 +1,52 @@
+id: survey-fatigue-optout-rate-check
+version: 1
+name: Survey Fatigue Opt-Out Rate Check
+description: >
+  Calculates the rate of customers opting out of or ignoring CSAT
+  surveys over a trailing window and flags it against a threshold,
+  which can signal survey fatigue from over-surveying. Use this if
+  survey response rates have ever quietly declined because the same
+  customers keep getting asked after every single ticket — distinct
+  from csat-survey-response-rate-check.yaml, which tracks the raw
+  response rate number, not the opt-out/unsubscribe signal
+  specifically as a fatigue indicator.
+category: support
+tags: [support, survey, fatigue, opt-out, customer-experience]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - sent_epoch) / 86400;
+      if (age_days >= 0 && age_days <= cutoff) {
+        total++;
+        if ($3 == "opted_out") optouts++;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (optouts / total) * 100;
+        printf "OPT-OUT RATE: %d/%d survey(s) in last %d day(s) = %.1f%%\n", optouts, total, cutoff, rate;
+        if (rate >= threshold+0) printf "ALERT: opt-out rate %.1f%% is at or above the %s%% threshold — consider reducing survey frequency\n", rate, threshold;
+      } else {
+        print "No survey records found in the lookback window.";
+      }
+    }
+  ' "{{survey_send_log_csv_path}}"
+variables:
+  survey_send_log_csv_path:
+    default: "./csat_survey_send_log.csv"
+    description: "Path to a CSV with columns: ticket_id,sent_date (YYYY-MM-DD),status (responded/ignored/opted_out)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of survey sends to include in the rate calculation.
+  alert_threshold_pct:
+    default: 10
+    description: Opt-out rate percentage that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — a rising opt-out rate is a leading indicator worth catching before the raw response rate itself visibly drops.

@@ -1,0 +1,45 @@
+id: ticket-merge-duplicate-rate-check
+version: 1
+name: Ticket Merge/Duplicate Rate Check
+description: >
+  Scans open tickets for likely duplicates (same customer, same subject
+  keywords, opened close together) that haven't been merged, and flags
+  the count. Use this if the same issue has ever spawned three separate
+  tickets from one confused customer, splitting the conversation and
+  wasting agent time on each — distinct from
+  repeat-contact-same-issue-watch.yaml, which tracks a customer
+  re-contacting about a resolved issue, not simultaneous unmerged
+  duplicate tickets sitting open right now.
+category: support
+tags: [support, duplicate, merge, ticket-hygiene]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window_hours="{{dup_window_hours}}" '
+    NR==1 {next}
+    {
+      key = $2;
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline created_epoch; close(cmd);
+      if (key in last_epoch) {
+        gap_hours = (created_epoch - last_epoch[key]) / 3600;
+        if (gap_hours < window_hours+0) {
+          printf "LIKELY DUPLICATE: ticket %s from %s opened %.1f hour(s) after ticket %s\n", $1, key, gap_hours, last_ticket[key];
+          n++;
+        }
+      }
+      last_epoch[key] = created_epoch;
+      last_ticket[key] = $1;
+    }
+    END { printf "%d likely unmerged duplicate ticket(s) found.\n", n+0; }
+  ' "{{tickets_csv_path}}"
+variables:
+  tickets_csv_path:
+    default: "./open_tickets.csv"
+    description: "Path to a CSV with columns: ticket_id,customer_email,created_at (YYYY-MM-DDTHH:MM). Sort by customer then time for accurate pairing."
+  dup_window_hours:
+    default: 4
+    description: Hours between two tickets from the same customer before they're flagged as likely duplicates worth merging.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token candidate list — a heuristic on same-customer proximity in time, not content matching; review before merging.

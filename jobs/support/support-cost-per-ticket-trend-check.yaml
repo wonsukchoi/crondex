@@ -1,0 +1,38 @@
+id: support-cost-per-ticket-trend-check
+version: 1
+name: Support Cost-Per-Ticket Trend Check
+description: >
+  Divides logged support team operating cost by ticket volume for a
+  trailing period and flags a trend where cost-per-ticket is rising
+  past a configurable threshold. Use this if support costs have ever
+  crept up per-ticket without anyone noticing until budget review —
+  distinct from support-headcount-volume-ratio-check.yaml, which
+  compares headcount to volume directly, not the fully-loaded dollar
+  cost per ticket including tooling and overhead.
+category: support
+tags: [support, cost, efficiency, budget, metrics]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold_pct="{{increase_threshold_pct}}" '
+    NR==1 {next}
+    { rows[NR-1]=$0; cost[NR-1]=$2+0; tickets[NR-1]=$3+0; n=NR-1 }
+    END {
+      if (n < 2) { print "Not enough periods to compare."; exit; }
+      cur_cpt = cost[n] / (tickets[n] > 0 ? tickets[n] : 1);
+      prev_cpt = cost[n-1] / (tickets[n-1] > 0 ? tickets[n-1] : 1);
+      pct_change = ((cur_cpt - prev_cpt) / prev_cpt) * 100;
+      printf "Cost per ticket: $%.2f (prev $%.2f), %.1f%% change\n", cur_cpt, prev_cpt, pct_change;
+      if (pct_change > threshold_pct+0) printf "ALERT: cost per ticket rose %.1f%% period over period\n", pct_change;
+    }
+  ' "{{cost_volume_csv_path}}"
+variables:
+  cost_volume_csv_path:
+    default: "./support_cost_volume.csv"
+    description: "Path to a CSV with columns: period_label,total_cost,ticket_count. One row per period, ordered oldest-to-newest; last two rows are compared."
+  increase_threshold_pct:
+    default: 15
+    description: Percentage rise in cost-per-ticket period over period that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — total_cost should include headcount, tooling, and any outsourced support spend for the period.

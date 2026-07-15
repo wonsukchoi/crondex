@@ -1,0 +1,55 @@
+id: kb-article-negative-feedback-spike-check
+version: 1
+name: KB Article Negative Feedback Spike Check
+description: >
+  Tracks "was this helpful" feedback per help center article and flags
+  one whose negative-feedback rate spikes over a trailing window. Use
+  this if an article has ever quietly started getting mostly "no"
+  votes after a product change made its instructions wrong — distinct
+  from knowledge-base-article-staleness-check.yaml, which flags
+  articles by review-date age, not by an active negative-feedback
+  signal that something is wrong right now.
+category: support
+tags: [support, knowledge-base, feedback, quality, self-serve]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{negative_rate_threshold_pct}}" -v min_votes="{{min_votes}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline vote_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - vote_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      total[$1]++;
+      if ($3 == "no") negative[$1]++;
+    }
+    END {
+      for (a in total) {
+        if (total[a] < min_votes+0) continue;
+        rate = (negative[a]+0) / total[a] * 100;
+        if (rate >= threshold+0) {
+          printf "NEGATIVE SPIKE: \"%s\" — %.1f%% negative (%d/%d vote(s))\n", a, rate, negative[a]+0, total[a];
+          n++;
+        }
+      }
+      printf "%d article(s) with a negative feedback spike.\n", n+0;
+    }
+  ' "{{article_feedback_csv_path}}"
+variables:
+  article_feedback_csv_path:
+    default: "./kb_article_feedback.csv"
+    description: "Path to a CSV with columns: article_title,vote_date (YYYY-MM-DD),was_helpful (yes/no)."
+  lookback_days:
+    default: 14
+    description: How many trailing days of feedback votes to include.
+  negative_rate_threshold_pct:
+    default: 50
+    description: Negative-feedback rate percentage at or above which an article is flagged.
+  min_votes:
+    default: 5
+    description: Minimum votes in the window before an article's rate is considered meaningful enough to flag.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — pair with help-center-search-gap-check.yaml if the underlying issue turns out to be a missing article rather than a wrong one.

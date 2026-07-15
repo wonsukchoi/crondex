@@ -1,0 +1,42 @@
+id: csat-detractor-followup-check
+version: 1
+name: CSAT Detractor Follow-Up Check
+description: >
+  Flags individual low-scoring (detractor) CSAT survey responses that
+  haven't had a follow-up outreach logged within a configurable window.
+  Use this if an unhappy customer has ever left a bad survey score and
+  then never heard back from anyone — distinct from
+  csat-score-watch.yaml, which tracks the aggregate score trend, not
+  whether any specific detractor response actually got a follow-up.
+category: support
+tags: [support, csat, detractor, follow-up, customer-experience]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_score="{{detractor_max_score}}" -v max_age="{{max_followup_days}}" '
+    NR==1 {next}
+    $2+0 <= max_score+0 && $4 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline survey_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - survey_epoch) / 86400;
+      if (age_days > max_age+0) {
+        printf "NO FOLLOW-UP: ticket %s scored %s on %s, no outreach logged (%d day(s) ago)\n", $1, $2, $3, age_days;
+        n++;
+      }
+    }
+    END { printf "%d detractor response(s) missing a follow-up.\n", n+0; }
+  ' "{{csat_responses_csv_path}}"
+variables:
+  csat_responses_csv_path:
+    default: "./csat_responses.csv"
+    description: "Path to a CSV with columns: ticket_id,score,survey_date (YYYY-MM-DD),followed_up (yes/no)."
+  detractor_max_score:
+    default: 2
+    description: Score (on whatever scale the survey uses) at or below which a response counts as a detractor.
+  max_followup_days:
+    default: 3
+    description: Days after a detractor response before it's flagged as missing a follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Read-only outreach list — actual follow-up contact still needs a human touch.

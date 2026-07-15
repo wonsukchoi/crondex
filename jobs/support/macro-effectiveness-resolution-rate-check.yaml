@@ -1,0 +1,55 @@
+id: macro-effectiveness-resolution-rate-check
+version: 1
+name: Macro Effectiveness Resolution Rate Check
+description: >
+  Calculates, per canned response (macro), the rate of tickets it was
+  used on that closed without a reopen versus needed further back-and-forth,
+  and flags macros performing below a threshold. Use this if a
+  frequently-used macro has ever quietly been a bad answer that just
+  generates more follow-up tickets — distinct from
+  macro-usage-staleness-check.yaml, which flags macros nobody's used
+  recently, not whether the ones in active use actually work.
+category: support
+tags: [support, macro, effectiveness, resolution-rate, quality]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{min_effective_rate_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline used_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - used_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      total[$1]++;
+      if ($3 == "resolved_no_reopen") resolved[$1]++;
+    }
+    END {
+      for (m in total) {
+        if (total[m] < {{min_sample_size}}) continue;
+        rate = (resolved[m]+0) / total[m] * 100;
+        if (rate < threshold+0) {
+          printf "LOW EFFECTIVENESS: macro \"%s\" resolved %.1f%% of %d use(s) without reopen (threshold %s%%)\n", m, rate, total[m], threshold;
+          n++;
+        }
+      }
+      printf "%d macro(s) below the effectiveness threshold.\n", n+0;
+    }
+  ' "{{macro_usage_outcomes_csv_path}}"
+variables:
+  macro_usage_outcomes_csv_path:
+    default: "./macro_usage_outcomes.csv"
+    description: "Path to a CSV with columns: macro_name,used_date (YYYY-MM-DD),outcome (resolved_no_reopen/reopened/escalated). One row per macro use."
+  lookback_days:
+    default: 30
+    description: How many trailing days of macro usage to include.
+  min_effective_rate_pct:
+    default: 70
+    description: Minimum no-reopen resolution rate percentage before a macro is flagged.
+  min_sample_size:
+    default: 10
+    description: Minimum number of uses in the window before a macro's rate is considered statistically meaningful enough to flag.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token quality check — a low rate means the macro's content should be reviewed and improved, not necessarily retired.

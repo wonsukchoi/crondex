@@ -24,18 +24,88 @@ session with no other ask in mind.
 - **Community surface**: `.github/ISSUE_TEMPLATE/` for job proposals and
   bug reports.
 
-No known gaps in the CLI or tooling right now — the last audit (see git
-log around the `k8s-cronjob`/`eventbridge`/`cloud-scheduler` and `update`
-diff commits) closed out everything found. That means **primary effort
-going forward is catalog growth**: more jobs, deeper categories, maybe new
-categories. Treat the sections below as what to reach for *between* growth
-sessions, or when growth itself surfaces a real gap (like the `templates/`
-packaging bug or the missing `crondex init` npm-files entry did).
+No known gaps in the CLI or tooling — the last audit (see git log around
+the `k8s-cronjob`/`eventbridge`/`cloud-scheduler` and `update` diff
+commits) closed out everything found.
 
-## 1. Catalog growth (primary, ongoing)
+**Reprioritization (2026-07-16):** catalog *volume* was the primary
+effort through 0.69.0 (2182 jobs, 64 categories). Outside feedback made a
+point worth taking seriously: most individual jobs are the most
+derivable, most model-replaceable part of this project — a competent
+agent can already write "warn me before my SSL cert expires" as an
+`openssl` one-liner plus a correct cron expression in one shot. The
+near-uniform 32-per-category counts also read as bulk-generated to a
+skeptical reader, which cuts against trust rather than for it.
 
-No fixed target — driven by what's actually useful, not a round number.
-Two directions, pick based on what's thin:
+What *isn't* easily derivable, and where effort now goes first:
+
+1. **The deploy codegen** — turning one abstract job into a correct
+   crontab line, GitHub Actions workflow, systemd timer, k8s CronJob, or
+   cloud-scheduler command. That translation is exactly where an agent
+   improvising from scratch gets subtly wrong.
+2. **Verified trust on the jobs that are actually hard/dangerous to get
+   right** — not more jobs, but visible proof the existing ones are
+   real (smoke-tested, shellcheck-clean, no invented CLI tools).
+3. **Registry/discoverability position** — `llms.txt` + MCP-native
+   discovery is the real distribution hook; the goal is agents reaching
+   for crondex by reflex, which the job count itself can't produce.
+
+Catalog growth isn't dead — it's demoted to opportunistic/secondary (§4),
+reached for when it surfaces a real narrow gap, not run as the default
+no-specific-ask session anymore. See §5 "How to pick up a session" for
+the new default order.
+
+## 1. Deploy engine hardening (primary)
+
+- **New targets** — Terraform, Nomad, Windows Task Scheduler were parked
+  in the old "speculative" list as "add one when someone needs it." That
+  bar was calibrated for a catalog-growth-first roadmap; re-evaluate
+  Terraform in particular (common enough infra-as-code target) now that
+  deploy correctness is the actual moat.
+- **Edge-case correctness** — audit `lib/deploy.js` per-target for cron
+  expressions that don't translate cleanly (step ranges, `dow` edge
+  cases already fixed once — check for siblings), and expand
+  `test/deploy.test.js` coverage per target rather than just per
+  cron-syntax-feature.
+- **Deploy-output verification** — `smoke-test` runs the job's own
+  command; it doesn't verify the *generated deploy artifact* (the actual
+  crontab line, the actual YAML workflow) is syntactically valid for its
+  target. Closing that gap is a direct, credible answer to "is the hard
+  part actually tested."
+
+## 2. Trust/provenance signal (primary)
+
+CI already gates on schema validation, shellcheck, and near-duplicate
+detection; `smoke-test` is available locally but not CI (network calls).
+None of that is currently surfaced *to the consumer* — someone browsing
+`catalog.json` or the README can't tell "smoke-tested and clean" apart
+from "written and never run." Add that as visible metadata:
+
+- Track last-smoke-tested state per job (e.g. a field in `catalog.json`,
+  populated by `build-catalog` or a dedicated script) and surface it in
+  `list`/`show` output and the README job table.
+- Consider a `--verified-only` filter on `recommend`/`list` once the
+  data exists.
+- This is cheap relative to writing new jobs and directly rebuts the
+  "bulk-generated, unverified shell running unattended" critique — do
+  this before the next big growth batch, not after.
+
+## 3. Registry / discoverability (primary)
+
+- MCP server and `llms.txt` already exist and are underexploited as
+  distribution channels — audit whether they're actually being surfaced
+  well (accurate `llms.txt`, MCP server documented prominently in
+  README/npm description) rather than treated as a checkbox.
+- No new work item defined yet beyond "make sure what's built is
+  actually discoverable" — revisit once §1/§2 land and there's a clearer
+  sense of what registry-stickiness needs next.
+
+## 4. Catalog growth (secondary, opportunistic)
+
+No fixed target — driven by what's actually useful, not a round number,
+and no longer the default reach-for when picking up a session with
+nothing else in flight (see §5). Still worth doing when a real gap
+surfaces:
 
 - **Deepen**: push existing categories past 6 jobs where a category
   clearly has more real, narrow, nameable jobs to give (a category with
@@ -49,15 +119,16 @@ narrow and nameable, plain-language description, safe by default
 (dry-run/draft-only for anything destructive or outbound), portable
 shell, tunables in `variables` not hardcoded. Every batch must pass
 `npm run validate`, `npm run lint-shell`, `npm run check-duplicates`
-before commit, and `npm run build-catalog` to sync `catalog.json` +
-README's job table.
+before commit, `npm run smoke-test` on every new shell/hybrid job before
+commit, and `npm run build-catalog` to sync `catalog.json` + README's
+job table.
 
 For large batches (10+ jobs), parallelizing across a handful of
 general-purpose agents — each owns a small set of categories, writes
 YAML only, no npm scripts — then validating/building/committing myself
 in one pass has worked well and scales better than one job at a time.
 
-## 2. Maintenance backlog (reach for when growth stalls or surfaces a need)
+## 5. Maintenance backlog (reach for when higher priorities stall or surface a need)
 
 - **Version-bump discipline**: `version` field is manually maintained per
   CONTRIBUTING.md's convention but under-followed (most jobs have never
@@ -78,7 +149,7 @@ in one pass has worked well and scales better than one job at a time.
   across parallel agents, run `npm run smoke-test` once at the end of the
   batch, before commit — not just validate/lint/dedupe.
 
-## 3. Speculative / not yet justified
+## 6. Speculative / not yet justified
 
 Ideas that came up and were deliberately *not* built because the cost
 didn't clear the bar yet. Revisit only if the underlying assumption
@@ -89,19 +160,26 @@ changes.
   local model (bloats the npx CLI). Keyword+synonym+fuzzy matching isn't
   degraded at 309 jobs. Revisit if/when `recommend` starts visibly missing
   good matches that a human can tell should've ranked higher.
-- **More deploy targets** (Terraform, Nomad, Windows Task Scheduler,
-  etc.): only add one when someone actually needs it — the existing 7
-  cover crontab/CI/systemd/containers/k8s/major clouds already.
 - **A hosted/searchable catalog website**: `catalog.json` + `llms.txt` +
   README already make the catalog agent- and human-browsable. A website
   is a real project, not an incremental add — don't start it casually.
+- **Unifying with `domain-experts` under one "building blocks for
+  agents" brand**: both repos are the same play — open-source, MIT,
+  npm-distributed, agent-consumable directories of reusable pieces
+  (crondex ships jobs, domain-experts ships role-skills). Real strategic
+  thesis, but a repo/brand merge is a big, mostly-irreversible move — not
+  a call to make casually mid-session. Revisit once §1/§2/§3 above have
+  actually landed and there's a clearer read on which repo's value
+  proposition held up better in practice.
 
 ## How to pick up a session with no specific ask
 
 1. Check `CONTEXT.md` for what was last in flight.
-2. If nothing in flight: run `node bin/crondex.js categories` (or check
-   `catalog.json` counts) to see which categories are thinnest, and grow
-   those.
+2. If nothing in flight, work top-down through §1 (deploy engine
+   hardening) → §2 (trust/provenance signal) → §3 (registry
+   discoverability) before reaching for catalog growth (§4). Catalog
+   growth is the fallback when §1-3 have no obvious next step, not the
+   default.
 3. Before publishing: `npm run validate && npm run lint-shell && npm run
    check-duplicates && npm test`, then `npm run build-catalog`, commit,
    bump `package.json` version, `npm publish`.

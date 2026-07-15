@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2032,
+  "count": 2044,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -776,6 +776,32 @@
         "codex"
       ],
       "path": "jobs/healthcare/advance-directive-documentation-gap-check.yaml"
+    },
+    {
+      "id": "adverse-drug-event-reporting-lag-check",
+      "version": 1,
+      "name": "Adverse Drug Event Reporting Lag Check",
+      "description": "Flags logged adverse drug events (ADEs) that haven't been formally reported to pharmacy/quality within a configurable window after occurrence. Use this if an ADE has ever been noted in a chart or incident log but the formal report to pharmacy/quality never actually got filed — distinct from patient-safety-incident-report-followup-check.yaml, which tracks general safety incident follow-up, not the medication-specific ADE reporting pathway.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "adverse-drug-event",
+        "pharmacy",
+        "patient-safety",
+        "reporting"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/adverse-drug-event-reporting-lag-check.yaml"
     },
     {
       "id": "aed-first-aid-kit-inspection-compliance-check",
@@ -3108,6 +3134,32 @@
         "codex"
       ],
       "path": "jobs/senior-living/bed-hold-billing-reminder.yaml"
+    },
+    {
+      "id": "bed-turnover-time-check",
+      "version": 1,
+      "name": "Bed Turnover Time Check",
+      "description": "Checks the logged time between a patient discharge and the bed being marked ready for the next admission, and flags turnovers exceeding a target duration. Use this if slow bed turnover has ever backed up the ED or the OR schedule waiting on an inpatient bed — distinct from appointment-slot-utilization-check.yaml, which measures outpatient scheduling utilization, not inpatient bed-turnover throughput.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "bed-turnover",
+        "throughput",
+        "housekeeping",
+        "capacity"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/bed-turnover-time-check.yaml"
     },
     {
       "id": "beneficial-ownership-certification-expiry-check",
@@ -6809,6 +6861,32 @@
         "generic"
       ],
       "path": "jobs/insurance/claim-status-check.yaml"
+    },
+    {
+      "id": "claim-write-off-approval-check",
+      "version": 1,
+      "name": "Claim Write-Off Approval Check",
+      "description": "Checks logged insurance-claim write-offs above a configurable amount and flags any without a recorded approver. Use this if a large denied-claim write-off has ever gone through on one person's say-so with no second signoff — distinct from claims-denial-resubmission-check.yaml, which tracks whether a denied claim was appealed in time, not whether the eventual decision to write it off (instead of resubmitting) was properly approved.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "claims",
+        "write-off",
+        "approval",
+        "revenue-cycle"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/claim-write-off-approval-check.yaml"
     },
     {
       "id": "claims-aging-backlog-tracker",
@@ -11017,6 +11095,31 @@
       "path": "jobs/manufacturing/critical-spare-parts-stock-check.yaml"
     },
     {
+      "id": "critical-supply-backorder-tracking-check",
+      "version": 1,
+      "name": "Critical Supply Backorder Tracking Check",
+      "description": "Tracks backordered critical medical supplies against their promised ETA and flags ones overdue or with no ETA on file at all. Use this if a critical item has ever gone on backorder and then quietly stayed that way with nobody chasing the vendor — distinct from clinical-supply-low-stock-check.yaml, which flags current on-hand stock dropping below a reorder point, not the status of an order already placed and delayed.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "supply-chain",
+        "backorder",
+        "critical-supplies"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/critical-supply-backorder-tracking-check.yaml"
+    },
+    {
       "id": "crop-insurance-deadline-reminder",
       "version": 1,
       "name": "Crop Insurance Deadline Reminder",
@@ -13839,6 +13942,31 @@
         "codex"
       ],
       "path": "jobs/insurance/direct-bill-agency-bill-reconciliation-check.yaml"
+    },
+    {
+      "id": "discharge-medication-reconciliation-check",
+      "version": 1,
+      "name": "Discharge Medication Reconciliation Check",
+      "description": "Flags discharged patients whose medication list wasn't reconciled (reviewed for duplicates, discontinued meds, and dosage conflicts against their pre-admission list) before discharge. Use this if a patient has ever left with a discharge med list that still included a medication that should've been stopped in-house — distinct from prescription-refill-request-backlog-check.yaml, which tracks pending refill requests, not the discharge reconciliation step itself.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "medication-reconciliation",
+        "discharge",
+        "patient-safety"
+      ],
+      "schedule": "0 9,17 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/discharge-medication-reconciliation-check.yaml"
     },
     {
       "id": "discord-mod-queue-digest",
@@ -18350,6 +18478,32 @@
       "path": "jobs/senior-living/fall-risk-assessment-schedule-compliance-check.yaml"
     },
     {
+      "id": "fall-risk-reassessment-overdue-check",
+      "version": 1,
+      "name": "Fall Risk Reassessment Overdue Check",
+      "description": "Flags inpatients whose fall-risk score hasn't been reassessed within the required interval (typically each shift or after a status change). Use this if a patient's fall-risk score has ever gone stale for days while their condition actually changed, leaving fall-precaution measures out of sync with real risk — distinct from patient-safety-incident-report-followup-check.yaml, which tracks follow-up after an incident already happened, not the proactive reassessment cadence that's meant to prevent one.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "fall-risk",
+        "patient-safety",
+        "nursing",
+        "reassessment"
+      ],
+      "schedule": "0 */8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/fall-risk-reassessment-overdue-check.yaml"
+    },
+    {
       "id": "family-communication-log-staleness-check",
       "version": 1,
       "name": "Family Communication Log Staleness Check",
@@ -22428,6 +22582,32 @@
         "generic"
       ],
       "path": "jobs/senior-living/hospice-transition-coordination-tracker.yaml"
+    },
+    {
+      "id": "hospital-acquired-infection-surveillance-gap-check",
+      "version": 1,
+      "name": "Hospital-Acquired Infection Surveillance Gap Check",
+      "description": "Checks that required infection-surveillance data points (central line days, catheter days, culture results) are being logged daily per unit and flags missing days. Use this if an infection-control surveillance log has ever had silent gaps that only got noticed when a rate calculation looked wrong at month-end — distinct from controlled-substance-inventory-reconciliation.yaml, which is a pharmacy/DEA compliance check, not infection-control surveillance.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "infection-control",
+        "surveillance",
+        "compliance",
+        "hai"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/hospital-acquired-infection-surveillance-gap-check.yaml"
     },
     {
       "id": "hot-desk-overbooking-check",
@@ -30954,6 +31134,32 @@
       "path": "jobs/telecom/number-porting-request-aging-check.yaml"
     },
     {
+      "id": "nurse-staffing-ratio-compliance-check",
+      "version": 1,
+      "name": "Nurse Staffing Ratio Compliance Check",
+      "description": "Checks logged shift staffing counts against a required nurse-to-patient ratio (mandated by state regulation in some jurisdictions, or internal policy elsewhere) and flags shifts that fell short. Use this if a unit has ever run understaffed relative to a required ratio without it surfacing until a regulatory survey or an incident forced the question — distinct from waiting-room-time-check.yaml, which measures patient wait experience, not staffing-ratio compliance itself.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "staffing",
+        "nursing",
+        "compliance",
+        "ratio"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/nurse-staffing-ratio-compliance-check.yaml"
+    },
+    {
       "id": "nutrition-checkin-reminder",
       "version": 1,
       "name": "Nutrition/Meal-Plan Check-in Reminder",
@@ -34474,6 +34680,32 @@
         "codex"
       ],
       "path": "jobs/senior-living/physician-order-verification-lag-check.yaml"
+    },
+    {
+      "id": "physician-peer-review-case-lag-check",
+      "version": 1,
+      "name": "Physician Peer Review Case Lag Check",
+      "description": "Flags cases referred for medical staff peer review that haven't been completed within a configurable time window. Use this if a peer review case has ever sat open for months, leaving a quality concern unresolved and a credentialing file incomplete — distinct from patient-safety-incident-report-followup-check.yaml, which tracks general safety incident follow-up, not the formal medical staff peer review process specifically.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "peer-review",
+        "credentialing",
+        "quality",
+        "medical-staff"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/physician-peer-review-case-lag-check.yaml"
     },
     {
       "id": "piano-specialty-item-insurance-check",
@@ -44564,6 +44796,31 @@
       "path": "jobs/education/standardized-test-proctor-certification-tracker.yaml"
     },
     {
+      "id": "standing-consent-form-expiry-check",
+      "version": 1,
+      "name": "Standing Consent Form Expiry Check",
+      "description": "Checks patients' standing consent forms (e.g. general treatment consent, telehealth consent, photography/research consent) against a configurable renewal interval and flags anyone whose consent has expired or is about to. Use this if a standing consent has ever quietly lapsed without anyone re-obtaining it at the next visit — distinct from advance-directive-documentation-gap-check.yaml, which covers end-of-life directive documentation, not routine standing consent renewal.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "consent",
+        "compliance",
+        "patient-rights"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/standing-consent-form-expiry-check.yaml"
+    },
+    {
       "id": "state-compliance-poster-expiry-check",
       "version": 1,
       "name": "State Compliance Poster/Notice Expiry Check",
@@ -44587,6 +44844,32 @@
         "codex"
       ],
       "path": "jobs/hr/state-compliance-poster-expiry-check.yaml"
+    },
+    {
+      "id": "state-immunization-registry-reporting-lag-check",
+      "version": 1,
+      "name": "State Immunization Registry Reporting Lag Check",
+      "description": "Checks administered vaccinations against a state immunization registry submission log and flags doses not yet reported within the required window. Use this if a required state registry submission has ever quietly fallen behind because it's a separate step from charting the vaccination itself — distinct from patient-immunization-schedule-check.yaml, which flags patients due for a vaccine, not whether an already-given dose was reported upstream to the state.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "immunization",
+        "registry",
+        "reporting",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/state-immunization-registry-reporting-lag-check.yaml"
     },
     {
       "id": "state-survey-readiness-checklist-tracker",
@@ -47207,6 +47490,32 @@
         "codex"
       ],
       "path": "jobs/content/thin-content-word-count-check.yaml"
+    },
+    {
+      "id": "thirty-day-readmission-risk-check",
+      "version": 1,
+      "name": "30-Day Readmission Risk Check",
+      "description": "Flags recently discharged patients scoring above a configurable readmission-risk threshold who haven't had a check-in call or visit logged within the risk window. Use this if a high-risk patient has ever bounced back to the hospital within 30 days because nobody proactively checked in — distinct from ed-hospital-discharge-followup-check.yaml, which tracks whether any follow-up appointment exists at all, not risk-stratified proactive outreach for the highest-risk subset.",
+      "category": "healthcare",
+      "tags": [
+        "healthcare",
+        "readmission",
+        "discharge",
+        "risk",
+        "outreach"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/healthcare/thirty-day-readmission-risk-check.yaml"
     },
     {
       "id": "thumbnail-ab-test-performance-check",

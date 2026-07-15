@@ -1,0 +1,34 @@
+id: hospital-acquired-infection-surveillance-gap-check
+version: 1
+name: Hospital-Acquired Infection Surveillance Gap Check
+description: >
+  Checks that required infection-surveillance data points (central
+  line days, catheter days, culture results) are being logged daily
+  per unit and flags missing days. Use this if an infection-control
+  surveillance log has ever had silent gaps that only got noticed when
+  a rate calculation looked wrong at month-end — distinct from
+  controlled-substance-inventory-reconciliation.yaml, which is a
+  pharmacy/DEA compliance check, not infection-control surveillance.
+category: healthcare
+tags: [healthcare, infection-control, surveillance, compliance, hai]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    { units[$2]=1; if ($1==today) logged[$2]=1 }
+    END {
+      for (u in units) {
+        if (!(u in logged)) { printf "MISSING: no surveillance data logged for unit %s on %s\n", u, today; n++; }
+      }
+      printf "%d unit(s) missing the surveillance entry for today.\n", n+0;
+    }
+  ' "{{surveillance_log_csv_path}}"
+variables:
+  surveillance_log_csv_path:
+    default: "./hai_surveillance_log.csv"
+    description: "Path to a CSV with columns: log_date (YYYY-MM-DD),unit_name,central_line_days,catheter_days,positive_cultures. Historical rows establish which units are expected to report."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token completeness check — a missing day doesn't mean an infection was missed, only that the denominator data for rate calculations has a gap.

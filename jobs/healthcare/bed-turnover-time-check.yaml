@@ -1,0 +1,37 @@
+id: bed-turnover-time-check
+version: 1
+name: Bed Turnover Time Check
+description: >
+  Checks the logged time between a patient discharge and the bed being
+  marked ready for the next admission, and flags turnovers exceeding a
+  target duration. Use this if slow bed turnover has ever backed up the
+  ED or the OR schedule waiting on an inpatient bed — distinct from
+  appointment-slot-utilization-check.yaml, which measures outpatient
+  scheduling utilization, not inpatient bed-turnover throughput.
+category: healthcare
+tags: [healthcare, bed-turnover, throughput, housekeeping, capacity]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target_minutes="{{target_turnover_minutes}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $1 == today {
+      minutes = $4+0;
+      total++;
+      if (minutes > target_minutes+0) {
+        printf "SLOW TURNOVER: bed %s discharged %s to ready in %d min (target %s)\n", $2, $3, minutes, target_minutes;
+        over++;
+      }
+    }
+    END { printf "%d/%d bed turnover(s) today exceeded the %s-minute target.\n", over+0, total+0, target_minutes; }
+  ' "{{bed_turnover_log_csv_path}}"
+variables:
+  bed_turnover_log_csv_path:
+    default: "./bed_turnover_log.csv"
+    description: "Path to a CSV with columns: log_date (YYYY-MM-DD),bed_id,discharge_time,turnover_minutes."
+  target_turnover_minutes:
+    default: 60
+    description: Target minutes from discharge to bed-ready before a turnover is flagged as slow.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token throughput check — a persistently slow turnover usually points to a housekeeping staffing or workflow bottleneck.

@@ -1,0 +1,40 @@
+id: adverse-drug-event-reporting-lag-check
+version: 1
+name: Adverse Drug Event Reporting Lag Check
+description: >
+  Flags logged adverse drug events (ADEs) that haven't been formally
+  reported to pharmacy/quality within a configurable window after
+  occurrence. Use this if an ADE has ever been noted in a chart or
+  incident log but the formal report to pharmacy/quality never actually
+  got filed — distinct from patient-safety-incident-report-followup-check.yaml,
+  which tracks general safety incident follow-up, not the
+  medication-specific ADE reporting pathway.
+category: healthcare
+tags: [healthcare, adverse-drug-event, pharmacy, patient-safety, reporting]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_hours="{{max_report_lag_hours}}" '
+    NR==1 {next}
+    $4 == "no" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline event_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - event_epoch) / 3600;
+      if (age_hours > max_hours+0) {
+        printf "UNREPORTED: ADE for %s on %s (drug: %s) not yet reported, %.1f hour(s) since occurrence\n", $1, $2, $3, age_hours;
+        n++;
+      }
+    }
+    END { printf "%d adverse drug event(s) overdue for formal reporting.\n", n+0; }
+  ' "{{ade_log_csv_path}}"
+variables:
+  ade_log_csv_path:
+    default: "./adverse_drug_event_log.csv"
+    description: "Path to a CSV with columns: patient_name,event_datetime (YYYY-MM-DDTHH:MM),drug_name,reported_to_pharmacy (yes/no)."
+  max_report_lag_hours:
+    default: 24
+    description: Hours after an ADE occurrence before it's flagged as overdue for formal reporting.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token safety-net check — filing the actual report still requires clinical/pharmacy judgment on the event's details.

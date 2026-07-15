@@ -1,0 +1,36 @@
+id: claim-write-off-approval-check
+version: 1
+name: Claim Write-Off Approval Check
+description: >
+  Checks logged insurance-claim write-offs above a configurable amount
+  and flags any without a recorded approver. Use this if a large
+  denied-claim write-off has ever gone through on one person's say-so
+  with no second signoff — distinct from
+  claims-denial-resubmission-check.yaml, which tracks whether a denied
+  claim was appealed in time, not whether the eventual decision to
+  write it off (instead of resubmitting) was properly approved.
+category: healthcare
+tags: [healthcare, claims, write-off, approval, revenue-cycle]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{approval_required_over}}" '
+    NR==1 {next}
+    {
+      if ($3+0 > threshold+0 && $4 == "") {
+        printf "UNAPPROVED WRITE-OFF: claim %s for $%s has no recorded approver\n", $1, $3;
+        n++;
+      }
+    }
+    END { printf "%d claim write-off(s) over $%s issued without approval on record.\n", n+0, threshold; }
+  ' "{{claim_writeoffs_csv_path}}"
+variables:
+  claim_writeoffs_csv_path:
+    default: "./claim_writeoffs.csv"
+    description: "Path to a CSV with columns: claim_id,payer_name,amount,approved_by (blank if unapproved)."
+  approval_required_over:
+    default: 500
+    description: Dollar amount above which a claim write-off requires a recorded approver.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token controls check — flags a gap in the approval paper trail, not necessarily an improper write-off.

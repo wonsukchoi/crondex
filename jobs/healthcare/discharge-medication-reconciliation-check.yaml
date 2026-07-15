@@ -1,0 +1,31 @@
+id: discharge-medication-reconciliation-check
+version: 1
+name: Discharge Medication Reconciliation Check
+description: >
+  Flags discharged patients whose medication list wasn't reconciled
+  (reviewed for duplicates, discontinued meds, and dosage conflicts
+  against their pre-admission list) before discharge. Use this if a
+  patient has ever left with a discharge med list that still included
+  a medication that should've been stopped in-house — distinct from
+  prescription-refill-request-backlog-check.yaml, which tracks pending
+  refill requests, not the discharge reconciliation step itself.
+category: healthcare
+tags: [healthcare, medication-reconciliation, discharge, patient-safety]
+schedule: "0 9,17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $2 == today && $3 == "no" {
+      printf "NOT RECONCILED: %s discharged %s with no medication reconciliation logged\n", $1, $2;
+      n++;
+    }
+    END { printf "%d discharge(s) today missing medication reconciliation.\n", n+0; }
+  ' "{{discharge_med_rec_csv_path}}"
+variables:
+  discharge_med_rec_csv_path:
+    default: "./discharge_med_reconciliation.csv"
+    description: "Path to a CSV with columns: patient_name,discharge_date (YYYY-MM-DD),reconciliation_completed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token safety check — actual reconciliation still requires a pharmacist or prescriber review, this job only flags the gap.

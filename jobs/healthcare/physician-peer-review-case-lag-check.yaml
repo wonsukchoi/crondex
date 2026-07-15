@@ -1,0 +1,40 @@
+id: physician-peer-review-case-lag-check
+version: 1
+name: Physician Peer Review Case Lag Check
+description: >
+  Flags cases referred for medical staff peer review that haven't been
+  completed within a configurable time window. Use this if a peer
+  review case has ever sat open for months, leaving a quality concern
+  unresolved and a credentialing file incomplete — distinct from
+  patient-safety-incident-report-followup-check.yaml, which tracks
+  general safety incident follow-up, not the formal medical staff peer
+  review process specifically.
+category: healthcare
+tags: [healthcare, peer-review, credentialing, quality, medical-staff]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_age="{{max_review_days}}" '
+    NR==1 {next}
+    $4 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline referred_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - referred_epoch) / 86400;
+      if (age_days > max_age+0) {
+        printf "OVERDUE REVIEW: case %s referred %s for %s, still open (%d day(s))\n", $1, $2, $3, age_days;
+        n++;
+      }
+    }
+    END { printf "%d peer review case(s) overdue.\n", n+0; }
+  ' "{{peer_review_log_csv_path}}"
+variables:
+  peer_review_log_csv_path:
+    default: "./peer_review_cases.csv"
+    description: "Path to a CSV with columns: case_id,referred_date (YYYY-MM-DD),provider_name,status (open/closed)."
+  max_review_days:
+    default: 45
+    description: Days a peer review case can stay open before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token follow-up tracker — actual review still requires the medical staff peer review committee's own process.

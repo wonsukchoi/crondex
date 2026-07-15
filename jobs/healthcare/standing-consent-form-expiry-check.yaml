@@ -1,0 +1,46 @@
+id: standing-consent-form-expiry-check
+version: 1
+name: Standing Consent Form Expiry Check
+description: >
+  Checks patients' standing consent forms (e.g. general treatment
+  consent, telehealth consent, photography/research consent) against a
+  configurable renewal interval and flags anyone whose consent has
+  expired or is about to. Use this if a standing consent has ever
+  quietly lapsed without anyone re-obtaining it at the next visit —
+  distinct from advance-directive-documentation-gap-check.yaml, which
+  covers end-of-life directive documentation, not routine standing
+  consent renewal.
+category: healthcare
+tags: [healthcare, consent, compliance, patient-rights]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v renewal_days="{{renewal_interval_days}}" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline signed_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - signed_epoch) / 86400;
+      days_left = renewal_days+0 - age_days;
+      if (days_left <= warn_days+0) {
+        if (days_left < 0) printf "EXPIRED: %s %s consent signed %s expired %d day(s) ago\n", $1, $2, $3, -days_left;
+        else printf "EXPIRING SOON: %s %s consent signed %s expires in %d day(s)\n", $1, $2, $3, days_left;
+        flagged++;
+      }
+    }
+    END { printf "%d standing consent form(s) flagged.\n", flagged+0; }
+  ' "{{consent_log_csv_path}}"
+variables:
+  consent_log_csv_path:
+    default: "./standing_consents.csv"
+    description: "Path to a CSV with columns: patient_name,consent_type,signed_date (YYYY-MM-DD)."
+  renewal_interval_days:
+    default: 365
+    description: Days a standing consent stays valid before it needs to be re-signed.
+  warn_days:
+    default: 30
+    description: Days before (or past) expiry to start flagging a patient's consent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder — actual re-consent still needs a signature captured at the next visit.

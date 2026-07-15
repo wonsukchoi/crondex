@@ -1,0 +1,34 @@
+id: critical-supply-backorder-tracking-check
+version: 1
+name: Critical Supply Backorder Tracking Check
+description: >
+  Tracks backordered critical medical supplies against their promised
+  ETA and flags ones overdue or with no ETA on file at all. Use this if
+  a critical item has ever gone on backorder and then quietly stayed
+  that way with nobody chasing the vendor — distinct from
+  clinical-supply-low-stock-check.yaml, which flags current on-hand
+  stock dropping below a reorder point, not the status of an order
+  already placed and delayed.
+category: healthcare
+tags: [healthcare, supply-chain, backorder, critical-supplies]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $3 == "backordered" {
+      if ($4 == "") { printf "NO ETA: %s (qty %s) is backordered with no ETA on file\n", $1, $2; n++; next; }
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline eta_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (now_epoch > eta_epoch) { printf "PAST ETA: %s (qty %s) ETA %s has passed\n", $1, $2, $4; n++; }
+    }
+    END { printf "%d critical supply item(s) need vendor follow-up.\n", n+0; }
+  ' "{{backorder_log_csv_path}}"
+variables:
+  backorder_log_csv_path:
+    default: "./critical_supply_backorders.csv"
+    description: "Path to a CSV with columns: item_name,quantity_ordered,status (backordered/received),eta_date (YYYY-MM-DD, blank if unknown)."
+compatible_agents: [generic, claude, codex]
+notes: Read-only follow-up list — actual vendor escalation still needs a phone call or purchasing action.

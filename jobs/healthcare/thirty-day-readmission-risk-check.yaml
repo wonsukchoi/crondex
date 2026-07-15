@@ -1,0 +1,44 @@
+id: thirty-day-readmission-risk-check
+version: 1
+name: 30-Day Readmission Risk Check
+description: >
+  Flags recently discharged patients scoring above a configurable
+  readmission-risk threshold who haven't had a check-in call or visit
+  logged within the risk window. Use this if a high-risk patient has
+  ever bounced back to the hospital within 30 days because nobody
+  proactively checked in — distinct from
+  ed-hospital-discharge-followup-check.yaml, which tracks whether any
+  follow-up appointment exists at all, not risk-stratified proactive
+  outreach for the highest-risk subset.
+category: healthcare
+tags: [healthcare, readmission, discharge, risk, outreach]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v risk_threshold="{{risk_score_threshold}}" -v window="{{checkin_window_days}}" '
+    NR==1 {next}
+    $3+0 >= risk_threshold+0 {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline discharge_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - discharge_epoch) / 86400;
+      if (age_days >= 0 && age_days <= 30 && $4 == "no") {
+        printf "HIGH RISK, NO CHECK-IN: %s discharged %s (risk score %s, %d day(s) ago)\n", $1, $2, $3, age_days;
+        n++;
+      }
+    }
+    END { printf "%d high-risk patient(s) without a logged check-in.\n", n+0; }
+  ' "{{discharge_log_csv_path}}"
+variables:
+  discharge_log_csv_path:
+    default: "./discharge_readmission_log.csv"
+    description: "Path to a CSV with columns: patient_name,discharge_date (YYYY-MM-DD),readmission_risk_score,checkin_logged (yes/no)."
+  risk_score_threshold:
+    default: 70
+    description: Readmission risk score (0-100) at or above which a patient is treated as high-risk.
+  checkin_window_days:
+    default: 7
+    description: Days after discharge a check-in should happen for a high-risk patient before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Read-only outreach list — expects a risk score already computed by whatever readmission-risk model or EHR module the practice uses.

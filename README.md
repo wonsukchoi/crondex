@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2032 jobs across 62 categories:
+2044 jobs across 62 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -215,7 +215,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `gaming` | 32 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 32 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
-| `healthcare` | 33 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `healthcare` | 45 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 32 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 32 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 32 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |

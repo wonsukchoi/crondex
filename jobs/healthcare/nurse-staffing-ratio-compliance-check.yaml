@@ -1,0 +1,35 @@
+id: nurse-staffing-ratio-compliance-check
+version: 1
+name: Nurse Staffing Ratio Compliance Check
+description: >
+  Checks logged shift staffing counts against a required nurse-to-patient
+  ratio (mandated by state regulation in some jurisdictions, or internal
+  policy elsewhere) and flags shifts that fell short. Use this if a unit
+  has ever run understaffed relative to a required ratio without it
+  surfacing until a regulatory survey or an incident forced the question
+  — distinct from waiting-room-time-check.yaml, which measures patient
+  wait experience, not staffing-ratio compliance itself.
+category: healthcare
+tags: [healthcare, staffing, nursing, compliance, ratio]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      required_ratio = $4+0;
+      actual_ratio = $3+0 / ($2+0 > 0 ? $2+0 : 1);
+      if ($2+0 > 0 && actual_ratio > required_ratio) {
+        printf "SHORT-STAFFED: %s on %s — %s patients / %s nurses (ratio %.1f, max allowed %s)\n", $1, $5, $2, $3, actual_ratio, required_ratio;
+        n++;
+      }
+    }
+    END { printf "%d shift(s) exceeded the required patient-to-nurse ratio.\n", n+0; }
+  ' "{{staffing_log_csv_path}}"
+variables:
+  staffing_log_csv_path:
+    default: "./unit_staffing_log.csv"
+    description: "Path to a CSV with columns: unit_name,patient_count,nurse_count,max_ratio_per_nurse,shift_date (YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token compliance check — required ratios vary by state and unit type (ICU vs. med-surg); set max_ratio_per_nurse per row to whatever applies to that unit.

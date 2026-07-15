@@ -1,0 +1,51 @@
+id: w2-1095c-distribution-deadline-tracker
+version: 1
+name: W-2 / 1095-C Distribution Deadline Tracker
+description: >
+  Checks whether year-end tax forms — W-2s and 1095-Cs — have gone out to
+  employees before the IRS distribution deadline. Use this if you've ever
+  scrambled in late January because nobody confirmed the tax forms
+  actually mailed on time.
+category: hr
+tags: [hr, payroll, tax, compliance]
+schedule: "0 8 * 1-3 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  w2_epoch=$(date -j -f %Y-%m-%d "{{w2_deadline}}" +%s 2>/dev/null || date -d "{{w2_deadline}}" +%s);
+  c1095_epoch=$(date -j -f %Y-%m-%d "{{form_1095c_deadline}}" +%s 2>/dev/null || date -d "{{form_1095c_deadline}}" +%s);
+  w2_days_left=$(( (w2_epoch-today_epoch)/86400 ));
+  c1095_days_left=$(( (c1095_epoch-today_epoch)/86400 ));
+  if [ "{{w2_forms_sent}}" = "false" ]; then
+    if [ "$w2_days_left" -lt 0 ]; then echo "OVERDUE: W-2 forms not yet marked sent, deadline of {{w2_deadline}} has passed.";
+    elif [ "$w2_days_left" -le {{warn_days_before}} ]; then echo "DUE SOON: W-2 forms not yet marked sent, $w2_days_left day(s) until {{w2_deadline}} deadline.";
+    else echo "OK: W-2 deadline is $w2_days_left day(s) away, not yet marked sent."; fi
+  else echo "OK: W-2 forms marked sent."; fi;
+  if [ "{{form_1095c_sent}}" = "false" ]; then
+    if [ "$c1095_days_left" -lt 0 ]; then echo "OVERDUE: 1095-C forms not yet marked sent, deadline of {{form_1095c_deadline}} has passed.";
+    elif [ "$c1095_days_left" -le {{warn_days_before}} ]; then echo "DUE SOON: 1095-C forms not yet marked sent, $c1095_days_left day(s) until {{form_1095c_deadline}} deadline.";
+    else echo "OK: 1095-C deadline is $c1095_days_left day(s) away, not yet marked sent."; fi
+  else echo "OK: 1095-C forms marked sent."; fi
+variables:
+  w2_deadline:
+    default: "2027-01-31"
+    description: Date (YYYY-MM-DD) W-2s must be furnished to employees by, per current IRS rules.
+  form_1095c_deadline:
+    default: "2027-03-02"
+    description: Date (YYYY-MM-DD) 1095-Cs must be furnished to employees by, per current IRS rules.
+  w2_forms_sent:
+    default: "false"
+    description: Set to "true" once W-2s have actually gone out — you update this yourself.
+  form_1095c_sent:
+    default: "false"
+    description: Set to "true" once 1095-Cs have actually gone out — you update this yourself.
+  warn_days_before:
+    default: 10
+    description: Start warning this many days before each deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain w2_forms_sent and form_1095c_sent yourself —
+  this doesn't pull from any payroll or ACA reporting system. IRS
+  distribution deadlines can shift slightly year to year (especially
+  when the date falls on a weekend) — confirm the current-year dates.

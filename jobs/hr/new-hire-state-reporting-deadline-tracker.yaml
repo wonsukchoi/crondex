@@ -1,0 +1,46 @@
+id: new-hire-state-reporting-deadline-tracker
+version: 1
+name: New Hire State Reporting Deadline Tracker
+description: >
+  Flags new hires who haven't yet been reported to the state new-hire
+  registry within the legally required window. Use this if a new-hire
+  report has ever gone out late — or been forgotten entirely — because
+  it fell through the cracks between onboarding and payroll.
+category: hr
+tags: [hr, compliance, payroll, onboarding]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v deadline_days="{{report_deadline_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline hire_epoch; close(cmd);
+      days_since = (today - hire_epoch) / 86400;
+      days_left = deadline_days - days_since;
+      if (days_left < 0) {
+        printf "STATE NEW-HIRE REPORT OVERDUE: %s — hired %s, %d day(s) past the %d-day reporting deadline, not yet reported\n", $1, $2, -days_left, deadline_days;
+      } else if (days_left <= warn) {
+        printf "STATE NEW-HIRE REPORT DUE: %s — hired %s, %d day(s) left to report\n", $1, $2, days_left;
+      }
+    }
+  ' "{{new_hire_reporting_csv_path}}"
+variables:
+  new_hire_reporting_csv_path:
+    default: "./new-hire-reporting.csv"
+    description: "Path to a CSV with columns: employee_name,hire_date (YYYY-MM-DD),state_reported_date (blank if not yet reported)."
+  report_deadline_days:
+    default: 20
+    description: Days from hire date to report to the state new-hire directory — federal law allows up to 20 days but many states require sooner (some as little as 10); confirm your state's actual deadline.
+  warn_days_before:
+    default: 5
+    description: How many days before the deadline to start flagging as due.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is the state new-hire directory report used for child-support
+  enforcement matching — it's separate from internal onboarding
+  paperwork like I-9s or benefits forms. Confirm your specific state's
+  deadline and reporting method.

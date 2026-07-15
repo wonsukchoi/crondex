@@ -1,0 +1,35 @@
+id: team-holiday-coverage-check
+version: 1
+name: Team Holiday Coverage Check
+description: >
+  Checks whether an upcoming public holiday or company blackout date has
+  on-call or support coverage assigned. Use this if coverage gaps around
+  holidays have ever slipped through because everyone assumed someone
+  else had it.
+category: team
+tags: [oncall, holiday, team]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  holiday_epoch=$(date -j -f %Y-%m-%d "{{next_holiday_date}}" +%s 2>/dev/null || date -d "{{next_holiday_date}}" +%s);
+  days_left=$(( (holiday_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -ge 0 ] && [ "$days_left" -le {{warn_days_before}} ] && [ "{{coverage_assigned}}" != "yes" ]; then
+    echo "GAP: {{next_holiday_date}} is in $days_left day(s) and coverage_assigned is not 'yes' — assign on-call coverage now.";
+  elif [ "$days_left" -lt 0 ]; then echo "note: next_holiday_date has passed — update it to the next upcoming holiday.";
+  else echo "OK: $days_left day(s) until {{next_holiday_date}}, coverage_assigned={{coverage_assigned}}."; fi
+variables:
+  next_holiday_date:
+    default: "2026-09-07"
+    description: Date (YYYY-MM-DD) of the next holiday or blackout date to check coverage for.
+  coverage_assigned:
+    default: "no"
+    description: Set to "yes" once someone is confirmed as on-call/support coverage for that date.
+  warn_days_before:
+    default: 10
+    description: Start warning this many days before the holiday if coverage isn't assigned yet.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain next_holiday_date and coverage_assigned
+  yourself — this doesn't pull from any calendar or paging system.

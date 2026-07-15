@@ -1,0 +1,39 @@
+id: pharmacist-coverage-gap-check
+version: 1
+name: Pharmacist Coverage Gap Check
+description: >
+  Scans an exported staffing schedule for any day where scheduled pharmacist
+  hours fall short of your posted pharmacy operating hours, meaning part of
+  the day could go without a licensed pharmacist on the floor. Use this if
+  a shift has ever gone uncovered because two pharmacists each assumed the
+  other had it, or a call-out wasn't backfilled.
+category: pharmacy
+tags: [pharmacy, staffing, scheduling, compliance]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v open_hours="{{store_open_hours_per_day}}" '
+    NR==1 {next}
+    { hours[$1] += ($2 == "pharmacist" ? $3 : 0) }
+    END {
+      for (d in hours) {
+        if (hours[d] + 0 < open_hours + 0) {
+          printf "COVERAGE GAP: %s has only %.1f pharmacist-hour(s) scheduled against %.1f open hour(s)\n", d, hours[d], open_hours;
+        }
+      }
+    }
+  ' "{{staffing_schedule_csv_path}}"
+variables:
+  staffing_schedule_csv_path:
+    default: "./staffing-schedule.csv"
+    description: "Path to a CSV export of scheduled shifts with columns: date,role,hours_scheduled (role is 'pharmacist' or 'technician')."
+  store_open_hours_per_day:
+    default: 12
+    description: How many hours per day the pharmacy counter is open and therefore needs a licensed pharmacist present.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes hours_scheduled is pre-aggregated per date/role in the export
+  (most scheduling tools can produce this). Flags a gap in total hours, not
+  which specific hour-of-day is uncovered — treat it as a prompt to check
+  the actual schedule, not a precise timestamp.

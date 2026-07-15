@@ -1,0 +1,33 @@
+id: exit-interview-followup-tracker
+version: 1
+name: Exit Interview Follow-Up Tracker
+description: >
+  Checks whether action items from a departing employee's exit interview
+  got addressed before the deadline you set. Use this if exit interview
+  feedback has ever been collected and then quietly forgotten.
+category: team
+tags: [offboarding, team, followup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  exit_epoch=$(date -j -f %Y-%m-%d "{{exit_interview_date}}" +%s 2>/dev/null || date -d "{{exit_interview_date}}" +%s);
+  days_since=$(( (today_epoch-exit_epoch)/86400 ));
+  if [ "$days_since" -ge {{followup_deadline_days}} ] && [ "{{followup_done}}" != "yes" ]; then
+    echo "OVERDUE: exit interview follow-up items from {{exit_interview_date}} are $days_since day(s) old and still not marked done (deadline {{followup_deadline_days}} days).";
+  else echo "OK: exit interview follow-up status — followup_done={{followup_done}}, $days_since day(s) since the interview."; fi
+variables:
+  exit_interview_date:
+    default: "2026-06-01"
+    description: Date (YYYY-MM-DD) the exit interview was conducted.
+  followup_deadline_days:
+    default: 21
+    description: Days allowed to close out action items before this flags them overdue.
+  followup_done:
+    default: "no"
+    description: Set to "yes" once all exit interview action items are addressed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain followup_done yourself — this doesn't pull
+  from any HR system.

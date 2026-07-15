@@ -1,0 +1,34 @@
+id: direct-report-growth-plan-checkin-reminder
+version: 1
+name: Direct Report Growth Plan Check-In Reminder
+description: >
+  Reminds you to revisit a direct report's career development or growth
+  plan on a regular cadence. Use this if growth conversations tend to
+  only happen once a year during performance review season.
+category: team
+tags: [career, growth, team]
+schedule: "0 9 1 */3 *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  last_epoch=$(date -j -f %Y-%m-%d "{{last_checkin_date}}" +%s 2>/dev/null || date -d "{{last_checkin_date}}" +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  if [ "$days_since" -ge {{checkin_interval_days}} ]; then
+    echo "DUE: growth plan check-in with {{report_name}} is $days_since day(s) overdue (cadence {{checkin_interval_days}}) — book time.";
+  else echo "OK: last growth plan check-in with {{report_name}} was $days_since day(s) ago."; fi
+variables:
+  report_name:
+    default: ""
+    description: Name of the direct report whose growth plan is being tracked.
+  last_checkin_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last discussed this person's growth/development plan.
+  checkin_interval_days:
+    default: 90
+    description: How often, in days, growth plan check-ins should happen.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain last_checkin_date yourself — this doesn't pull
+  from any performance management system. Run one instance per direct
+  report.

@@ -1,0 +1,48 @@
+id: wage-garnishment-order-deadline-tracker
+version: 1
+name: Wage Garnishment Order Deadline Tracker
+description: >
+  Flags active wage garnishment or child-support withholding orders that
+  are approaching or past the deadline to start withholding. Use this if
+  a garnishment order has ever sat in someone's inbox until payroll
+  missed the start date and the company was on the hook for the missed
+  withholding.
+category: hr
+tags: [hr, payroll, garnishment, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v deadline_days="{{response_window_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      days_since = (today - received_epoch) / 86400;
+      days_left = deadline_days - days_since;
+      if (days_left < 0) {
+        printf "GARNISHMENT OVERDUE: %s — order received %s, %d day(s) past the %d-day response/start window, withholding not yet started\n", $1, $2, -days_left, deadline_days;
+      } else if (days_left <= warn) {
+        printf "GARNISHMENT DUE: %s — order received %s, %d day(s) left to start withholding\n", $1, $2, days_left;
+      }
+    }
+  ' "{{garnishment_tracking_csv_path}}"
+variables:
+  garnishment_tracking_csv_path:
+    default: "./garnishment-orders.csv"
+    description: "Path to a CSV with columns: employee_name,order_received_date (YYYY-MM-DD),withholding_started_date (blank if not started)."
+  response_window_days:
+    default: 14
+    description: Days allowed to begin withholding after receiving the order — varies by order type and state (child support, federal tax levy, creditor garnishment); confirm against the specific order and jurisdiction.
+  warn_days_before:
+    default: 3
+    description: How many days before the deadline to start flagging as due.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Garnishment start deadlines vary significantly by order type (federal
+  tax levy vs. child support vs. creditor garnishment) and by state —
+  confirm actual deadlines with payroll or legal counsel rather than
+  relying on the default. Assumes an already-maintained tracking CSV,
+  not live payroll-system access.

@@ -1,0 +1,50 @@
+id: hsa-fsa-contribution-limit-check
+version: 1
+name: HSA / FSA Contribution Limit Check
+description: >
+  Compares each employee's HSA or FSA payroll election against the
+  current-year IRS contribution limit for their account type and flags
+  anyone over it. Use this if an employee has ever over-elected into an
+  HSA or FSA because the payroll system didn't stop them and nobody
+  caught it until tax season.
+category: hr
+tags: [hr, benefits, hsa, fsa, compliance]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v hsa_self="{{hsa_self_only_limit}}" -v hsa_family="{{hsa_family_limit}}" -v fsa_health="{{fsa_healthcare_limit}}" -v fsa_dep="{{fsa_dependent_care_limit}}" '
+    NR==1 {next}
+    {
+      limit = 0;
+      if ($2 == "hsa-self") limit = hsa_self;
+      else if ($2 == "hsa-family") limit = hsa_family;
+      else if ($2 == "fsa-healthcare") limit = fsa_health;
+      else if ($2 == "fsa-dependent-care") limit = fsa_dep;
+      if (limit > 0 && $3+0 > limit+0) {
+        printf "OVER LIMIT: %s — %s election of $%s exceeds the $%s IRS limit\n", $1, $2, $3, limit;
+      }
+    }
+  ' "{{hsa_fsa_elections_csv_path}}"
+variables:
+  hsa_fsa_elections_csv_path:
+    default: "./hsa-fsa-elections.csv"
+    description: "Path to a CSV with columns: employee_name,account_type (hsa-self/hsa-family/fsa-healthcare/fsa-dependent-care),annual_election."
+  hsa_self_only_limit:
+    default: 4300
+    description: Current-year IRS annual HSA contribution limit for self-only coverage.
+  hsa_family_limit:
+    default: 8550
+    description: Current-year IRS annual HSA contribution limit for family coverage.
+  fsa_healthcare_limit:
+    default: 3300
+    description: Current-year IRS annual healthcare FSA contribution limit.
+  fsa_dependent_care_limit:
+    default: 5000
+    description: Current-year IRS annual dependent-care FSA contribution limit (varies by filing status/household — 5000 is the common married-filing-jointly figure).
+compatible_agents: [generic, claude, codex]
+notes: >
+  IRS contribution limits change annually and dependent-care FSA limits
+  depend on filing status — confirm current-year numbers before relying
+  on the defaults. This only flags over-limit elections; it doesn't
+  adjust payroll deductions.

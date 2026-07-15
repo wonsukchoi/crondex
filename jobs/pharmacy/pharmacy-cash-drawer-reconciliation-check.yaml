@@ -1,0 +1,36 @@
+id: pharmacy-cash-drawer-reconciliation-check
+version: 1
+name: Register Cash Drawer Reconciliation Check
+description: >
+  Compares each register's expected close-out total against the counted
+  total from your point-of-sale export and flags any drawer that's off by
+  more than your tolerance. Use this if a shortage or overage has ever sat
+  unnoticed for days because nobody cross-checked the close-out sheets.
+category: pharmacy
+tags: [pharmacy, point-of-sale, cash-handling, reconciliation]
+schedule: "0 22 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{variance_tolerance_dollars}}" '
+    NR==1 {next}
+    {
+      diff = $3 - $4;
+      abs_diff = diff < 0 ? -diff : diff;
+      if (abs_diff > tolerance + 0) {
+        printf "DRAWER VARIANCE: %s register %s — expected $%.2f, counted $%.2f (diff $%.2f)\n", $1, $2, $3, $4, diff;
+      }
+    }
+  ' "{{register_closeout_csv_path}}"
+variables:
+  register_closeout_csv_path:
+    default: "./register-closeouts.csv"
+    description: "Path to a CSV export of daily close-outs with columns: date,register_id,expected_total,counted_total."
+  variance_tolerance_dollars:
+    default: 5.00
+    description: Dollar amount a drawer can be off by before it's flagged for review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation flagging only — it does not adjust totals or
+  accuse anyone; investigate flagged drawers through your normal
+  cash-handling procedure.

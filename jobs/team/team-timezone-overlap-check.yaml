@@ -1,0 +1,27 @@
+id: team-timezone-overlap-check
+version: 1
+name: Team Timezone Overlap Check
+description: >
+  Warns you when your distributed team's shared working-hours window
+  shrinks below a safe minimum. Use this if you manage people across
+  timezones and want a nudge before meeting scheduling gets painful.
+category: team
+tags: [timezone, distributed, team]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ {{overlap_hours}} -lt {{min_overlap_hours}} ]; then
+    echo "WARN: only {{overlap_hours}}h of shared working hours across the team (min {{min_overlap_hours}}h) — scheduling conflicts are likely.";
+  else echo "OK: {{overlap_hours}}h of shared working hours (min {{min_overlap_hours}}h)."; fi
+variables:
+  overlap_hours:
+    default: 4
+    description: Current number of hours where all team members' working hours overlap — update this yourself as the team's timezone mix changes.
+  min_overlap_hours:
+    default: 3
+    description: Minimum acceptable overlap window, in hours, before this warns you.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain overlap_hours yourself — this doesn't pull from
+  any calendar or HR system.

@@ -1,0 +1,40 @@
+id: wholesaler-invoice-price-variance-check
+version: 1
+name: Wholesaler Invoice Price Variance Check
+description: >
+  Compares unit prices on a wholesaler invoice export against your
+  contract price list and flags any line that's being billed above
+  contract by more than your tolerance. Use this if you've ever discovered
+  months later that a wholesaler had been quietly billing above contract
+  on a slow-moving NDC.
+category: pharmacy
+tags: [pharmacy, wholesaler, invoicing, procurement]
+schedule: "0 9 * * 2"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tolerance_pct="{{price_tolerance_percent}}" '
+    NR==1 {next}
+    {
+      invoice_price=$4; contract_price=$5;
+      if (contract_price + 0 > 0) {
+        pct_over = ((invoice_price - contract_price) / contract_price) * 100;
+        if (pct_over > tolerance_pct + 0) {
+          printf "PRICE VARIANCE: %s (NDC %s) — invoiced $%.4f vs contract $%.4f (+%.1f%%)\n", $3, $2, invoice_price, contract_price, pct_over;
+        }
+      }
+    }
+  ' "{{wholesaler_invoice_csv_path}}"
+variables:
+  wholesaler_invoice_csv_path:
+    default: "./wholesaler-invoice.csv"
+    description: "Path to a CSV export merging invoice and contract data, columns: invoice_date,ndc,drug_name,invoice_unit_price,contract_unit_price."
+  price_tolerance_percent:
+    default: 2
+    description: Percent above contract price a line can be billed before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes contract_unit_price has already been merged into the export from
+  your contract price list — this job doesn't reconcile which contract
+  applies. Flagging only; dispute resolution with the wholesaler is a
+  manual step.

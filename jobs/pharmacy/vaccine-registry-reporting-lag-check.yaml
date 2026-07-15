@@ -1,0 +1,38 @@
+id: vaccine-registry-reporting-lag-check
+version: 1
+name: Vaccine Administration Registry Reporting Lag Check
+description: >
+  Scans the vaccine administration log for shots given more than your
+  reporting deadline ago that haven't yet been marked as reported to the
+  state immunization registry (IIS). Use this if a busy immunization day
+  has ever caused registry reporting to slip past the required window.
+category: pharmacy
+tags: [pharmacy, immunization, vaccines, compliance]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  now_epoch=$(date +%s);
+  awk -F',' -v now="$now_epoch" -v hours="{{reporting_deadline_hours}}" '
+    NR==1 {next}
+    $4 != "yes" {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline admin_epoch; close(cmd);
+      age_hours = (now - admin_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "REGISTRY REPORTING OVERDUE: %s given %s (%d) — %.0f hour(s) ago, not yet reported\n", $3, $2, $1, age_hours;
+      }
+    }
+  ' "{{vaccine_admin_log_csv_path}}"
+variables:
+  vaccine_admin_log_csv_path:
+    default: "./vaccine-admin-log.csv"
+    description: "Path to a CSV export with columns: administered_at (YYYY-MM-DD HH:MM),patient_id,vaccine_name,reported_to_registry (yes/no)."
+  reporting_deadline_hours:
+    default: 72
+    description: Hours allowed between administration and IIS reporting — check your state's specific requirement (some are as tight as 24 hours).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reporting-lag flag; it does not submit anything to the state
+  registry itself. Confirm your state's exact reporting deadline before
+  relying on the default.

@@ -1,0 +1,37 @@
+id: payroll-tax-deposit-deadline-reminder
+version: 1
+name: Payroll Tax Deposit Deadline Reminder
+description: >
+  Reminds you of the upcoming federal payroll tax deposit due date based
+  on your deposit schedule, so withheld taxes go out before the IRS
+  deadline. Use this if a payroll tax deposit has ever gone out late
+  because nobody was tracking the semi-weekly or monthly due dates.
+category: hr
+tags: [hr, payroll, tax, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  due_epoch=$(date -j -f %Y-%m-%d "{{next_deposit_due_date}}" +%s 2>/dev/null || date -d "{{next_deposit_due_date}}" +%s);
+  days_left=$(( (due_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "note: deposit due date {{next_deposit_due_date}} has passed — confirm the deposit went out and update next_deposit_due_date for the next period.";
+  elif [ "$days_left" -le {{warn_days_before}} ]; then
+    echo "DUE SOON: {{deposit_schedule}}-schedule payroll tax deposit is due in $days_left day(s), on {{next_deposit_due_date}}.";
+  else echo "OK: next payroll tax deposit due in $days_left day(s), on {{next_deposit_due_date}}."; fi
+variables:
+  next_deposit_due_date:
+    default: "2026-08-05"
+    description: Date (YYYY-MM-DD) the next federal payroll tax deposit is due — update this yourself each time a deposit is made, based on your IRS deposit schedule.
+  deposit_schedule:
+    default: "semiweekly"
+    description: Your IRS deposit schedule — "monthly" or "semiweekly" — determined annually by the IRS lookback period.
+  warn_days_before:
+    default: 2
+    description: Start warning this many days before the deposit due date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain next_deposit_due_date yourself based on your
+  IRS deposit schedule and actual pay dates — this doesn't calculate
+  deposit dates automatically from a pay calendar, and it doesn't file
+  or submit any deposit.

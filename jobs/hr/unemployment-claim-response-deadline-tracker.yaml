@@ -1,0 +1,47 @@
+id: unemployment-claim-response-deadline-tracker
+version: 1
+name: Unemployment Claim Response Deadline Tracker
+description: >
+  Flags state unemployment insurance claims that are approaching the
+  deadline for the employer to respond, so a contestable claim doesn't
+  get decided by default. Use this if an unemployment claim has ever
+  gone unanswered past the response window and turned into an automatic
+  charge against the company's tax rate.
+category: hr
+tags: [hr, unemployment, compliance, payroll]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v deadline_days="{{response_deadline_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      days_since = (today - received_epoch) / 86400;
+      days_left = deadline_days - days_since;
+      if (days_left < 0) {
+        printf "CLAIM RESPONSE OVERDUE: %s — notice received %s, %d day(s) past the %d-day response deadline, no response on file\n", $1, $2, -days_left, deadline_days;
+      } else if (days_left <= warn) {
+        printf "CLAIM RESPONSE DUE: %s — notice received %s, %d day(s) left to respond\n", $1, $2, days_left;
+      }
+    }
+  ' "{{claims_csv_path}}"
+variables:
+  claims_csv_path:
+    default: "./unemployment-claims.csv"
+    description: "Path to a CSV with columns: employee_name,notice_received_date (YYYY-MM-DD),response_submitted_date (blank if not yet submitted)."
+  response_deadline_days:
+    default: 10
+    description: Days allowed to respond to a state unemployment claim notice — commonly 10-15 days but varies by state; confirm against the notice from the state workforce agency.
+  warn_days_before:
+    default: 3
+    description: How many days before the deadline to start flagging as due.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Response deadlines and required response methods vary by state —
+  confirm the actual deadline printed on each notice rather than relying
+  on the default. Assumes an already-maintained tracking CSV, not live
+  access to any state unemployment portal.

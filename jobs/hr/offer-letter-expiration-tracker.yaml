@@ -1,0 +1,46 @@
+id: offer-letter-expiration-tracker
+version: 1
+name: Offer Letter Expiration Tracker
+description: >
+  Flags outstanding signed offer letters that are approaching their
+  expiration date without a countersigned acceptance on file. Use this
+  if an offer has ever gone stale — or a candidate accepted after the
+  deadline — because nobody was tracking the clock between "offer sent"
+  and "offer accepted."
+category: hr
+tags: [hr, recruiting, onboarding]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v default_expiration="{{default_expiration_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      exp_days = ($3 != "" ? $3 : default_expiration);
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      days_since = (today - sent_epoch) / 86400;
+      days_left = exp_days - days_since;
+      if (days_left < 0) {
+        printf "OFFER EXPIRED: %s — sent %s, %d day(s) past the %d-day expiration, no acceptance on file\n", $1, $2, -days_left, exp_days;
+      } else if (days_left <= warn) {
+        printf "OFFER EXPIRING SOON: %s — sent %s, %d day(s) left before expiration\n", $1, $2, days_left;
+      }
+    }
+  ' "{{offer_tracking_csv_path}}"
+variables:
+  offer_tracking_csv_path:
+    default: "./offer-letters.csv"
+    description: "Path to a CSV with columns: candidate_name,offer_sent_date (YYYY-MM-DD),expiration_days (blank to use default_expiration_days),accepted_date (blank if not accepted)."
+  default_expiration_days:
+    default: 7
+    description: Default number of days an offer stays open when a row doesn't specify its own expiration_days.
+  warn_days_before:
+    default: 2
+    description: How many days before expiration to start flagging as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-maintained CSV export from your ATS or a manual
+  tracker — doesn't pull live data from any recruiting system.

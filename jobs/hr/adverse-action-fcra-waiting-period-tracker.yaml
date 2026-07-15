@@ -1,0 +1,44 @@
+id: adverse-action-fcra-waiting-period-tracker
+version: 1
+name: Adverse Action FCRA Waiting Period Tracker
+description: >
+  Tracks candidates in the FCRA pre-adverse-action waiting period and
+  flags who's cleared to receive a final adverse action notice versus
+  who's still waiting. Use this if a hiring manager has ever sent a
+  final rejection based on a background check before the legally
+  required waiting period was up.
+category: hr
+tags: [hr, background-check, fcra, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v wait_days="{{waiting_period_days}}" '
+    NR==1 {next}
+    $3 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline notice_epoch; close(cmd);
+      days_since = (today - notice_epoch) / 86400;
+      days_left = wait_days - days_since;
+      if (days_left <= 0) {
+        printf "CLEARED TO SEND: %s — pre-adverse notice sent %s, %d-day waiting period has elapsed, no final notice sent yet\n", $1, $2, wait_days;
+      } else {
+        printf "STILL WAITING: %s — pre-adverse notice sent %s, %d day(s) left in waiting period\n", $1, $2, days_left;
+      }
+    }
+  ' "{{fcra_tracking_csv_path}}"
+variables:
+  fcra_tracking_csv_path:
+    default: "./fcra-adverse-action-tracking.csv"
+    description: "Path to a CSV with columns: candidate_name,pre_adverse_notice_date (YYYY-MM-DD),final_notice_sent_date (blank if not yet sent)."
+  waiting_period_days:
+    default: 5
+    description: Days to wait after the pre-adverse-action notice before sending a final adverse action notice — FCRA doesn't set an exact number but 5 business days is a common standard; confirm your practice with counsel.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This only tracks timing and never sends anything — it's a reporting
+  job, not an automation that issues adverse action notices. Some states
+  set their own minimum waiting periods on top of FCRA; confirm your
+  practice with employment counsel before relying on the default.

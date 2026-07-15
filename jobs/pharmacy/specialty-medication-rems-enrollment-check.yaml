@@ -1,0 +1,38 @@
+id: specialty-medication-rems-enrollment-check
+version: 1
+name: Specialty Medication REMS Enrollment Check
+description: >
+  Checks patients on a REMS-required specialty medication for missing
+  program enrollment or attestation before their next scheduled fill. Use
+  this if a specialty fill has ever been held up at the last minute
+  because REMS paperwork was never actually completed.
+category: pharmacy
+tags: [pharmacy, specialty-pharmacy, rems, compliance]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v days="{{lookahead_days}}" '
+    NR==1 {next}
+    $3 == "yes" && $4 != "yes" {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline fill_epoch; close(cmd);
+      days_until = (fill_epoch - today) / 86400;
+      if (days_until <= days + 0) {
+        printf "REMS ENROLLMENT MISSING: patient %s — %s, next fill %s (%d day(s) away)\n", $1, $2, $5, days_until;
+      }
+    }
+  ' "{{specialty_patient_csv_path}}"
+variables:
+  specialty_patient_csv_path:
+    default: "./specialty-patients.csv"
+    description: "Path to a CSV export with columns: patient_id,drug_name,rems_required (yes/no),enrollment_on_file (yes/no),next_fill_date (YYYY-MM-DD)."
+  lookahead_days:
+    default: 7
+    description: How many days before the next fill date to start flagging missing REMS enrollment.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags missing enrollment only — it does not contact the REMS program or
+  the patient. Follow your specialty workflow to complete or chase down
+  the required enrollment/attestation.

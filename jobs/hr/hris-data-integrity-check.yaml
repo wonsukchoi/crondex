@@ -1,0 +1,35 @@
+id: hris-data-integrity-check
+version: 1
+name: HRIS Data Integrity Check
+description: >
+  Scans an HRIS employee export for duplicate employee IDs and rows
+  missing required fields, and lists what needs cleanup. Use this if
+  bad HRIS data has ever caused a payroll error, a benefits enrollment
+  failure, or a wrong headcount number that took hours to track down.
+category: hr
+tags: [hr, hris, data-quality]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($1 in seen) { printf "DUPLICATE EMPLOYEE ID: %s appears more than once (%s and %s)\n", $1, seen[$1], $2; }
+      seen[$1] = $2;
+      if ($3 == "" || $4 == "" || $5 == "") {
+        printf "MISSING DATA: %s (%s) has one or more blank required fields\n", $1, $2;
+      }
+    }
+  ' "{{hris_export_csv_path}}"
+variables:
+  hris_export_csv_path:
+    default: "./hris-employee-export.csv"
+    description: "Path to a CSV export with columns: employee_id,employee_name,ssn_last4,department,status."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks only for duplicate employee IDs and blank values in the
+  columns present in this export. Export whatever fields matter most
+  for your HRIS and adjust the column checks if your CSV layout
+  differs — no PII beyond the last 4 of SSN should be included in the
+  export used for this check.

@@ -1,0 +1,33 @@
+id: hiring-req-staleness-check
+version: 1
+name: Hiring Requisition Staleness Check
+description: >
+  Warns you when an open job requisition has sat open too long without
+  being filled or closed. Use this if reqs have ever quietly gone stale
+  and nobody noticed until a headcount review surfaced them.
+category: team
+tags: [hiring, headcount, team]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  opened_epoch=$(date -j -f %Y-%m-%d "{{req_opened_date}}" +%s 2>/dev/null || date -d "{{req_opened_date}}" +%s);
+  days_open=$(( (today_epoch-opened_epoch)/86400 ));
+  if [ "$days_open" -ge {{stale_after_days}} ]; then
+    echo "STALE: req '{{req_title}}' has been open $days_open day(s) (threshold {{stale_after_days}}) — check pipeline health or close it out.";
+  else echo "OK: req '{{req_title}}' open $days_open day(s)."; fi
+variables:
+  req_title:
+    default: ""
+    description: Title or short label of the open requisition being tracked.
+  req_opened_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the requisition was opened.
+  stale_after_days:
+    default: 60
+    description: Flag the req as stale after this many days open.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain req_opened_date yourself — this doesn't pull
+  from any ATS. Run one instance of this job per open req you want tracked.

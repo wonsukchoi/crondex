@@ -1,0 +1,34 @@
+id: vaccine-consent-documentation-check
+version: 1
+name: Vaccine Consent Documentation Completeness Check
+description: >
+  Scans the vaccine administration log for any entry missing a signed
+  consent or a documented Vaccine Information Statement (VIS) offer. Use
+  this if incomplete consent paperwork has ever only surfaced during an
+  audit, long after the patient already left.
+category: pharmacy
+tags: [pharmacy, immunization, vaccines, patient-safety, documentation]
+schedule: "0 18 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      missing="";
+      if ($4 != "yes") missing = missing "consent ";
+      if ($5 != "yes") missing = missing "VIS ";
+      if (missing != "") {
+        printf "DOCUMENTATION GAP: %s — %s (patient %s), missing: %s\n", $1, $3, $2, missing;
+      }
+    }
+  ' "{{vaccine_admin_log_csv_path}}"
+variables:
+  vaccine_admin_log_csv_path:
+    default: "./vaccine-admin-log.csv"
+    description: "Path to a CSV export with columns: administered_date,patient_id,vaccine_name,consent_signed (yes/no),vis_provided (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags documentation gaps only — it does not contact the patient or alter
+  any record. Follow up per your practice's standard consent-remediation
+  process.

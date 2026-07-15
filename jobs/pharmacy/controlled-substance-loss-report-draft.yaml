@@ -1,0 +1,56 @@
+id: controlled-substance-loss-report-draft
+version: 1
+name: Controlled Substance Loss/Theft Report Draft Assistant
+description: >
+  Turns a plain-language description of a suspected controlled substance
+  loss or theft into a structured draft narrative covering the fields a
+  DEA Form 106 needs, and lists anything still missing. Use this if
+  drafting the required loss/theft report has ever eaten up time you
+  didn't have right after discovering a discrepancy.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, compliance, incident-report]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  You are helping a pharmacist-in-charge prepare for filing a DEA Form 106
+  (Report of Theft or Loss of Controlled Substances). You will never file
+  or submit anything — this is drafting assistance only.
+
+  Incident summary provided: {{incident_summary}}
+  Discrepancy details provided: {{discrepancy_details}}
+
+  1. Organize the provided information into a structured draft narrative
+     covering: date/time discovered, date/time of suspected loss (if
+     different), drug name(s), NDC(s), quantity/strength lost, whether
+     loss or theft is suspected, and a factual description of
+     circumstances (no speculation about who is responsible).
+  2. Explicitly list any DEA Form 106 field you cannot fill in from the
+     given information (e.g. DEA registration number, nearest DEA field
+     office, whether local law enforcement was notified) so the pharmacist
+     knows exactly what to add before filing.
+  3. Save the draft to {{draft_output_path}}.
+  4. End the output with a clear reminder: this draft must be reviewed,
+     corrected, and personally filed by the DEA registrant through the
+     official DEA diversion portal — do not treat this draft as filed or
+     submitted.
+variables:
+  incident_summary:
+    default: ""
+    description: Plain-language description of what was discovered and when — fill this in yourself before running.
+  discrepancy_details:
+    default: ""
+    description: Known specifics of the discrepancy (drug, NDC, quantity, count history) — fill this in yourself before running.
+  draft_output_path:
+    default: "./dea-106-draft.md"
+    description: Where to save the drafted narrative for pharmacist review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only, never submits anything to the DEA or any other agency. This
+  is a regulated, time-sensitive filing (federal rules generally require
+  prompt reporting of significant loss) — a licensed DEA registrant must
+  review, complete, and personally file the actual report. The schedule
+  above is a nominal daily slot; in practice this job is only useful when
+  incident_summary/discrepancy_details are filled in right after an
+  incident — leave them blank otherwise, or trigger this job manually
+  instead of on the recurring schedule.

@@ -1,0 +1,33 @@
+id: minimum-wage-rate-compliance-check
+version: 1
+name: Minimum Wage Rate Compliance Check
+description: >
+  Compares hourly employee pay rates against the minimum wage that
+  applies to each person's work location and flags anyone paid below it.
+  Use this if a state or city minimum wage has ever increased on January
+  1 (or another date) and nobody rechecked whether every hourly rate
+  still cleared the new floor.
+category: hr
+tags: [hr, payroll, minimum-wage, compliance]
+schedule: "0 8 1 1,7 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      if ($3+0 < $4+0) {
+        printf "BELOW MINIMUM WAGE: %s (%s) — paid $%s/hr, below the $%s/hr minimum for that location\n", $1, $2, $3, $4;
+      }
+    }
+  ' "{{wage_roster_csv_path}}"
+variables:
+  wage_roster_csv_path:
+    default: "./hourly-wage-roster.csv"
+    description: "Path to a CSV with columns: employee_name,work_location,hourly_rate,applicable_minimum_wage. You (or your payroll provider) maintain the applicable_minimum_wage column per location — it isn't looked up automatically."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Doesn't pull current minimum wage rates from any government source —
+  the applicable_minimum_wage column must be kept current per location,
+  including city/county rates that can exceed the state rate. Re-export
+  this roster whenever a jurisdiction's rate changes.

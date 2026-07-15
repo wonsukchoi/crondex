@@ -1,0 +1,58 @@
+id: medication-sync-capacity-forecast
+version: 1
+name: Medication Sync Capacity Forecast
+description: >
+  Counts how many synchronized-refill patients are due each upcoming sync
+  date and drafts a short staffing note flagging any date that looks like
+  an unusually heavy fill day. Use this if a sync date has ever caught the
+  team off guard with far more fills than a normal day, because nobody
+  looked ahead at the volume.
+category: pharmacy
+tags: [pharmacy, medication-sync, workflow, staffing]
+schedule: "0 8 * * 5"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    { count[$2]++ }
+    END {
+      for (d in count) {
+        printf "%s: %d patient(s) scheduled\n", d, count[d];
+      }
+    }
+  ' "{{sync_roster_csv_path}}" | sort
+prompt: |
+  You've been given per-date patient counts for upcoming synchronized
+  refills from {{sync_roster_csv_path}} (columns: patient_id, sync_date).
+
+  1. Look at the counts across the next {{forecast_weeks}} week(s).
+  2. Identify any date(s) whose count is notably higher than the others in
+     the window (not just the single highest — flag any real outlier, even
+     if there are two).
+  3. Draft a short staffing note for the pharmacy manager naming the
+     outlier date(s), the count, and a one-line suggestion (e.g. "consider
+     an extra tech shift" or "start proactive outreach a day early to
+     spread the load") — no specific patient names.
+  4. Save the note to {{forecast_output_path}}.
+script_note: >
+  The shell command alone gives you exact per-date counts with zero
+  tokens, which is enough if you just want the raw numbers. The prompt
+  pass adds judgment about what counts as "unusually heavy" for your
+  pharmacy's normal volume and turns it into a readable staffing note,
+  which a fixed threshold can't do well since normal daily volume varies
+  by store.
+variables:
+  sync_roster_csv_path:
+    default: "./sync-roster.csv"
+    description: "Path to a CSV export of upcoming synchronized-refill appointments, columns: patient_id,sync_date (YYYY-MM-DD)."
+  forecast_weeks:
+    default: 4
+    description: How many weeks ahead to forecast sync volume.
+  forecast_output_path:
+    default: "./sync-capacity-forecast.md"
+    description: Where to save the drafted staffing note.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Forecasting/staffing suggestion only — it does not change any schedule
+  or contact patients automatically.

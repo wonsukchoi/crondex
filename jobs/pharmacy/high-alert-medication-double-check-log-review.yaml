@@ -1,0 +1,30 @@
+id: high-alert-medication-double-check-log-review
+version: 1
+name: High-Alert Medication Double-Check Log Review
+description: >
+  Scans the dispensing log for high-alert medications (insulin,
+  anticoagulants, chemotherapy, etc.) that were dispensed without a
+  documented independent double-check. Use this if a high-alert dispense
+  has ever gone out the door without the second set of eyes your policy
+  requires, simply because the shift was slammed.
+category: pharmacy
+tags: [pharmacy, patient-safety, high-alert-medications, quality-assurance]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4 == "yes" && $5 == "" {
+      printf "MISSING DOUBLE-CHECK: Rx #%s — %s dispensed %s with no second-checker recorded\n", $2, $3, $1;
+    }
+  ' "{{dispensing_log_csv_path}}"
+variables:
+  dispensing_log_csv_path:
+    default: "./dispensing-log.csv"
+    description: "Path to a CSV export with columns: dispensed_at,rx_number,drug_name,high_alert (yes/no),double_check_by (name, blank if not done)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags missing documentation only — it doesn't verify clinical accuracy
+  of the dispense itself. Treat repeated gaps as a workflow/staffing signal
+  to review with your quality assurance process.

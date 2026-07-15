@@ -1,0 +1,35 @@
+id: team-conference-cfp-deadline-reminder
+version: 1
+name: Team Conference CFP Deadline Reminder
+description: >
+  Reminds you before a conference call-for-papers or event registration
+  deadline your team cares about closes. Use this if you've ever missed
+  submitting a talk proposal or registering for an event because the
+  deadline snuck by.
+category: team
+tags: [conference, team, deadline]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  deadline_epoch=$(date -j -f %Y-%m-%d "{{cfp_deadline_date}}" +%s 2>/dev/null || date -d "{{cfp_deadline_date}}" +%s);
+  days_left=$(( (deadline_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "note: cfp_deadline_date for {{event_name}} has passed — update it or clear it out.";
+  elif [ "$days_left" -le {{warn_days_before}} ]; then
+    echo "REMINDER: {{event_name}} CFP/registration deadline is in $days_left day(s) (on {{cfp_deadline_date}}).";
+  else echo "OK: {{event_name}} deadline is $days_left day(s) away."; fi
+variables:
+  event_name:
+    default: ""
+    description: Name of the conference or event being tracked.
+  cfp_deadline_date:
+    default: "2026-09-01"
+    description: Date (YYYY-MM-DD) the call-for-papers or registration deadline closes.
+  warn_days_before:
+    default: 14
+    description: Start reminding this many days before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain event_name and cfp_deadline_date yourself —
+  this doesn't pull from any conference or event platform.

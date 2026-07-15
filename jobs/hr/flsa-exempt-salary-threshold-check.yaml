@@ -1,0 +1,42 @@
+id: flsa-exempt-salary-threshold-check
+version: 1
+name: FLSA Exempt Salary Threshold Check
+description: >
+  Compares each salaried-exempt employee's pay against the current FLSA
+  minimum salary threshold and flags anyone at risk of falling below it.
+  Use this if the federal (or state) exempt salary threshold has ever
+  changed and nobody checked whether existing exempt employees still
+  cleared the new bar.
+category: hr
+tags: [hr, flsa, compliance, compensation]
+schedule: "0 8 1 1,4,7,10 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{flsa_salary_threshold}}" -v buffer="{{warn_buffer}}" '
+    NR==1 {next}
+    $3 != "exempt" {next}
+    {
+      if ($2+0 < threshold+0) {
+        printf "AT RISK: %s — salary $%s is below the $%s FLSA exempt threshold; classification may need review\n", $1, $2, threshold;
+      } else if ($2+0 < (threshold+buffer)) {
+        printf "CLOSE TO THRESHOLD: %s — salary $%s is within $%s of the FLSA exempt threshold\n", $1, $2, buffer;
+      }
+    }
+  ' "{{exempt_roster_csv_path}}"
+variables:
+  exempt_roster_csv_path:
+    default: "./exempt-roster.csv"
+    description: "Path to a CSV with columns: employee_name,annual_salary,exempt_classification (exempt/nonexempt)."
+  flsa_salary_threshold:
+    default: 35568
+    description: The current FLSA minimum annual salary for exempt status to check against — this changes over time (and has been subject to litigation/rollbacks), so confirm the currently enforceable federal number, plus any higher state threshold that applies.
+  warn_buffer:
+    default: 2000
+    description: How close to the threshold (in dollars) triggers a "close to threshold" warning instead of "at risk."
+compatible_agents: [generic, claude, codex]
+notes: >
+  The federal FLSA salary threshold has changed multiple times in recent
+  years and been contested in court — verify the currently enforceable
+  number before relying on the default. Several states set their own,
+  higher exempt salary thresholds; check per employee's work state.

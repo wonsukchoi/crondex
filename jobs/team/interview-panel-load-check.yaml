@@ -1,0 +1,30 @@
+id: interview-panel-load-check
+version: 1
+name: Interview Panel Load Check
+description: >
+  Flags when a single interviewer has been stacked onto too many panels
+  this hiring cycle. Use this if panelists have ever burned out from
+  piling interviews on top of their regular workload.
+category: team
+tags: [hiring, interviews, team]
+schedule: "0 9 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  if [ {{interviews_this_cycle}} -gt {{max_interviews_per_cycle}} ]; then
+    echo "OVERLOAD: {{interviewer_name}} has done {{interviews_this_cycle}} interview(s) this cycle (max {{max_interviews_per_cycle}}) — rotate someone else in.";
+  else echo "OK: {{interviewer_name}} has done {{interviews_this_cycle}} interview(s) this cycle (max {{max_interviews_per_cycle}})."; fi
+variables:
+  interviewer_name:
+    default: ""
+    description: Name of the interviewer being tracked.
+  interviews_this_cycle:
+    default: 0
+    description: Number of interviews this person has done in the current hiring cycle — update this yourself as panels are scheduled.
+  max_interviews_per_cycle:
+    default: 6
+    description: Interview count per cycle above which this warns you.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain interviews_this_cycle yourself — this doesn't
+  pull from any ATS.

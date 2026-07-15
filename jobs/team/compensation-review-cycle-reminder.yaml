@@ -1,0 +1,32 @@
+id: compensation-review-cycle-reminder
+version: 1
+name: Compensation Review Cycle Reminder
+description: >
+  Reminds you ahead of the compensation or merit review cycle deadline
+  so you have time to prepare your inputs. Use this if comp cycle
+  submissions have ever come down to the last day because the deadline
+  crept up on you.
+category: team
+tags: [compensation, team, deadline]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  deadline_epoch=$(date -j -f %Y-%m-%d "{{comp_cycle_deadline}}" +%s 2>/dev/null || date -d "{{comp_cycle_deadline}}" +%s);
+  days_left=$(( (deadline_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "note: comp_cycle_deadline has passed — update it for the next cycle.";
+  elif [ "$days_left" -le {{warn_days_before}} ]; then
+    echo "REMINDER: compensation cycle inputs are due in $days_left day(s) (on {{comp_cycle_deadline}}) — start your recommendations.";
+  else echo "OK: comp cycle deadline is $days_left day(s) away."; fi
+variables:
+  comp_cycle_deadline:
+    default: "2026-11-15"
+    description: Date (YYYY-MM-DD) compensation/merit review inputs are due.
+  warn_days_before:
+    default: 14
+    description: Start reminding this many days before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain comp_cycle_deadline yourself — this doesn't
+  pull from any HR or payroll system.

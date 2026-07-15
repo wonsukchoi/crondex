@@ -1,0 +1,43 @@
+id: lasa-near-miss-pattern-review
+version: 1
+name: Look-Alike Sound-Alike Near-Miss Pattern Review
+description: >
+  Reads your near-miss/error log and summarizes recurring look-alike
+  sound-alike (LASA) drug-name mix-ups — like hydroxyzine/hydralazine or
+  clonidine/Klonopin — so you can catch a pattern before it becomes an
+  actual dispensing error. Use this if you've ever noticed the same
+  near-miss almost happening twice before anyone connected the dots.
+category: pharmacy
+tags: [pharmacy, patient-safety, lasa, quality-assurance]
+schedule: "0 9 1 * *"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: |
+  Read the near-miss log from {{near_miss_log_path}} (free-text or CSV
+  entries describing dispensing near-misses over the past month).
+
+  1. Identify any entries that involve look-alike sound-alike (LASA) drug
+     name pairs — either the drug names look similar in print, sound
+     similar spoken aloud, or were confused due to similar packaging.
+  2. Group recurring pairs together and count how many times each pair
+     appears in the log.
+  3. For each recurring pair (2+ occurrences), suggest general, low-cost
+     mitigations commonly used for LASA pairs (e.g. tall-man lettering,
+     shelf separation, auxiliary warning labels) — do not recommend
+     changing clinical practice or dosing.
+  4. Output a short summary ranked by frequency, saved to
+     {{summary_output_path}}, for the pharmacist-in-charge to review at
+     the next safety meeting.
+variables:
+  near_miss_log_path:
+    default: "./near-miss-log.csv"
+    description: "Path to the near-miss/error log export (CSV or free text) covering the review period."
+  summary_output_path:
+    default: "./lasa-review-summary.md"
+    description: Where to save the drafted pattern summary for review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Summarizes patterns only — it does not file anything with a regulator or
+  change any shelf layout automatically. Near-miss logs may contain
+  identifying details; keep the log and summary local per your HIPAA
+  policy.

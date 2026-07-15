@@ -1,0 +1,30 @@
+id: oncall-escalation-contact-staleness-check
+version: 1
+name: On-Call Escalation Contact Staleness Check
+description: >
+  Checks whether your on-call escalation contact list has been reviewed
+  recently and warns when it's gone stale. Use this if an escalation has
+  ever failed because the list still pointed to someone who left the team.
+category: team
+tags: [oncall, escalation, team]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  reviewed_epoch=$(date -j -f %Y-%m-%d "{{last_reviewed_date}}" +%s 2>/dev/null || date -d "{{last_reviewed_date}}" +%s);
+  days_since=$(( (today_epoch-reviewed_epoch)/86400 ));
+  if [ "$days_since" -ge {{stale_after_days}} ]; then
+    echo "STALE: escalation contact list last reviewed $days_since day(s) ago (threshold {{stale_after_days}}) — confirm every name and number still works.";
+  else echo "OK: escalation contact list reviewed $days_since day(s) ago."; fi
+variables:
+  last_reviewed_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the escalation contact list was last reviewed — update this yourself after each review.
+  stale_after_days:
+    default: 90
+    description: Flag the list as stale after this many days without a review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain last_reviewed_date yourself — this doesn't pull
+  from any paging or roster system.

@@ -1,0 +1,38 @@
+id: curbside-delivery-queue-aging-check
+version: 1
+name: Curbside and Delivery Queue Aging Check
+description: >
+  Scans the curbside pickup and local delivery queue export and flags any
+  order that's been sitting ready-and-waiting longer than your target
+  turnaround. Use this if a curbside customer has ever sat in the parking
+  lot for twenty minutes because their order got lost in the shuffle
+  behind the counter.
+category: pharmacy
+tags: [pharmacy, curbside, delivery, queue, workflow]
+schedule: "*/15 8-20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  now_epoch=$(date +%s);
+  awk -F',' -v now="$now_epoch" -v minutes="{{escalate_after_minutes}}" '
+    NR==1 {next}
+    $4 == "waiting" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline ready_epoch; close(cmd);
+      age_minutes = (now - ready_epoch) / 60;
+      if (age_minutes >= minutes) {
+        printf "QUEUE AGING: order #%s (%s) ready at %s — waiting %d min\n", $1, $2, $3, age_minutes;
+      }
+    }
+  ' "{{curbside_delivery_queue_csv_path}}"
+variables:
+  curbside_delivery_queue_csv_path:
+    default: "./curbside-delivery-queue.csv"
+    description: "Path to a CSV export with columns: order_id,order_type (curbside/delivery),ready_at (YYYY-MM-DD HH:MM),status (waiting/completed)."
+  escalate_after_minutes:
+    default: 15
+    description: Minutes an order can sit ready-and-waiting before it's flagged for someone to check on.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a periodic export from your point-of-sale or queue system.
+  Read-only triage; does not update order status or notify the customer.

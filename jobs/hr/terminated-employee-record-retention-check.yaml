@@ -1,0 +1,41 @@
+id: terminated-employee-record-retention-check
+version: 1
+name: Terminated Employee Record Retention Check
+description: >
+  Flags terminated employees whose personnel records have passed your
+  data retention window and are due for review before deletion. Use
+  this if old employee files have ever piled up indefinitely because
+  nobody tracks when they're actually allowed — or required — to be
+  purged.
+category: hr
+tags: [hr, data-retention, compliance, offboarding]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v retention_years="{{retention_years}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline term_epoch; close(cmd);
+      years_since = (today - term_epoch) / 86400 / 365.25;
+      if (years_since >= retention_years) {
+        printf "PAST RETENTION WINDOW: %s — terminated %s, %.1f year(s) ago, retention period of %s year(s) has elapsed — review for purge eligibility\n", $1, $2, years_since, retention_years;
+      }
+    }
+  ' "{{terminated_employee_csv_path}}"
+variables:
+  terminated_employee_csv_path:
+    default: "./terminated-employees.csv"
+    description: "Path to a CSV with columns: employee_name,termination_date (YYYY-MM-DD)."
+  retention_years:
+    default: 7
+    description: How many years to retain terminated-employee records before they're eligible for purge — varies by record type and jurisdiction (payroll, I-9s, and claims files often have different minimums); confirm against your document retention policy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags records as review-eligible only — this never deletes or purges
+  anything. Retention requirements differ by record type (I-9s,
+  payroll, benefits, litigation-hold files) and jurisdiction; confirm
+  with legal/compliance and check for active legal holds before
+  purging anything.

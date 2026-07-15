@@ -1,0 +1,47 @@
+id: vendor-payment-terms-drift-check
+version: 1
+name: Vendor Payment Terms Drift Check
+description: >
+  Compares actual days-to-pay per vendor invoice against that vendor's
+  contracted payment terms and flags vendors being paid consistently
+  earlier or later than agreed. Use this if payment timing has ever
+  drifted away from negotiated terms without anyone noticing the
+  pattern — distinct from vendor-early-pay-discount-tracker.yaml, which
+  flags a specific missed early-pay discount opportunity, not a general
+  terms-drift trend across all payments to a vendor.
+category: finance
+tags: [finance, vendor, payment-terms, accounts-payable, drift]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{tolerance_days}}" '
+    FNR==NR { if (FNR>1) terms[$1]=$2; next }
+    FNR==1 { next }
+    {
+      sum[$1] += $2; count[$1]++;
+    }
+    END {
+      for (v in count) {
+        if (!(v in terms)) continue;
+        avg_days = sum[v] / count[v];
+        drift = avg_days - terms[v];
+        if (drift < 0) abs_drift = -drift; else abs_drift = drift;
+        if (abs_drift > tolerance+0) {
+          printf "DRIFT: %s paid at avg %.1f days vs contracted %s days (%d payment(s))\n", v, avg_days, terms[v], count[v];
+        }
+      }
+    }
+  ' "{{vendor_terms_csv_path}}" "{{payment_history_csv_path}}"
+variables:
+  vendor_terms_csv_path:
+    default: "./vendor_payment_terms.csv"
+    description: "Path to a CSV with columns: vendor_name,contracted_days (e.g. net-30 -> 30)."
+  payment_history_csv_path:
+    default: "./vendor_payment_history.csv"
+    description: "Path to a CSV with columns: vendor_name,days_to_pay. One row per paid invoice."
+  tolerance_days:
+    default: 5
+    description: Days of drift from contracted terms allowed before flagging a vendor's average payment timing.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — paying early erodes cash flow benefit, paying late risks the relationship or late fees.

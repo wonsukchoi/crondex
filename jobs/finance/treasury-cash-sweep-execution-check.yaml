@@ -1,0 +1,39 @@
+id: treasury-cash-sweep-execution-check
+version: 1
+name: Treasury Cash Sweep Execution Check
+description: >
+  Checks whether the scheduled daily cash sweep between operating and
+  concentration accounts actually posted, and flags a missed or
+  partial sweep. Use this if idle cash has ever sat earning nothing in
+  an operating account because an automated sweep silently failed —
+  distinct from multi-account-cash-position-rollup.yaml, which reports
+  the aggregate cash position, not whether the sweep mechanism that
+  moves cash between accounts actually ran.
+category: finance
+tags: [finance, treasury, cash-sweep, banking, liquidity]
+schedule: "0 10 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  row=$(awk -F',' -v d="$today" '$1==d{print; found=1} END{exit !found}' "{{sweep_log_csv_path}}");
+  if [ -z "$row" ]; then
+    echo "MISSING: no cash sweep record found for $today";
+  else
+    amount=$(echo "$row" | awk -F',' '{print $2}');
+    status=$(echo "$row" | awk -F',' '{print $3}');
+    echo "$today sweep: \$$amount ($status)";
+    if [ "$status" != "completed" ]; then echo "ALERT: sweep status is '$status', not completed"; fi;
+    if awk "BEGIN{exit !($amount < {{min_expected_amount}})}"; then
+      echo "ALERT: swept amount \$$amount is below the expected minimum \$${min_expected_amount}";
+    fi
+  fi
+variables:
+  sweep_log_csv_path:
+    default: "./cash_sweep_log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),amount,status (completed/failed/partial)."
+  min_expected_amount:
+    default: 0
+    description: Minimum swept dollar amount expected on a normal day before flagging as suspiciously low (0 disables this check).
+compatible_agents: [generic, claude, codex]
+notes: Zero-token check — expects the sweep log to be populated by whatever automated sweep tool or bank API integration executes the transfer.

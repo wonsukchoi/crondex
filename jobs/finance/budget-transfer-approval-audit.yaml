@@ -1,0 +1,36 @@
+id: budget-transfer-approval-audit
+version: 1
+name: Budget Transfer Approval Audit
+description: >
+  Checks inter-department or inter-project budget transfers above a
+  configurable amount and flags any without a recorded approver. Use
+  this if budget has ever quietly moved from one department to another
+  without anyone signing off on it — distinct from
+  budget-overspend-check.yaml, which flags spend exceeding an existing
+  budget, not the approval trail on transfers that reallocate budget
+  between lines in the first place.
+category: finance
+tags: [finance, budget, transfer, approval, controls]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{approval_required_over}}" '
+    NR==1 {next}
+    {
+      if ($3+0 > threshold+0 && $4 == "") {
+        printf "UNAPPROVED TRANSFER: $%s from %s to %s has no recorded approver\n", $3, $1, $2;
+        n++;
+      }
+    }
+    END { printf "%d budget transfer(s) over $%s issued without approval on record.\n", n+0, threshold; }
+  ' "{{budget_transfers_csv_path}}"
+variables:
+  budget_transfers_csv_path:
+    default: "./budget_transfers.csv"
+    description: "Path to a CSV with columns: from_department,to_department,amount,approved_by (blank if unapproved)."
+  approval_required_over:
+    default: 1000
+    description: Dollar amount above which a budget transfer requires a recorded approver.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token controls check — flags a gap in the approval paper trail, not necessarily an improper transfer.

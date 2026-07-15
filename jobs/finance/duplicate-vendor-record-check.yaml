@@ -1,0 +1,42 @@
+id: duplicate-vendor-record-check
+version: 1
+name: Duplicate Vendor Record Check
+description: >
+  Scans the vendor master list for likely duplicate vendor records —
+  same tax ID or a near-identical normalized name — and flags them.
+  Use this if the same vendor has ever ended up entered twice under
+  slightly different names, splitting payment history and enabling
+  accidental double-payment — distinct from
+  duplicate-payment-detection.yaml, which catches a specific invoice
+  paid twice, not duplicate entries in the vendor master data itself.
+category: finance
+tags: [finance, vendor, duplicate, master-data, accounts-payable]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      tax_id = $2;
+      norm_name = tolower($1);
+      gsub(/[^a-z0-9]/, "", norm_name);
+      if (tax_id != "" && (tax_id in seen_tax)) {
+        printf "DUPLICATE TAX ID: %s and %s share tax ID %s\n", $1, seen_tax[tax_id], tax_id;
+        n++;
+      }
+      if (tax_id != "") seen_tax[tax_id] = $1;
+      if (norm_name in seen_name) {
+        printf "SIMILAR NAME: %s looks like a duplicate of %s\n", $1, seen_name[norm_name];
+        n++;
+      }
+      seen_name[norm_name] = $1;
+    }
+    END { printf "%d likely duplicate vendor record(s) found.\n", n+0; }
+  ' "{{vendor_master_csv_path}}"
+variables:
+  vendor_master_csv_path:
+    default: "./vendor_master.csv"
+    description: "Path to a CSV with columns: vendor_name,tax_id."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token candidate list — the name-similarity match is a normalized-exact-match heuristic, not fuzzy matching; review flagged pairs before merging vendor records.

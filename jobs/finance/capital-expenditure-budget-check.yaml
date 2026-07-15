@@ -1,0 +1,41 @@
+id: capital-expenditure-budget-check
+version: 1
+name: Capital Expenditure Budget Check
+description: >
+  Sums approved capex spend by project against its allocated capital
+  budget and flags projects over or nearing their allocation. Use this
+  if a capital project has ever quietly overrun its budget because
+  capex spend was tracked in the same bucket as day-to-day operating
+  expense — distinct from budget-vs-actual-variance-report.yaml, which
+  covers general operating budget variance, not capital project
+  allocations specifically.
+category: finance
+tags: [finance, capex, budget, capital-expenditure, project]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_pct="{{warn_threshold_pct}}" '
+    FNR==NR { if (FNR>1) allocated[$1]=$2; next }
+    FNR==1 { next }
+    { spent[$1] += $2 }
+    END {
+      for (p in allocated) {
+        pct = (spent[p]+0) / allocated[p] * 100;
+        printf "%s: $%.2f / $%.2f spent (%.1f%%)\n", p, spent[p]+0, allocated[p], pct;
+        if (pct >= warn_pct+0) printf "  ALERT: at or above %s%% of capital allocation\n", warn_pct;
+      }
+    }
+  ' "{{capex_budget_csv_path}}" "{{capex_spend_csv_path}}"
+variables:
+  capex_budget_csv_path:
+    default: "./capex_budget.csv"
+    description: "Path to a CSV with columns: project_name,allocated_amount."
+  capex_spend_csv_path:
+    default: "./capex_spend.csv"
+    description: "Path to a CSV with columns: project_name,amount. One row per capex transaction."
+  warn_threshold_pct:
+    default: 90
+    description: Percentage of a project's capital allocation spent before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — expects capex transactions to already be separated out from operating expense in the source export.

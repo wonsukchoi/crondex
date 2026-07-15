@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1988,
+  "count": 2000,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2879,6 +2879,32 @@
       "path": "jobs/events/badge-printing-prep-reminder.yaml"
     },
     {
+      "id": "bank-account-signatory-review-check",
+      "version": 1,
+      "name": "Bank Account Signatory Review Check",
+      "description": "Checks a bank account signatory roster against current active employees and flags authorized signers who've left the company or changed roles, plus accounts overdue for their periodic signatory review. Use this if a departed employee has ever stayed an authorized bank signer for months after leaving — distinct from offboarded-employee-access-audit.yaml (security category), which covers general system access, not bank-account signing authority specifically.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "bank-account",
+        "signatory",
+        "controls",
+        "compliance"
+      ],
+      "schedule": "0 8 1 */3 *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/bank-account-signatory-review-check.yaml"
+    },
+    {
       "id": "bank-fee-anomaly-check",
       "version": 1,
       "name": "Bank Fee Anomaly Check",
@@ -4214,6 +4240,32 @@
       "path": "jobs/finance/budget-overspend-check.yaml"
     },
     {
+      "id": "budget-transfer-approval-audit",
+      "version": 1,
+      "name": "Budget Transfer Approval Audit",
+      "description": "Checks inter-department or inter-project budget transfers above a configurable amount and flags any without a recorded approver. Use this if budget has ever quietly moved from one department to another without anyone signing off on it — distinct from budget-overspend-check.yaml, which flags spend exceeding an existing budget, not the approval trail on transfers that reallocate budget between lines in the first place.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "budget",
+        "transfer",
+        "approval",
+        "controls"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/budget-transfer-approval-audit.yaml"
+    },
+    {
       "id": "budget-vs-actual-variance-report",
       "version": 1,
       "name": "Budget vs. Actual Variance Report",
@@ -4982,6 +5034,32 @@
         "codex"
       ],
       "path": "jobs/manufacturing/capa-deadline-tracker.yaml"
+    },
+    {
+      "id": "capital-expenditure-budget-check",
+      "version": 1,
+      "name": "Capital Expenditure Budget Check",
+      "description": "Sums approved capex spend by project against its allocated capital budget and flags projects over or nearing their allocation. Use this if a capital project has ever quietly overrun its budget because capex spend was tracked in the same bucket as day-to-day operating expense — distinct from budget-vs-actual-variance-report.yaml, which covers general operating budget variance, not capital project allocations specifically.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "capex",
+        "budget",
+        "capital-expenditure",
+        "project"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/capital-expenditure-budget-check.yaml"
     },
     {
       "id": "capital-gains-distribution-watch",
@@ -10390,6 +10468,32 @@
       "path": "jobs/finance/credit-memo-aging-check.yaml"
     },
     {
+      "id": "credit-note-issuance-approval-check",
+      "version": 1,
+      "name": "Credit Note Issuance Approval Check",
+      "description": "Checks issued credit notes above a configurable amount and flags any without a recorded approver. Use this if a large credit note has ever gone out the door on one person's say-so with no second signoff — distinct from credit-memo-aging-check.yaml, which tracks how long outstanding credit memos have sat unapplied, not whether issuing them in the first place was properly approved.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "credit-note",
+        "approval",
+        "controls",
+        "revenue"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/credit-note-issuance-approval-check.yaml"
+    },
+    {
       "id": "credit-utilization-watch",
       "version": 1,
       "name": "Credit Utilization Watch",
@@ -14724,6 +14828,32 @@
       "path": "jobs/ecommerce/duplicate-product-description-check.yaml"
     },
     {
+      "id": "duplicate-vendor-record-check",
+      "version": 1,
+      "name": "Duplicate Vendor Record Check",
+      "description": "Scans the vendor master list for likely duplicate vendor records — same tax ID or a near-identical normalized name — and flags them. Use this if the same vendor has ever ended up entered twice under slightly different names, splitting payment history and enabling accidental double-payment — distinct from duplicate-payment-detection.yaml, which catches a specific invoice paid twice, not duplicate entries in the vendor master data itself.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "vendor",
+        "duplicate",
+        "master-data",
+        "accounts-payable"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/duplicate-vendor-record-check.yaml"
+    },
+    {
       "id": "dur-override-log-review",
       "version": 1,
       "name": "DUR Alert Override Log Review",
@@ -18672,6 +18802,32 @@
         "codex"
       ],
       "path": "jobs/retail/fitting-room-shrink-pattern-check.yaml"
+    },
+    {
+      "id": "fixed-asset-disposal-reconciliation-check",
+      "version": 1,
+      "name": "Fixed Asset Disposal Reconciliation Check",
+      "description": "Checks the fixed asset register for assets marked disposed and flags any missing a corresponding disposal journal entry (removing the asset and its accumulated depreciation from the books). Use this if an asset has ever been physically thrown out or sold but stayed on the books indefinitely — distinct from depreciation-schedule-reconciliation-check.yaml, which checks ongoing depreciation math on active assets, not disposal bookkeeping.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "fixed-assets",
+        "disposal",
+        "reconciliation",
+        "accounting"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/fixed-asset-disposal-reconciliation-check.yaml"
     },
     {
       "id": "flea-tick-treatment-verification-check",
@@ -24207,6 +24363,32 @@
         "codex"
       ],
       "path": "jobs/construction/jobsite-trailer-utility-setup-check.yaml"
+    },
+    {
+      "id": "journal-entry-approval-lag-check",
+      "version": 1,
+      "name": "Journal Entry Approval Lag Check",
+      "description": "Flags manual journal entries still pending approval past a configurable age. Use this if a journal entry has ever sat unapproved through a month-end close, leaving the books technically unreconciled — distinct from month-end-close-checklist-tracker.yaml, which tracks the close process's overall checklist, not the approval status of individual journal entries feeding into it.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "journal-entry",
+        "approval",
+        "controls",
+        "accounting"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/journal-entry-approval-lag-check.yaml"
     },
     {
       "id": "k8s-pod-restart-watch",
@@ -36692,6 +36874,32 @@
       "path": "jobs/veterinary/puppy-kitten-vaccine-series-compliance-check.yaml"
     },
     {
+      "id": "purchase-order-invoice-mismatch-check",
+      "version": 1,
+      "name": "Purchase Order / Invoice Mismatch Check",
+      "description": "Three-way matches purchase orders against received invoices and flags invoices whose amount or quantity doesn't match the PO within a configurable tolerance. Use this if a vendor invoice has ever gotten paid at a different price or quantity than what was actually ordered because nobody cross-checked it against the PO — distinct from duplicate-payment-detection.yaml, which catches the same invoice paid twice, not a mismatched amount on a single payment.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "purchase-order",
+        "invoice",
+        "three-way-match",
+        "accounts-payable"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/purchase-order-invoice-mismatch-check.yaml"
+    },
+    {
       "id": "purchase-order-receiving-delay-check",
       "version": 2,
       "name": "Purchase Order Receiving Delay Check",
@@ -43494,6 +43702,33 @@
       "path": "jobs/inventory/stale-inventory-reservation-release-check.yaml"
     },
     {
+      "id": "stale-outstanding-check-aging-report",
+      "version": 1,
+      "name": "Stale Outstanding Check Aging Report",
+      "description": "Ages outstanding (issued but uncashed) checks from a check register and flags ones past a configurable age, which risk becoming escheatable unclaimed property or need a stop-payment/reissue. Use this if a vendor or payroll check has ever sat uncashed for months with nobody following up — distinct from unclaimed-property-escheatment-check.yaml, which handles the broader multi-state escheatment compliance process, not the day-to-day check-register aging that feeds into it.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "check",
+        "outstanding",
+        "aging",
+        "escheatment",
+        "reconciliation"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/stale-outstanding-check-aging-report.yaml"
+    },
+    {
       "id": "stale-post-audit",
       "version": 1,
       "name": "Stale Post Audit",
@@ -47132,6 +47367,32 @@
       "path": "jobs/travel/travel-rewards-points-expiry-watch.yaml"
     },
     {
+      "id": "treasury-cash-sweep-execution-check",
+      "version": 1,
+      "name": "Treasury Cash Sweep Execution Check",
+      "description": "Checks whether the scheduled daily cash sweep between operating and concentration accounts actually posted, and flags a missed or partial sweep. Use this if idle cash has ever sat earning nothing in an operating account because an automated sweep silently failed — distinct from multi-account-cash-position-rollup.yaml, which reports the aggregate cash position, not whether the sweep mechanism that moves cash between accounts actually ran.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "treasury",
+        "cash-sweep",
+        "banking",
+        "liquidity"
+      ],
+      "schedule": "0 10 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/treasury-cash-sweep-execution-check.yaml"
+    },
+    {
       "id": "treatment-package-session-usage-tracker",
       "version": 1,
       "name": "Treatment Package Session Usage Tracker",
@@ -48410,6 +48671,34 @@
       "path": "jobs/fieldservice/van-tool-inventory-reconciliation-check.yaml"
     },
     {
+      "id": "vat-gst-filing-deadline-tracker",
+      "version": 1,
+      "name": "VAT/GST Filing Deadline Tracker",
+      "description": "Tracks upcoming VAT/GST filing deadlines per jurisdiction and flags ones approaching or past due. Use this if the business files in more than one country or region and a VAT/GST return has ever been late because the deadlines weren't tracked in one place — distinct from tax-deadline-reminder.yaml and quarterly-estimated-tax-calculator.yaml, which cover domestic income-tax deadlines and estimates, not jurisdiction-by-jurisdiction indirect-tax filings.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "vat",
+        "gst",
+        "tax",
+        "filing",
+        "compliance",
+        "international"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/vat-gst-filing-deadline-tracker.yaml"
+    },
+    {
       "id": "vegetation-management-clearance-check",
       "version": 1,
       "name": "Vegetation Management Clearance Check",
@@ -48963,6 +49252,32 @@
         "codex"
       ],
       "path": "jobs/events/vendor-payment-deadline-reminder.yaml"
+    },
+    {
+      "id": "vendor-payment-terms-drift-check",
+      "version": 1,
+      "name": "Vendor Payment Terms Drift Check",
+      "description": "Compares actual days-to-pay per vendor invoice against that vendor's contracted payment terms and flags vendors being paid consistently earlier or later than agreed. Use this if payment timing has ever drifted away from negotiated terms without anyone noticing the pattern — distinct from vendor-early-pay-discount-tracker.yaml, which flags a specific missed early-pay discount opportunity, not a general terms-drift trend across all payments to a vendor.",
+      "category": "finance",
+      "tags": [
+        "finance",
+        "vendor",
+        "payment-terms",
+        "accounts-payable",
+        "drift"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/finance/vendor-payment-terms-drift-check.yaml"
     },
     {
       "id": "vendor-security-review-recertification-check",

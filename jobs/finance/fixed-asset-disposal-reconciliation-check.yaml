@@ -1,0 +1,37 @@
+id: fixed-asset-disposal-reconciliation-check
+version: 1
+name: Fixed Asset Disposal Reconciliation Check
+description: >
+  Checks the fixed asset register for assets marked disposed and flags
+  any missing a corresponding disposal journal entry (removing the
+  asset and its accumulated depreciation from the books). Use this if
+  an asset has ever been physically thrown out or sold but stayed on
+  the books indefinitely — distinct from
+  depreciation-schedule-reconciliation-check.yaml, which checks ongoing
+  depreciation math on active assets, not disposal bookkeeping.
+category: finance
+tags: [finance, fixed-assets, disposal, reconciliation, accounting]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) disposed_je[$1]=1; next }
+    FNR==1 { next }
+    $2 == "disposed" {
+      if (!($1 in disposed_je)) {
+        printf "MISSING DISPOSAL ENTRY: asset %s marked disposed but no journal entry found\n", $1;
+        n++;
+      }
+    }
+    END { printf "%d disposed asset(s) missing a disposal journal entry.\n", n+0; }
+  ' "{{disposal_journal_entries_csv_path}}" "{{fixed_asset_register_csv_path}}"
+variables:
+  fixed_asset_register_csv_path:
+    default: "./fixed_asset_register.csv"
+    description: "Path to a CSV with columns: asset_id,status (active/disposed)."
+  disposal_journal_entries_csv_path:
+    default: "./disposal_journal_entries.csv"
+    description: "Path to a CSV with columns: asset_id,je_id. One row per posted disposal journal entry."
+compatible_agents: [generic, claude, codex]
+notes: Zero-token reconciliation — pair with a physical asset tag audit if disposals are also going undocumented at the source.

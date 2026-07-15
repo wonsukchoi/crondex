@@ -1,0 +1,42 @@
+id: purchase-order-invoice-mismatch-check
+version: 1
+name: Purchase Order / Invoice Mismatch Check
+description: >
+  Three-way matches purchase orders against received invoices and flags
+  invoices whose amount or quantity doesn't match the PO within a
+  configurable tolerance. Use this if a vendor invoice has ever gotten
+  paid at a different price or quantity than what was actually ordered
+  because nobody cross-checked it against the PO — distinct from
+  duplicate-payment-detection.yaml, which catches the same invoice paid
+  twice, not a mismatched amount on a single payment.
+category: finance
+tags: [finance, purchase-order, invoice, three-way-match, accounts-payable]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) { po_amt[$1]=$2; po_qty[$1]=$3 }; next }
+    FNR==1 { next }
+    {
+      if (!($1 in po_amt)) { printf "NO MATCHING PO: invoice %s references PO %s which was not found\n", $2, $1; n++; next; }
+      amt_diff = ($3 - po_amt[$1]); if (amt_diff < 0) amt_diff = -amt_diff;
+      qty_diff = ($4 - po_qty[$1]); if (qty_diff < 0) qty_diff = -qty_diff;
+      tol = po_amt[$1] * ({{amount_tolerance_pct}} / 100.0);
+      if (amt_diff > tol) { printf "AMOUNT MISMATCH: invoice %s vs PO %s — $%.2f vs $%.2f\n", $2, $1, $3, po_amt[$1]; n++; }
+      if (qty_diff > 0) { printf "QUANTITY MISMATCH: invoice %s vs PO %s — %s vs %s\n", $2, $1, $4, po_qty[$1]; n++; }
+    }
+    END { printf "%d mismatch(es) found.\n", n+0; }
+  ' "{{purchase_orders_csv_path}}" "{{invoices_csv_path}}"
+variables:
+  purchase_orders_csv_path:
+    default: "./purchase_orders.csv"
+    description: "Path to a CSV with columns: po_number,amount,quantity."
+  invoices_csv_path:
+    default: "./invoices_received.csv"
+    description: "Path to a CSV with columns: po_number,invoice_number,amount,quantity."
+  amount_tolerance_pct:
+    default: 2
+    description: Percentage tolerance allowed between invoice and PO amount before flagging a mismatch.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reconciliation — hold payment on flagged invoices until the mismatch is explained, don't auto-reject.

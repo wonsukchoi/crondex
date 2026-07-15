@@ -1,0 +1,35 @@
+id: credit-note-issuance-approval-check
+version: 1
+name: Credit Note Issuance Approval Check
+description: >
+  Checks issued credit notes above a configurable amount and flags any
+  without a recorded approver. Use this if a large credit note has ever
+  gone out the door on one person's say-so with no second signoff —
+  distinct from credit-memo-aging-check.yaml, which tracks how long
+  outstanding credit memos have sat unapplied, not whether issuing them
+  in the first place was properly approved.
+category: finance
+tags: [finance, credit-note, approval, controls, revenue]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{approval_required_over}}" '
+    NR==1 {next}
+    {
+      if ($2+0 > threshold+0 && $3 == "") {
+        printf "UNAPPROVED: credit note %s for $%s has no recorded approver\n", $1, $2;
+        n++;
+      }
+    }
+    END { printf "%d credit note(s) over $%s issued without approval on record.\n", n+0, threshold; }
+  ' "{{credit_notes_csv_path}}"
+variables:
+  credit_notes_csv_path:
+    default: "./credit_notes.csv"
+    description: "Path to a CSV with columns: credit_note_id,amount,approved_by (blank if unapproved)."
+  approval_required_over:
+    default: 500
+    description: Dollar amount above which a credit note requires a recorded approver.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token controls check — flags a gap in the paper trail, not necessarily fraud.

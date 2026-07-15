@@ -1,0 +1,38 @@
+id: bank-account-signatory-review-check
+version: 1
+name: Bank Account Signatory Review Check
+description: >
+  Checks a bank account signatory roster against current active
+  employees and flags authorized signers who've left the company or
+  changed roles, plus accounts overdue for their periodic signatory
+  review. Use this if a departed employee has ever stayed an authorized
+  bank signer for months after leaving — distinct from
+  offboarded-employee-access-audit.yaml (security category), which
+  covers general system access, not bank-account signing authority
+  specifically.
+category: finance
+tags: [finance, bank-account, signatory, controls, compliance]
+schedule: "0 8 1 */3 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) active[$1]=1; next }
+    FNR==1 { next }
+    {
+      if (!($1 in active)) {
+        printf "STALE SIGNER: %s is an authorized signer on account %s but not in the active employee roster\n", $1, $2;
+        n++;
+      }
+    }
+    END { printf "%d stale bank signer(s) found — remove or re-authorize.\n", n+0; }
+  ' "{{active_employees_csv_path}}" "{{bank_signatories_csv_path}}"
+variables:
+  active_employees_csv_path:
+    default: "./active_employees.csv"
+    description: "Path to a CSV with columns: employee_name,department. One row per currently active employee."
+  bank_signatories_csv_path:
+    default: "./bank_signatories.csv"
+    description: "Path to a CSV with columns: signer_name,account_id."
+compatible_agents: [generic, claude, codex]
+notes: Read-only audit — actually removing a signer still requires a formal bank resolution/paperwork process.

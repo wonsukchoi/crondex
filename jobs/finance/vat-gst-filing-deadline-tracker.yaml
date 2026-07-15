@@ -1,0 +1,41 @@
+id: vat-gst-filing-deadline-tracker
+version: 1
+name: VAT/GST Filing Deadline Tracker
+description: >
+  Tracks upcoming VAT/GST filing deadlines per jurisdiction and flags
+  ones approaching or past due. Use this if the business files in more
+  than one country or region and a VAT/GST return has ever been late
+  because the deadlines weren't tracked in one place — distinct from
+  tax-deadline-reminder.yaml and quarterly-estimated-tax-calculator.yaml,
+  which cover domestic income-tax deadlines and estimates, not
+  jurisdiction-by-jurisdiction indirect-tax filings.
+category: finance
+tags: [finance, vat, gst, tax, filing, compliance, international]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days+0) {
+        if (days_left < 0) printf "OVERDUE: %s VAT/GST return was due %s (%d day(s) ago)\n", $1, $2, -days_left;
+        else printf "DUE SOON: %s VAT/GST return due %s (%d day(s) left)\n", $1, $2, days_left;
+        flagged++;
+      }
+    }
+    END { printf "%d VAT/GST filing deadline(s) flagged.\n", flagged+0; }
+  ' "{{vat_gst_deadlines_csv_path}}"
+variables:
+  vat_gst_deadlines_csv_path:
+    default: "./vat_gst_deadlines.csv"
+    description: "Path to a CSV with columns: jurisdiction,due_date (YYYY-MM-DD)."
+  warn_days:
+    default: 14
+    description: Days before (or past) a filing deadline to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder — actual filing still needs to happen through each jurisdiction's own tax authority portal.

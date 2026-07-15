@@ -1,0 +1,41 @@
+id: stale-outstanding-check-aging-report
+version: 1
+name: Stale Outstanding Check Aging Report
+description: >
+  Ages outstanding (issued but uncashed) checks from a check register
+  and flags ones past a configurable age, which risk becoming
+  escheatable unclaimed property or need a stop-payment/reissue. Use
+  this if a vendor or payroll check has ever sat uncashed for months
+  with nobody following up — distinct from
+  unclaimed-property-escheatment-check.yaml, which handles the broader
+  multi-state escheatment compliance process, not the day-to-day
+  check-register aging that feeds into it.
+category: finance
+tags: [finance, check, outstanding, aging, escheatment, reconciliation]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    $4 == "outstanding" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline issued_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - issued_epoch) / 86400;
+      if (age_days >= warn_days+0) {
+        printf "STALE CHECK: #%s to %s for $%s, issued %s (%d day(s) outstanding)\n", $1, $5, $3, $2, age_days;
+        n++;
+      }
+    }
+    END { printf "%d stale outstanding check(s) found.\n", n+0; }
+  ' "{{check_register_csv_path}}"
+variables:
+  check_register_csv_path:
+    default: "./check_register.csv"
+    description: "Path to a CSV with columns: check_number,issued_date (YYYY-MM-DD),amount,status (outstanding/cleared/voided),payee."
+  warn_days:
+    default: 90
+    description: Days a check can stay outstanding before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token aging check — follow up with a stop-payment/reissue before a stale check ages into escheatment territory.

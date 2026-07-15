@@ -1,0 +1,55 @@
+id: missed-hygiene-reappointment-check
+version: 1
+name: Missed Hygiene Reappointment Check
+description: >
+  Checks recently completed hygiene visits against the future schedule and
+  flags any patient who left without a next hygiene appointment booked at
+  all. Use this if a patient has ever walked out after a cleaning with
+  nothing on the books because checkout got busy and nobody rebooked them —
+  this catches the "never rebooked" gap right after checkout, distinct from
+  a recall-cadence job that flags patients who are already overdue by date
+  for their next cleaning.
+category: dental
+tags: [dental, hygiene, scheduling, recall, checkout, front-desk]
+schedule: "0 18 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lookback="{{visit_lookback_days}}" '
+    NR==FNR {
+      if (FNR > 1 && $3 == "scheduled") {
+        cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+        cmd | getline sched_epoch; close(cmd);
+        if (sched_epoch >= today) future[$1] = 1;
+      }
+      next;
+    }
+    FNR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      age_days = (today - visit_epoch) / 86400;
+      if (age_days >= 0 && age_days <= lookback) {
+        if (!($1 in future)) {
+          printf "NOT REBOOKED: %s — hygiene visit on %s has no future hygiene appointment booked\n", $1, $2;
+        }
+      }
+    }
+  ' "{{scheduled_appointments_csv_path}}" "{{completed_hygiene_visits_csv_path}}"
+variables:
+  scheduled_appointments_csv_path:
+    default: "./scheduled-appointments.csv"
+    description: "Path to a CSV with columns: patient_name,appointment_date (YYYY-MM-DD),status (scheduled/cancelled) covering both hygiene and other appointment types."
+  completed_hygiene_visits_csv_path:
+    default: "./completed-hygiene-visits.csv"
+    description: "Path to a CSV with columns: patient_name,visit_date (YYYY-MM-DD) of completed hygiene appointments."
+  visit_lookback_days:
+    default: 7
+    description: How many trailing days of completed hygiene visits to check for a missing rebook.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from a recall-cadence job that scans by how overdue a patient's
+  next cleaning date is — this one only looks at whether checkout ever put
+  anything on the books at all, so it catches the gap same-week instead of
+  months later when the recall date finally passes.

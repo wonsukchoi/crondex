@@ -1,0 +1,49 @@
+id: capitation-hmo-panel-reconciliation-check
+version: 1
+name: Capitation/HMO Panel Reconciliation Check
+description: >
+  Reconciles a capitation or DHMO patient panel roster against the actual
+  capitation payments received and flags discrepancies — active panel
+  members with no matching payment, and payments received for patients no
+  longer on the panel. Use this if the practice has ever discovered months
+  later that a payer quietly dropped a patient from the panel but kept
+  paying, or added one but never started paying, because nobody was
+  cross-checking the roster against the deposits.
+category: dental
+tags: [dental, capitation, hmo, insurance, billing, reconciliation]
+schedule: "0 8 5 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1 && $3 == "active") active[$2] = $1;
+      next;
+    }
+    FNR==1 {next}
+    {
+      paid[$1] = 1;
+      if (!($1 in active)) {
+        printf "UNEXPECTED PAYMENT: member %s (%s) received capitation payment of %s but is not active on the panel\n", $1, $2, $3;
+      }
+    }
+    END {
+      for (member in active) {
+        if (!(member in paid)) {
+          printf "MISSING PAYMENT: %s (member %s) is active on the panel but no capitation payment was found this cycle\n", active[member], member;
+        }
+      }
+    }
+  ' "{{panel_roster_csv_path}}" "{{capitation_payments_csv_path}}"
+variables:
+  panel_roster_csv_path:
+    default: "./capitation-panel-roster.csv"
+    description: "Path to a CSV with columns: patient_name,member_id,enrollment_status (active/terminated)."
+  capitation_payments_csv_path:
+    default: "./capitation-payments.csv"
+    description: "Path to a CSV with columns: member_id,patient_name,payment_amount for the current payment cycle."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes both files are exports for the same payment cycle/month — run it
+  right after the capitation payment file lands. Read-only reconciliation;
+  it doesn't dispute or request payment corrections itself.

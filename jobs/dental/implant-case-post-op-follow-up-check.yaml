@@ -1,0 +1,40 @@
+id: implant-case-post-op-follow-up-check
+version: 1
+name: Implant Case Post-Op Follow-Up Check
+description: >
+  Flags dental implant patients who are past their expected post-op
+  follow-up window but have no follow-up visit logged. Use this if an
+  implant patient has ever gone past the healing check window without a
+  follow-up on the books, risking an unnoticed complication between
+  placement and restoration.
+category: dental
+tags: [dental, implants, post-op, follow-up, recall]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v window="{{followup_window_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline placement_epoch; close(cmd);
+      age_days = (today - placement_epoch) / 86400;
+      if (age_days > window) {
+        printf "MISSING FOLLOW-UP: %s — implant placed %s (%s), %d days post-op, no follow-up visit logged\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{implant_cases_csv_path}}"
+variables:
+  implant_cases_csv_path:
+    default: "./implant-cases.csv"
+    description: "Path to a CSV with columns: patient_name,placement_date (YYYY-MM-DD),site_description,followup_visit_date (YYYY-MM-DD, blank if not yet seen)."
+  followup_window_days:
+    default: 14
+    description: Days after placement by which a post-op follow-up visit is expected to have happened.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes implant case tracking is logged to a CSV as placements and follow-ups
+  occur. Read-only clinical safety-net check, not a substitute for chairside
+  post-op instructions given at placement.

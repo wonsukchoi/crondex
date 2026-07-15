@@ -1,0 +1,55 @@
+id: patient-satisfaction-survey-response-tracker
+version: 1
+name: Dental Patient Satisfaction Survey Response Tracker
+description: >
+  Tallies post-appointment satisfaction survey response rate and average
+  score over a trailing window and flags when either drops below threshold.
+  Use this if a slipping response rate or a dip in average score has ever
+  gone unnoticed for weeks because nobody was watching the trend, not just
+  the individual responses.
+category: dental
+tags: [dental, patient-satisfaction, survey, feedback, metrics]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v cutoff="{{lookback_days}}" -v min_rate="{{min_response_rate_pct}}" -v min_score="{{min_avg_score}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      age_days = (today - sent_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      sent++;
+      if ($3 != "") {
+        responded++;
+        if ($4 != "") { score_sum += $4; scored++; }
+      }
+    }
+    END {
+      rate = (sent > 0) ? (responded / sent * 100) : 0;
+      avg = (scored > 0) ? (score_sum / scored) : 0;
+      printf "SURVEYS: %d sent, %d responded (%.1f%% response rate) in last %d day(s), avg score %.2f\n", sent, responded, rate, cutoff, avg;
+      if (sent > 0 && rate < min_rate) printf "ALERT: response rate %.1f%% is below the %.1f%% threshold\n", rate, min_rate;
+      if (scored > 0 && avg < min_score) printf "ALERT: average score %.2f is below the %.2f threshold\n", avg, min_score;
+    }
+  ' "{{survey_csv_path}}"
+variables:
+  survey_csv_path:
+    default: "./patient-satisfaction-surveys.csv"
+    description: "Path to a CSV with columns: patient_name,survey_sent_date (YYYY-MM-DD),response_date (blank if no response),score (1-5, blank if no response)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of sent surveys to include in the response-rate and average-score calculation.
+  min_response_rate_pct:
+    default: 20
+    description: Response rate percentage below which an alert is raised.
+  min_avg_score:
+    default: 4.0
+    description: Average score below which an alert is raised.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from a survey tool (post-visit SMS/email).
+  Trend-only — it does not read or summarize individual comments; pair with
+  a manual review of low-score responses for that.

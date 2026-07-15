@@ -1,0 +1,47 @@
+id: license-cde-credit-expiry-tracker
+version: 1
+name: Dental License & CDE Credit Expiry Tracker
+description: >
+  Checks a tracked roster of dentist and hygienist license renewal dates
+  alongside logged continuing dental education (CDE) credit hours, and
+  flags anyone approaching renewal who is short on required credits or
+  whose license itself is close to lapsing. Use this if a provider has
+  ever hit their board renewal date short on CE hours, or kept treating
+  patients past a lapsed license because nobody was tracking both the
+  date and the credit count together.
+category: dental
+tags: [dental, compliance, licensing, cde, continuing-education, staff]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" -v req="{{required_cde_credits}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      credits = $4 + 0;
+      if (diff_days <= days && credits < req) {
+        printf "AT RISK: %s (%s) — license expires %s (%d days), only %d/%d CDE credits logged\n", $1, $2, $3, diff_days, credits, req;
+      } else if (diff_days <= days) {
+        printf "EXPIRING: %s (%s) — license expires %s (%d days), CDE credits met (%d/%d)\n", $1, $2, $3, diff_days, credits, req;
+      }
+    }
+  ' "{{license_cde_csv_path}}"
+variables:
+  license_cde_csv_path:
+    default: "./license-cde-roster.csv"
+    description: "Path to a CSV with columns: staff_name,role (dentist/hygienist),license_expiry_date (YYYY-MM-DD),cde_credits_logged."
+  warn_days_before:
+    default: 60
+    description: How many days before license expiry to start warning.
+  required_cde_credits:
+    default: 20
+    description: Minimum CDE credit hours required by the renewal cycle before flagging someone as short.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained roster export from your credentialing tracker or CE
+  provider portal — exact required-hour thresholds vary by state dental
+  board, so confirm the default against your jurisdiction before relying on it.

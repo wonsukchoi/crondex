@@ -1,0 +1,43 @@
+id: claim-attachment-missing-check
+version: 1
+name: Insurance Claim Missing Attachment Check
+description: >
+  Cross-references submitted insurance claims against a CDT-code-to-required-
+  attachment map (x-rays, narratives, perio charting) and flags any claim
+  that's missing the documentation its procedure code typically needs. Use
+  this if a claim has ever come back denied purely for a missing x-ray or
+  narrative that could have been attached before submission — this catches
+  it pre-emptively, before the payer ever sees it.
+category: dental
+tags: [dental, insurance, claims, attachments, billing, revenue-cycle]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1) required[$1] = $2;
+      next;
+    }
+    FNR==1 {next}
+    {
+      code = $3;
+      needed = required[code];
+      if (needed != "" && index($4, needed) == 0) {
+        printf "MISSING ATTACHMENT: %s — claim %s (CDT %s) is missing required \"%s\"\n", $1, $2, code, needed;
+      }
+    }
+  ' "{{cdt_attachment_requirements_csv_path}}" "{{submitted_claims_csv_path}}"
+variables:
+  cdt_attachment_requirements_csv_path:
+    default: "./cdt-attachment-requirements.csv"
+    description: "Path to a CSV with columns: cdt_code,required_attachment (e.g. D2740,crown-narrative)."
+  submitted_claims_csv_path:
+    default: "./submitted-claims.csv"
+    description: "Path to a CSV with columns: patient_name,claim_number,cdt_code,attachments_included (pipe-separated list of attachment names),status."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only, pre-submission or post-submission audit — it doesn't attach
+  anything itself, only flags gaps against your own requirements map. Keep
+  the requirements CSV current with your top payers' documentation rules,
+  since they vary by payer and change periodically.

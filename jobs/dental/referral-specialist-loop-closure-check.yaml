@@ -1,0 +1,40 @@
+id: referral-specialist-loop-closure-check
+version: 1
+name: Specialist Referral Loop-Closure Check
+description: >
+  Tracks patients referred out to an oral surgeon, endodontist, or
+  periodontist and flags referrals where no report or consult note has
+  come back within a configurable window after the referral was sent. Use
+  this if a specialist referral has ever gone quiet with the patient
+  possibly treated elsewhere and no note ever making it back into the chart.
+category: dental
+tags: [dental, referrals, specialist, oral-surgeon, care-coordination]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{stale_days_after_referral}}" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      days_since = (today - sent_epoch) / 86400;
+      if (days_since >= days) {
+        printf "LOOP NOT CLOSED: %s -> %s (%s) — referred %s (%d days ago), no report received\n", $1, $2, $4, $3, days_since;
+      }
+    }
+  ' "{{referrals_csv_path}}"
+variables:
+  referrals_csv_path:
+    default: "./dental-specialist-referrals.csv"
+    description: "Path to a CSV with columns: patient_name,specialist_name,referral_sent_date (YYYY-MM-DD),specialty (oral-surgeon/endodontist/periodontist/other),report_received_date (blank if not yet received)."
+  stale_days_after_referral:
+    default: 21
+    description: Days since the referral was sent before a missing specialist report gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV of outgoing specialist referrals.
+  Read-only — flags referrals to follow up on, doesn't fax, call, or email
+  the specialist's office itself.

@@ -1,0 +1,54 @@
+id: ppo-fee-schedule-write-off-drift-check
+version: 1
+name: PPO Fee Schedule Write-Off Drift Check
+description: >
+  Compares billed and allowed amounts from a payments log against a
+  reference PPO fee schedule, per CDT code, and flags procedures where the
+  write-off or reimbursement drifts past a configurable percentage from what
+  the fee schedule says it should be. Use this if a PPO plan has quietly
+  started underpaying (or the practice's fee schedule reference has gone
+  stale) and it's only visible by comparing many claims at once.
+category: dental
+tags: [dental, ppo, fee-schedule, write-off, billing, reimbursement]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v drift_pct="{{drift_threshold_pct}}" '
+    FNR==NR {
+      if (FNR > 1) fee[$1] = $2;
+      next;
+    }
+    FNR==1 {next}
+    {
+      code = $2; billed = $3+0; allowed = $4+0;
+      if (code in fee) {
+        expected = fee[code]+0;
+        if (expected > 0) {
+          drift = ((allowed - expected) / expected) * 100;
+          if (drift <= -drift_pct || drift >= drift_pct) {
+            printf "DRIFT: claim %s, CDT %s, allowed $%.2f vs. fee schedule $%.2f (%.1f%% drift)\n", $1, code, allowed, expected, drift;
+            count++;
+          }
+        }
+      } else {
+        printf "NO FEE SCHEDULE ENTRY: claim %s, CDT %s not found in fee schedule reference\n", $1, code;
+        missing++;
+      }
+    }
+    END {
+      printf "%d claim(s) with allowed-amount drift, %d claim(s) with no fee schedule match.\n", count+0, missing+0;
+    }
+  ' "{{fee_schedule_csv_path}}" "{{payments_csv_path}}"
+variables:
+  fee_schedule_csv_path:
+    default: "./ppo_fee_schedule.csv"
+    description: "Path to a CSV with columns: cdt_code,allowed_amount — the reference fee schedule for a given PPO plan."
+  payments_csv_path:
+    default: "./payments.csv"
+    description: "Path to a CSV with columns: claim_id,cdt_code,billed_amount,allowed_amount."
+  drift_threshold_pct:
+    default: 5
+    description: Percentage difference between the actual allowed amount and the fee schedule's expected amount that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Read-only comparison — accuracy depends on keeping the fee schedule reference CSV current per payer/plan.

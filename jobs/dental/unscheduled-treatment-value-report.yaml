@@ -1,0 +1,48 @@
+id: unscheduled-treatment-value-report
+version: 1
+name: Unscheduled Treatment Value Report
+description: >
+  Sums the dollar value of diagnosed-but-unscheduled treatment plan line
+  items from a practice export, grouped by how long they've sat
+  unscheduled. Use this if diagnosed treatment has ever piled up in the
+  chart without anyone tracking how much recoverable case value was
+  sitting there unbooked.
+category: dental
+tags: [dental, treatment-plans, case-acceptance, revenue-cycle, reporting]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v flag_days="{{flag_threshold_days}}" '
+    NR==1 {next}
+    $4 != "unscheduled" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline diag_epoch; close(cmd);
+      age_days = (today - diag_epoch) / 86400;
+      value = $3 + 0;
+      if (age_days <= 30) { b1 += value; }
+      else if (age_days <= 60) { b2 += value; }
+      else if (age_days <= 90) { b3 += value; }
+      else { b4 += value; }
+      total += value;
+      if (age_days > flag_days) {
+        printf "AGING CASE: %s — %s, $%.2f, diagnosed %s (%d days ago, unscheduled)\n", $1, $5, value, $2, age_days;
+      }
+    }
+    END {
+      printf "UNSCHEDULED TREATMENT VALUE: total=$%.2f | 0-30d=$%.2f 31-60d=$%.2f 61-90d=$%.2f 90+d=$%.2f\n", total, b1, b2, b3, b4;
+    }
+  ' "{{treatment_plans_csv_path}}"
+variables:
+  treatment_plans_csv_path:
+    default: "./treatment-plan-line-items.csv"
+    description: "Path to a CSV with columns: patient_name,diagnosed_date (YYYY-MM-DD),line_item_value,status (unscheduled/scheduled/completed/declined),procedure_description."
+  flag_threshold_days:
+    default: 60
+    description: Days unscheduled beyond which an individual case gets an explicit flag line.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a practice-management-software export of treatment plan line items.
+  Read-only visibility report — doesn't reach out to patients itself.

@@ -1,0 +1,49 @@
+id: insurance-eligibility-verification-expiry-check
+version: 1
+name: Insurance Eligibility Verification Expiry Check
+description: >
+  Checks whether each patient's dental insurance eligibility was verified
+  within a configurable window before their upcoming appointment and flags
+  anyone unverified or with a stale verification. Use this if a patient has
+  ever shown up for a crown prep only to find out chairside that coverage
+  had lapsed, turning the visit into an unplanned collections conversation.
+category: dental
+tags: [dental, insurance, eligibility, verification, front-desk]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_age="{{max_verification_age_days}}" -v horizon="{{appointment_lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      appt_days = (appt_epoch - today) / 86400;
+      if (appt_days < 0 || appt_days > horizon) next;
+      if ($3 == "" || $3 == "unverified") {
+        printf "UNVERIFIED: %s — appointment %s, no eligibility verification on file\n", $1, $2;
+        next;
+      }
+      vcmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      vcmd | getline verified_epoch; close(vcmd);
+      age_days = (today - verified_epoch) / 86400;
+      if (age_days > max_age) {
+        printf "STALE: %s — appointment %s, last verified %s (%d days ago)\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{patients_csv_path}}"
+variables:
+  patients_csv_path:
+    default: "./upcoming-appointments-eligibility.csv"
+    description: "Path to a CSV with columns: patient_name,appointment_date (YYYY-MM-DD),last_eligibility_verification_date (YYYY-MM-DD or blank/unverified)."
+  max_verification_age_days:
+    default: 30
+    description: How many days a prior eligibility verification stays considered current before it's flagged stale.
+  appointment_lookahead_days:
+    default: 5
+    description: How many days out to look for upcoming appointments to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes eligibility check results are logged to a CSV (manually or via clearinghouse
+  export) rather than live payer portal access. Read-only front-desk prep list.

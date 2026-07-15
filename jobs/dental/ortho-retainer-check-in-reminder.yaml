@@ -1,0 +1,36 @@
+id: ortho-retainer-check-in-reminder
+version: 1
+name: Ortho Retainer Check-In Reminder
+description: >
+  Flags orthodontic retention patients who are overdue for their scheduled
+  retainer check-in appointment. Use this if a retention patient has ever
+  gone quiet after finishing active treatment and drifted out of retainer
+  compliance because nobody was tracking check-in due dates once braces
+  came off.
+category: dental
+tags: [dental, orthodontics, retention, retainers, recall]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $4 != "active" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      age_days = (today - due_epoch) / 86400;
+      if (age_days > 0) {
+        printf "OVERDUE: %s — retainer check-in was due %s (%d days ago), retention plan: %s\n", $1, $3, age_days, $2;
+      }
+    }
+  ' "{{retention_patients_csv_path}}"
+variables:
+  retention_patients_csv_path:
+    default: "./ortho-retention-patients.csv"
+    description: "Path to a CSV with columns: patient_name,retention_plan,next_checkin_due_date (YYYY-MM-DD),status (active/completed/discharged)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes retainer check-in due dates are tracked in a CSV export from the practice
+  management system. Read-only — flags who to contact, doesn't book the appointment.

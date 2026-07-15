@@ -1,0 +1,55 @@
+id: lab-case-remake-rate-tracker
+version: 1
+name: Dental Lab Case Remake Rate Tracker
+description: >
+  Calculates the rate of lab cases — crowns, dentures, appliances — that
+  came back needing a remake over a trailing window and flags a spike
+  against threshold. Use this if lab-quality problems have ever piled up
+  quietly; distinct from the lab-case-turnaround job, which watches whether
+  cases come back on time, not whether the work itself was acceptable.
+category: dental
+tags: [dental, lab-cases, quality, remake, crowns, dentures]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      age_days = (today - received_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      total++;
+      if ($5 == "remake") {
+        remade++;
+        printf "REMAKE: %s — case %s (%s, lab: %s) received %s\n", $1, $2, $3, $6, $4;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (remade / total) * 100;
+        printf "REMAKE RATE: %d/%d cases in last %d day(s) = %.1f%%\n", remade, total, cutoff, rate;
+        if (rate >= threshold) printf "ALERT: remake rate %.1f%% is at or above the %.1f%% threshold\n", rate, threshold;
+      } else {
+        print "No lab cases found in the lookback window.";
+      }
+    }
+  ' "{{lab_cases_csv_path}}"
+variables:
+  lab_cases_csv_path:
+    default: "./dental-lab-cases.csv"
+    description: "Path to a CSV with columns: patient_name,case_number,case_type,received_date (YYYY-MM-DD),outcome (accepted/remake),lab_name."
+  lookback_days:
+    default: 90
+    description: How many trailing days of received lab cases to include in the remake-rate calculation.
+  alert_threshold_pct:
+    default: 5
+    description: Remake rate percentage that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually or practice-management-software-exported CSV of
+  received lab case outcomes, distinct from the turnaround-tracking CSV.
+  Read-only — flags a quality trend to raise with the lab, doesn't contact
+  the lab itself.

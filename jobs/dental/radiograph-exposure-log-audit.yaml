@@ -1,0 +1,53 @@
+id: radiograph-exposure-log-audit
+version: 1
+name: Radiograph Exposure Log Audit
+description: >
+  Checks the radiograph exposure log for missing dose or frequency-interval
+  records, and flags patients x-rayed more often than the configured
+  minimum interval allows. Use this if radiograph logging is easy to skip
+  in the moment and only matters when a radiation-safety (ALARA) audit or
+  an insurer asks to see it — distinct from a general equipment maintenance
+  check, since this is about the exposure record itself, not the machine.
+category: dental
+tags: [dental, radiograph, x-ray, alara, radiation-safety, compliance]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_interval="{{min_interval_days}}" -v since="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days < 0 || age_days > since) next;
+      if ($3 == "" || $4 == "") {
+        printf "INCOMPLETE RECORD: %s on %s missing dose or image-type field\n", $1, $2;
+        incomplete++;
+      }
+      if (last_epoch[$1] > 0) {
+        gap_days = int((entry_epoch - last_epoch[$1]) / 86400);
+        if (gap_days < min_interval+0) {
+          printf "INTERVAL TOO SHORT: %s x-rayed %d day(s) after previous exposure (minimum %d)\n", $1, gap_days, min_interval+0;
+          tooshort++;
+        }
+      }
+      last_epoch[$1] = entry_epoch;
+    }
+    END {
+      printf "%d incomplete record(s), %d exposure(s) below the minimum interval.\n", incomplete+0, tooshort+0;
+    }
+  ' "{{radiograph_log_csv_path}}"
+variables:
+  radiograph_log_csv_path:
+    default: "./radiograph_log.csv"
+    description: "Path to a CSV with columns: patient_name,exposure_date (YYYY-MM-DD),dose_mgy,image_type. Sorted or unsorted, one row per exposure."
+  min_interval_days:
+    default: 180
+    description: Minimum days between radiograph exposures for the same patient before it's flagged as too frequent.
+  lookback_days:
+    default: 365
+    description: How many trailing days of exposure records to audit.
+compatible_agents: [generic, claude, codex]
+notes: Read-only audit — CSV should be sorted oldest-to-newest per patient for the interval check to be accurate; does not replace a documented ALARA protocol.

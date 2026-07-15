@@ -1,0 +1,40 @@
+id: chart-note-completion-lag-check
+version: 1
+name: Chart Note Completion Lag Check
+description: >
+  Flags patient appointments whose clinical chart note hasn't been signed
+  or completed within a configurable window after the visit. Use this if
+  an unsigned chart note has ever sat open for days, leaving the record
+  incomplete for insurance, referrals, or a future visit until someone
+  happened to notice.
+category: dental
+tags: [dental, charting, clinical-notes, compliance, documentation]
+schedule: "0 18 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{max_lag_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline visit_epoch; close(cmd);
+      days_since = (today - visit_epoch) / 86400;
+      if (days_since >= days) {
+        printf "UNSIGNED NOTE: %s — visit with %s on %s (%d days ago), chart note not completed\n", $1, $3, $2, days_since;
+      }
+    }
+  ' "{{encounters_csv_path}}"
+variables:
+  encounters_csv_path:
+    default: "./dental-encounters.csv"
+    description: "Path to a CSV with columns: patient_name,visit_date (YYYY-MM-DD),provider_name,note_completed_date (blank if not yet signed)."
+  max_lag_days:
+    default: 2
+    description: How many days after the visit a chart note can remain unsigned before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from the practice management or charting
+  system. Read-only — flags encounters to chase down, doesn't sign or edit
+  any chart note itself.

@@ -1,0 +1,53 @@
+id: autoclave-sterilization-log-compliance-check
+version: 1
+name: Autoclave Sterilization Log Compliance Check
+description: >
+  Checks the daily sterilization log for missing spore-test entries or
+  missing cycle records over a trailing window, which is what an
+  OSHA/state-board inspection or infection-control audit will ask for. Use
+  this if sterilization logging is done by hand at end of day and can
+  slip on a busy day without anyone noticing until an audit finds the gap.
+category: dental
+tags: [dental, sterilization, autoclave, compliance, osha, infection-control]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v lookback="{{lookback_days}}" -v spore_interval="{{spore_test_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days >= 0 && age_days <= lookback) {
+        cycle_days[$1] = 1;
+        if ($3 == "yes") last_spore_epoch = (entry_epoch > last_spore_epoch) ? entry_epoch : last_spore_epoch;
+      }
+    }
+    END {
+      "date +%s" | getline now_epoch; close("date +%s");
+      for (d in cycle_days) logged_days++;
+      expected_days = lookback + 1;
+      if (logged_days < expected_days) printf "MISSING CYCLE LOGS: only %d of %d expected day(s) have entries in the last %d day(s)\n", logged_days, expected_days, lookback;
+      if (last_spore_epoch == 0) {
+        print "MISSING SPORE TEST: no passing spore test found in the lookback window";
+      } else {
+        spore_age_days = int((now_epoch - last_spore_epoch) / 86400);
+        if (spore_age_days > spore_test_interval_days) printf "SPORE TEST OVERDUE: last passing test was %d day(s) ago (interval: %d)\n", spore_age_days, spore_test_interval_days;
+        else printf "Spore test current: last passing test %d day(s) ago.\n", spore_age_days;
+      }
+    }
+  ' "{{sterilization_log_csv_path}}"
+variables:
+  sterilization_log_csv_path:
+    default: "./sterilization_log.csv"
+    description: "Path to a CSV with columns: log_date (YYYY-MM-DD),cycle_count,spore_test_passed (yes/no/blank)."
+  lookback_days:
+    default: 7
+    description: How many trailing days of logs to check for gaps.
+  spore_test_interval_days:
+    default: 7
+    description: Maximum allowed days since the last passing spore test before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: Read-only compliance check — does not replace a documented sterilization protocol or actual spore-test mailing service.

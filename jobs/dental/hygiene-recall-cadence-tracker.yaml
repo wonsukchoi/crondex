@@ -1,0 +1,45 @@
+id: hygiene-recall-cadence-tracker
+version: 1
+name: Hygiene Recall Cadence Tracker
+description: >
+  Scans a logged hygiene-visit history and flags patients who are overdue for
+  their next cleaning based on a configurable recall interval (6 months by
+  default). Use this if the front desk relies on memory or a paper tickler
+  file to catch overdue cleanings — this is specific to the hygiene recall
+  cadence itself, not a general "patient hasn't been seen" reminder.
+category: dental
+tags: [dental, hygiene, recall, cleaning, patients, scheduling]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{recall_interval_months}}" -v grace="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      due_epoch = last_epoch + (interval * 30 * 86400);
+      overdue_days = int((now_epoch - due_epoch) / 86400);
+      if (overdue_days >= grace) {
+        printf "OVERDUE: %s last cleaned %s, %d day(s) past the %d-month recall window\n", $1, $2, overdue_days, interval;
+        count++;
+      }
+    }
+    END {
+      if (count == 0) print "No patients overdue for hygiene recall.";
+      else printf "%d patient(s) overdue for hygiene recall.\n", count;
+    }
+  ' "{{hygiene_visits_csv_path}}"
+variables:
+  hygiene_visits_csv_path:
+    default: "./hygiene_visits.csv"
+    description: "Path to a CSV with columns: patient_name,last_cleaning_date (YYYY-MM-DD)."
+  recall_interval_months:
+    default: 6
+    description: Months between hygiene cleanings before a patient is considered due.
+  grace_period_days:
+    default: 14
+    description: Extra days past the recall date allowed before flagging as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Read-only report — pair with an outreach/scheduling job if you also want recall reminders sent automatically.

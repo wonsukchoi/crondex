@@ -1,0 +1,39 @@
+id: periodontal-maintenance-interval-check
+version: 1
+name: Periodontal Maintenance Interval Check
+description: >
+  Flags periodontal-maintenance patients who are overdue for their next
+  visit based on their individual 3-4 month recall interval, not the
+  standard 6-month hygiene recall. Use this if a perio-maintenance patient
+  has ever slipped onto the regular 6-month recall list by mistake and
+  gone twice as long as they should between cleanings, risking disease
+  progression.
+category: dental
+tags: [dental, periodontal, recall, maintenance, hygiene]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      interval_months = $3 + 0;
+      due_days = interval_months * 30;
+      age_days = (today - last_epoch) / 86400;
+      if (age_days > due_days) {
+        printf "OVERDUE: %s — last perio maintenance %s (%d-month interval), %d days overdue\n", $1, $2, interval_months, age_days - due_days;
+      }
+    }
+  ' "{{perio_patients_csv_path}}"
+variables:
+  perio_patients_csv_path:
+    default: "./periodontal-maintenance-patients.csv"
+    description: "Path to a CSV with columns: patient_name,last_maintenance_visit_date (YYYY-MM-DD),recall_interval_months (typically 3 or 4)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only covers patients on a documented perio-maintenance program (their own interval
+  in the CSV) — distinct from a generic 6-month hygiene recall job, which would
+  under-flag these patients by using the wrong cadence.

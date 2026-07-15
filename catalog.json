@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1932,
+  "count": 1964,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2415,6 +2415,33 @@
       "path": "jobs/spa/autoclave-spore-test-log-check.yaml"
     },
     {
+      "id": "autoclave-sterilization-log-compliance-check",
+      "version": 1,
+      "name": "Autoclave Sterilization Log Compliance Check",
+      "description": "Checks the daily sterilization log for missing spore-test entries or missing cycle records over a trailing window, which is what an OSHA/state-board inspection or infection-control audit will ask for. Use this if sterilization logging is done by hand at end of day and can slip on a busy day without anyone noticing until an audit finds the gap.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "sterilization",
+        "autoclave",
+        "compliance",
+        "osha",
+        "infection-control"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/autoclave-sterilization-log-compliance-check.yaml"
+    },
+    {
       "id": "autopay-failed-payment-check",
       "version": 1,
       "name": "Autopay Failed Payment Check",
@@ -4038,6 +4065,33 @@
       "path": "jobs/crypto/bridge-transaction-stuck-monitor.yaml"
     },
     {
+      "id": "broken-appointment-same-day-fill-check",
+      "version": 1,
+      "name": "Broken Appointment Same-Day Fill Check",
+      "description": "Checks same-day cancellations and no-shows against a same-day waitlist backfill log and flags chair time that went unfilled. Use this if broken appointments are handled ad hoc by whoever's at the front desk and nobody is tracking whether that lost chair time actually got backfilled from the waitlist — distinct from the no-show rate tracker, which only measures the rate, not whether the gap got recovered.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "scheduling",
+        "no-show",
+        "cancellation",
+        "waitlist",
+        "chair-time"
+      ],
+      "schedule": "0 19 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/broken-appointment-same-day-fill-check.yaml"
+    },
+    {
       "id": "broken-campaign-link-check",
       "version": 1,
       "name": "Broken Campaign Link Check",
@@ -5059,6 +5113,33 @@
       "path": "jobs/realestate/capital-reserve-fund-threshold-check.yaml"
     },
     {
+      "id": "capitation-hmo-panel-reconciliation-check",
+      "version": 1,
+      "name": "Capitation/HMO Panel Reconciliation Check",
+      "description": "Reconciles a capitation or DHMO patient panel roster against the actual capitation payments received and flags discrepancies — active panel members with no matching payment, and payments received for patients no longer on the panel. Use this if the practice has ever discovered months later that a payer quietly dropped a patient from the panel but kept paying, or added one but never started paying, because nobody was cross-checking the roster against the deposits.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "capitation",
+        "hmo",
+        "insurance",
+        "billing",
+        "reconciliation"
+      ],
+      "schedule": "0 8 5 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/capitation-hmo-panel-reconciliation-check.yaml"
+    },
+    {
       "id": "car-insurance-renewal-reminder",
       "version": 1,
       "name": "Car Insurance Renewal Reminder",
@@ -6077,6 +6158,32 @@
       "path": "jobs/nonprofit/charitable-solicitation-registration-renewal-check.yaml"
     },
     {
+      "id": "chart-note-completion-lag-check",
+      "version": 1,
+      "name": "Chart Note Completion Lag Check",
+      "description": "Flags patient appointments whose clinical chart note hasn't been signed or completed within a configurable window after the visit. Use this if an unsigned chart note has ever sat open for days, leaving the record incomplete for insurance, referrals, or a future visit until someone happened to notice.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "charting",
+        "clinical-notes",
+        "compliance",
+        "documentation"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/chart-note-completion-lag-check.yaml"
+    },
+    {
       "id": "chat-abandonment-rate-check",
       "version": 1,
       "name": "Live Chat Abandonment Rate Check",
@@ -6388,6 +6495,33 @@
         "codex"
       ],
       "path": "jobs/telecom/circuit-provisioning-order-aging.yaml"
+    },
+    {
+      "id": "claim-attachment-missing-check",
+      "version": 1,
+      "name": "Insurance Claim Missing Attachment Check",
+      "description": "Cross-references submitted insurance claims against a CDT-code-to-required- attachment map (x-rays, narratives, perio charting) and flags any claim that's missing the documentation its procedure code typically needs. Use this if a claim has ever come back denied purely for a missing x-ray or narrative that could have been attached before submission — this catches it pre-emptively, before the payer ever sees it.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "insurance",
+        "claims",
+        "attachments",
+        "billing",
+        "revenue-cycle"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/claim-attachment-missing-check.yaml"
     },
     {
       "id": "claim-status-check",
@@ -12559,6 +12693,138 @@
         "generic"
       ],
       "path": "jobs/veterinary/dental-cleaning-recall-reminder.yaml"
+    },
+    {
+      "id": "dental-equipment-calibration-due-check",
+      "version": 1,
+      "name": "Dental Equipment Calibration Due Check",
+      "description": "Checks a tracked list of dental equipment — x-ray sensors, autoclaves, handpieces — against their calibration or inspection due dates and warns before any lapse. Use this if a piece of equipment has ever gone overdue for calibration unnoticed; distinct from a sterilization-log-compliance job, which checks daily sterilization cycle records, not the equipment's own inspection/calibration schedule.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "equipment",
+        "calibration",
+        "compliance",
+        "x-ray",
+        "autoclave"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dental-equipment-calibration-due-check.yaml"
+    },
+    {
+      "id": "dental-insurance-claim-denial-by-cdt-code-check",
+      "version": 1,
+      "name": "Dental Insurance Claim Denial by CDT Code Check",
+      "description": "Parses a dental claims log and flags denied claims, grouped by CDT procedure code, that are approaching or past the payer's resubmission or appeal deadline. Use this if denied claims (especially recurring ones tied to a specific procedure code like a crown or scaling code) are quietly aging past the window to appeal instead of being caught early.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "insurance",
+        "claims",
+        "denials",
+        "cdt-codes",
+        "billing"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dental-insurance-claim-denial-by-cdt-code-check.yaml"
+    },
+    {
+      "id": "dental-lab-case-turnaround-tracker",
+      "version": 1,
+      "name": "Dental Lab Case Turnaround Tracker",
+      "description": "Checks crown, denture, and appliance cases sent to an outside dental lab against the lab's promised turnaround date and flags anything overdue. Use this if a lab case has ever gone quiet past its due date, leaving a patient's seat appointment at risk because nobody chased the lab in time.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "lab-cases",
+        "crowns",
+        "dentures",
+        "turnaround"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dental-lab-case-turnaround-tracker.yaml"
+    },
+    {
+      "id": "dental-membership-plan-renewal-tracker",
+      "version": 1,
+      "name": "In-House Membership Plan Renewal Tracker",
+      "description": "Tracks renewal dates for the practice's own in-house discount or membership plan — not dental insurance — and flags patients approaching renewal or already lapsed. Use this if a membership-plan patient has ever lapsed and kept booking at member pricing without anyone noticing the plan wasn't active.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "membership-plan",
+        "renewal",
+        "billing",
+        "patients"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dental-membership-plan-renewal-tracker.yaml"
+    },
+    {
+      "id": "dental-supply-reorder-threshold-check",
+      "version": 1,
+      "name": "Dental Supply Reorder Threshold Check",
+      "description": "Scans a dental operatory supply inventory (impression material, anesthetic cartridges, gloves, prophy paste, burs) against reorder thresholds and flags what's running low. Use this if a chair has ever gone quiet mid-procedure because nobody noticed the last box of anesthetic cartridges or impression material got used up between supplier deliveries.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "inventory",
+        "supplies",
+        "operatory",
+        "operations"
+      ],
+      "schedule": "0 7 * * 1,4",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dental-supply-reorder-threshold-check.yaml"
     },
     {
       "id": "dentist-appointment-due-reminder",
@@ -19014,6 +19280,32 @@
       "path": "jobs/travel/frequent-flyer-miles-expiry.yaml"
     },
     {
+      "id": "front-desk-no-show-fee-collection-check",
+      "version": 1,
+      "name": "No-Show Fee Collection Check",
+      "description": "Checks whether no-show and late-cancellation fees that were charged to a patient account actually got collected, and flags uncollected fees past a threshold age. Use this if no-show fees have ever piled up as charged but never paid, quietly becoming written-off revenue nobody was tracking.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "billing",
+        "no-show",
+        "collections",
+        "front-desk"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/front-desk-no-show-fee-collection-check.yaml"
+    },
+    {
       "id": "fuel-card-anomaly-check",
       "version": 2,
       "name": "Fuel Card Anomaly Check",
@@ -21707,6 +21999,59 @@
       "path": "jobs/coworking/hvac-zone-temperature-complaint-check.yaml"
     },
     {
+      "id": "hygiene-recall-cadence-tracker",
+      "version": 1,
+      "name": "Hygiene Recall Cadence Tracker",
+      "description": "Scans a logged hygiene-visit history and flags patients who are overdue for their next cleaning based on a configurable recall interval (6 months by default). Use this if the front desk relies on memory or a paper tickler file to catch overdue cleanings — this is specific to the hygiene recall cadence itself, not a general \"patient hasn't been seen\" reminder.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "hygiene",
+        "recall",
+        "cleaning",
+        "patients",
+        "scheduling"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/hygiene-recall-cadence-tracker.yaml"
+    },
+    {
+      "id": "hygienist-production-per-day-tracker",
+      "version": 1,
+      "name": "Hygienist Production Per Day Tracker",
+      "description": "Aggregates each hygienist's logged daily production from a CSV and flags any day that falls below a configurable target. Use this if hygiene production is only reviewed at the end of the month during payroll or reporting, and a slow week or a scheduling gap goes unnoticed until then.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "hygienist",
+        "production",
+        "metrics",
+        "scheduling"
+      ],
+      "schedule": "0 19 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/hygienist-production-per-day-tracker.yaml"
+    },
+    {
       "id": "i9-reverification-deadline-check",
       "version": 1,
       "name": "I-9 Reverification Deadline Check",
@@ -22040,6 +22385,32 @@
         "generic"
       ],
       "path": "jobs/crypto/impermanent-loss-threshold-watch.yaml"
+    },
+    {
+      "id": "implant-case-post-op-follow-up-check",
+      "version": 1,
+      "name": "Implant Case Post-Op Follow-Up Check",
+      "description": "Flags dental implant patients who are past their expected post-op follow-up window but have no follow-up visit logged. Use this if an implant patient has ever gone past the healing check window without a follow-up on the books, risking an unnoticed complication between placement and restoration.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "implants",
+        "post-op",
+        "follow-up",
+        "recall"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/implant-case-post-op-follow-up-check.yaml"
     },
     {
       "id": "in-app-message-fatigue-check",
@@ -22514,6 +22885,32 @@
         "generic"
       ],
       "path": "jobs/healthcare/insurance-eligibility-verification-check.yaml"
+    },
+    {
+      "id": "insurance-eligibility-verification-expiry-check",
+      "version": 1,
+      "name": "Insurance Eligibility Verification Expiry Check",
+      "description": "Checks whether each patient's dental insurance eligibility was verified within a configurable window before their upcoming appointment and flags anyone unverified or with a stale verification. Use this if a patient has ever shown up for a crown prep only to find out chairside that coverage had lapsed, turning the visit into an unplanned collections conversation.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "insurance",
+        "eligibility",
+        "verification",
+        "front-desk"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/insurance-eligibility-verification-expiry-check.yaml"
     },
     {
       "id": "insurance-policy-renewal-reminder",
@@ -23907,6 +24304,33 @@
       "path": "jobs/crypto/l2-sequencer-halt-watch.yaml"
     },
     {
+      "id": "lab-case-remake-rate-tracker",
+      "version": 1,
+      "name": "Dental Lab Case Remake Rate Tracker",
+      "description": "Calculates the rate of lab cases — crowns, dentures, appliances — that came back needing a remake over a trailing window and flags a spike against threshold. Use this if lab-quality problems have ever piled up quietly; distinct from the lab-case-turnaround job, which watches whether cases come back on time, not whether the work itself was acceptable.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "lab-cases",
+        "quality",
+        "remake",
+        "crowns",
+        "dentures"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/lab-case-remake-rate-tracker.yaml"
+    },
+    {
       "id": "lab-result-followup-check",
       "version": 1,
       "name": "Lab Result Follow-Up Check",
@@ -24613,6 +25037,33 @@
         "codex"
       ],
       "path": "jobs/publishing/library-institutional-sales-lead-followup-tracker.yaml"
+    },
+    {
+      "id": "license-cde-credit-expiry-tracker",
+      "version": 1,
+      "name": "Dental License & CDE Credit Expiry Tracker",
+      "description": "Checks a tracked roster of dentist and hygienist license renewal dates alongside logged continuing dental education (CDE) credit hours, and flags anyone approaching renewal who is short on required credits or whose license itself is close to lapsing. Use this if a provider has ever hit their board renewal date short on CE hours, or kept treating patients past a lapsed license because nobody was tracking both the date and the credit count together.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "compliance",
+        "licensing",
+        "cde",
+        "continuing-education",
+        "staff"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/license-cde-credit-expiry-tracker.yaml"
     },
     {
       "id": "license-compliance-check",
@@ -27516,6 +27967,33 @@
       "path": "jobs/cleaning-services/missed-clean-reschedule-tracker.yaml"
     },
     {
+      "id": "missed-hygiene-reappointment-check",
+      "version": 1,
+      "name": "Missed Hygiene Reappointment Check",
+      "description": "Checks recently completed hygiene visits against the future schedule and flags any patient who left without a next hygiene appointment booked at all. Use this if a patient has ever walked out after a cleaning with nothing on the books because checkout got busy and nobody rebooked them — this catches the \"never rebooked\" gap right after checkout, distinct from a recall-cadence job that flags patients who are already overdue by date for their next cleaning.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "hygiene",
+        "scheduling",
+        "recall",
+        "checkout",
+        "front-desk"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/missed-hygiene-reappointment-check.yaml"
+    },
+    {
       "id": "mobile-data-roaming-overage-watch",
       "version": 1,
       "name": "Mobile Data Roaming Overage Watch",
@@ -28995,6 +29473,32 @@
       "path": "jobs/fitness/new-member-onboarding-checkin.yaml"
     },
     {
+      "id": "new-patient-conversion-rate-tracker",
+      "version": 1,
+      "name": "New Patient Conversion Rate Tracker",
+      "description": "Calculates the rate of new-patient exam leads that converted to a scheduled or completed first appointment over a trailing window, and flags when the rate drops below a threshold. Use this if new-patient inquiries have ever piled up without anyone noticing that fewer of them were actually turning into booked first visits.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "new-patients",
+        "conversion",
+        "marketing",
+        "metrics"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/new-patient-conversion-rate-tracker.yaml"
+    },
+    {
       "id": "new-restaurant-roundup",
       "version": 1,
       "name": "New Restaurant Roundup",
@@ -30147,6 +30651,32 @@
       "path": "jobs/content/orphaned-page-internal-link-check.yaml"
     },
     {
+      "id": "ortho-retainer-check-in-reminder",
+      "version": 1,
+      "name": "Ortho Retainer Check-In Reminder",
+      "description": "Flags orthodontic retention patients who are overdue for their scheduled retainer check-in appointment. Use this if a retention patient has ever gone quiet after finishing active treatment and drifted out of retainer compliance because nobody was tracking check-in due dates once braces came off.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "orthodontics",
+        "retention",
+        "retainers",
+        "recall"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/ortho-retainer-check-in-reminder.yaml"
+    },
+    {
       "id": "osha-jobsite-inspection-readiness-check",
       "version": 1,
       "name": "OSHA Jobsite Inspection Readiness Check",
@@ -31091,6 +31621,32 @@
       "path": "jobs/pharmacy/patient-adherence-pdc-gap-check.yaml"
     },
     {
+      "id": "patient-balance-aging-report",
+      "version": 1,
+      "name": "Patient Balance Aging Report",
+      "description": "Buckets outstanding patient balances by age (0-30, 31-60, 61-90, 90+ days) from a billing export and flags accounts past a configurable threshold. Use this if patient balances have ever quietly drifted past 90 days because nobody had a standing view of the aging buckets, not just the total owed.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "billing",
+        "patient-balances",
+        "aging",
+        "revenue-cycle"
+      ],
+      "schedule": "0 8 1,15 * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/patient-balance-aging-report.yaml"
+    },
+    {
       "id": "patient-balance-collections-aging-check",
       "version": 2,
       "name": "Overdue Patient Balance Aging Check",
@@ -31250,6 +31806,32 @@
       "path": "jobs/veterinary/patient-record-completeness-audit.yaml"
     },
     {
+      "id": "patient-review-response-lag-check",
+      "version": 1,
+      "name": "Patient Review Response Lag Check",
+      "description": "Checks how long new patient reviews from an exported reviews log (Google, Yelp, practice website) have sat unanswered and flags any past a response threshold. Use this if the practice has ever left a review — especially a critical one — unanswered for weeks because nobody was assigned to watch for new ones landing.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "reviews",
+        "reputation",
+        "front-desk",
+        "patient-experience"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/patient-review-response-lag-check.yaml"
+    },
+    {
       "id": "patient-safety-incident-report-followup-check",
       "version": 1,
       "name": "Patient Safety Incident Report Follow-Up Check",
@@ -31276,6 +31858,32 @@
         "generic"
       ],
       "path": "jobs/healthcare/patient-safety-incident-report-followup-check.yaml"
+    },
+    {
+      "id": "patient-satisfaction-survey-response-tracker",
+      "version": 1,
+      "name": "Dental Patient Satisfaction Survey Response Tracker",
+      "description": "Tallies post-appointment satisfaction survey response rate and average score over a trailing window and flags when either drops below threshold. Use this if a slipping response rate or a dip in average score has ever gone unnoticed for weeks because nobody was watching the trend, not just the individual responses.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "patient-satisfaction",
+        "survey",
+        "feedback",
+        "metrics"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/patient-satisfaction-survey-response-tracker.yaml"
     },
     {
       "id": "patient-satisfaction-survey-tracking",
@@ -31788,6 +32396,32 @@
         "generic"
       ],
       "path": "jobs/hr/performance-review-cycle-reminder.yaml"
+    },
+    {
+      "id": "periodontal-maintenance-interval-check",
+      "version": 1,
+      "name": "Periodontal Maintenance Interval Check",
+      "description": "Flags periodontal-maintenance patients who are overdue for their next visit based on their individual 3-4 month recall interval, not the standard 6-month hygiene recall. Use this if a perio-maintenance patient has ever slipped onto the regular 6-month recall list by mistake and gone twice as long as they should between cleanings, risking disease progression.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "periodontal",
+        "recall",
+        "maintenance",
+        "hygiene"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/periodontal-maintenance-interval-check.yaml"
     },
     {
       "id": "permissions-clearance-tracker",
@@ -33702,6 +34336,33 @@
         "codex"
       ],
       "path": "jobs/fieldservice/ppe-inspection-compliance-check.yaml"
+    },
+    {
+      "id": "ppo-fee-schedule-write-off-drift-check",
+      "version": 1,
+      "name": "PPO Fee Schedule Write-Off Drift Check",
+      "description": "Compares billed and allowed amounts from a payments log against a reference PPO fee schedule, per CDT code, and flags procedures where the write-off or reimbursement drifts past a configurable percentage from what the fee schedule says it should be. Use this if a PPO plan has quietly started underpaying (or the practice's fee schedule reference has gone stale) and it's only visible by comparing many claims at once.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "ppo",
+        "fee-schedule",
+        "write-off",
+        "billing",
+        "reimbursement"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/ppo-fee-schedule-write-off-drift-check.yaml"
     },
     {
       "id": "pql-sales-handoff-sla-check",
@@ -35894,6 +36555,33 @@
       "path": "jobs/warehousing/rack-structural-inspection-compliance-check.yaml"
     },
     {
+      "id": "radiograph-exposure-log-audit",
+      "version": 1,
+      "name": "Radiograph Exposure Log Audit",
+      "description": "Checks the radiograph exposure log for missing dose or frequency-interval records, and flags patients x-rayed more often than the configured minimum interval allows. Use this if radiograph logging is easy to skip in the moment and only matters when a radiation-safety (ALARA) audit or an insurer asks to see it — distinct from a general equipment maintenance check, since this is about the exposure record itself, not the machine.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "radiograph",
+        "x-ray",
+        "alara",
+        "radiation-safety",
+        "compliance"
+      ],
+      "schedule": "0 18 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/radiograph-exposure-log-audit.yaml"
+    },
+    {
       "id": "radon-test-renewal-reminder",
       "version": 1,
       "name": "Radon Test Renewal Reminder",
@@ -36688,6 +37376,32 @@
         "codex"
       ],
       "path": "jobs/growth/referral-program-performance-tracker.yaml"
+    },
+    {
+      "id": "referral-specialist-loop-closure-check",
+      "version": 1,
+      "name": "Specialist Referral Loop-Closure Check",
+      "description": "Tracks patients referred out to an oral surgeon, endodontist, or periodontist and flags referrals where no report or consult note has come back within a configurable window after the referral was sent. Use this if a specialist referral has ever gone quiet with the patient possibly treated elsewhere and no note ever making it back into the chart.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "referrals",
+        "specialist",
+        "oral-surgeon",
+        "care-coordination"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/referral-specialist-loop-closure-check.yaml"
     },
     {
       "id": "refill-sync-enrollment-check",
@@ -38880,6 +39594,32 @@
       "path": "jobs/sales/sales-tool-license-utilization-check.yaml"
     },
     {
+      "id": "same-day-cancellation-rate-tracker",
+      "version": 1,
+      "name": "Same-Day Cancellation Rate Tracker",
+      "description": "Calculates the rate of same-day cancellations and no-shows over a trailing lookback window from a logged appointment history and flags it against a threshold. Use this if the schedule has ever quietly filled up with same-day drop-offs that left chairs empty at the last minute — this tracks the aggregate rate trend over time, distinct from a job that lists individual no-shows to follow up with one by one.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "scheduling",
+        "cancellations",
+        "no-show",
+        "metrics"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/same-day-cancellation-rate-tracker.yaml"
+    },
+    {
       "id": "savings-goal-contribution-checkin",
       "version": 1,
       "name": "Savings Goal Contribution Check-in",
@@ -39706,6 +40446,32 @@
         "codex"
       ],
       "path": "jobs/security/security-log-retention-gap-check.yaml"
+    },
+    {
+      "id": "sedation-consent-form-completeness-check",
+      "version": 1,
+      "name": "Sedation Consent Form Completeness Check",
+      "description": "Checks upcoming appointments scheduled with sedation or nitrous oxide against a signed consent-form log and flags any that don't yet have a matching signed form on file. Use this if a sedation appointment has ever gotten to the chair before anyone confirmed the consent form was actually signed, which is a compliance problem as much as a scheduling one.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "sedation",
+        "consent",
+        "compliance",
+        "scheduling"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/sedation-consent-form-completeness-check.yaml"
     },
     {
       "id": "self-checkout-error-rate-check",
@@ -45789,6 +46555,32 @@
       "path": "jobs/spa/treatment-package-session-usage-tracker.yaml"
     },
     {
+      "id": "treatment-plan-follow-up-nag",
+      "version": 1,
+      "name": "Treatment Plan Follow-Up Nag",
+      "description": "Flags treatment plan items that were diagnosed but never scheduled, once they've sat unscheduled longer than a configurable age. Use this if case-value from diagnosed work (fillings, crowns, ortho referrals) tends to go stale in the chart because nobody circled back to schedule it — distinct from a hygiene recall job, which only tracks routine cleanings.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "treatment-plan",
+        "case-acceptance",
+        "follow-up",
+        "unscheduled"
+      ],
+      "schedule": "0 8 * * 3",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/treatment-plan-follow-up-nag.yaml"
+    },
+    {
       "id": "treatment-room-double-booking-check",
       "version": 1,
       "name": "Treatment Room / Table Double-Booking Check",
@@ -46476,6 +47268,32 @@
         "codex"
       ],
       "path": "jobs/fieldservice/unresolved-callback-tracker.yaml"
+    },
+    {
+      "id": "unscheduled-treatment-value-report",
+      "version": 1,
+      "name": "Unscheduled Treatment Value Report",
+      "description": "Sums the dollar value of diagnosed-but-unscheduled treatment plan line items from a practice export, grouped by how long they've sat unscheduled. Use this if diagnosed treatment has ever piled up in the chart without anyone tracking how much recoverable case value was sitting there unbooked.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "treatment-plans",
+        "case-acceptance",
+        "revenue-cycle",
+        "reporting"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/unscheduled-treatment-value-report.yaml"
     },
     {
       "id": "unsigned-encounter-note-check",
@@ -49687,6 +50505,32 @@
         "generic"
       ],
       "path": "jobs/hr/workers-comp-claim-status-check.yaml"
+    },
+    {
+      "id": "write-off-approval-threshold-audit",
+      "version": 1,
+      "name": "Billing Write-Off Approval Threshold Audit",
+      "description": "Checks logged billing write-offs against an approval-required dollar threshold and flags any write-off above that threshold with no recorded approval. Use this if a large balance has ever been quietly written off without a manager sign-off, and nobody caught it until the books didn't reconcile.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "billing",
+        "write-off",
+        "compliance",
+        "audit"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/write-off-approval-threshold-audit.yaml"
     },
     {
       "id": "yard-trailer-detention-watch",

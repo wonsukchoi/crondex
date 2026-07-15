@@ -1,0 +1,40 @@
+id: dental-lab-case-turnaround-tracker
+version: 1
+name: Dental Lab Case Turnaround Tracker
+description: >
+  Checks crown, denture, and appliance cases sent to an outside dental lab
+  against the lab's promised turnaround date and flags anything overdue.
+  Use this if a lab case has ever gone quiet past its due date, leaving a
+  patient's seat appointment at risk because nobody chased the lab in time.
+category: dental
+tags: [dental, lab-cases, crowns, dentures, turnaround]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before_due}}" '
+    NR==1 {next}
+    $6 != "in-progress" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "OVERDUE: %s — case %s (%s, lab: %s) was due %s (%d days ago)\n", $1, $2, $3, $4, $5, -diff_days;
+      } else if (diff_days <= warn_days) {
+        printf "DUE SOON: %s — case %s (%s, lab: %s) due %s (%d days left)\n", $1, $2, $3, $4, $5, diff_days;
+      }
+    }
+  ' "{{lab_cases_csv_path}}"
+variables:
+  lab_cases_csv_path:
+    default: "./dental-lab-cases.csv"
+    description: "Path to a CSV with columns: patient_name,case_number,case_type,lab_name,promised_due_date (YYYY-MM-DD),status (in-progress/received/seated)."
+  warn_days_before_due:
+    default: 2
+    description: How many days before the promised turnaround date to start warning, in addition to already-overdue cases.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually or practice-management-software-exported CSV of outstanding lab
+  cases. Read-only — flags cases to call the lab about, doesn't contact the lab itself.

@@ -1,0 +1,40 @@
+id: front-desk-no-show-fee-collection-check
+version: 1
+name: No-Show Fee Collection Check
+description: >
+  Checks whether no-show and late-cancellation fees that were charged to a
+  patient account actually got collected, and flags uncollected fees past a
+  threshold age. Use this if no-show fees have ever piled up as charged but
+  never paid, quietly becoming written-off revenue nobody was tracking.
+category: dental
+tags: [dental, billing, no-show, collections, front-desk]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{uncollected_age_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline charged_epoch; close(cmd);
+      age_days = (today - charged_epoch) / 86400;
+      if (age_days >= days) {
+        printf "UNCOLLECTED: %s — $%.2f fee charged %s (%d days ago), not yet paid\n", $1, $3+0, $2, age_days;
+      }
+    }
+  ' "{{noshow_fees_csv_path}}"
+variables:
+  noshow_fees_csv_path:
+    default: "./noshow-fees.csv"
+    description: "Path to a CSV with columns: patient_name,fee_charged_date (YYYY-MM-DD),fee_amount,paid_date (blank if not yet collected)."
+  uncollected_age_days:
+    default: 30
+    description: How many days a charged no-show/late-cancellation fee can remain unpaid before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from the practice management system's
+  billing log, keyed to no-show/late-cancellation fee charges specifically
+  (not general patient balances). Read-only — flags accounts to follow up
+  on, doesn't send a bill or process a payment itself.

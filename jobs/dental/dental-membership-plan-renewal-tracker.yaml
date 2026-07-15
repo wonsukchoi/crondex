@@ -1,0 +1,43 @@
+id: dental-membership-plan-renewal-tracker
+version: 1
+name: In-House Membership Plan Renewal Tracker
+description: >
+  Tracks renewal dates for the practice's own in-house discount or
+  membership plan — not dental insurance — and flags patients approaching
+  renewal or already lapsed. Use this if a membership-plan patient has ever
+  lapsed and kept booking at member pricing without anyone noticing the
+  plan wasn't active.
+category: dental
+tags: [dental, membership-plan, renewal, billing, patients]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline renewal_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (renewal_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "LAPSED: %s — %s plan lapsed %s (%d days ago)\n", $1, $2, $3, -diff_days;
+      } else if (diff_days <= days) {
+        printf "RENEWAL DUE SOON: %s — %s plan renews %s (%d days left)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{membership_csv_path}}"
+variables:
+  membership_csv_path:
+    default: "./dental-membership-plans.csv"
+    description: "Path to a CSV with columns: patient_name,plan_name,renewal_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before the renewal date to start warning, in addition to already-lapsed plans.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers the practice's own in-house discount/membership plan only, not
+  third-party dental insurance — see insurance-eligibility-verification-expiry-check.yaml
+  for that. Assumes a manually maintained or practice-management-software-exported
+  CSV of membership plan renewal dates. Read-only — flags patients to contact,
+  doesn't process the renewal charge itself.

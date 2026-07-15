@@ -1,0 +1,40 @@
+id: patient-review-response-lag-check
+version: 1
+name: Patient Review Response Lag Check
+description: >
+  Checks how long new patient reviews from an exported reviews log (Google,
+  Yelp, practice website) have sat unanswered and flags any past a response
+  threshold. Use this if the practice has ever left a review — especially a
+  critical one — unanswered for weeks because nobody was assigned to watch
+  for new ones landing.
+category: dental
+tags: [dental, reviews, reputation, front-desk, patient-experience]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_hours="{{response_warn_hours}}" '
+    NR==1 {next}
+    $5 != "unanswered" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\ %H:%M:%S \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline posted_epoch; close(cmd);
+      age_hours = (today - posted_epoch) / 3600;
+      if (age_hours >= warn_hours) {
+        printf "UNANSWERED: %s review from %s (%d stars) posted %s — %d hours unanswered\n", $2, $1, $4, $3, age_hours;
+      }
+    }
+  ' "{{reviews_export_csv_path}}"
+variables:
+  reviews_export_csv_path:
+    default: "./patient-reviews.csv"
+    description: "Path to a CSV with columns: patient_name,platform,posted_at (YYYY-MM-DD HH:MM:SS),star_rating,status (unanswered/answered)."
+  response_warn_hours:
+    default: 48
+    description: How many hours a review can sit unanswered before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a maintained CSV export from your reputation-management or review
+  aggregator tool. Read-only flagging job — it doesn't draft or post
+  responses itself.

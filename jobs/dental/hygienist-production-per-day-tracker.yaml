@@ -1,0 +1,49 @@
+id: hygienist-production-per-day-tracker
+version: 1
+name: Hygienist Production Per Day Tracker
+description: >
+  Aggregates each hygienist's logged daily production from a CSV and flags
+  any day that falls below a configurable target. Use this if hygiene
+  production is only reviewed at the end of the month during payroll or
+  reporting, and a slow week or a scheduling gap goes unnoticed until then.
+category: dental
+tags: [dental, hygienist, production, metrics, scheduling]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{daily_target_amount}}" -v since="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days >= 0 && age_days <= since) {
+        prod[$1","$2] += $3+0;
+      }
+    }
+    END {
+      for (k in prod) {
+        if (prod[k] < target+0) {
+          split(k, parts, ",");
+          printf "BELOW TARGET: %s on %s produced $%.2f (target $%.2f)\n", parts[2], parts[1], prod[k], target+0;
+          count++;
+        }
+      }
+      if (count == 0) print "All logged hygienist days met the daily production target.";
+      else printf "%d hygienist-day(s) below target.\n", count;
+    }
+  ' "{{production_csv_path}}"
+variables:
+  production_csv_path:
+    default: "./hygienist_production.csv"
+    description: "Path to a CSV with columns: work_date (YYYY-MM-DD),hygienist_name,production_amount."
+  daily_target_amount:
+    default: 1200
+    description: Minimum daily production per hygienist before a day is flagged as below target.
+  lookback_days:
+    default: 14
+    description: How many trailing days of production entries to include.
+compatible_agents: [generic, claude, codex]
+notes: Read-only aggregation — treats each work_date+hygienist_name pair as one shift; multiple rows for the same day are summed.

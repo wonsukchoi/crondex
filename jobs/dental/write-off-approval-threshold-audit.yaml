@@ -1,0 +1,36 @@
+id: write-off-approval-threshold-audit
+version: 1
+name: Billing Write-Off Approval Threshold Audit
+description: >
+  Checks logged billing write-offs against an approval-required dollar
+  threshold and flags any write-off above that threshold with no recorded
+  approval. Use this if a large balance has ever been quietly written off
+  without a manager sign-off, and nobody caught it until the books didn't
+  reconcile.
+category: dental
+tags: [dental, billing, write-off, compliance, audit]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{approval_required_over}}" '
+    NR==1 {next}
+    {
+      amount = $3 + 0;
+      if (amount > threshold && $5 == "") {
+        printf "MISSING APPROVAL: %s — write-off $%.2f for %s on %s (reason: %s), no approver recorded\n", $1, amount, $2, $4, $6;
+      }
+    }
+  ' "{{writeoffs_csv_path}}"
+variables:
+  writeoffs_csv_path:
+    default: "./billing-writeoffs.csv"
+    description: "Path to a CSV with columns: patient_name,account_number,writeoff_amount,writeoff_date (YYYY-MM-DD),approved_by (blank if unapproved),reason."
+  approval_required_over:
+    default: 200
+    description: Write-off dollar amount above which a recorded approver is required.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an already-exported CSV from the practice management system's
+  billing/write-off log. Read-only — flags entries missing an approver,
+  doesn't reverse or approve any write-off itself.

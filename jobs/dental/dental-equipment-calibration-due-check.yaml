@@ -1,0 +1,42 @@
+id: dental-equipment-calibration-due-check
+version: 1
+name: Dental Equipment Calibration Due Check
+description: >
+  Checks a tracked list of dental equipment — x-ray sensors, autoclaves,
+  handpieces — against their calibration or inspection due dates and warns
+  before any lapse. Use this if a piece of equipment has ever gone overdue
+  for calibration unnoticed; distinct from a sterilization-log-compliance
+  job, which checks daily sterilization cycle records, not the equipment's
+  own inspection/calibration schedule.
+category: dental
+tags: [dental, equipment, calibration, compliance, x-ray, autoclave]
+schedule: "0 8 1 * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days < 0) {
+        printf "OVERDUE: %s (%s, %s) was due %s (%d days ago)\n", $1, $2, $3, $4, -diff_days;
+      } else if (diff_days <= days) {
+        printf "DUE SOON: %s (%s, %s) due %s (%d days left)\n", $1, $2, $3, $4, diff_days;
+      }
+    }
+  ' "{{equipment_csv_path}}"
+variables:
+  equipment_csv_path:
+    default: "./dental-equipment-calibration.csv"
+    description: "Path to a CSV with columns: equipment_name,equipment_id,equipment_type (x-ray-sensor/autoclave/handpiece/other),calibration_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before the calibration or inspection due date to start warning, in addition to already-overdue items.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a manually maintained or practice-management-software-exported CSV
+  of equipment calibration/inspection schedules. Read-only — flags items to
+  schedule service on, doesn't book the service call itself.

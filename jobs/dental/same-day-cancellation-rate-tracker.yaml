@@ -1,0 +1,53 @@
+id: same-day-cancellation-rate-tracker
+version: 1
+name: Same-Day Cancellation Rate Tracker
+description: >
+  Calculates the rate of same-day cancellations and no-shows over a
+  trailing lookback window from a logged appointment history and flags it
+  against a threshold. Use this if the schedule has ever quietly filled up
+  with same-day drop-offs that left chairs empty at the last minute — this
+  tracks the aggregate rate trend over time, distinct from a job that lists
+  individual no-shows to follow up with one by one.
+category: dental
+tags: [dental, scheduling, cancellations, no-show, metrics]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline appt_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - appt_epoch) / 86400;
+      if (age_days >= 0 && age_days <= cutoff) {
+        total++;
+        if ($3 == "same-day-cancel" || $3 == "no-show") flagged++;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (flagged / total) * 100;
+        printf "SAME-DAY CANCEL/NO-SHOW RATE: %d/%d appointments in last %d day(s) = %.1f%%\n", flagged, total, cutoff, rate;
+        if (rate >= threshold) printf "ALERT: rate %.1f%% is at or above the %.1f%% threshold\n", rate, threshold;
+      } else {
+        print "No appointments found in the lookback window.";
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./appointments.csv"
+    description: "Path to a CSV with columns: patient_name,appointment_date (YYYY-MM-DD),status (arrived/same-day-cancel/no-show/advance-cancel)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of appointments to include in the rate calculation.
+  alert_threshold_pct:
+    default: 8
+    description: Combined same-day-cancellation/no-show rate percentage that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token trend check, distinct from a per-appointment no-show follow-up job —
+  this watches the aggregate rate over a rolling window so a slow creep upward
+  gets caught before it visibly hurts chair utilization.

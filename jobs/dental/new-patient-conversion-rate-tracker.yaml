@@ -1,0 +1,52 @@
+id: new-patient-conversion-rate-tracker
+version: 1
+name: New Patient Conversion Rate Tracker
+description: >
+  Calculates the rate of new-patient exam leads that converted to a
+  scheduled or completed first appointment over a trailing window, and
+  flags when the rate drops below a threshold. Use this if new-patient
+  inquiries have ever piled up without anyone noticing that fewer of them
+  were actually turning into booked first visits.
+category: dental
+tags: [dental, new-patients, conversion, marketing, metrics]
+schedule: "0 7 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline lead_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - lead_epoch) / 86400;
+      if (age_days >= 0 && age_days <= cutoff) {
+        total++;
+        if ($3 == "scheduled" || $3 == "completed") converted++;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (converted / total) * 100;
+        printf "CONVERSION RATE: %d/%d new-patient leads in last %d day(s) = %.1f%%\n", converted, total, cutoff, rate;
+        if (rate < threshold) printf "ALERT: conversion rate %.1f%% is below the %.1f%% threshold\n", rate, threshold;
+      } else {
+        print "No new-patient leads found in the lookback window.";
+      }
+    }
+  ' "{{leads_csv_path}}"
+variables:
+  leads_csv_path:
+    default: "./new-patient-leads.csv"
+    description: "Path to a CSV with columns: lead_name,inquiry_date (YYYY-MM-DD),status (inquired/scheduled/completed/no-response/declined)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of new-patient leads to include in the rate calculation.
+  alert_threshold_pct:
+    default: 50
+    description: Conversion rate percentage below which an alert is raised.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes leads are logged to a CSV (front-desk intake sheet or practice management
+  export) as they come in. Read-only trend check, distinct from any individual lead
+  follow-up job.

@@ -1,0 +1,31 @@
+id: dental-supply-reorder-threshold-check
+version: 1
+name: Dental Supply Reorder Threshold Check
+description: >
+  Scans a dental operatory supply inventory (impression material,
+  anesthetic cartridges, gloves, prophy paste, burs) against reorder
+  thresholds and flags what's running low. Use this if a chair has ever
+  gone quiet mid-procedure because nobody noticed the last box of
+  anesthetic cartridges or impression material got used up between
+  supplier deliveries.
+category: dental
+tags: [dental, inventory, supplies, operatory, operations]
+schedule: "0 7 * * 1,4"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    ($3 + 0) <= ($4 + 0) {
+      printf "LOW STOCK: %s (%s) — %d on hand, reorder threshold %d\n", $1, $2, $3, $4;
+    }
+  ' "{{supply_inventory_csv_path}}"
+variables:
+  supply_inventory_csv_path:
+    default: "./dental-supply-inventory.csv"
+    description: "Path to a CSV with columns: item_name,category,current_qty,reorder_threshold."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, read-only check. Assumes a maintained inventory export (manual count
+  or practice-management supply module) — this is the "did anyone check the
+  supply closet" backstop, it doesn't place the reorder itself.

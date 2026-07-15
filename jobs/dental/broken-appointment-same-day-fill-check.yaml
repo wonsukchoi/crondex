@@ -1,0 +1,44 @@
+id: broken-appointment-same-day-fill-check
+version: 1
+name: Broken Appointment Same-Day Fill Check
+description: >
+  Checks same-day cancellations and no-shows against a same-day waitlist
+  backfill log and flags chair time that went unfilled. Use this if broken
+  appointments are handled ad hoc by whoever's at the front desk and nobody
+  is tracking whether that lost chair time actually got backfilled from the
+  waitlist — distinct from the no-show rate tracker, which only measures
+  the rate, not whether the gap got recovered.
+category: dental
+tags: [dental, scheduling, no-show, cancellation, waitlist, chair-time]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v since="{{lookback_days}}" '
+    NR==1 {next}
+    ($3 == "cancelled" || $3 == "no-show") {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days >= 0 && age_days <= since) {
+        total++;
+        if ($4 == "filled") filled++;
+        else printf "UNFILLED: %s broken appointment for %s on %s (%s min chair time)\n", $3, $1, $2, $5;
+      }
+    }
+    END {
+      unfilled = total - filled;
+      if (total == 0) print "No broken appointments in the lookback window.";
+      else printf "%d of %d broken appointment(s) went unfilled in the last %d day(s).\n", unfilled, total, since;
+    }
+  ' "{{broken_appointments_csv_path}}"
+variables:
+  broken_appointments_csv_path:
+    default: "./broken_appointments.csv"
+    description: "Path to a CSV with columns: patient_name,appointment_date (YYYY-MM-DD),status (cancelled/no-show),fill_status (filled/unfilled),chair_minutes."
+  lookback_days:
+    default: 7
+    description: How many trailing days of broken appointments to include.
+compatible_agents: [generic, claude, codex]
+notes: Read-only report — pair with a waitlist outreach job if you want the same-day gap actively worked instead of just reported.

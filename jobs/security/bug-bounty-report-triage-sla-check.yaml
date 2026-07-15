@@ -1,0 +1,37 @@
+id: bug-bounty-report-triage-sla-check
+version: 1
+name: Bug Bounty Report Triage SLA Check
+description: >
+  Checks incoming bug bounty vulnerability reports and flags any that
+  haven't been triaged within your target SLA window. Use this if a
+  researcher-submitted report has ever sat untouched for weeks because it
+  fell through the cracks between the bug bounty platform and your
+  security queue.
+category: security
+tags: [security, bug-bounty, vulnerability-management, sla]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v sla={{triage_sla_hours}} '
+    NR>1 {
+      if ($3 != "" && $3 != "untriaged" && $3 != "new") next;
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%dT%H:%M:%S\" \"" $2 "\" +%s";
+      cmd | getline submitted_ts; close(cmd);
+      hours_since = int((today - submitted_ts) / 3600);
+      if (hours_since >= sla) print "OVERDUE: report \"" $1 "\" submitted " hours_since " hours ago (on " $2 ") is still untriaged";
+    }
+  ' {{reports_csv}}
+variables:
+  reports_csv:
+    default: "bug-bounty-reports.csv"
+    description: "CSV with header row, columns: report_id,submitted_at(YYYY-MM-DDTHH:MM:SS),status."
+  triage_sla_hours:
+    default: 48
+    description: Hours after submission a report must be triaged before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Export the reports CSV from your bug bounty platform (HackerOne, Bugcrowd,
+  Intigriti) or a webhook-fed sync of it; this job only flags SLA breaches
+  for a human to act on, it does not assess report validity or severity.

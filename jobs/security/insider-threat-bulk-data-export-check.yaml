@@ -1,0 +1,51 @@
+id: insider-threat-bulk-data-export-check
+version: 1
+name: Insider Threat Bulk Data Export Check
+description: >
+  Compares each employee or service account's recent data export/download
+  volume against their own historical baseline and flags accounts with an
+  anomalous spike. Use this if you want an early signal on potential data
+  exfiltration or insider threat activity before it turns into a breach
+  report.
+category: security
+tags: [security, insider-threat, data-exfiltration, anomaly-detection]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review data export/download activity logs for the last {{lookback_days}}
+  day(s) from {{export_log_source}} for this organization.
+  1. For each user or service account, compute total bytes/objects
+     exported or downloaded in the lookback window.
+  2. Compare that volume against the account's typical baseline (e.g. the
+     trailing {{baseline_days}}-day average) if historical data is
+     available.
+  3. Flag any account whose export volume exceeds {{spike_multiplier}}x
+     its baseline, or any single export event over {{single_event_threshold}}.
+  4. For each flagged account, note what was exported (system/bucket/repo),
+     when, and whether it correlates with an offboarding date, after-hours
+     access, or a new/unfamiliar destination.
+  5. If nothing crosses the threshold, say so in one line.
+variables:
+  export_log_source:
+    default: "DLP/SIEM export audit log (e.g. Splunk, Datadog, cloud audit trail)"
+    description: Where to pull data export/download activity from.
+  lookback_days:
+    default: 1
+    description: How many days of recent activity to evaluate for a spike.
+  baseline_days:
+    default: 30
+    description: Trailing window used to establish each account's normal export volume.
+  spike_multiplier:
+    default: 5
+    description: Multiple of an account's baseline export volume that counts as anomalous.
+  single_event_threshold:
+    default: "5GB or 10000 objects"
+    description: A single export event size that's flagged regardless of baseline comparison.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Requires export/download activity to be logged somewhere queryable (SIEM,
+  cloud audit trail, DLP tool); this job does not instrument logging itself.
+  Baselining and correlation across signals needs judgment, so this is
+  agent-prompt only — false positives (e.g. a legitimate quarterly backup
+  job) should be expected and reviewed by a human before escalation.

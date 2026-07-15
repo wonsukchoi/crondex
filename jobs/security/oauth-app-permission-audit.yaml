@@ -1,0 +1,46 @@
+id: oauth-app-permission-audit
+version: 1
+name: OAuth App Permission Audit
+description: >
+  Audits third-party OAuth app grants in Google Workspace, Microsoft 365,
+  or similar identity platforms for excessive scopes or apps that
+  shouldn't have organization-wide access. Use this if an employee has
+  ever clicked "Allow" on a shady app that requested full mailbox or
+  Drive access and nobody noticed for months.
+category: security
+tags: [security, oauth, identity, access-review]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review third-party OAuth app grants across the organization's identity
+  platform (Google Workspace, Microsoft 365, Okta, or similar — see
+  {{platform_hint}}) and flag risky ones.
+  1. Pull the list of connected/authorized third-party apps and the
+     scopes each was granted, along with which users authorized them.
+  2. Flag apps that:
+     - Request high-risk scopes (full mailbox read/send, full Drive
+       access, admin directory access, offline access) relative to what
+       the app plausibly needs.
+     - Are not on the approved app allowlist at {{allowlist_hint}}, if
+       one exists.
+     - Have very few users but broad scopes (likely a one-off grant that
+       never got cleaned up).
+     - Belong to publishers marked unverified by the platform.
+  3. For each flagged app, report: app name, publisher, scopes granted,
+     number of users, and a recommendation (revoke, restrict, or
+     accept with justification).
+  4. If nothing looks risky, say so in one line.
+variables:
+  platform_hint:
+    default: "Google Workspace Admin Console > Security > API Controls > App Access Control"
+    description: Where to pull the OAuth app grant list from for this org's identity platform.
+  allowlist_hint:
+    default: "no formal allowlist maintained"
+    description: Location of an approved third-party app allowlist, if one exists.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only by default — this reports findings for a human to act on and
+  does not revoke access itself. Revoking grants typically requires admin
+  console access or platform-specific API calls (e.g. Google Admin SDK
+  Reports/Token API); wire that in separately if you want auto-revocation.

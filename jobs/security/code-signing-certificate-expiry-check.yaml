@@ -1,0 +1,37 @@
+id: code-signing-certificate-expiry-check
+version: 1
+name: Code Signing Certificate Expiry Check
+description: >
+  Tracks expiry dates for code-signing certificates used to sign build
+  artifacts and releases, and flags ones expiring soon. Use this if a
+  release has ever failed or gotten flagged by an OS/store because the
+  signing certificate quietly expired between releases.
+category: security
+tags: [security, code-signing, certificates, release]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: signing cert \"" $1 "\" expires in " days_left " days (" $2 ")";
+    }
+  ' {{certs_csv}}
+variables:
+  certs_csv:
+    default: "code-signing-certs.csv"
+    description: "CSV with header row, columns: cert_name,expiry_date(YYYY-MM-DD). One row per code-signing cert (e.g. Apple Developer ID, Windows Authenticode, GPG release key)."
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Keep code-signing-certs.csv updated by hand or generate it
+  with `openssl x509 -enddate -noout -in cert.pem` for each cert in your
+  signing keychain/HSM. This is distinct from domain/TLS certificate
+  checks elsewhere in this category — it tracks certs used to sign build
+  artifacts and installers, not certs used to serve HTTPS traffic.

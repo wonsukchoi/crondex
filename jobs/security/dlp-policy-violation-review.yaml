@@ -1,0 +1,37 @@
+id: dlp-policy-violation-review
+version: 1
+name: DLP Policy Violation Review
+description: >
+  Reviews the data loss prevention (DLP) policy violation alert log and
+  flags unreviewed or unresolved alerts past your triage SLA. Use this if
+  a DLP alert has ever sat unread in a dashboard for weeks while sensitive
+  data kept leaking through the same channel.
+category: security
+tags: [security, dlp, data-loss-prevention, alerts]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v sla_hours={{triage_sla_hours}} '
+    NR>1 && ($4 == "open" || $4 == "unreviewed") {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d %H:%M:%S\" \"" $2 "\" +%s";
+      cmd | getline alert_ts; close(cmd);
+      hours_open = (today - alert_ts) / 3600;
+      if (hours_open >= sla_hours) printf "OVERDUE: alert \"%s\" (%s) open %.1f hours, SLA %d hours (channel: %s)\n", $1, $3, hours_open, sla_hours, $5;
+    }
+  ' {{dlp_alerts_csv}}
+variables:
+  dlp_alerts_csv:
+    default: "dlp-alerts.csv"
+    description: "CSV with header row, columns: alert_id,triggered_at(YYYY-MM-DD HH:MM:SS),policy_name,status(open|unreviewed|resolved),channel."
+  triage_sla_hours:
+    default: 24
+    description: Hours an alert can sit untriaged before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Export dlp-alerts.csv from your DLP tool (Microsoft
+  Purview, Google Workspace DLP, Netskope, etc.) on a regular cadence, or
+  wire an export script ahead of this job. This flags overdue triage for
+  a human to review; it does not classify content sensitivity or resolve
+  alerts itself.

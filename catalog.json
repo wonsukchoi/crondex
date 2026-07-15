@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2120,
+  "count": 2133,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -2986,6 +2986,31 @@
       "path": "jobs/photography/backup-drive-rotation-schedule-check.yaml"
     },
     {
+      "id": "backup-encryption-key-rotation-check",
+      "version": 1,
+      "name": "Backup Encryption Key Rotation Check",
+      "description": "Checks how long it's been since each data-at-rest backup encryption key was last rotated and flags any past your rotation interval. Use this if a backup or archive encryption key has ever sat unrotated for years because it's not part of your regular IAM/API credential rotation process.",
+      "category": "security",
+      "tags": [
+        "security",
+        "encryption",
+        "key-rotation",
+        "backups"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/backup-encryption-key-rotation-check.yaml"
+    },
+    {
       "id": "backup-reminder",
       "version": 1,
       "name": "Backup Freshness Check",
@@ -4625,6 +4650,31 @@
         "codex"
       ],
       "path": "jobs/finance/budget-vs-actual-variance-report.yaml"
+    },
+    {
+      "id": "bug-bounty-report-triage-sla-check",
+      "version": 1,
+      "name": "Bug Bounty Report Triage SLA Check",
+      "description": "Checks incoming bug bounty vulnerability reports and flags any that haven't been triaged within your target SLA window. Use this if a researcher-submitted report has ever sat untouched for weeks because it fell through the cracks between the bug bounty platform and your security queue.",
+      "category": "security",
+      "tags": [
+        "security",
+        "bug-bounty",
+        "vulnerability-management",
+        "sla"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/bug-bounty-report-triage-sla-check.yaml"
     },
     {
       "id": "bug-report-triage-backlog-check",
@@ -8336,6 +8386,31 @@
       "path": "jobs/security/cloud-iam-wildcard-policy-check.yaml"
     },
     {
+      "id": "cloud-security-group-overexposure-check",
+      "version": 1,
+      "name": "Cloud Security Group Overexposure Check",
+      "description": "Flags cloud network security groups or VPC firewall rules that allow inbound access from 0.0.0.0/0 (or ::/0) on sensitive ports like SSH, RDP, or database ports. Use this if a security group has ever been opened to the entire internet during debugging and never locked back down.",
+      "category": "security",
+      "tags": [
+        "security",
+        "cloud",
+        "network",
+        "aws"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/cloud-security-group-overexposure-check.yaml"
+    },
+    {
       "id": "co-marketing-partner-mdf-utilization-check",
       "version": 1,
       "name": "Co-Marketing Partner MDF Utilization Check",
@@ -8438,6 +8513,31 @@
         "codex"
       ],
       "path": "jobs/government/code-enforcement-violation-followup-tracker.yaml"
+    },
+    {
+      "id": "code-signing-certificate-expiry-check",
+      "version": 1,
+      "name": "Code Signing Certificate Expiry Check",
+      "description": "Tracks expiry dates for code-signing certificates used to sign build artifacts and releases, and flags ones expiring soon. Use this if a release has ever failed or gotten flagged by an OS/store because the signing certificate quietly expired between releases.",
+      "category": "security",
+      "tags": [
+        "security",
+        "code-signing",
+        "certificates",
+        "release"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/code-signing-certificate-expiry-check.yaml"
     },
     {
       "id": "coffee-machine-maintenance-schedule-check",
@@ -9637,6 +9737,31 @@
         "codex"
       ],
       "path": "jobs/devops/container-image-scan-staleness-check.yaml"
+    },
+    {
+      "id": "container-image-vulnerability-scan-check",
+      "version": 1,
+      "name": "Container Image Vulnerability Scan Check",
+      "description": "Checks a container image vulnerability scan report (Trivy, Grype, or similar) for critical/high severity findings above your threshold. Use this if a vulnerable base image has ever slipped into production because nobody looked at the scan output before deploy.",
+      "category": "security",
+      "tags": [
+        "security",
+        "containers",
+        "vulnerability-scan",
+        "supply-chain"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/container-image-vulnerability-scan-check.yaml"
     },
     {
       "id": "content-calendar-gap-check",
@@ -14681,6 +14806,31 @@
       "path": "jobs/investing/dividend-payment-tracker.yaml"
     },
     {
+      "id": "dlp-policy-violation-review",
+      "version": 1,
+      "name": "DLP Policy Violation Review",
+      "description": "Reviews the data loss prevention (DLP) policy violation alert log and flags unreviewed or unresolved alerts past your triage SLA. Use this if a DLP alert has ever sat unread in a dashboard for weeks while sensitive data kept leaking through the same channel.",
+      "category": "security",
+      "tags": [
+        "security",
+        "dlp",
+        "data-loss-prevention",
+        "alerts"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/dlp-policy-violation-review.yaml"
+    },
+    {
       "id": "dns-email-auth-record-check",
       "version": 1,
       "name": "DNS Email Authentication Record Check",
@@ -16619,6 +16769,31 @@
         "codex"
       ],
       "path": "jobs/legal/employee-handbook-acknowledgment-compliance-check.yaml"
+    },
+    {
+      "id": "employee-security-policy-acknowledgment-check",
+      "version": 1,
+      "name": "Employee Security Policy Acknowledgment Check",
+      "description": "Checks which employees haven't acknowledged the current version of your security or acceptable-use policy within your target window and flags them. Use this if you need to prove for an audit that everyone signed off on the latest policy, not just the training that goes with it.",
+      "category": "security",
+      "tags": [
+        "security",
+        "policy",
+        "compliance",
+        "acknowledgment"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/employee-security-policy-acknowledgment-check.yaml"
     },
     {
       "id": "employee-shift-gap-check",
@@ -21574,6 +21749,31 @@
       "path": "jobs/education/gifted-talented-referral-backlog-check.yaml"
     },
     {
+      "id": "git-secrets-history-scan-check",
+      "version": 1,
+      "name": "Git Secrets History Scan Check",
+      "description": "Scans the full git commit history of a repo (not just the current working tree) for secrets that were committed and later removed or overwritten but are still reachable in old commits. Use this if a key was ever accidentally committed and then \"fixed\" with a follow-up commit, leaving it permanently exposed to anyone who can clone the repo.",
+      "category": "security",
+      "tags": [
+        "security",
+        "secrets",
+        "git-history",
+        "scanning"
+      ],
+      "schedule": "0 4 * * 0",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/git-secrets-history-scan-check.yaml"
+    },
+    {
       "id": "github-actions-runner-queue-wait-check",
       "version": 1,
       "name": "GitHub Actions Runner Queue Wait Check",
@@ -24484,6 +24684,33 @@
         "codex"
       ],
       "path": "jobs/fitness/injury-incident-report-followup-check.yaml"
+    },
+    {
+      "id": "insider-threat-bulk-data-export-check",
+      "version": 1,
+      "name": "Insider Threat Bulk Data Export Check",
+      "description": "Compares each employee or service account's recent data export/download volume against their own historical baseline and flags accounts with an anomalous spike. Use this if you want an early signal on potential data exfiltration or insider threat activity before it turns into a breach report.",
+      "category": "security",
+      "tags": [
+        "security",
+        "insider-threat",
+        "data-exfiltration",
+        "anomaly-detection"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/security/insider-threat-bulk-data-export-check.yaml"
     },
     {
       "id": "inspection-deadline-reminder",
@@ -32355,6 +32582,33 @@
       "path": "jobs/fitness/nutrition-checkin-reminder.yaml"
     },
     {
+      "id": "oauth-app-permission-audit",
+      "version": 1,
+      "name": "OAuth App Permission Audit",
+      "description": "Audits third-party OAuth app grants in Google Workspace, Microsoft 365, or similar identity platforms for excessive scopes or apps that shouldn't have organization-wide access. Use this if an employee has ever clicked \"Allow\" on a shady app that requested full mailbox or Drive access and nobody noticed for months.",
+      "category": "security",
+      "tags": [
+        "security",
+        "oauth",
+        "identity",
+        "access-review"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/security/oauth-app-permission-audit.yaml"
+    },
+    {
       "id": "occupancy-forecast-variance-check",
       "version": 1,
       "name": "Occupancy Forecast Variance Check",
@@ -35101,6 +35355,31 @@
         "codex"
       ],
       "path": "jobs/telecom/peering-transit-contract-renewal-check.yaml"
+    },
+    {
+      "id": "pentest-finding-remediation-tracker",
+      "version": 1,
+      "name": "Pentest Finding Remediation Tracker",
+      "description": "Tracks open penetration test findings and flags ones past their remediation SLA deadline based on severity. Use this if a critical pentest finding has ever sat unfixed for months because it got buried in a PDF report nobody revisited after the readout meeting.",
+      "category": "security",
+      "tags": [
+        "security",
+        "pentest",
+        "remediation",
+        "sla"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/pentest-finding-remediation-tracker.yaml"
     },
     {
       "id": "performance-review-cycle-reminder",
@@ -43621,6 +43900,31 @@
       "path": "jobs/realestate/security-deposit-return-deadline-check.yaml"
     },
     {
+      "id": "security-incident-postmortem-overdue-check",
+      "version": 1,
+      "name": "Security Incident Postmortem Overdue Check",
+      "description": "Checks closed security incidents for a completed postmortem/retro and flags any that are missing one past your target SLA. Use this if incidents have ever been closed and quietly forgotten without anyone writing down what happened or what should change.",
+      "category": "security",
+      "tags": [
+        "security",
+        "incident-response",
+        "postmortem",
+        "sla"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/security-incident-postmortem-overdue-check.yaml"
+    },
+    {
       "id": "security-log-retention-gap-check",
       "version": 1,
       "name": "Security Log Retention Gap Check",
@@ -46219,6 +46523,31 @@
         "generic"
       ],
       "path": "jobs/content/stale-post-audit.yaml"
+    },
+    {
+      "id": "stale-ssh-key-cleanup-check",
+      "version": 1,
+      "name": "Stale SSH Key Cleanup Check",
+      "description": "Flags SSH public keys on servers or a git hosting platform that haven't been used in a configurable number of days, as candidates for revocation. Use this if a former contractor's SSH key has ever stayed active on a box or repo long after their engagement ended because nobody was tracking last-used dates.",
+      "category": "security",
+      "tags": [
+        "security",
+        "ssh",
+        "access-review",
+        "offboarding"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/security/stale-ssh-key-cleanup-check.yaml"
     },
     {
       "id": "stale-todo-sweep",

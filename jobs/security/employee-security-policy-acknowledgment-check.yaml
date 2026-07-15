@@ -1,0 +1,41 @@
+id: employee-security-policy-acknowledgment-check
+version: 1
+name: Employee Security Policy Acknowledgment Check
+description: >
+  Checks which employees haven't acknowledged the current version of your
+  security or acceptable-use policy within your target window and flags
+  them. Use this if you need to prove for an audit that everyone signed
+  off on the latest policy, not just the training that goes with it.
+category: security
+tags: [security, policy, compliance, acknowledgment]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v window={{acknowledgment_window_days}} -v current_version="{{current_policy_version}}" '
+    NR>1 {
+      if ($3 != current_version) { print "MISSING: employee \"" $1 "\" has not acknowledged current policy version " current_version " (last acked: " $3 ")"; next; }
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline acked_ts; close(cmd);
+      days_since = int((today - acked_ts) / 86400);
+      if (days_since >= window) print "STALE: employee \"" $1 "\" last acknowledged policy " days_since " days ago (on " $2 ")";
+    }
+  ' {{acknowledgments_csv}}
+variables:
+  acknowledgments_csv:
+    default: "policy-acknowledgments.csv"
+    description: "CSV with header row, columns: employee_email,acknowledged_date(YYYY-MM-DD),policy_version_acked."
+  current_policy_version:
+    default: "2024.1"
+    description: The current security/acceptable-use policy version employees must acknowledge.
+  acknowledgment_window_days:
+    default: 365
+    description: Max age of an acknowledgment on the current version before it's flagged as stale (e.g. annual re-acknowledgment).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from security-awareness-training-completion-check, which tracks
+  completion of training content, not sign-off on a specific policy
+  document version. Export the acknowledgments CSV from your HR/policy
+  platform (Vanta, Drata, BambooHR, or an e-signature tool) or maintain it
+  by hand; this job only flags gaps for a human to chase.

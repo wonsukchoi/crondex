@@ -1,0 +1,38 @@
+id: backup-encryption-key-rotation-check
+version: 1
+name: Backup Encryption Key Rotation Check
+description: >
+  Checks how long it's been since each data-at-rest backup encryption key
+  was last rotated and flags any past your rotation interval. Use this if
+  a backup or archive encryption key has ever sat unrotated for years
+  because it's not part of your regular IAM/API credential rotation process.
+category: security
+tags: [security, encryption, key-rotation, backups]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v interval={{rotation_interval_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline rotated_ts; close(cmd);
+      days_since = int((today - rotated_ts) / 86400);
+      if (days_since >= interval) print "OVERDUE: backup encryption key \"" $1 "\" (" $3 ") last rotated " days_since " days ago (last: " $2 ")";
+    }
+  ' {{keys_csv}}
+variables:
+  keys_csv:
+    default: "backup-encryption-keys.csv"
+    description: "CSV with header row, columns: key_name,last_rotated_date(YYYY-MM-DD),backup_system."
+  rotation_interval_days:
+    default: 365
+    description: Number of days a backup/data-at-rest encryption key is valid before it's flagged as overdue for rotation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to backup and archive data-at-rest encryption keys (e.g. KMS keys
+  used by your backup system, tape/offsite archive keys) — separate from
+  IAM access key rotation (see iam-key-rotation-reminder) and third-party
+  API token rotation (see expiring-api-key-rotation). Keep the CSV updated
+  manually or export it from your KMS/backup platform; this job only flags
+  overdue keys, it does not rotate them.

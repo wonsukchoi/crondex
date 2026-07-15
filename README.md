@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2120 jobs across 64 categories:
+2133 jobs across 64 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -244,7 +244,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `restaurant` | 32 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 32 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 32 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 32 | Security posture — keys, certs, access, scans, firewalls. |
+| `security` | 45 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 32 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `spa` | 32 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |

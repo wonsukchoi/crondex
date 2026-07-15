@@ -1,0 +1,34 @@
+id: cloud-security-group-overexposure-check
+version: 1
+name: Cloud Security Group Overexposure Check
+description: >
+  Flags cloud network security groups or VPC firewall rules that allow
+  inbound access from 0.0.0.0/0 (or ::/0) on sensitive ports like SSH, RDP,
+  or database ports. Use this if a security group has ever been opened to
+  the entire internet during debugging and never locked back down.
+category: security
+tags: [security, cloud, network, aws]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  aws ec2 describe-security-groups --query 'SecurityGroups[].{Id:GroupId,Name:GroupName,Rules:IpPermissions}' --output json |
+  jq -r --arg ports "{{sensitive_ports}}" '
+    ($ports | split(",") | map(tonumber)) as $watch |
+    .[] | .Id as $id | .Name as $name |
+    .Rules[]? | select(.IpRanges[]?.CidrIp == "0.0.0.0/0" or .Ipv6Ranges[]?.CidrIpv6 == "::/0") |
+    select((.FromPort // -1) as $f | (.ToPort // 65535) as $t | any($watch[]; . >= $f and . <= $t) or ((.IpProtocol == "-1"))) |
+    "OVEREXPOSED: \($name) (\($id)) allows \(.IpProtocol) \(.FromPort // "all")-\(.ToPort // "all") from 0.0.0.0/0"
+  '
+variables:
+  sensitive_ports:
+    default: "22,3389,3306,5432,6379,27017,9200"
+    description: Comma-separated list of ports considered sensitive (SSH, RDP, common DB/cache ports by default).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires AWS CLI and jq, with credentials that can call
+  ec2:DescribeSecurityGroups. This checks network security group / VPC
+  firewall rule configuration specifically, not host-level open ports
+  (see open-port-check) or IAM policy wildcards (see
+  cloud-iam-wildcard-policy-check). Adapt the query for Azure NSGs or GCP
+  firewall rules if you're not on AWS.

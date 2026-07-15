@@ -1,0 +1,37 @@
+id: security-incident-postmortem-overdue-check
+version: 1
+name: Security Incident Postmortem Overdue Check
+description: >
+  Checks closed security incidents for a completed postmortem/retro and
+  flags any that are missing one past your target SLA. Use this if
+  incidents have ever been closed and quietly forgotten without anyone
+  writing down what happened or what should change.
+category: security
+tags: [security, incident-response, postmortem, sla]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v sla={{postmortem_sla_days}} '
+    NR>1 {
+      if ($3 == "yes" || $3 == "true") next;
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline closed_ts; close(cmd);
+      days_since = int((today - closed_ts) / 86400);
+      if (days_since >= sla) print "OVERDUE: incident \"" $1 "\" closed " days_since " days ago (on " $2 ") has no completed postmortem";
+    }
+  ' {{incidents_csv}}
+variables:
+  incidents_csv:
+    default: "security-incidents.csv"
+    description: "CSV with header row, columns: incident_id,closed_date(YYYY-MM-DD),postmortem_completed(yes/no)."
+  postmortem_sla_days:
+    default: 10
+    description: Number of days after closure a postmortem must be completed before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Export the incidents CSV from your incident management tool (PagerDuty,
+  Jira, Opsgenie) or maintain it by hand; this job only flags missing
+  postmortems for a human to chase, it does not check the quality or
+  content of a completed postmortem, only whether the completion flag is set.

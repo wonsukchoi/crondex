@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-07-15
+
+### Added
+
+- New `dental` category: 32 dental-practice-ops jobs (hygiene recall
+  cadence, CDT-code claim denials, sterilization/calibration compliance,
+  PPO fee schedule drift, lab case turnaround/remake rate, treatment plan
+  follow-up, and related front-desk/billing checks). Catalog now 1964
+  jobs across 61 categories.
+
+### Changed
+
+- CI runner Node version bumped 20 -> 22 across all workflows (GitHub is
+  deprecating Node 20 runners). `package.json` `engines` floor stays
+  `>=18`.
+
 ## [0.57.0] - 2026-07-15
 
 ### Added

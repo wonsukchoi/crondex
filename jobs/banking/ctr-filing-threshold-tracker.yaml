@@ -1,0 +1,43 @@
+id: ctr-filing-threshold-tracker
+version: 1
+name: CTR Filing Threshold Tracker
+description: >
+  Flags cash transactions at or above the $10,000 Currency Transaction
+  Report threshold that don't have a matching filed CTR on record. Use
+  this if a reportable cash transaction has ever slipped through without
+  a CTR getting filed within the regulatory window — distinct from
+  ofac-sanctions-screening-staleness-check.yaml, which covers sanctions
+  screening, not BSA cash-reporting obligations.
+category: banking
+tags: [banking, compliance, bsa, ctr, cash-transactions, regulatory]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{ctr_threshold_amount}}" '
+    FNR==NR { if (FNR>1) filed[$1]=1; next }
+    FNR==1 { next }
+    {
+      if ($3+0 >= threshold && !($1 in filed)) {
+        printf "UNFILED CTR: transaction %s — customer %s — $%.2f on %s has no matching filed CTR\n", $1, $2, $3, $4;
+        n++;
+      }
+    }
+    END { printf "%d cash transaction(s) at/above $%.2f without a filed CTR.\n", n+0, threshold; }
+  ' "{{filed_ctrs_csv_path}}" "{{cash_transactions_csv_path}}"
+variables:
+  filed_ctrs_csv_path:
+    default: "./filed_ctrs.csv"
+    description: "Path to a CSV with columns: transaction_id,filed_date. One row per CTR already filed."
+  cash_transactions_csv_path:
+    default: "./cash_transactions.csv"
+    description: "Path to a CSV with columns: transaction_id,customer_id,amount,transaction_date."
+  ctr_threshold_amount:
+    default: 10000
+    description: Cash transaction amount at or above which a CTR is required.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation between a transaction log and a filed-CTR log
+  your BSA/AML system already maintains — it does not file CTRs itself.
+  Aggregated same-day cash transactions that jointly cross the threshold
+  need separate handling outside this script's per-row comparison.

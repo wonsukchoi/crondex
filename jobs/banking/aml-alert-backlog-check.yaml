@@ -1,0 +1,45 @@
+id: aml-alert-backlog-check
+version: 1
+name: AML Alert Backlog Check
+description: >
+  Checks a logged queue of AML (anti-money-laundering) transaction
+  monitoring alerts and flags any alert that has passed its investigation
+  SLA without a recorded disposition. Use this if your bank or credit
+  union's AML alert queue has ever quietly backed up past your
+  regulator-expected turnaround — this is bank-internal compliance ops,
+  distinct from the `finance` category's personal/business bookkeeping jobs.
+category: banking
+tags: [banking, aml, alert, compliance, investigation]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{investigation_sla_days}}" '
+    NR==1 {next}
+    {
+      if ($4 != "" && $4 != "open") next;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline opened_epoch; close(cmd);
+      days_open = (today - opened_epoch) / 86400;
+      if (days_open >= sla) {
+        printf "SLA BREACH: alert %s (customer %s) opened %s — %d days open, no disposition\n", $1, $3, $2, days_open;
+        n++;
+      }
+    }
+    END { printf "%d alert(s) past SLA without disposition.\n", n+0; }
+  ' "{{aml_alerts_csv_path}}"
+variables:
+  aml_alerts_csv_path:
+    default: "./aml-alerts.csv"
+    description: "Path to a CSV with header row, columns: alert_id,opened_date (YYYY-MM-DD),customer_id,disposition (blank or 'open' means still undecided)."
+  investigation_sla_days:
+    default: 30
+    description: How many days an AML alert may remain open before it's flagged as past your internal investigation SLA.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only triage list — it does not file or close alerts, only surfaces
+  ones past SLA for a human investigator. Distinct from
+  sar-filing-deadline-tracker.yaml, which tracks the regulatory SAR
+  filing clock on cases that have already been escalated, not the initial
+  alert investigation SLA.

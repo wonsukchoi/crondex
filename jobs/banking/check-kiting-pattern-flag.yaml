@@ -1,0 +1,79 @@
+id: check-kiting-pattern-flag
+version: 1
+name: Check Kiting Pattern Flag
+description: >
+  Scans a deposit/withdrawal log for the classic check-kiting signature —
+  rapid deposit-then-withdrawal cycling of similar amounts between two or
+  more accounts — and hands the raw matches plus account context to an
+  agent to judge which ones look like genuine kiting versus normal cash
+  flow. Use this if float abuse between linked accounts has ever gone
+  unnoticed until a check bounced; it's narrower than general
+  fraud-monitoring since it targets this one specific deposit/withdrawal
+  cadence, not fraud broadly.
+category: banking
+tags: [banking, check-kiting, fraud, aml, transaction-monitoring]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v window="{{cycle_window_hours}}" -v pct="{{amount_match_pct}}" '
+    NR==1 { next }
+    {
+      n++; acct[n]=$1; type[n]=$3; amt[n]=$4;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline ts[n]; close(cmd);
+    }
+    END {
+      for (i=1; i<=n; i++) {
+        if (type[i] != "DEPOSIT") continue;
+        for (j=1; j<=n; j++) {
+          if (type[j] != "WITHDRAWAL" || acct[j] == acct[i]) continue;
+          hrs = (ts[j] - ts[i]) / 3600;
+          if (hrs < 0 || hrs > window) continue;
+          diff = amt[i] - amt[j]; if (diff < 0) diff = -diff;
+          tol = amt[i] * (pct / 100.0);
+          if (diff <= tol) {
+            printf "POSSIBLE KITING: deposit $%s to %s at %s, withdrawal $%s from %s at %s (%.1f hrs apart)\n", amt[i], acct[i], $2, amt[j], acct[j], $2, hrs;
+            f++;
+          }
+        }
+      }
+      printf "%d candidate deposit/withdrawal pair(s) matching the kiting cadence.\n", f+0;
+    }
+  ' "{{transaction_log_csv_path}}"
+prompt: |
+  Read the candidate deposit/withdrawal pairs produced by scanning
+  {{transaction_log_csv_path}} for rapid same-amount deposit-then-withdrawal
+  cycling between accounts within {{cycle_window_hours}} hours and an amount
+  match tolerance of {{amount_match_pct}}%. For each candidate pair, use
+  judgment to assess whether it looks like genuine check kiting (repeated
+  cycling, accounts with a thin or negative balance history, amounts that
+  don't correspond to any known invoice/payroll/transfer purpose) versus
+  a benign explanation (payroll sweep, scheduled transfer between a
+  customer's own linked accounts, a returned/re-deposited item). Produce a
+  short ranked list of the pairs/accounts most worth referring to the fraud
+  or BSA/AML team, with a one-line reason for each, and note which
+  candidates you're confident are false positives so reviewers can skip them.
+script_note: >
+  The shell command alone gives you every deposit/withdrawal pair matching
+  the timing-and-amount pattern, with no distinction between genuine kiting
+  and coincidental legitimate transfers — at real-world volume that's a lot
+  of noise. The prompt mode adds judgment: weighing account history and
+  transfer purpose to prioritize which pairs actually warrant a BSA/AML
+  referral.
+variables:
+  transaction_log_csv_path:
+    default: "./deposit_withdrawal_log.csv"
+    description: "Path to a CSV with columns: account_number,timestamp (YYYY-MM-DD HH:MM),type (DEPOSIT or WITHDRAWAL),amount."
+  cycle_window_hours:
+    default: 48
+    description: Maximum hours between a deposit and a matching withdrawal to be considered part of a possible kiting cycle.
+  amount_match_pct:
+    default: 5
+    description: Percentage tolerance for considering a deposit and withdrawal amount a match.
+compatible_agents: [claude, codex]
+notes: >
+  Read-only detection aid, not an accusation — flagged pairs need manual
+  BSA/AML review before any action. Distinct from finance-category
+  duplicate-payment or reconciliation checks, which look at a single
+  ledger's internal consistency, not cross-account cycling behavior.

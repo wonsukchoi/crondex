@@ -1,0 +1,39 @@
+id: wire-transfer-dual-approval-check
+version: 1
+name: Wire Transfer Dual Approval Check
+description: >
+  Flags outbound wire transfers above a configurable amount that don't
+  have a recorded second approver on file, catching a gap in your
+  dual-control requirement. Use this if wires have ever gone out with
+  only one person's sign-off when policy requires two — this is
+  bank-internal ops, distinct from the `finance` category's
+  personal/business bookkeeping jobs.
+category: banking
+tags: [banking, wire-transfer, dual-approval, dual-control, compliance]
+schedule: "0 */4 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{dual_approval_amount_threshold}}" '
+    NR==1 {next}
+    {
+      if ($3 >= threshold && ($5 == "" || $5 == $4)) {
+        printf "MISSING DUAL APPROVAL: wire %s — $%.2f to %s, initiated by %s, second approver: %s\n", $1, $3, $2, $4, ($5 == "" ? "NONE" : $5);
+        n++;
+      }
+    }
+    END { printf "%d wire(s) above threshold without valid dual approval.\n", n+0; }
+  ' "{{wire_transfers_csv_path}}"
+variables:
+  wire_transfers_csv_path:
+    default: "./wire-transfers.csv"
+    description: "Path to a CSV with header row, columns: wire_id,beneficiary,amount,initiator,second_approver (blank if none recorded)."
+  dual_approval_amount_threshold:
+    default: 10000
+    description: Dollar amount at or above which an outbound wire requires a distinct second approver under dual-control policy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — it does not release, hold, or reverse any wire; it only
+  flags records missing a distinct second approver so someone can confirm
+  the wire was actually authorized under dual control before it's treated
+  as final.

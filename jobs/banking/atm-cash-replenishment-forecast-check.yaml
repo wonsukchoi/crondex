@@ -1,0 +1,44 @@
+id: atm-cash-replenishment-forecast-check
+version: 1
+name: ATM Cash Replenishment Forecast Check
+description: >
+  Checks logged ATM cash levels against each machine's daily burn rate
+  and flags machines projected to run out of cash before their next
+  scheduled replenishment. Use this if an ATM has ever gone empty
+  mid-week because nobody projected the burn rate forward against the
+  next scheduled cash run — this is a proactive forecast, not a
+  same-day low-cash alarm.
+category: banking
+tags: [banking, atm, cash-management, operations, forecasting]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      "date +%s" | getline now_epoch; close("date +%s");
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline replen_epoch; close(cmd);
+      days_until_replen = (replen_epoch - now_epoch) / 86400;
+      if (days_until_replen < 0) days_until_replen = 0;
+      projected_remaining = $3 - ($4 * days_until_replen);
+      if (projected_remaining < {{low_cash_buffer}}) {
+        printf "PROJECTED SHORTFALL: ATM %s — current $%.2f, burn $%.2f/day, %.1f days until replenishment on %s — projected to reach $%.2f\n", $1, $3, $4, days_until_replen, $5, projected_remaining;
+        n++;
+      }
+    }
+    END { printf "%d ATM(s) projected to run low before next replenishment.\n", n+0; }
+  ' "{{atm_cash_levels_csv_path}}"
+variables:
+  atm_cash_levels_csv_path:
+    default: "./atm_cash_levels.csv"
+    description: "Path to a CSV with columns: atm_id,location,current_cash,avg_daily_burn_rate,next_scheduled_replenishment_date (YYYY-MM-DD)."
+  low_cash_buffer:
+    default: 2000
+    description: Dollar buffer below which a projected cash level is considered a shortfall risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Forecast only, based on average burn rate and a single scheduled
+  replenishment date — it does not account for irregular demand spikes
+  (paydays, holidays) unless reflected in your burn-rate figure.

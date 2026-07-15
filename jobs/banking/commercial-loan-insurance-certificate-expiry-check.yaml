@@ -1,0 +1,40 @@
+id: commercial-loan-insurance-certificate-expiry-check
+version: 1
+name: Commercial Loan Collateral Insurance Certificate Expiry Check
+description: >
+  Flags commercial loan collateral — property, equipment, or other pledged
+  assets — whose required insurance certificate is approaching or past
+  its expiration date. Use this if a lender has ever discovered collateral
+  went uninsured for a stretch because the certificate lapsed unnoticed —
+  distinct from agent-broker-license-expiry-tracker (insurance category),
+  which tracks producer licensing, not collateral coverage on a loan.
+category: banking
+tags: [banking, commercial-loan, collateral, insurance, risk-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "EXPIRED" : "EXPIRING";
+        printf "%s: loan %s — %s insurance certificate expires %s (%d days)\n", status, $1, $2, $3, diff_days;
+        n++;
+      }
+    }
+    END { printf "%d collateral insurance certificate(s) needing attention.\n", n+0; }
+  ' "{{collateral_insurance_csv_path}}"
+variables:
+  collateral_insurance_csv_path:
+    default: "./commercial-loan-collateral-insurance.csv"
+    description: "Path to a CSV with columns: loan_number,collateral_description,certificate_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before a collateral insurance certificate's expiry to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Read-only risk monitoring — route expiring/expired certificates to the loan officer for a renewal request from the borrower, no coverage is placed automatically.

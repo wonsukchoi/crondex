@@ -1,0 +1,42 @@
+id: safe-deposit-box-payment-lapse-check
+version: 1
+name: Safe Deposit Box Payment Lapse Check
+description: >
+  Flags safe deposit box rentals whose annual fee is unpaid past a
+  configurable grace period. Use this if lapsed box rentals have ever
+  gone unnoticed for months because there's no other transaction on the
+  account to draw attention to it, risking a box being drilled or
+  contents referred to unclaimed property later than policy allows.
+category: banking
+tags: [banking, safe-deposit-box, fee-lapse, branch-operations, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{grace_period_days}}" '
+    NR==1 { next }
+    $4 == "UNPAID" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      lapse_days = int((now_epoch - due_epoch) / 86400);
+      if (lapse_days > grace) {
+        printf "LAPSED: box %s (renter %s) fee due %s — %d days past grace period\n", $1, $2, $3, lapse_days;
+        n++;
+      }
+    }
+    END { printf "%d safe deposit box(es) lapsed past grace period.\n", n+0; }
+  ' "{{safe_deposit_box_billing_csv_path}}"
+variables:
+  safe_deposit_box_billing_csv_path:
+    default: "./safe_deposit_box_billing.csv"
+    description: "Path to a CSV with columns: box_id,renter_name,fee_due_date (YYYY-MM-DD),payment_status (PAID or UNPAID)."
+  grace_period_days:
+    default: 60
+    description: Days past the fee due date allowed before a lapsed box is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only billing report for renter follow-up — does not drill boxes,
+  cancel rentals, or initiate unclaimed-property referral itself. Align
+  the grace period with your institution's box-lapse policy before acting
+  on flags.

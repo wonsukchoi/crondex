@@ -1,0 +1,46 @@
+id: ofac-sanctions-screening-staleness-check
+version: 1
+name: OFAC Sanctions Screening Staleness Check
+description: >
+  Checks a log of OFAC sanctions-list screening runs against the customer
+  base and flags if the most recent completed run is older than a
+  configurable interval. Use this if your bank has ever gone longer than
+  intended between full-customer-base OFAC screenings because nobody was
+  watching the run log — this is bank-internal compliance ops, not a
+  transaction-level watchlist match tool.
+category: banking
+tags: [banking, compliance, ofac, sanctions, screening, aml]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_hours="{{max_hours_since_screening}}" '
+    NR==1 {next}
+    $2=="completed" {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      if (ts_epoch > latest) latest = ts_epoch;
+    }
+    END {
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (latest == 0) { print "NO COMPLETED SCREENING RUNS FOUND in log."; exit; }
+      age_hours = (now_epoch - latest) / 3600;
+      if (age_hours > max_hours) {
+        printf "STALE: last completed OFAC screening was %d hours ago (limit %d hours)\n", age_hours, max_hours;
+      } else {
+        printf "OK: last completed OFAC screening was %d hours ago (limit %d hours)\n", age_hours, max_hours;
+      }
+    }
+  ' "{{screening_log_csv_path}}"
+variables:
+  screening_log_csv_path:
+    default: "./ofac_screening_runs.csv"
+    description: "Path to a CSV with columns: run_timestamp (ISO 8601),status (completed/failed/in_progress)."
+  max_hours_since_screening:
+    default: 24
+    description: Maximum allowed hours since the last completed full-customer-base OFAC screening before flagging as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only staleness check against a run log your screening vendor/system
+  already produces — it does not itself perform sanctions matching or
+  touch customer records.

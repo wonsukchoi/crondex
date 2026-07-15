@@ -1,0 +1,54 @@
+id: nsf-overdraft-repeat-usage-check
+version: 1
+name: NSF/Overdraft Repeat Usage Check
+description: >
+  Scans an account transaction log for customers who've hit NSF or
+  overdraft fees a set number of times within a trailing window and
+  flags them for proactive outreach. Use this if you'd rather offer
+  overdraft-protection enrollment or a courtesy call before a
+  fair-lending or UDAAP review flags the same repeat-fee pattern for you.
+category: banking
+tags: [banking, nsf, overdraft, fair-lending, retail-banking]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v win="{{lookback_days}}" -v thresh="{{repeat_count_threshold}}" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline txn_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - txn_epoch) / 86400;
+      if (age_days <= win && ($3 == "NSF" || $3 == "OVERDRAFT")) {
+        count[$1]++;
+        if (last[$1] == "" || $2 > last[$1]) last[$1] = $2;
+      }
+    }
+    END {
+      for (acct in count) {
+        if (count[acct] >= thresh) {
+          printf "REPEAT USAGE: account %s — %d NSF/overdraft fee(s) in last %s days, most recent %s\n", acct, count[acct], win, last[acct];
+          n++;
+        }
+      }
+      printf "%d account(s) flagged for repeat NSF/overdraft usage.\n", n+0;
+    }
+  ' "{{fee_transactions_csv_path}}"
+variables:
+  fee_transactions_csv_path:
+    default: "./nsf_overdraft_fees.csv"
+    description: "Path to a CSV with columns: account_number,fee_date (YYYY-MM-DD),fee_type (NSF or OVERDRAFT)."
+  lookback_days:
+    default: 90
+    description: Trailing window, in days, to count repeat fee occurrences within.
+  repeat_count_threshold:
+    default: 4
+    description: Number of NSF/overdraft fees within the window that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reporting for proactive customer outreach (e.g. overdraft
+  protection enrollment, fee waiver review) — does not waive fees or
+  contact customers on its own. Distinct from finance/bank-fee-anomaly-check,
+  which watches a company's own paid bank fees for anomalies, not customer
+  account fee patterns.

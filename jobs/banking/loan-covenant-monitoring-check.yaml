@@ -1,0 +1,41 @@
+id: loan-covenant-monitoring-check
+version: 1
+name: Commercial Loan Covenant Monitoring Check
+description: >
+  Checks logged commercial loan borrower financial ratios (e.g. debt
+  service coverage) against each loan's required covenant minimums and
+  flags breaches. Use this if a covenant breach has ever gone unnoticed
+  until the next scheduled loan review because nobody diffed the latest
+  reported ratio against the loan agreement's minimum — this is a bank's
+  own credit-monitoring job, not a borrower's own bookkeeping check.
+category: banking
+tags: [banking, commercial-lending, covenant, credit-risk, loan-monitoring]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) min_dscr[$1]=$2; next }
+    FNR==1 { next }
+    {
+      if (!($1 in min_dscr)) { printf "NO COVENANT ON FILE: loan %s reported DSCR %.2f but has no logged minimum\n", $1, $3; next; }
+      if ($3+0 < min_dscr[$1]+0) {
+        printf "COVENANT BREACH: loan %s — reported DSCR %.2f is below required minimum %.2f (as of %s)\n", $1, $3, min_dscr[$1], $4;
+        n++;
+      }
+    }
+    END { printf "%d loan covenant breach(es) found.\n", n+0; }
+  ' "{{loan_covenants_csv_path}}" "{{covenant_ratios_csv_path}}"
+variables:
+  loan_covenants_csv_path:
+    default: "./loan_covenants.csv"
+    description: "Path to a CSV with columns: loan_id,min_dscr. One row per loan's required minimum debt service coverage ratio."
+  covenant_ratios_csv_path:
+    default: "./covenant_ratios_reported.csv"
+    description: "Path to a CSV with columns: loan_id,borrower_name,reported_dscr,as_of_date. One row per periodically reported ratio."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only comparison against periodically logged borrower financials
+  (e.g. quarterly compliance certificates) — it does not pull borrower
+  financials itself and only checks debt service coverage by default;
+  extend the CSV columns if you track additional covenant ratios.

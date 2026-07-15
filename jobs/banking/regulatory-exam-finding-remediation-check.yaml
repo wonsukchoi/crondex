@@ -1,0 +1,42 @@
+id: regulatory-exam-finding-remediation-check
+version: 1
+name: Regulatory Exam Finding Remediation Check
+description: >
+  Tracks open remediation items from a regulatory exam (e.g. a safety
+  and soundness or compliance exam) against their committed due dates
+  and flags overdue ones. Use this if an exam finding has ever slipped
+  past its committed remediation date without anyone noticing before
+  the next exam cycle — distinct from doi-filing-deadline-tracker.yaml
+  (insurance category), which tracks routine regulatory filings, not
+  exam-finding remediation commitments.
+category: banking
+tags: [banking, compliance, regulatory-exam, remediation, audit]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_due}}" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days) {
+        status = (diff_days < 0) ? "OVERDUE" : "DUE SOON";
+        printf "%s: finding %s (%s) owned by %s — due %s (%d days)\n", status, $1, $2, $3, $4, diff_days;
+        n++;
+      }
+    }
+    END { printf "%d open remediation item(s) flagged.\n", n+0; }
+  ' "{{exam_findings_csv_path}}"
+variables:
+  exam_findings_csv_path:
+    default: "./exam_findings.csv"
+    description: "Path to a CSV with columns: finding_id,description,owner,committed_due_date (YYYY-MM-DD),closed_date (blank if still open)."
+  warn_days_before_due:
+    default: 14
+    description: How many days before (or past) the committed due date to start flagging a finding.
+compatible_agents: [generic, claude, codex]
+notes: Read-only tracker against your exam-response log — closing a finding still requires the examiner's sign-off process.

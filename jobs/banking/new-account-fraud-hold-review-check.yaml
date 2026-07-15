@@ -1,0 +1,41 @@
+id: new-account-fraud-hold-review-check
+version: 1
+name: New Account Fraud Hold Review Check
+description: >
+  Flags new customer accounts placed on an early-fraud hold that have
+  sat past a configurable review window without a recorded disposition.
+  Use this if a new account has ever stayed frozen on a fraud hold for
+  weeks because the case sat unreviewed in a queue — distinct from
+  kyc-reverification-aging-tracker.yaml, which covers periodic identity
+  re-verification on existing accounts, not early-fraud holds placed at
+  account opening.
+category: banking
+tags: [banking, fraud, new-accounts, account-opening, case-review]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_review_days}}" '
+    NR==1 {next}
+    $4 != "" {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline hold_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - hold_epoch) / 86400;
+      if (age_days > max_days) {
+        printf "OVERDUE HOLD REVIEW: account %s — held since %s (%d days, no disposition), opened by %s\n", $1, $3, age_days, $2;
+        n++;
+      }
+    }
+    END { printf "%d new-account fraud hold(s) past the review window.\n", n+0; }
+  ' "{{fraud_holds_csv_path}}"
+variables:
+  fraud_holds_csv_path:
+    default: "./new_account_fraud_holds.csv"
+    description: "Path to a CSV with columns: account_id,opened_by,hold_placed_date (YYYY-MM-DD),disposition_date (blank if undecided)."
+  max_review_days:
+    default: 5
+    description: Maximum days a new-account fraud hold may sit without a recorded disposition before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Read-only queue check — does not itself release, extend, or escalate a hold.

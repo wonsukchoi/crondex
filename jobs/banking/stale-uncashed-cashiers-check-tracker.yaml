@@ -1,0 +1,43 @@
+id: stale-uncashed-cashiers-check-tracker
+version: 1
+name: Stale Uncashed Cashier's Check Tracker
+description: >
+  Checks the issued cashier's/official check register for items still
+  outstanding past a configurable age and flags them before they become
+  an escheatment problem. Use this if your bank issues cashier's or
+  official checks and needs a heads-up on aging uncashed items — distinct
+  from a personal or business outstanding-check register, since cashier's
+  checks carry their own state unclaimed-property timelines.
+category: banking
+tags: [banking, cashiers-check, escheatment, unclaimed-property, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v stale="{{stale_days_threshold}}" '
+    NR==1 { next }
+    $4 == "OUTSTANDING" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline issue_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = int((now_epoch - issue_epoch) / 86400);
+      if (age_days >= stale) {
+        printf "STALE: check #%s issued %s to %s — $%s, %d days outstanding\n", $1, $2, $3, $5, age_days;
+        n++;
+      }
+    }
+    END { printf "%d stale uncashed cashiers check(s) found.\n", n+0; }
+  ' "{{cashiers_check_register_csv_path}}"
+variables:
+  cashiers_check_register_csv_path:
+    default: "./cashiers_check_register.csv"
+    description: "Path to a CSV with columns: check_number,issue_date (YYYY-MM-DD),payee,status (OUTSTANDING or CASHED),amount."
+  stale_days_threshold:
+    default: 180
+    description: Days outstanding before an uncashed cashier's check is flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only aging report — actual escheatment filing and payee outreach
+  are separate, state-specific processes this job only surfaces candidates
+  for. State unclaimed-property dormancy periods vary; adjust the threshold
+  to your state's requirement.

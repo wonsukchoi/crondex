@@ -1,0 +1,42 @@
+id: bsa-officer-training-completion-check
+version: 1
+name: BSA Annual Training Completion Check
+description: >
+  Checks a roster of required annual BSA (Bank Secrecy Act) compliance
+  training and flags any employee who hasn't completed it within the
+  required window. Use this if training sign-off has ever slipped through
+  the cracks for a new hire or a long-tenured employee and only surfaced
+  during an exam — distinct from kyc-reverification-aging-tracker, which
+  tracks customer due diligence refreshes, not staff training.
+category: banking
+tags: [banking, bsa, aml, compliance, training]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - due_epoch) / 86400;
+      if ($4 != "complete" && diff_days > -days) {
+        status = (diff_days > 0) ? "OVERDUE" : "DUE SOON";
+        printf "%s: %s (%s) — BSA training due %s, status=%s\n", status, $1, $2, $3, $4;
+        n++;
+      }
+    }
+    END { printf "%d employee(s) needing attention.\n", n+0; }
+  ' "{{training_roster_csv_path}}"
+variables:
+  training_roster_csv_path:
+    default: "./bsa-training-roster.csv"
+    description: "Path to a CSV with columns: employee_name,department,due_date (YYYY-MM-DD),status (complete/incomplete)."
+  grace_period_days:
+    default: 14
+    description: How many days before the due date to start flagging as due soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance tracking — feed flagged names to HR/compliance for
+  follow-up, don't auto-lock anyone out of systems.

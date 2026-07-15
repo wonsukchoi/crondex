@@ -1,0 +1,41 @@
+id: unclaimed-safe-deposit-box-contents-tracker
+version: 1
+name: Unclaimed Safe Deposit Box Contents Tracker
+description: >
+  Tracks safe deposit boxes already flagged abandoned — lapsed payment
+  plus no successful contact — against the state escheatment reporting
+  deadline and flags ones approaching that deadline. Use this if an
+  abandoned box has ever missed its unclaimed-property filing window —
+  distinct from safe-deposit-box-payment-lapse-check, which flags boxes
+  the moment rental payment lapses, before abandonment or escheatment
+  timelines are even in play.
+category: banking
+tags: [banking, safe-deposit-box, escheatment, unclaimed-property, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{deadline_warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "PAST DEADLINE" : "APPROACHING DEADLINE";
+        printf "%s: box %s — flagged abandoned %s, escheatment reporting deadline %s (%d days)\n", status, $1, $2, $3, diff_days;
+        n++;
+      }
+    }
+    END { printf "%d abandoned box(es) needing escheatment attention.\n", n+0; }
+  ' "{{abandoned_boxes_csv_path}}"
+variables:
+  abandoned_boxes_csv_path:
+    default: "./abandoned-safe-deposit-boxes.csv"
+    description: "Path to a CSV with columns: box_id,flagged_abandoned_date (YYYY-MM-DD),escheatment_deadline (YYYY-MM-DD), pre-filtered to boxes already flagged abandoned."
+  deadline_warn_days:
+    default: 30
+    description: How many days before the state escheatment reporting deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Read-only tracking — route flagged boxes to legal/compliance for the unclaimed-property filing, doesn't open boxes or transfer contents.

@@ -1,0 +1,43 @@
+id: overdraft-fee-reversal-request-aging-check
+version: 1
+name: Overdraft Fee Reversal Request Aging Check
+description: >
+  Flags customer requests to reverse an overdraft fee that are still
+  pending past a configurable turnaround window. Use this if reversal
+  requests have ever sat in a queue long enough that customers start
+  escalating or complaining before anyone got to them — this is
+  bank-internal ops, distinct from the `finance` category's
+  personal/business bookkeeping jobs.
+category: banking
+tags: [banking, overdraft, fee-reversal, customer-service, aging]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v turnaround="{{turnaround_days}}" '
+    NR==1 {next}
+    {
+      if ($4 == "resolved") next;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      days_pending = (today - requested_epoch) / 86400;
+      if (days_pending >= turnaround) {
+        printf "PENDING TOO LONG: request %s — customer %s, requested %s (%d days ago), fee $%s\n", $1, $3, $2, days_pending, $5;
+        n++;
+      }
+    }
+    END { printf "%d reversal request(s) past the turnaround window.\n", n+0; }
+  ' "{{reversal_requests_csv_path}}"
+variables:
+  reversal_requests_csv_path:
+    default: "./overdraft-reversal-requests.csv"
+    description: "Path to a CSV with header row, columns: request_id,requested_date (YYYY-MM-DD),customer_id,status ('resolved' once decided, otherwise blank/pending),fee_amount."
+  turnaround_days:
+    default: 3
+    description: How many days a reversal request may stay pending before it's flagged as overdue for a decision.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — surfaces aging requests for staff to work, does not
+  approve, deny, or credit anything itself. Mark status as 'resolved' in
+  the CSV once a decision is made either way.

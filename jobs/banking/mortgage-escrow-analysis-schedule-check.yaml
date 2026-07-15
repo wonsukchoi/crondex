@@ -1,0 +1,39 @@
+id: mortgage-escrow-analysis-schedule-check
+version: 1
+name: Mortgage Escrow Analysis Schedule Check
+description: >
+  Flags mortgage loan accounts that are due for their required annual
+  escrow analysis and disclosure but haven't had one run within the
+  required window. Use this if an escrow analysis has ever been late,
+  risking a compliance gap on the required annual disclosure to the
+  borrower — distinct from reg-dd-disclosure-accuracy-audit, which checks
+  deposit account rate disclosures, not escrow analyses on loan accounts.
+category: banking
+tags: [banking, mortgage, escrow, disclosure, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window="{{analysis_window_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - last_epoch) / 86400;
+      if ($2 == "" || diff_days > window) {
+        printf "OVERDUE: loan %s — last escrow analysis %s (%d days ago, window %d)\n", $1, ($2==""?"never":$2), diff_days, window;
+        n++;
+      }
+    }
+    END { printf "%d loan(s) overdue for escrow analysis.\n", n+0; }
+  ' "{{mortgage_loans_csv_path}}"
+variables:
+  mortgage_loans_csv_path:
+    default: "./mortgage-loans.csv"
+    description: "Path to a CSV with columns: loan_number,last_escrow_analysis_date (YYYY-MM-DD, blank if never)."
+  analysis_window_days:
+    default: 365
+    description: Maximum number of days allowed between required annual escrow analyses.
+compatible_agents: [generic, claude, codex]
+notes: Read-only scheduling check — route flagged loans to escrow servicing for analysis and disclosure mailing, no funds are moved.

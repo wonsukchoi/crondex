@@ -1,0 +1,35 @@
+id: credit-union-member-share-minimum-check
+version: 1
+name: Credit Union Member Share Minimum Check
+description: >
+  Flags credit union member accounts whose share (membership) balance has
+  fallen below the minimum required to maintain membership. Use this if a
+  member's share balance has ever dropped below the threshold without
+  anyone noticing until an audit — distinct from
+  dormant-account-flagging-check, which flags inactivity, not an
+  insufficient share balance on an active member.
+category: banking
+tags: [banking, credit-union, membership, share-balance, compliance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_balance="{{minimum_share_balance}}" '
+    NR==1 {next}
+    {
+      if ($2 + 0 < min_balance) {
+        printf "BELOW MINIMUM: member %s — share balance $%.2f (minimum $%.2f)\n", $1, $2, min_balance;
+        n++;
+      }
+    }
+    END { printf "%d member(s) below minimum share balance.\n", n+0; }
+  ' "{{member_shares_csv_path}}"
+variables:
+  member_shares_csv_path:
+    default: "./member-shares.csv"
+    description: "Path to a CSV with columns: member_id,share_balance."
+  minimum_share_balance:
+    default: 5
+    description: Minimum share balance (in account currency) required to maintain credit union membership.
+compatible_agents: [generic, claude, codex]
+notes: Read-only — surfaces members for outreach or a membership-closure review, does not close accounts or move funds.

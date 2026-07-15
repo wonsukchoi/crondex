@@ -188,13 +188,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2000 jobs across 61 categories:
+2032 jobs across 62 categories:
 
 | category | jobs | description |
 |---|---|---|
 | `agency` | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 32 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 32 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
+| `banking` | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
 | `childcare` | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 32 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 32 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |

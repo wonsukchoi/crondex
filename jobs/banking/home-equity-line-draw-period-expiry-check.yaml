@@ -1,0 +1,41 @@
+id: home-equity-line-draw-period-expiry-check
+version: 1
+name: Home Equity Line Draw Period Expiry Check
+description: >
+  Flags HELOC accounts whose draw period is approaching its end date, when
+  the loan converts from draw-as-needed to a fixed repayment schedule.
+  Use this if borrowers have ever been surprised by a payment jump at
+  draw-period conversion because nobody reached out ahead of the
+  repayment-phase transition.
+category: banking
+tags: [banking, heloc, home-equity, draw-period, lending-operations]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 { next }
+    $4 == "ACTIVE" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = int((expiry_epoch - now_epoch) / 86400);
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "PAST DRAW-PERIOD END" : "APPROACHING DRAW-PERIOD END";
+        printf "%s: HELOC %s (borrower %s) draw period ends %s (%d days)\n", status, $1, $2, $3, diff_days;
+        n++;
+      }
+    }
+    END { printf "%d HELOC account(s) approaching or past draw-period expiry.\n", n+0; }
+  ' "{{heloc_accounts_csv_path}}"
+variables:
+  heloc_accounts_csv_path:
+    default: "./heloc_accounts.csv"
+    description: "Path to a CSV with columns: account_id,borrower_name,draw_period_end_date (YYYY-MM-DD),status (ACTIVE or CLOSED)."
+  warn_days_before:
+    default: 90
+    description: How many days before draw-period end to start flagging an account.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder list for borrower outreach ahead of repayment-phase
+  conversion — does not modify loan terms or notify borrowers itself.

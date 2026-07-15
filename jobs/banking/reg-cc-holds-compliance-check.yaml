@@ -1,0 +1,53 @@
+id: reg-cc-holds-compliance-check
+version: 1
+name: Reg CC Holds Compliance Check
+description: >
+  Checks logged funds-availability holds against Regulation CC's maximum
+  hold-period rules and flags any hold that has run longer than allowed
+  for its stated hold type. Use this if your bank has ever placed a hold
+  on a deposit and needs a check that nobody let it run past the legal
+  maximum — this is bank-internal compliance ops, distinct from the
+  `finance` category's personal/business bookkeeping jobs.
+category: banking
+tags: [banking, reg-cc, funds-availability, holds, compliance, regulatory]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v standard_max="{{standard_hold_max_business_days}}" -v large_max="{{large_deposit_hold_max_business_days}}" -v exception_max="{{exception_hold_max_business_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline deposit_epoch; close(cmd);
+      days_held = (today - deposit_epoch) / 86400;
+      max_days = standard_max;
+      if ($4 == "large_deposit") max_days = large_max;
+      else if ($4 == "exception") max_days = exception_max;
+      if (days_held > max_days) {
+        printf "REG CC BREACH: hold %s (account %s, type %s) deposited %s — held %d days, max allowed %d\n", $1, $3, $4, $2, days_held, max_days;
+        n++;
+      }
+    }
+    END { printf "%d hold(s) exceeding their Reg CC maximum.\n", n+0; }
+  ' "{{holds_csv_path}}"
+variables:
+  holds_csv_path:
+    default: "./funds-availability-holds.csv"
+    description: "Path to a CSV with header row, columns: hold_id,deposit_date (YYYY-MM-DD),account_id,hold_type (standard, large_deposit, or exception)."
+  standard_hold_max_business_days:
+    default: 2
+    description: Max hold days for standard deposits under your current Reg CC schedule (uses calendar days as an approximation — adjust for business-day counting if needed).
+  large_deposit_hold_max_business_days:
+    default: 9
+    description: Max hold days for large-deposit holds under Reg CC.
+  exception_hold_max_business_days:
+    default: 14
+    description: Max hold days for exception holds (new accounts, redeposited checks, reasonable-cause holds, etc.) under Reg CC.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance check using calendar-day approximation, not exact
+  business-day counting with federal holiday calendars — treat flags as a
+  first pass for compliance review, not a final legal determination.
+  Verify current Reg CC limits against your compliance team before relying
+  on the defaults.

@@ -1,0 +1,39 @@
+id: branch-vault-cash-limit-check
+version: 1
+name: Branch Vault Cash Limit Check
+description: >
+  Compares each branch's logged vault cash balance against its insured or
+  policy maximum and flags branches sitting over the limit. Use this if
+  branch cash is logged daily and you want a same-day nudge to move
+  excess cash to the Fed or an armored-carrier pickup before it sits
+  uninsured or against policy overnight.
+category: banking
+tags: [banking, vault-cash, branch-operations, cash-management, insurance-limit]
+schedule: "30 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 { next }
+    {
+      limit = ($3 != "" ? $3 : {{default_vault_cash_limit}});
+      if ($2 > limit) {
+        over = $2 - limit;
+        printf "OVER LIMIT: branch %s — vault balance $%s exceeds limit $%s by $%.2f\n", $1, $2, limit, over;
+        n++;
+      }
+    }
+    END { printf "%d branch(es) over vault cash limit.\n", n+0; }
+  ' "{{vault_cash_log_csv_path}}"
+variables:
+  vault_cash_log_csv_path:
+    default: "./branch_vault_cash_log.csv"
+    description: "Path to a CSV with columns: branch_id,vault_balance,branch_limit (branch_limit may be blank to use the default)."
+  default_vault_cash_limit:
+    default: 250000
+    description: Default insured/policy maximum vault cash balance used when a branch has no branch-specific limit set.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only flag for cash-management action (carrier pickup, Fed deposit) —
+  does not move funds itself. Vault cash insurance and policy limits vary
+  by institution and blanket bond terms; set defaults to match your policy.

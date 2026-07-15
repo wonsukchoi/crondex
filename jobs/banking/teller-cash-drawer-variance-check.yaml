@@ -1,0 +1,40 @@
+id: teller-cash-drawer-variance-check
+version: 1
+name: Teller Cash Drawer Variance Check
+description: >
+  Compares each teller's logged end-of-day cash drawer count against the
+  expected balance and flags any variance over a configurable threshold.
+  Use this if your branch wants a daily automated first pass on drawer
+  overs/shorts before a supervisor reviews them — this is bank-internal
+  branch ops, distinct from the `finance` category's personal/business
+  bookkeeping jobs.
+category: banking
+tags: [banking, teller, cash-drawer, variance, branch-operations]
+schedule: "30 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{variance_threshold_amount}}" '
+    NR==1 {next}
+    {
+      diff = $3 - $4; if (diff < 0) diff = -diff;
+      if (diff > threshold) {
+        status = ($3 > $4) ? "OVER" : "SHORT";
+        printf "VARIANCE %s: teller %s drawer %s — counted $%.2f, expected $%.2f, diff $%.2f\n", status, $1, $2, $3, $4, diff;
+        n++;
+      }
+    }
+    END { printf "%d drawer(s) over the variance threshold.\n", n+0; }
+  ' "{{drawer_counts_csv_path}}"
+variables:
+  drawer_counts_csv_path:
+    default: "./teller-drawer-counts.csv"
+    description: "Path to a CSV with header row, columns: teller_id,drawer_id,counted_amount,expected_amount."
+  variance_threshold_amount:
+    default: 20
+    description: Dollar amount a drawer count may differ from the expected balance before it's flagged for supervisor review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — surfaces variances for a supervisor to review and log per
+  branch policy; it does not adjust balances or discipline anyone. Feed
+  it end-of-day counts, not mid-shift spot checks.

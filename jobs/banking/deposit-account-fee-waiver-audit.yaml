@@ -1,0 +1,44 @@
+id: deposit-account-fee-waiver-audit
+version: 1
+name: Deposit Account Fee Waiver Audit
+description: >
+  Checks fee-waiver approvals on customer deposit accounts and flags
+  waivers above a dollar threshold or past their approved expiration
+  date without a recorded re-approval. Use this if a teller or branch
+  manager's fee waiver has ever kept quietly renewing itself past its
+  approved window — distinct from bank-fee-anomaly-check.yaml (finance
+  category), which looks for unusual fees a company itself is paying,
+  not waivers the bank granted to its own depositors.
+category: banking
+tags: [banking, deposit-accounts, fee-waiver, controls, teller-ops]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_amt="{{high_value_waiver_amount}}" '
+    NR==1 {next}
+    {
+      "date +%s" | getline now_epoch; close("date +%s");
+      exp_cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      exp_cmd | getline exp_epoch; close(exp_cmd);
+      expired = (exp_epoch > 0 && exp_epoch < now_epoch);
+      high_value = ($3+0 >= max_amt);
+      if (expired && $5 != "reapproved") {
+        printf "EXPIRED WAIVER: account %s — $%.2f waiver approved by %s expired %s, no re-approval on file\n", $1, $3, $2, $4;
+        n++;
+      } else if (high_value) {
+        printf "HIGH-VALUE WAIVER: account %s — $%.2f waiver approved by %s (review recommended)\n", $1, $3, $2;
+        n++;
+      }
+    }
+    END { printf "%d fee waiver(s) flagged.\n", n+0; }
+  ' "{{fee_waivers_csv_path}}"
+variables:
+  fee_waivers_csv_path:
+    default: "./deposit_fee_waivers.csv"
+    description: "Path to a CSV with columns: account_id,approved_by,waiver_amount,expiration_date (YYYY-MM-DD),status (blank or 'reapproved')."
+  high_value_waiver_amount:
+    default: 500
+    description: Waiver dollar amount at or above which it's flagged for review regardless of expiration.
+compatible_agents: [generic, claude, codex]
+notes: Read-only audit — flagged waivers still need a human to re-approve, adjust, or remove them.

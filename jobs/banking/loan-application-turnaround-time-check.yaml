@@ -1,0 +1,42 @@
+id: loan-application-turnaround-time-check
+version: 1
+name: Loan Application Turnaround Time Check
+description: >
+  Tracks how long pending loan applications have been sitting without a
+  decision and flags ones past your target turnaround time. Use this if
+  slow decisioning has ever created a fair-lending timing disparity
+  between applicant groups or a poor customer experience you only found
+  out about from a complaint instead of catching it while the loan was
+  still pending.
+category: banking
+tags: [banking, lending, turnaround-time, fair-lending, loan-operations]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_turnaround_days}}" '
+    NR==1 { next }
+    $3 == "PENDING" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submit_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = int((now_epoch - submit_epoch) / 86400);
+      if (age_days > target) {
+        printf "OVERDUE: application %s (%s) submitted %s — %d days pending, target %s\n", $1, $4, $2, age_days, target;
+        n++;
+      }
+    }
+    END { printf "%d loan application(s) past target turnaround.\n", n+0; }
+  ' "{{loan_applications_csv_path}}"
+variables:
+  loan_applications_csv_path:
+    default: "./loan_applications.csv"
+    description: "Path to a CSV with columns: application_id,submit_date (YYYY-MM-DD),status (PENDING or DECISIONED),loan_type."
+  target_turnaround_days:
+    default: 10
+    description: Target number of days from submission to decision before an application is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only pipeline report for underwriting/lending-ops follow-up — does
+  not make or expedite decisions itself. Useful input for fair-lending
+  monitoring of decision-time disparities across applicant segments.

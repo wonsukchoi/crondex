@@ -1,0 +1,47 @@
+id: interest-rate-change-notification-lag-check
+version: 1
+name: Interest Rate Change Notification Lag Check
+description: >
+  Flags variable-rate account or loan interest rate changes that haven't
+  had the required customer notification sent within the compliance
+  window. Use this if a rate change has ever gone out to the account
+  before — or without — the required advance or timely notice to the
+  customer — distinct from reg-dd-disclosure-accuracy-audit, which checks
+  whether posted terms match the rate sheet, not whether a rate-change
+  notice was actually sent on time.
+category: banking
+tags: [banking, interest-rate, variable-rate, notification, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window="{{notification_window_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline change_epoch; close(cmd);
+      if ($3 == "") {
+        "date +%s" | getline now_epoch; close("date +%s");
+        diff_days = (now_epoch - change_epoch) / 86400;
+        if (diff_days > window) { printf "NOTICE NOT SENT: account %s — rate changed %s, %d days ago, no notice on file\n", $1, $2, diff_days; n++; }
+        next;
+      }
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline sent_epoch; close(cmd2);
+      lag_days = (sent_epoch - change_epoch) / 86400;
+      if (lag_days > window) {
+        printf "LATE NOTICE: account %s — rate changed %s, notice sent %s (%d days, window %d)\n", $1, $2, $3, lag_days, window;
+        n++;
+      }
+    }
+    END { printf "%d rate change(s) with a notification lag.\n", n+0; }
+  ' "{{rate_changes_csv_path}}"
+variables:
+  rate_changes_csv_path:
+    default: "./interest-rate-changes.csv"
+    description: "Path to a CSV with columns: account_number,rate_change_date (YYYY-MM-DD),notice_sent_date (YYYY-MM-DD, blank if not yet sent)."
+  notification_window_days:
+    default: 15
+    description: Maximum number of days allowed between a rate change taking effect and the required customer notice being sent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only compliance check — surfaces late/missing notices for compliance to remediate, doesn't send notices itself.

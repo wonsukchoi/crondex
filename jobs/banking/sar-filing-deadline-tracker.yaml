@@ -1,0 +1,52 @@
+id: sar-filing-deadline-tracker
+version: 1
+name: SAR Filing Deadline Tracker
+description: >
+  Tracks the Suspicious Activity Report (SAR) filing deadline for each
+  flagged case — typically 30 days from detection — and warns as a
+  deadline approaches or has already been missed. Use this if your bank
+  or credit union's BSA/AML team has ever come close to (or blown) a SAR
+  filing deadline because it wasn't tracked centrally — this is
+  bank-internal compliance ops, distinct from the `finance` category's
+  personal/business bookkeeping jobs.
+category: banking
+tags: [banking, sar, aml, bsa, compliance, regulatory]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days_allowed="{{filing_deadline_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      if ($3 == "filed") next;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline detected_epoch; close(cmd);
+      deadline_epoch = detected_epoch + (days_allowed * 86400);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left < 0) {
+        printf "MISSED DEADLINE: case %s — detected %s, was due %d days ago\n", $1, $2, -days_left;
+        n++;
+      } else if (days_left <= warn) {
+        printf "DEADLINE APPROACHING: case %s — detected %s, %d day(s) left to file\n", $1, $2, days_left;
+        n++;
+      }
+    }
+    END { printf "%d case(s) requiring attention.\n", n+0; }
+  ' "{{sar_cases_csv_path}}"
+variables:
+  sar_cases_csv_path:
+    default: "./sar-cases.csv"
+    description: "Path to a CSV with header row, columns: case_id,detected_date (YYYY-MM-DD),status ('filed' once submitted, otherwise blank/open)."
+  filing_deadline_days:
+    default: 30
+    description: Days allowed from detection to SAR filing (30 days is the typical U.S. BSA requirement; confirm against your current regulatory guidance).
+  warn_days_before:
+    default: 5
+    description: How many days before the filing deadline to start warning, in addition to flagging any already-missed deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only deadline tracker — mark status as 'filed' in the CSV once a
+  SAR is actually submitted; this job does not file anything itself.
+  Distinct from aml-alert-backlog-check.yaml, which tracks the earlier
+  investigation-SLA stage before a case is escalated to a SAR filing.

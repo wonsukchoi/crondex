@@ -1,0 +1,43 @@
+id: dormant-account-flagging-check
+version: 1
+name: Dormant Account Flagging Check
+description: >
+  Flags customer accounts with no transaction activity past a
+  configurable dormancy threshold, the usual precursor step before
+  escheatment to the state. Use this if your bank or credit union needs a
+  standing list of accounts drifting toward dormant status so outreach
+  can happen before funds have to be escheated — this is bank-internal
+  ops, distinct from the `finance` category's personal/business
+  bookkeeping jobs.
+category: banking
+tags: [banking, dormant-account, escheatment, compliance, accounts]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v threshold="{{dormancy_threshold_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_activity_epoch; close(cmd);
+      days_inactive = (today - last_activity_epoch) / 86400;
+      if (days_inactive >= threshold) {
+        printf "DORMANT: account %s (%s) — last activity %s (%d days ago), balance $%s\n", $1, $4, $2, days_inactive, $3;
+        n++;
+      }
+    }
+    END { printf "%d account(s) at or past the dormancy threshold.\n", n+0; }
+  ' "{{accounts_csv_path}}"
+variables:
+  accounts_csv_path:
+    default: "./accounts.csv"
+    description: "Path to a CSV with header row, columns: account_id,last_activity_date (YYYY-MM-DD),balance,account_type."
+  dormancy_threshold_days:
+    default: 365
+    description: Days of no activity before an account is flagged as dormant (state escheatment rules vary — confirm the threshold for your jurisdiction and account type).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — flags candidates for dormancy outreach or reclassification,
+  does not move funds or change account status itself. Confirm your
+  state's specific escheatment timeline before treating this list as final.

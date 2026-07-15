@@ -1,0 +1,41 @@
+id: debit-card-fraud-alert-response-time-check
+version: 1
+name: Debit Card Fraud Alert Response Time Check
+description: >
+  Checks logged debit card fraud alerts against how long they took to
+  close out and flags any that exceeded the target response time. Use
+  this if a fraud alert has ever sat open longer than it should have
+  before a rep called the cardholder or blocked the card — distinct from
+  aml-alert-backlog-check, which tracks unresolved AML case volume, not
+  per-alert response latency on card fraud.
+category: banking
+tags: [banking, debit-card, fraud, response-time, operations]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_response_minutes}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline opened_epoch; close(cmd);
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline closed_epoch; close(cmd2);
+      if ($3 == "") { printf "STILL OPEN: alert %s opened %s\n", $1, $2; n++; next; }
+      minutes = (closed_epoch - opened_epoch) / 60;
+      if (minutes > target) {
+        printf "SLOW RESPONSE: alert %s took %d minutes (target %d) — opened %s, closed %s\n", $1, minutes, target, $2, $3;
+        n++;
+      }
+    }
+    END { printf "%d alert(s) exceeding target response time.\n", n+0; }
+  ' "{{fraud_alerts_csv_path}}"
+variables:
+  fraud_alerts_csv_path:
+    default: "./debit-fraud-alerts.csv"
+    description: "Path to a CSV with columns: alert_id,opened_at (ISO 8601),closed_at (ISO 8601, blank if still open)."
+  target_response_minutes:
+    default: 60
+    description: Maximum acceptable minutes between an alert opening and being closed out.
+compatible_agents: [generic, claude, codex]
+notes: Read-only monitoring — surfaces slow alerts for a supervisor to review, doesn't contact cardholders or block cards itself.

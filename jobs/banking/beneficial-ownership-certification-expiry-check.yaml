@@ -1,0 +1,42 @@
+id: beneficial-ownership-certification-expiry-check
+version: 1
+name: Beneficial Ownership Certification Expiry Check
+description: >
+  Flags business and entity accounts whose beneficial-ownership
+  certification (required under FinCEN's Customer Due Diligence rule)
+  is approaching or past its periodic recertification date. Use this
+  if a business account's beneficial-ownership certification has ever
+  gone stale without anyone catching it before an exam — distinct from
+  kyc-reverification-aging-tracker.yaml, which covers individual
+  customer identity re-verification, not entity beneficial-ownership
+  certifications.
+category: banking
+tags: [banking, compliance, cdd, beneficial-ownership, fincen, entity-accounts]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= warn_days) {
+        status = (diff_days < 0) ? "EXPIRED" : "EXPIRING SOON";
+        printf "%s: entity account %s (%s) — beneficial ownership cert due %s (%d days)\n", status, $1, $2, $3, diff_days;
+        n++;
+      }
+    }
+    END { printf "%d entity account(s) with expiring or expired beneficial ownership certification.\n", n+0; }
+  ' "{{entity_accounts_csv_path}}"
+variables:
+  entity_accounts_csv_path:
+    default: "./entity_beneficial_ownership.csv"
+    description: "Path to a CSV with columns: account_id,entity_name,recertification_due_date (YYYY-MM-DD)."
+  warn_days_before_expiry:
+    default: 30
+    description: How many days before (or past) the recertification due date to start flagging an account.
+compatible_agents: [generic, claude, codex]
+notes: Read-only tracker — collecting an updated certification form from the entity is a separate manual step.

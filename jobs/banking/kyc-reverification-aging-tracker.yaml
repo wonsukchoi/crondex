@@ -1,0 +1,43 @@
+id: kyc-reverification-aging-tracker
+version: 1
+name: KYC Reverification Aging Tracker
+description: >
+  Checks each customer's last KYC (know-your-customer) verification date
+  against a configurable re-verification interval and flags accounts that
+  are overdue for a refresh. Use this if your bank or credit union runs
+  periodic KYC on a schedule and needs a standing list of who's fallen
+  behind — this is bank-internal compliance ops, distinct from the
+  `finance` category's personal/business bookkeeping jobs.
+category: banking
+tags: [banking, kyc, compliance, aml, customer-due-diligence]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{reverification_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_verified_epoch; close(cmd);
+      days_since = (today - last_verified_epoch) / 86400;
+      if (days_since >= interval) {
+        printf "KYC OVERDUE: customer %s — last verified %s (%d days ago)\n", $1, $2, days_since;
+        n++;
+      }
+    }
+    END { printf "%d account(s) overdue for KYC reverification.\n", n+0; }
+  ' "{{kyc_records_csv_path}}"
+variables:
+  kyc_records_csv_path:
+    default: "./kyc-records.csv"
+    description: "Path to a CSV with header row, columns: customer_id,last_verified_date (YYYY-MM-DD)."
+  reverification_interval_days:
+    default: 730
+    description: How many days are allowed between KYC verifications before an account is flagged as overdue (many programs use risk-tiered intervals; adjust per your policy).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only. Update last_verified_date in the CSV once a customer's KYC
+  file is actually refreshed. Distinct from
+  aml-alert-backlog-check.yaml (which tracks open AML alert
+  investigations, not periodic KYC refresh cadence).

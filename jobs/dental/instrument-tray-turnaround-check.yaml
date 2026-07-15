@@ -1,0 +1,46 @@
+id: instrument-tray-turnaround-check
+version: 1
+name: Instrument Tray Turnaround Check
+description: >
+  Checks logged instrument-tray processing times (dirty-tray-in to
+  sterile-tray-ready) and flags any that exceeded a configurable
+  turnaround target. Use this if operatories have ever sat idle
+  waiting on sterile trays during a busy day — distinct from
+  autoclave-sterilization-log-compliance-check.yaml, which audits
+  whether the daily compliance log (spore tests, cycle entries) was
+  kept, not how fast trays actually came back.
+category: dental
+tags: [dental, sterilization, instrument-tray, turnaround, operations]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_minutes}}" -v cutoff="{{lookback_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      minutes = $3+0;
+      total++;
+      if (minutes > target+0) {
+        printf "SLOW: tray %s on %s took %d min (target %s)\n", $1, $2, minutes, target;
+        over++;
+      }
+    }
+    END { printf "%d/%d tray(s) exceeded the %s-minute turnaround target.\n", over+0, total+0, target; }
+  ' "{{tray_log_csv_path}}"
+variables:
+  tray_log_csv_path:
+    default: "./instrument_tray_log.csv"
+    description: "Path to a CSV with columns: tray_id,logged_date (YYYY-MM-DD),turnaround_minutes."
+  target_minutes:
+    default: 30
+    description: Target turnaround time in minutes from dirty tray in to sterile tray ready.
+  lookback_days:
+    default: 14
+    description: How many trailing days of tray log entries to include.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token workflow check — a persistently slow turnaround usually points to an autoclave capacity or staffing bottleneck.

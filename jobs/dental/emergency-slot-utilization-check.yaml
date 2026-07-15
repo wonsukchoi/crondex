@@ -1,0 +1,51 @@
+id: emergency-slot-utilization-check
+version: 1
+name: Emergency Slot Utilization Check
+description: >
+  Tracks how many held same-day emergency appointment slots actually
+  got filled versus went unused over a trailing window, and flags a
+  fill rate below a configurable target. Use this if reserved
+  emergency capacity has ever sat empty on slow days while the
+  schedule stayed rigid on busy ones — distinct from
+  dentist-schedule-utilization-check.yaml, which measures overall
+  chair utilization rather than the reserved emergency-slot carve-out
+  specifically.
+category: dental
+tags: [dental, emergency, scheduling, utilization, capacity]
+schedule: "0 19 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v target="{{target_fill_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      held += $2+0;
+      filled += $3+0;
+    }
+    END {
+      if (held > 0) {
+        rate = (filled / held) * 100;
+        printf "EMERGENCY SLOT FILL RATE: %d/%d filled over %d day(s) = %.1f%%\n", filled, held, cutoff, rate;
+        if (rate < target+0) printf "ALERT: fill rate %.1f%% is below the %s%% target\n", rate, target;
+      } else {
+        print "No emergency slot data found in the lookback window.";
+      }
+    }
+  ' "{{emergency_slot_log_csv_path}}"
+variables:
+  emergency_slot_log_csv_path:
+    default: "./emergency_slot_log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),slots_held,slots_filled. One row per day."
+  lookback_days:
+    default: 30
+    description: How many trailing days of emergency-slot data to include.
+  target_fill_pct:
+    default: 60
+    description: Minimum acceptable emergency-slot fill rate percentage before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — a chronically low fill rate may mean fewer slots should be held open, a chronically full one that more should be.

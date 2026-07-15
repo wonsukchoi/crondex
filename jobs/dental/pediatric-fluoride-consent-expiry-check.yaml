@@ -1,0 +1,45 @@
+id: pediatric-fluoride-consent-expiry-check
+version: 1
+name: Pediatric Fluoride Consent Expiry Check
+description: >
+  Checks pediatric patients' fluoride-varnish treatment consent forms
+  against a configurable renewal interval and flags anyone whose consent
+  has expired or is about to. Use this if a fluoride treatment has ever
+  been given, or almost given, on an expired consent — distinct from
+  sedation-consent-form-completeness-check.yaml, which checks
+  sedation/nitrous consent tied to a specific upcoming appointment
+  rather than a standing annual consent on file.
+category: dental
+tags: [dental, pediatric, fluoride, consent, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v renewal_days="{{renewal_interval_days}}" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline signed_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - signed_epoch) / 86400;
+      days_left = renewal_days+0 - age_days;
+      if (days_left <= warn_days+0) {
+        if (days_left < 0) printf "EXPIRED: %s fluoride consent signed %s expired %d day(s) ago\n", $1, $2, -days_left;
+        else printf "EXPIRING SOON: %s fluoride consent signed %s expires in %d day(s)\n", $1, $2, days_left;
+        flagged++;
+      }
+    }
+    END { printf "%d pediatric fluoride consent(s) flagged.\n", flagged+0; }
+  ' "{{fluoride_consent_csv_path}}"
+variables:
+  fluoride_consent_csv_path:
+    default: "./fluoride_consents.csv"
+    description: "Path to a CSV with columns: patient_name,consent_signed_date (YYYY-MM-DD)."
+  renewal_interval_days:
+    default: 365
+    description: Days a standing fluoride-treatment consent stays valid before it needs to be re-signed.
+  warn_days:
+    default: 21
+    description: Days before (or past) expiry to start flagging a patient's consent.
+compatible_agents: [generic, claude, codex]
+notes: Read-only reminder — actual re-consent still needs a parent/guardian signature captured at the next visit.

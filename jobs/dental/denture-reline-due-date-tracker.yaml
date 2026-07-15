@@ -1,0 +1,39 @@
+id: denture-reline-due-date-tracker
+version: 1
+name: Denture Reline Due Date Tracker
+description: >
+  Flags denture patients approaching or past their recommended reline
+  interval based on their last reline date. Use this if denture patients
+  have ever gone years past a comfortable fit because nobody was
+  tracking reline dates separately from routine recall — distinct from
+  hygiene-recall-cadence-tracker.yaml, which tracks natural-dentition
+  cleaning cadence, not denture-specific maintenance.
+category: dental
+tags: [dental, denture, reline, prosthodontics, recall]
+schedule: "0 7 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{reline_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - last_epoch) / 86400;
+      if (age_days >= interval+0) {
+        printf "OVERDUE: %s last relined %s (%d day(s) ago, interval %s)\n", $1, $2, age_days, interval;
+        overdue++;
+      }
+    }
+    END { printf "%d denture patient(s) due or overdue for a reline.\n", overdue+0; }
+  ' "{{denture_patients_csv_path}}"
+variables:
+  denture_patients_csv_path:
+    default: "./denture_patients.csv"
+    description: "Path to a CSV with columns: patient_name,last_reline_date (YYYY-MM-DD)."
+  reline_interval_days:
+    default: 730
+    description: Recommended days between denture relines before a patient is flagged as due.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — actual reline scheduling still needs a follow-up call or reminder.

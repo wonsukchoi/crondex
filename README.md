@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-1964 jobs across 61 categories:
+1976 jobs across 61 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -202,7 +202,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `coworking` | 32 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 32 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
-| `dental` | 32 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
+| `dental` | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
 | `devops` | 38 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 32 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 32 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |

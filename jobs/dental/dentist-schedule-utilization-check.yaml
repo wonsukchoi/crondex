@@ -1,0 +1,50 @@
+id: dentist-schedule-utilization-check
+version: 1
+name: Dentist Schedule Utilization Check
+description: >
+  Calculates what percentage of each provider's bookable chair time was
+  actually filled with appointments over a trailing window, and flags
+  days or providers below a target utilization rate. Use this if
+  open chair time has ever gone unnoticed until the month's production
+  numbers came in low — this tracks the schedule-fill trend, distinct
+  from the no-show/cancellation rate jobs which look at broken
+  appointments rather than raw open capacity.
+category: dental
+tags: [dental, schedule, utilization, capacity, production]
+schedule: "0 19 * * 5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v target="{{target_utilization_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      booked[$1] += $3+0;
+      available[$1] += $4+0;
+    }
+    END {
+      for (p in available) {
+        if (available[p] > 0) {
+          rate = (booked[p] / available[p]) * 100;
+          printf "%s: %.1f%% utilization (%d/%d min booked)\n", p, rate, booked[p], available[p];
+          if (rate < target+0) printf "  ALERT: below target of %s%%\n", target;
+        }
+      }
+    }
+  ' "{{schedule_log_csv_path}}"
+variables:
+  schedule_log_csv_path:
+    default: "./provider_schedule_log.csv"
+    description: "Path to a CSV with columns: provider_name,date (YYYY-MM-DD),booked_minutes,available_minutes. One row per provider per day."
+  lookback_days:
+    default: 30
+    description: How many trailing days of schedule data to include.
+  target_utilization_pct:
+    default: 80
+    description: Minimum acceptable chair-time utilization percentage before flagging a provider.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — pair with same-day-cancellation-rate-tracker.yaml if unfilled time is being driven by late cancellations specifically.

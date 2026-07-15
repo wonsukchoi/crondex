@@ -1,0 +1,50 @@
+id: radiograph-retake-rate-tracker
+version: 1
+name: Radiograph Retake Rate Tracker
+description: >
+  Calculates the rate of x-rays that had to be retaken due to poor
+  image quality over a trailing window, and flags it against a
+  threshold. Use this if retakes have crept up without anyone
+  noticing the aggregate rate — distinct from
+  radiograph-exposure-log-audit.yaml, which checks the completeness
+  and spacing of exposure records rather than image-quality outcomes.
+category: dental
+tags: [dental, radiograph, x-ray, quality, retake, radiation-safety]
+schedule: "0 18 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v threshold="{{alert_threshold_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline entry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - entry_epoch) / 86400;
+      if (age_days >= 0 && age_days <= cutoff) {
+        total++;
+        if ($3 == "retake") retakes++;
+      }
+    }
+    END {
+      if (total > 0) {
+        rate = (retakes / total) * 100;
+        printf "RETAKE RATE: %d/%d exposures in last %d day(s) = %.1f%%\n", retakes, total, cutoff, rate;
+        if (rate >= threshold+0) printf "ALERT: retake rate %.1f%% is at or above the %s%% threshold\n", rate, threshold;
+      } else {
+        print "No radiograph records found in the lookback window.";
+      }
+    }
+  ' "{{radiograph_log_csv_path}}"
+variables:
+  radiograph_log_csv_path:
+    default: "./radiograph_log.csv"
+    description: "Path to a CSV with columns: patient_name,exposure_date (YYYY-MM-DD),outcome (accepted/retake)."
+  lookback_days:
+    default: 30
+    description: How many trailing days of exposures to include in the rate calculation.
+  alert_threshold_pct:
+    default: 8
+    description: Retake rate percentage that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Zero-token trend check — a persistently high retake rate is also unnecessary patient radiation exposure, not just a workflow cost.

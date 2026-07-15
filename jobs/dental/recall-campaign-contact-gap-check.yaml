@@ -1,0 +1,37 @@
+id: recall-campaign-contact-gap-check
+version: 1
+name: Recall Campaign Contact Gap Check
+description: >
+  Cross-references the overdue-recall list against an outreach/mailing
+  log and flags patients who are overdue but were never actually
+  contacted by any campaign. Use this if a recall list has ever been
+  generated but the outreach itself silently didn't happen for some
+  patients — distinct from hygiene-recall-cadence-tracker.yaml, which
+  flags who's overdue, not whether they were contacted about it.
+category: dental
+tags: [dental, recall, outreach, marketing, patient-contact]
+schedule: "0 15 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) contacted[$1]=1; next }
+    FNR==1 { next }
+    { overdue[$1]=1 }
+    END {
+      uncontacted=0;
+      for (p in overdue) {
+        if (!(p in contacted)) { printf "NOT CONTACTED: %s is overdue for recall with no outreach on record\n", p; uncontacted++; }
+      }
+      printf "%d overdue patient(s) never contacted.\n", uncontacted;
+    }
+  ' "{{outreach_log_csv_path}}" "{{overdue_recall_csv_path}}"
+variables:
+  outreach_log_csv_path:
+    default: "./recall_outreach_log.csv"
+    description: "Path to a CSV with columns: patient_name,contact_date,channel (call/postcard/email/sms). One row per outreach attempt."
+  overdue_recall_csv_path:
+    default: "./overdue_recall_list.csv"
+    description: "Path to a CSV with columns: patient_name,due_date. One row per patient currently overdue for recall."
+compatible_agents: [generic, claude, codex]
+notes: Read-only gap check — expects overdue_recall_csv_path to already be filtered to overdue patients (e.g. by hygiene-recall-cadence-tracker.yaml's own output logged to a file).

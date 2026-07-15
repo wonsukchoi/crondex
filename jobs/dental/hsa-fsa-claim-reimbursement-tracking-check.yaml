@@ -1,0 +1,43 @@
+id: hsa-fsa-claim-reimbursement-tracking-check
+version: 1
+name: HSA/FSA Claim Reimbursement Tracking Check
+description: >
+  Checks patient HSA/FSA reimbursement requests against a submitted-claims
+  log and flags ones that have gone past a configurable turnaround window
+  without a recorded payout. Use this if patients have ever called asking
+  where their HSA/FSA reimbursement went — this tracks the patient-side
+  self-pay reimbursement path, distinct from the dental-insurance claim
+  jobs which track payer-side claims.
+category: dental
+tags: [dental, hsa, fsa, reimbursement, billing, patient-pay]
+schedule: "0 17 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{lookback_days}}" -v max_age="{{max_pending_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline sub_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - sub_epoch) / 86400;
+      if (age_days < 0 || age_days > cutoff) next;
+      if ($3 == "pending" && age_days > max_age+0) {
+        printf "STALE: %s HSA/FSA reimbursement submitted %s is %d day(s) old, still pending\n", $1, $2, age_days;
+        stale++;
+      }
+    }
+    END { printf "%d stale pending reimbursement(s) found.\n", stale+0; }
+  ' "{{reimbursement_log_csv_path}}"
+variables:
+  reimbursement_log_csv_path:
+    default: "./hsa_fsa_reimbursements.csv"
+    description: "Path to a CSV with columns: patient_name,submitted_date (YYYY-MM-DD),status (pending/paid/denied)."
+  lookback_days:
+    default: 180
+    description: How many trailing days of submissions to include in the scan.
+  max_pending_days:
+    default: 21
+    description: Days a reimbursement can stay pending before it's flagged as stale.
+compatible_agents: [generic, claude, codex]
+notes: Read-only tracker — actual reimbursement payout still happens through the HSA/FSA administrator, not this job.

@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 1964,
+  "count": 1976,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -12852,6 +12852,58 @@
       "path": "jobs/personal/dentist-appointment-due-reminder.yaml"
     },
     {
+      "id": "dentist-schedule-utilization-check",
+      "version": 1,
+      "name": "Dentist Schedule Utilization Check",
+      "description": "Calculates what percentage of each provider's bookable chair time was actually filled with appointments over a trailing window, and flags days or providers below a target utilization rate. Use this if open chair time has ever gone unnoticed until the month's production numbers came in low — this tracks the schedule-fill trend, distinct from the no-show/cancellation rate jobs which look at broken appointments rather than raw open capacity.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "schedule",
+        "utilization",
+        "capacity",
+        "production"
+      ],
+      "schedule": "0 19 * * 5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/dentist-schedule-utilization-check.yaml"
+    },
+    {
+      "id": "denture-reline-due-date-tracker",
+      "version": 1,
+      "name": "Denture Reline Due Date Tracker",
+      "description": "Flags denture patients approaching or past their recommended reline interval based on their last reline date. Use this if denture patients have ever gone years past a comfortable fit because nobody was tracking reline dates separately from routine recall — distinct from hygiene-recall-cadence-tracker.yaml, which tracks natural-dentition cleaning cadence, not denture-specific maintenance.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "denture",
+        "reline",
+        "prosthodontics",
+        "recall"
+      ],
+      "schedule": "0 7 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/denture-reline-due-date-tracker.yaml"
+    },
+    {
       "id": "department-budget-variance-check",
       "version": 1,
       "name": "Department Budget Variance Check",
@@ -15150,6 +15202,32 @@
         "codex"
       ],
       "path": "jobs/government/emergency-preparedness-plan-review-tracker.yaml"
+    },
+    {
+      "id": "emergency-slot-utilization-check",
+      "version": 1,
+      "name": "Emergency Slot Utilization Check",
+      "description": "Tracks how many held same-day emergency appointment slots actually got filled versus went unused over a trailing window, and flags a fill rate below a configurable target. Use this if reserved emergency capacity has ever sat empty on slow days while the schedule stayed rigid on busy ones — distinct from dentist-schedule-utilization-check.yaml, which measures overall chair utilization rather than the reserved emergency-slot carve-out specifically.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "emergency",
+        "scheduling",
+        "utilization",
+        "capacity"
+      ],
+      "schedule": "0 19 * * 5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/emergency-slot-utilization-check.yaml"
     },
     {
       "id": "emissions-permit-compliance-check",
@@ -18239,6 +18317,32 @@
         "codex"
       ],
       "path": "jobs/government/financial-disclosure-filing-deadline-check.yaml"
+    },
+    {
+      "id": "financing-application-follow-up-check",
+      "version": 1,
+      "name": "Financing Application Follow-Up Check",
+      "description": "Flags patient treatment-financing applications (e.g. CareCredit or a similar third-party plan) left in a pending or incomplete state past a configurable window. Use this if a big treatment plan has ever stalled because the financing application was started but never followed up on — distinct from unscheduled-treatment-value-report.yaml, which tracks unscheduled case value in general, not the financing step specifically.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "financing",
+        "carecredit",
+        "treatment-plan",
+        "billing"
+      ],
+      "schedule": "0 16 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/financing-application-follow-up-check.yaml"
     },
     {
       "id": "fire-drill-schedule-compliance-check",
@@ -21899,6 +22003,33 @@
       "path": "jobs/content/hreflang-audit.yaml"
     },
     {
+      "id": "hsa-fsa-claim-reimbursement-tracking-check",
+      "version": 1,
+      "name": "HSA/FSA Claim Reimbursement Tracking Check",
+      "description": "Checks patient HSA/FSA reimbursement requests against a submitted-claims log and flags ones that have gone past a configurable turnaround window without a recorded payout. Use this if patients have ever called asking where their HSA/FSA reimbursement went — this tracks the patient-side self-pay reimbursement path, distinct from the dental-insurance claim jobs which track payer-side claims.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "hsa",
+        "fsa",
+        "reimbursement",
+        "billing",
+        "patient-pay"
+      ],
+      "schedule": "0 17 * * 2",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/hsa-fsa-claim-reimbursement-tracking-check.yaml"
+    },
+    {
       "id": "hsa-investment-sweep-threshold-check",
       "version": 1,
       "name": "HSA Investment Sweep Threshold Check",
@@ -22833,6 +22964,32 @@
         "codex"
       ],
       "path": "jobs/construction/inspection-deadline-reminder.yaml"
+    },
+    {
+      "id": "instrument-tray-turnaround-check",
+      "version": 1,
+      "name": "Instrument Tray Turnaround Check",
+      "description": "Checks logged instrument-tray processing times (dirty-tray-in to sterile-tray-ready) and flags any that exceeded a configurable turnaround target. Use this if operatories have ever sat idle waiting on sterile trays during a busy day — distinct from autoclave-sterilization-log-compliance-check.yaml, which audits whether the daily compliance log (spore tests, cycle entries) was kept, not how fast trays actually came back.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "sterilization",
+        "instrument-tray",
+        "turnaround",
+        "operations"
+      ],
+      "schedule": "0 19 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/instrument-tray-turnaround-check.yaml"
     },
     {
       "id": "insurance-coverage-lapse-check",
@@ -29860,6 +30017,32 @@
       "path": "jobs/productivity/notification-backlog-sweep.yaml"
     },
     {
+      "id": "npi-provider-registry-staleness-check",
+      "version": 1,
+      "name": "NPI Provider Registry Staleness Check",
+      "description": "Compares each provider's practice-management-system record (address, taxonomy code, phone) against a manually-noted last-verified-against-NPI date and flags anyone not re-checked within a configurable window. Use this if a mismatched NPI registry entry has ever caused a claim rejection because the payer's lookup didn't match what was billed — distinct from payer-recredentialing-deadline-check.yaml, which tracks panel status, not registry data accuracy.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "npi",
+        "provider-data",
+        "billing",
+        "compliance"
+      ],
+      "schedule": "0 8 1 */3 *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/npi-provider-registry-staleness-check.yaml"
+    },
+    {
       "id": "nps-trend-tracker",
       "version": 1,
       "name": "NPS Trend Tracker",
@@ -30241,6 +30424,32 @@
         "generic"
       ],
       "path": "jobs/team/oncall-stipend-payout-check.yaml"
+    },
+    {
+      "id": "online-booking-abandonment-check",
+      "version": 1,
+      "name": "Online Booking Abandonment Check",
+      "description": "Checks an online-booking-widget session log for started-but-not-completed bookings and flags ones past a configurable follow-up window so front desk can reach out. Use this if a prospective patient has ever picked a time slot on the website and then quietly bailed before confirming — distinct from new-patient-conversion-rate-tracker.yaml, which measures the aggregate lead-to-appointment rate rather than individual abandoned sessions worth a direct follow-up.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "online-booking",
+        "abandonment",
+        "new-patient",
+        "marketing"
+      ],
+      "schedule": "0 14 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/online-booking-abandonment-check.yaml"
     },
     {
       "id": "online-ordering-platform-menu-sync-check",
@@ -32021,6 +32230,33 @@
       "path": "jobs/healthcare/payer-enrollment-status-check.yaml"
     },
     {
+      "id": "payer-recredentialing-deadline-check",
+      "version": 1,
+      "name": "Payer Recredentialing Deadline Check",
+      "description": "Tracks each provider's recredentialing deadline with the insurance payers they're paneled with and flags anything approaching or past due. Use this if a provider has ever fallen off a payer's network mid-quarter because recredentialing paperwork lapsed — distinct from license-cde-credit-expiry-tracker.yaml, which tracks the state license/CDE requirement, not payer-panel credentialing.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "credentialing",
+        "payer",
+        "insurance",
+        "compliance",
+        "provider"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/payer-recredentialing-deadline-check.yaml"
+    },
+    {
       "id": "payment-processor-failure-rate-watch",
       "version": 1,
       "name": "Payment Processor Failure Rate Watch",
@@ -32289,6 +32525,32 @@
         "generic"
       ],
       "path": "jobs/warehousing/peak-season-labor-ramp-plan-check.yaml"
+    },
+    {
+      "id": "pediatric-fluoride-consent-expiry-check",
+      "version": 1,
+      "name": "Pediatric Fluoride Consent Expiry Check",
+      "description": "Checks pediatric patients' fluoride-varnish treatment consent forms against a configurable renewal interval and flags anyone whose consent has expired or is about to. Use this if a fluoride treatment has ever been given, or almost given, on an expired consent — distinct from sedation-consent-form-completeness-check.yaml, which checks sedation/nitrous consent tied to a specific upcoming appointment rather than a standing annual consent on file.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "pediatric",
+        "fluoride",
+        "consent",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/pediatric-fluoride-consent-expiry-check.yaml"
     },
     {
       "id": "peer-feedback-cycle-completion-tracker",
@@ -36582,6 +36844,33 @@
       "path": "jobs/dental/radiograph-exposure-log-audit.yaml"
     },
     {
+      "id": "radiograph-retake-rate-tracker",
+      "version": 1,
+      "name": "Radiograph Retake Rate Tracker",
+      "description": "Calculates the rate of x-rays that had to be retaken due to poor image quality over a trailing window, and flags it against a threshold. Use this if retakes have crept up without anyone noticing the aggregate rate — distinct from radiograph-exposure-log-audit.yaml, which checks the completeness and spacing of exposure records rather than image-quality outcomes.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "radiograph",
+        "x-ray",
+        "quality",
+        "retake",
+        "radiation-safety"
+      ],
+      "schedule": "0 18 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/radiograph-retake-rate-tracker.yaml"
+    },
+    {
       "id": "radon-test-renewal-reminder",
       "version": 1,
       "name": "Radon Test Renewal Reminder",
@@ -36783,6 +37072,32 @@
         "codex"
       ],
       "path": "jobs/learning/reading-list-nudge.yaml"
+    },
+    {
+      "id": "recall-campaign-contact-gap-check",
+      "version": 1,
+      "name": "Recall Campaign Contact Gap Check",
+      "description": "Cross-references the overdue-recall list against an outreach/mailing log and flags patients who are overdue but were never actually contacted by any campaign. Use this if a recall list has ever been generated but the outreach itself silently didn't happen for some patients — distinct from hygiene-recall-cadence-tracker.yaml, which flags who's overdue, not whether they were contacted about it.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "recall",
+        "outreach",
+        "marketing",
+        "patient-contact"
+      ],
+      "schedule": "0 15 * * 3",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/dental/recall-campaign-contact-gap-check.yaml"
     },
     {
       "id": "recall-traceability-drill-readiness-check",

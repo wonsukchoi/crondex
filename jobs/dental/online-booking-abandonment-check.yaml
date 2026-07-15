@@ -1,0 +1,40 @@
+id: online-booking-abandonment-check
+version: 1
+name: Online Booking Abandonment Check
+description: >
+  Checks an online-booking-widget session log for started-but-not-completed
+  bookings and flags ones past a configurable follow-up window so front
+  desk can reach out. Use this if a prospective patient has ever picked a
+  time slot on the website and then quietly bailed before confirming —
+  distinct from new-patient-conversion-rate-tracker.yaml, which measures
+  the aggregate lead-to-appointment rate rather than individual abandoned
+  sessions worth a direct follow-up.
+category: dental
+tags: [dental, online-booking, abandonment, new-patient, marketing]
+schedule: "0 14 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_age="{{max_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline session_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - session_epoch) / 3600;
+      if ($3 == "abandoned" && age_hours >= max_age+0) {
+        printf "ABANDONED: %s started booking at %s, never confirmed (%.1f hour(s) ago)\n", $1, $2, age_hours;
+        n++;
+      }
+    }
+    END { printf "%d abandoned booking session(s) worth a follow-up call.\n", n+0; }
+  ' "{{booking_session_log_csv_path}}"
+variables:
+  booking_session_log_csv_path:
+    default: "./booking_sessions.csv"
+    description: "Path to a CSV with columns: contact_name,session_start (YYYY-MM-DDTHH:MM),status (confirmed/abandoned)."
+  max_hours:
+    default: 4
+    description: Hours after an abandoned session before it's flagged as worth a manual follow-up call.
+compatible_agents: [generic, claude, codex]
+notes: Read-only lead list — assumes the booking widget or its analytics export logs abandoned sessions distinctly from confirmed ones.

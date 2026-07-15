@@ -11,6 +11,7 @@ import {
   buildSystemdUnits,
   buildDockerArtifacts,
   buildK8sCronJob,
+  buildTerraformKubernetesCronJob,
   cronToAwsCron,
   buildEventBridgeCommand,
   buildCloudSchedulerCommand,
@@ -238,6 +239,58 @@ test("buildK8sCronJob: no timeZone field when the job has no timezone set", () =
   const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
   const manifest = buildK8sCronJob(job, "echo hi", false);
   assert.doesNotMatch(manifest, /timeZone:/);
+});
+
+test("buildTerraformKubernetesCronJob: embeds schedule and command, resource local name uses underscores", () => {
+  const job = { id: "my-cool-job", name: "My Job", schedule: "0 6 * * *", path: "jobs/x/my-cool-job.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, 'echo "hello"', false);
+  assert.match(hcl, /resource "kubernetes_cron_job_v1" "my_cool_job"/);
+  assert.match(hcl, /name\s*=\s*"my-cool-job"/);
+  assert.match(hcl, /schedule\s*=\s*"0 6 \* \* \*"/);
+  assert.match(hcl, /command = \["bash", "-lc", "echo \\"hello\\""\]/);
+});
+
+test("buildTerraformKubernetesCronJob: prompt mode adds a CRONDEX_AGENT_CLI env block and uses sh", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, "do the thing", true);
+  assert.match(hcl, /name\s*=\s*"CRONDEX_AGENT_CLI"/);
+  assert.match(hcl, /command = \["sh", "-lc",/);
+});
+
+test("buildTerraformKubernetesCronJob: escapes a literal ${ in the command as $${ (HCL interpolation escape)", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, 'echo "${HOST:-example.com}"', false);
+  // exact escaped substring — real job commands commonly contain bash's ${VAR:-default}
+  // parameter expansion, which collides with HCL's own ${...} interpolation syntax if
+  // left unescaped: Terraform would try to evaluate "HOST:-example.com" as an HCL
+  // expression instead of treating it as literal command text.
+  assert.match(hcl, /\$\$\{HOST:-example\.com\}/);
+});
+
+test("buildTerraformKubernetesCronJob: escapes a literal %{ in the command as %%{ (HCL directive escape)", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, 'echo "100%{done}"', false);
+  assert.match(hcl, /100%%\{done\}/);
+});
+
+test("buildTerraformKubernetesCronJob: escapes embedded double quotes and backslashes", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, 'echo "a" && echo "b"', false);
+  assert.match(hcl, /\\"a\\"/);
+  assert.match(hcl, /\\"b\\"/);
+});
+
+test("buildTerraformKubernetesCronJob: emits time_zone with a 2.20+ note when the job sets a timezone", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", timezone: "America/New_York", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, "echo hi", false);
+  assert.match(hcl, /time_zone\s*=\s*"America\/New_York"/);
+  assert.match(hcl, />= 2\.20/);
+});
+
+test("buildTerraformKubernetesCronJob: no time_zone field when the job has no timezone set", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildTerraformKubernetesCronJob(job, "echo hi", false);
+  assert.doesNotMatch(hcl, /time_zone/);
 });
 
 test("cronToAwsCron: weekday-restricted schedule sets day-of-month to ? and maps weekday names", () => {

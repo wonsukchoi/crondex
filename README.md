@@ -46,11 +46,12 @@ npx @wonsukchoi/crondex deploy ssl-cert-expiry-check --var host=example.com
   (matched by its `id` field) against the current catalog, print a diff of
   what changed, and overwrite it in place. `--dry-run` shows the diff
   without applying it.
-- `deploy <id> --target <crontab|github-actions|systemd|docker|k8s-cronjob|eventbridge|cloud-scheduler> [--var name=value ...]`
+- `deploy <id> --target <crontab|github-actions|systemd|docker|k8s-cronjob|terraform|eventbridge|cloud-scheduler> [--var name=value ...]`
   — turn a job into something that actually runs (crontab line, GitHub
-  Actions workflow, systemd timer, Dockerfile, k8s CronJob, or a ready
-  `aws`/`gcloud` command). `--var` overrides a variable's default. `hybrid`
-  jobs deploy `command` by default; add `--mode prompt` for the prompt side.
+  Actions workflow, systemd timer, Dockerfile, k8s CronJob, Terraform
+  `kubernetes_cron_job_v1` resource, or a ready `aws`/`gcloud` command).
+  `--var` overrides a variable's default. `hybrid` jobs deploy `command` by
+  default; add `--mode prompt` for the prompt side.
 - `deploy --list-installed` — show every crondex-managed line in your
   crontab (the ones left by `--install`)
 - `uninstall <id>` — remove one of those installed crontab entries

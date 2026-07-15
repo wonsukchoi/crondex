@@ -217,6 +217,24 @@ test("deploy --target k8s-cronjob: writes a self-contained CronJob manifest", ()
   }
 });
 
+test("deploy --target terraform: writes a kubernetes_cron_job_v1 Terraform resource", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "job.tf");
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "terraform", "--dest", dest]);
+    assert.match(out, /wrote/);
+    const content = readFileSync(dest, "utf8");
+    assert.match(content, /resource "kubernetes_cron_job_v1" "ssl_cert_expiry_check"/);
+    assert.match(content, /schedule\s*=\s*"0 6 \* \* \*"/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "terraform", "--dest", dest]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("deploy --target eventbridge: prints an aws scheduler command with a converted cron expression", () => {
   const out = run(["deploy", "ssl-cert-expiry-check", "--target", "eventbridge"]);
   assert.match(out, /aws scheduler create-schedule/);

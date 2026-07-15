@@ -18,10 +18,23 @@ import {
   substitutePlaceholders,
   pickMode,
   buildK8sCronJob,
+  buildTerraformKubernetesCronJob,
   buildGithubActionsWorkflow,
   buildEventBridgeCommand,
   buildCloudSchedulerCommand,
 } from "../lib/deploy.js";
+
+const HAS_TERRAFORM = (() => {
+  try {
+    execFileSync("terraform", ["-version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+if (!HAS_TERRAFORM) {
+  console.warn("terraform not on PATH — skipping `terraform fmt -check` (structural HCL checks still run).");
+}
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const JOBS_DIR = join(ROOT, "jobs");
@@ -61,6 +74,42 @@ function assertValidYaml(rel, target, text, checks) {
   }
 }
 
+// Doesn't need the terraform binary — a pure structural invariant on the generated
+// text. This file never intentionally emits real Terraform interpolation/directives,
+// so every `${`/`%{` in the output must be part of the doubled `$${`/`%%{` escape
+// lib/deploy.js's hclString() is supposed to produce. This is exactly the check that
+// would have caught the "$$ is a JS String.replace() escape, not two literal dollar
+// signs" bug found while building this target (see CHANGELOG) — a bare `${` here
+// means that escaping silently failed for this job's command.
+function assertNoUnescapedHclInterpolation(rel, target, text) {
+  for (const [marker, name] of [
+    ["${", "interpolation"],
+    ["%{", "directive"],
+  ]) {
+    let index = text.indexOf(marker);
+    while (index !== -1) {
+      if (text[index - 1] !== marker[0]) {
+        throw new Error(
+          `${rel} [${target}]: unescaped "${marker}" (HCL ${name} syntax) found at index ${index} — hclString() escaping failed for this job's command.`
+        );
+      }
+      index = text.indexOf(marker, index + 1);
+    }
+  }
+}
+
+function assertValidTerraformSyntax(rel, target, text) {
+  if (!HAS_TERRAFORM) return;
+  try {
+    execFileSync("terraform", ["fmt", "-check", "-"], { input: text, stdio: ["pipe", "pipe", "pipe"] });
+  } catch (err) {
+    // exit 1 alone means "would reformat" (fine, not a syntax error) — only a nonzero
+    // exit WITH stderr output means terraform couldn't parse the HCL at all.
+    const stderr = err.stderr?.toString().trim();
+    if (stderr) throw new Error(`${rel} [${target}]: terraform fmt rejected the generated HCL\n${stderr}`);
+  }
+}
+
 let checked = 0;
 let failed = 0;
 
@@ -88,6 +137,10 @@ for (const file of walk(JOBS_DIR)) {
 
       assertValidBashSyntax(rel, "eventbridge", buildEventBridgeCommand(doc, resolvedText, isPrompt));
       assertValidBashSyntax(rel, "cloud-scheduler", buildCloudSchedulerCommand(doc, resolvedText, isPrompt));
+
+      const tf = buildTerraformKubernetesCronJob(doc, resolvedText, isPrompt);
+      assertNoUnescapedHclInterpolation(rel, "terraform", tf);
+      assertValidTerraformSyntax(rel, "terraform", tf);
     }
 
     assertValidYaml(rel, "github-actions", buildGithubActionsWorkflow(doc, { command, prompt, mode }), (w) => [
@@ -103,6 +156,6 @@ for (const file of walk(JOBS_DIR)) {
 }
 
 console.log(
-  `checked ${checked} job(s) across k8s-cronjob/github-actions/eventbridge/cloud-scheduler artifacts, ${failed} failed`
+  `checked ${checked} job(s) across k8s-cronjob/terraform/github-actions/eventbridge/cloud-scheduler artifacts, ${failed} failed`
 );
 if (failed > 0) process.exit(1);

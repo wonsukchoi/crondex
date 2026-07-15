@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-07-16
+
+### Added
+
+- `deploy --target terraform` (ROADMAP §1's last open item): generates a
+  `kubernetes_cron_job_v1` Terraform resource, mirroring `k8s-cronjob`
+  field-for-field — same "actually runs the job" philosophy, HCL syntax
+  instead of YAML. Wired into `deploy`, `bundle`, and the `crondex_deploy`
+  MCP tool.
+- `scripts/verify-deploy-artifacts.js` now also checks the `terraform`
+  target: a tool-free structural invariant (every `${`/`%{` in the
+  generated HCL must be part of the doubled `$${`/`%%{` escape) that
+  runs unconditionally, plus `terraform fmt -check` when the `terraform`
+  binary is on `PATH` (gracefully skipped otherwise, matching
+  `lint-shell`'s shellcheck-optional precedent).
+
+### Fixed
+
+- The HCL string escaper's first version used `"$${"` as a
+  `String.replace()` replacement string, intending to produce a literal
+  `$${`. `$$` in a JS replacement string is itself a special escape for
+  one literal `$`, so the replacement silently collapsed back to `${` —
+  a no-op that would have shipped broken Terraform output for any job
+  whose command contains bash's `${VAR:-default}` parameter expansion
+  (roughly 5% of the catalog, by exact count at the time). Caught before
+  release by a unit test asserting the *exact* escaped output rather
+  than just "doesn't throw," and independently confirmed against all
+  2182 catalog jobs by the new `verify-deploy-artifacts` check above.
+  Fixed: `"$$$${"` (four `$` in the replacement string collapse pairwise
+  to the two literal ones needed).
+
 ## [0.71.0] - 2026-07-16
 
 ### Added

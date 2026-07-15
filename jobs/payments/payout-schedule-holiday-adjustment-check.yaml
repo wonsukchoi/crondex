@@ -1,0 +1,54 @@
+id: payout-schedule-holiday-adjustment-check
+version: 1
+name: Payout Schedule Holiday Adjustment Check
+description: >
+  Reviews upcoming merchant payout dates against a bank holiday calendar and
+  flags payouts that land on a non-banking day so the schedule can be
+  shifted. Use this if a payout has ever gone out late, or merchants asked
+  where their funds were, because a bank holiday wasn't accounted for in
+  the payout schedule.
+category: payments
+tags: [payments, payouts, funding, bank-holidays, scheduling]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  You are reviewing upcoming merchant payout dates for a payment processor
+  against an official bank holiday calendar.
+
+  Upcoming payout dates and merchant identifiers are listed in the file at
+  {{payout_schedule_path}}. The bank holiday calendar for the relevant
+  country/countries is at {{bank_holiday_calendar_path}}. Payouts settle
+  through a banking network with a {{settlement_lag_days}}-business-day lag.
+
+  For each scheduled payout date:
+  1. Determine if it falls on a weekend or a listed bank holiday.
+  2. If so, identify whether the settlement lag from that date would still
+     land within {{settlement_lag_days}} business days, or whether the
+     payout needs to be moved earlier to the prior business day to avoid a
+     delay.
+  3. List every affected payout with: merchant identifier, original payout
+     date, the conflicting holiday/weekend day, and the recommended
+     adjusted payout date.
+  4. Note any payout dates that fall near a multi-day holiday cluster
+     (e.g. a holiday adjacent to a weekend), since those carry the highest
+     risk of an unnoticed delay.
+
+  Output a short table of affected payouts and recommended adjustments. Do
+  not modify the payout schedule file — this is a review only, changes
+  should go through the normal scheduling process.
+variables:
+  payout_schedule_path:
+    default: "./upcoming_payout_schedule.csv"
+    description: "Path to a CSV with columns: merchant_id,payout_date (YYYY-MM-DD),amount."
+  bank_holiday_calendar_path:
+    default: "./bank_holiday_calendar.csv"
+    description: "Path to a CSV with columns: holiday_date (YYYY-MM-DD),holiday_name,country."
+  settlement_lag_days:
+    default: 1
+    description: Number of business days the payout settlement network normally takes to move funds.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Judgment call over holiday/weekend edge cases and multi-day holiday
+  clusters is better suited to an LLM pass than a rigid script; this job is
+  read-only and produces recommendations, not schedule changes.

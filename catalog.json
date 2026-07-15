@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2056,
+  "count": 2088,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -76,6 +76,32 @@
         "codex"
       ],
       "path": "jobs/pharmacy/340b-program-compliance-check.yaml"
+    },
+    {
+      "id": "3ds-authentication-rate-tracker",
+      "version": 1,
+      "name": "3DS Authentication Rate Tracker",
+      "description": "Tracks the 3D Secure challenge and pass rate for card transactions over a rolling window and flags if the pass rate drops or the challenge rate spikes. Use this if a 3DS misconfiguration or issuer-side hiccup has ever quietly tanked your checkout conversion before anyone connected it to authentication failures.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "3ds",
+        "authentication",
+        "fraud",
+        "checkout"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/3ds-authentication-rate-tracker.yaml"
     },
     {
       "id": "3pl-performance-scorecard",
@@ -441,6 +467,32 @@
         "codex"
       ],
       "path": "jobs/finance/accrued-revenue-recognition-check.yaml"
+    },
+    {
+      "id": "ach-return-rate-threshold-check",
+      "version": 1,
+      "name": "ACH Return Rate Threshold Check",
+      "description": "Calculates your ACH unauthorized and insufficient-funds return rates from a settlement log and flags if either is approaching the Nacha rule threshold. Use this if you've ever found out you were close to a Nacha return-rate violation only after the network flagged your origination account.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "ach",
+        "nacha",
+        "returns",
+        "compliance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/ach-return-rate-threshold-check.yaml"
     },
     {
       "id": "action-item-followup-extraction",
@@ -5475,6 +5527,58 @@
       "path": "jobs/home/carbon-monoxide-detector-battery-check.yaml"
     },
     {
+      "id": "card-brand-fine-notice-tracker",
+      "version": 1,
+      "name": "Card Brand Fine Notice Tracker",
+      "description": "Scans a log of card network non-compliance fine and penalty notices — for example excessive chargeback program fines — and flags any notice that is unpaid and has a payment deadline coming up soon or already past. Use this if a card brand fine has ever gone unnoticed until it accrued additional penalties because nobody was watching the notice log.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "card-networks",
+        "fines",
+        "compliance",
+        "chargebacks"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/card-brand-fine-notice-tracker.yaml"
+    },
+    {
+      "id": "card-not-present-fraud-rate-monitor",
+      "version": 1,
+      "name": "Card-Not-Present Fraud Rate Monitor",
+      "description": "Tracks the fraud rate on card-not-present (CNP) transactions from a daily report and flags if it crosses a configurable threshold. Use this if you process online or phone/mail-order payments and need to catch a rising CNP fraud rate before it draws card network attention or eats into your approved processing limits.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "fraud",
+        "card-not-present",
+        "ecommerce",
+        "risk"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/card-not-present-fraud-rate-monitor.yaml"
+    },
+    {
       "id": "care-plan-review-due-reminder",
       "version": 1,
       "name": "Care Plan Review Due Reminder",
@@ -6418,6 +6522,31 @@
         "codex"
       ],
       "path": "jobs/ecommerce/chargeback-fraud-risk-order-review.yaml"
+    },
+    {
+      "id": "chargeback-ratio-threshold-check",
+      "version": 1,
+      "name": "Chargeback Ratio Threshold Check",
+      "description": "Checks each merchant's monthly chargeback ratio (chargebacks divided by transactions) against card network thresholds like Visa's Dispute Monitoring Program or Mastercard's Excessive Chargeback Program. Use this if you manage merchant risk at a payment processor or acquirer and want to catch merchants drifting toward network penalties before the network does.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "chargebacks",
+        "card-networks",
+        "merchant-risk"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/chargeback-ratio-threshold-check.yaml"
     },
     {
       "id": "charitable-solicitation-registration-renewal-check",
@@ -8916,6 +9045,32 @@
         "codex"
       ],
       "path": "jobs/legal/compliance-filing-deadline-reminder.yaml"
+    },
+    {
+      "id": "compliance-filing-sar-deadline-tracker",
+      "version": 1,
+      "name": "SAR Filing Deadline Tracker",
+      "description": "Tracks Suspicious Activity Report filing deadlines for flagged payment activity and flags any case approaching its regulatory filing window. Use this if a SAR has ever come close to missing its filing deadline because the case sat in a queue without anyone watching the clock.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "compliance",
+        "sar",
+        "aml",
+        "kyb"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/compliance-filing-sar-deadline-tracker.yaml"
     },
     {
       "id": "compliance-training-completion-check",
@@ -11716,6 +11871,31 @@
       "path": "jobs/retail/curbside-pickup-wait-time-check.yaml"
     },
     {
+      "id": "currency-conversion-rate-margin-check",
+      "version": 1,
+      "name": "Currency Conversion Rate Margin Check",
+      "description": "Checks the conversion rate the processor actually applied to cross-border transactions against the mid-market rate at the time and flags any transaction where the margin exceeds a configurable acceptable spread. Use this if FX margins on cross-border settlements have ever crept wider than intended without anyone noticing until a merchant questioned their payout.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "fx",
+        "cross-border",
+        "settlement"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/currency-conversion-rate-margin-check.yaml"
+    },
+    {
       "id": "currency-exchange-favorable-window-alert",
       "version": 1,
       "name": "Currency Exchange Favorable-Window Alert",
@@ -14098,6 +14278,56 @@
         "generic"
       ],
       "path": "jobs/moving-relocation/dispatch-route-fuel-cost-drift-check.yaml"
+    },
+    {
+      "id": "dispute-response-deadline-tracker",
+      "version": 1,
+      "name": "Dispute Response Deadline Tracker",
+      "description": "Scans your open dispute and chargeback cases and flags any whose evidence submission deadline is coming up within a configurable number of days, or has already passed. Use this if a chargeback has ever been lost by default because nobody submitted evidence before the network's response window closed.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "disputes",
+        "chargebacks",
+        "deadlines"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/dispute-response-deadline-tracker.yaml"
+    },
+    {
+      "id": "dispute-win-rate-tracker",
+      "version": 1,
+      "name": "Chargeback Dispute Win Rate Tracker",
+      "description": "Tracks resolved chargeback dispute outcomes and flags if your win rate drops below a baseline, which usually signals an evidence-quality problem. Use this if your dispute win rate has ever quietly slid for months before anyone compared it against a baseline.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "chargebacks",
+        "disputes",
+        "win-rate"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/dispute-win-rate-tracker.yaml"
     },
     {
       "id": "distributed-generation-interconnection-backlog-check",
@@ -20295,6 +20525,31 @@
       "path": "jobs/logistics/fuel-surcharge-rate-monitor.yaml"
     },
     {
+      "id": "funding-delay-alert",
+      "version": 1,
+      "name": "Funding Delay Alert",
+      "description": "Checks merchant payout/funding batches against their expected T+N business-day funding window and flags any batch that still hasn't posted once that window has passed. Use this if a merchant funding batch has ever silently stalled between settlement and the bank transfer, leaving a merchant unpaid with nobody noticing until they escalated.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "funding",
+        "payouts",
+        "merchant-services"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/funding-delay-alert.yaml"
+    },
+    {
       "id": "fundraising-goal-pace-check",
       "version": 1,
       "name": "Fundraising Goal Pace Check",
@@ -20631,6 +20886,33 @@
         "codex"
       ],
       "path": "jobs/self-storage/gate-code-sharing-anomaly-check.yaml"
+    },
+    {
+      "id": "gateway-uptime-incident-tracker",
+      "version": 1,
+      "name": "Payment Gateway Uptime Incident Tracker",
+      "description": "Checks your payment gateway's public status page or incident feed for new or ongoing incidents that could be affecting transaction processing. Use this if you've ever been blindsided by a gateway outage that your support team found out about from angry merchants before you saw any alert.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "gateway",
+        "uptime",
+        "incidents"
+      ],
+      "schedule": "*/15 * * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/payments/gateway-uptime-incident-tracker.yaml"
     },
     {
       "id": "gear-maintenance-reminder",
@@ -22241,6 +22523,31 @@
         "codex"
       ],
       "path": "jobs/support/help-center-search-gap-check.yaml"
+    },
+    {
+      "id": "high-risk-merchant-transaction-spike-alert",
+      "version": 1,
+      "name": "High-Risk Merchant Transaction Spike Alert",
+      "description": "Compares today's transaction volume and dollar amount for merchants flagged as high-risk against their trailing baseline average and flags any that spike past a configurable percentage. Use this if you monitor high-risk merchant portfolios and want early warning of sudden volume jumps that could mean fraud, laundering, or a merchant outgrowing their approved processing limits.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "merchant-risk",
+        "fraud",
+        "transaction-monitoring"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/high-risk-merchant-transaction-spike-alert.yaml"
     },
     {
       "id": "high-risk-treatment-waiver-missing-check",
@@ -23978,6 +24285,31 @@
       "path": "jobs/inventory/inter-location-transfer-receiving-discrepancy-check.yaml"
     },
     {
+      "id": "interchange-rate-change-notification-check",
+      "version": 1,
+      "name": "Interchange Rate Change Notification Check",
+      "description": "Reviews recent card network interchange rate change bulletins and summarizes which ones take effect soon, flagging categories that likely affect your merchant portfolio. Use this if interchange changes have ever taken effect without your team having reviewed the bulletin in advance, leaving pricing or merchant communications out of date.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "interchange",
+        "card-networks",
+        "pricing"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/payments/interchange-rate-change-notification-check.yaml"
+    },
+    {
       "id": "intercompany-balance-reconciliation-check",
       "version": 1,
       "name": "Intercompany Balance Reconciliation Check",
@@ -25371,6 +25703,32 @@
         "codex"
       ],
       "path": "jobs/devops/kubernetes-resource-quota-check.yaml"
+    },
+    {
+      "id": "kyb-reverification-due-check",
+      "version": 1,
+      "name": "KYB Re-Verification Due Check",
+      "description": "Flags merchant accounts whose Know Your Business (KYB) re-verification is overdue based on a configurable review interval since their last completed verification. Use this if you're responsible for merchant onboarding compliance and need periodic re-checks to actually happen on schedule instead of only at initial signup.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "kyb",
+        "compliance",
+        "merchant-risk",
+        "underwriting"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/kyb-reverification-due-check.yaml"
     },
     {
       "id": "kyc-reverification-aging-tracker",
@@ -28985,6 +29343,81 @@
       "path": "jobs/creator/merch-inventory-sync-check.yaml"
     },
     {
+      "id": "merchant-attrition-churn-tracker",
+      "version": 1,
+      "name": "Merchant Attrition/Churn Tracker",
+      "description": "Compares this month's merchant account closures against a trailing baseline and flags if the attrition rate has spiked. Use this if merchant churn has ever crept up for weeks before anyone noticed a pattern in the closure reasons.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "merchant-attrition",
+        "churn",
+        "retention"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/merchant-attrition-churn-tracker.yaml"
+    },
+    {
+      "id": "merchant-boarding-application-turnaround-tracker",
+      "version": 1,
+      "name": "Merchant Boarding Application Turnaround Tracker",
+      "description": "Tracks new-merchant boarding applications sitting in the onboarding queue and flags any that have gone past your target turnaround SLA without a decision. Use this if boarding delays have ever cost you a merchant who gave up and signed with a competitor while their application sat untouched.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "merchant-boarding",
+        "onboarding",
+        "sla"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/merchant-boarding-application-turnaround-tracker.yaml"
+    },
+    {
+      "id": "merchant-statement-generation-check",
+      "version": 1,
+      "name": "Merchant Statement Generation Check",
+      "description": "Cross-checks the list of active merchant accounts against the monthly statement generation/delivery log and flags any active merchant missing a statement by your target date. Use this if a merchant has ever called in asking where their statement was, and you found out only then that generation had silently failed for their account.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "statements",
+        "merchant-servicing",
+        "delivery"
+      ],
+      "schedule": "0 7 5 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/merchant-statement-generation-check.yaml"
+    },
+    {
       "id": "meta-description-length-check",
       "version": 1,
       "name": "Meta Description Length Check",
@@ -29111,6 +29544,33 @@
         "generic"
       ],
       "path": "jobs/telecom/microwave-backhaul-weather-fade-risk-check.yaml"
+    },
+    {
+      "id": "mid-monitoring-program-alert",
+      "version": 1,
+      "name": "MID Monitoring Program Alert",
+      "description": "Compares your active merchant portfolio against a consortium merchant-monitoring list snapshot (MATCH, TMF, or similar) and flags any merchant that newly appears on it. Use this if you underwrite or manage merchant accounts and need to know fast when one of your merchants gets added to a shared industry watchlist, not just when a network notifies you.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "merchant-risk",
+        "match-list",
+        "kyb",
+        "underwriting"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "generic"
+      ],
+      "path": "jobs/payments/mid-monitoring-program-alert.yaml"
     },
     {
       "id": "midterm-endorsement-premium-audit",
@@ -30231,6 +30691,31 @@
         "codex"
       ],
       "path": "jobs/legal/nda-expiry-check.yaml"
+    },
+    {
+      "id": "negative-balance-merchant-account-alert",
+      "version": 1,
+      "name": "Negative Balance Merchant Account Alert",
+      "description": "Scans merchant account balances and flags any account that has been sitting negative — typically from chargebacks or refunds exceeding available funds — for longer than a configurable grace period. Use this if merchant negative balances have ever aged past the point of easy recovery because nobody was tracking how long they'd been unresolved.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "chargebacks",
+        "merchant-risk",
+        "collections"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/negative-balance-merchant-account-alert.yaml"
     },
     {
       "id": "negative-inventory-check",
@@ -33559,6 +34044,31 @@
       "path": "jobs/dental/payer-recredentialing-deadline-check.yaml"
     },
     {
+      "id": "payment-gateway-api-key-rotation-check",
+      "version": 1,
+      "name": "Payment Gateway API Key Rotation Check",
+      "description": "Tracks the age of your payment gateway/processor API keys (live and test) and flags any past a configurable rotation interval. Use this if a payment gateway API key has ever gone untouched for years because it was buried in a config file instead of a generic cloud IAM system that would catch it.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "api-keys",
+        "gateway",
+        "pci"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/payment-gateway-api-key-rotation-check.yaml"
+    },
+    {
       "id": "payment-processor-failure-rate-watch",
       "version": 1,
       "name": "Payment Processor Failure Rate Watch",
@@ -33610,6 +34120,34 @@
         "generic"
       ],
       "path": "jobs/crypto/payment-stream-balance-watch.yaml"
+    },
+    {
+      "id": "payout-schedule-holiday-adjustment-check",
+      "version": 1,
+      "name": "Payout Schedule Holiday Adjustment Check",
+      "description": "Reviews upcoming merchant payout dates against a bank holiday calendar and flags payouts that land on a non-banking day so the schedule can be shifted. Use this if a payout has ever gone out late, or merchants asked where their funds were, because a bank holiday wasn't accounted for in the payout schedule.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "payouts",
+        "funding",
+        "bank-holidays",
+        "scheduling"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "path": "jobs/payments/payout-schedule-holiday-adjustment-check.yaml"
     },
     {
       "id": "payroll-cutoff-checklist-reminder",
@@ -33799,6 +34337,31 @@
         "generic"
       ],
       "path": "jobs/pharmacy/pbm-rejection-reason-trend-watch.yaml"
+    },
+    {
+      "id": "pci-dss-saq-expiry-check",
+      "version": 1,
+      "name": "PCI DSS SAQ/AOC Expiry Check",
+      "description": "Tracks each merchant's PCI DSS Self-Assessment Questionnaire (SAQ) or Attestation of Compliance (AOC) expiry date and flags any expiring within a configurable warning window. Use this if you're responsible for merchant PCI compliance status and don't want a merchant to fall out of compliance because their annual attestation quietly lapsed.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "pci-dss",
+        "compliance",
+        "merchant-risk"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/pci-dss-saq-expiry-check.yaml"
     },
     {
       "id": "peak-season-labor-ramp-plan-check",
@@ -38610,6 +39173,31 @@
       "path": "jobs/staffing/recruiter-submittal-productivity-check.yaml"
     },
     {
+      "id": "recurring-billing-decline-rate-monitor",
+      "version": 1,
+      "name": "Recurring Billing Decline Rate Monitor",
+      "description": "Tracks the decline rate on subscription/recurring-billing charge attempts and flags if it rises above a baseline threshold. Use this if a spike in card-expiry or insufficient-funds declines has ever eaten into recurring revenue for days before anyone in billing ops noticed.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "recurring-billing",
+        "declines",
+        "subscriptions"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/recurring-billing-decline-rate-monitor.yaml"
+    },
+    {
       "id": "recurring-contract-invoice-aging-check",
       "version": 1,
       "name": "Recurring Service Contract Invoice Aging Check",
@@ -39175,6 +39763,31 @@
         "codex"
       ],
       "path": "jobs/support/refund-credit-issuance-anomaly-check.yaml"
+    },
+    {
+      "id": "refund-processing-sla-tracker",
+      "version": 1,
+      "name": "Refund Processing SLA Tracker",
+      "description": "Tracks open merchant refund requests and flags any that have not been processed within your target SLA window. Use this if a stuck refund has ever turned into a chargeback or a angry merchant escalation before anyone caught that it was still sitting unprocessed.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "refunds",
+        "sla",
+        "merchant-servicing"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/refund-processing-sla-tracker.yaml"
     },
     {
       "id": "reg-cc-holds-compliance-check",
@@ -40758,6 +41371,31 @@
         "codex"
       ],
       "path": "jobs/content/robots-txt-check.yaml"
+    },
+    {
+      "id": "rolling-reserve-release-tracker",
+      "version": 1,
+      "name": "Rolling Reserve Release Tracker",
+      "description": "Scans a list of merchant rolling reserve holds and flags any hold whose scheduled release date has already passed but that is still marked as held. Use this if merchants have ever had to call in asking where their reserve funds are because a release that should have run automatically never happened.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "reserves",
+        "merchant-funding",
+        "risk"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/rolling-reserve-release-tracker.yaml"
     },
     {
       "id": "roof-inspection-due-reminder",
@@ -42737,6 +43375,31 @@
         "codex"
       ],
       "path": "jobs/events/session-room-capacity-rsvp-mismatch-check.yaml"
+    },
+    {
+      "id": "settlement-batch-reconciliation-check",
+      "version": 1,
+      "name": "Settlement Batch Reconciliation Check",
+      "description": "Compares each day's settlement batch total from the processor's settlement report against the expected gross transaction total for that day and flags any mismatch beyond a small tolerance. Use this if settlement files have ever landed with a total that didn't match what your transaction system recorded and nobody caught it until a merchant complained.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "settlement",
+        "reconciliation",
+        "accounting"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/settlement-batch-reconciliation-check.yaml"
     },
     {
       "id": "settlement-payment-schedule-tracker",
@@ -45664,6 +46327,32 @@
       "path": "jobs/photography/styled-shoot-vendor-coordination-check.yaml"
     },
     {
+      "id": "sub-merchant-underwriting-queue-tracker",
+      "version": 1,
+      "name": "Sub-Merchant Underwriting Queue Tracker",
+      "description": "For payment facilitator (PayFac) platforms, tracks how long sub-merchants have been sitting in the underwriting queue and flags ones past your SLA or above a risk-score threshold that need manual review. Use this if automated underwriting has ever let a high-risk sub-merchant sit unreviewed because nobody was watching the queue.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "payfac",
+        "underwriting",
+        "sub-merchant",
+        "risk"
+      ],
+      "schedule": "0 9 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/sub-merchant-underwriting-queue-tracker.yaml"
+    },
+    {
       "id": "subcontractor-1099-compliance-documentation-check",
       "version": 1,
       "name": "Subcontractor/1099 Tech Compliance Documentation Check",
@@ -46804,6 +47493,32 @@
       "path": "jobs/personal/tax-document-collection-checklist.yaml"
     },
     {
+      "id": "tax-form-1099k-generation-tracker",
+      "version": 1,
+      "name": "Tax Form 1099-K Generation Tracker",
+      "description": "Checks merchant volume totals against IRS 1099-K reporting thresholds and flags any merchant that meets the threshold but doesn't yet have a form generated or sent, with days remaining before the filing deadline. Use this if 1099-K generation has ever slipped close to the January filing deadline because nobody was tracking which qualifying merchants were still outstanding.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "tax",
+        "compliance",
+        "1099-k",
+        "merchant-services"
+      ],
+      "schedule": "0 8 1,15 12,1 *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/tax-form-1099k-generation-tracker.yaml"
+    },
+    {
       "id": "tax-loss-harvesting-review",
       "version": 1,
       "name": "Tax-Loss Harvesting Review",
@@ -47653,6 +48368,31 @@
       "path": "jobs/realestate/tenant-renters-insurance-compliance-check.yaml"
     },
     {
+      "id": "terminal-batch-close-failure-check",
+      "version": 1,
+      "name": "Terminal Batch Close Failure Check",
+      "description": "Scans POS terminal batch-close logs and flags any terminal that failed to close its daily settlement batch. Use this if you've ever discovered a terminal sitting with an open batch overnight because nobody checked the close logs, leaving those transactions unsettled.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "settlement",
+        "pos",
+        "terminals"
+      ],
+      "schedule": "0 5 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/terminal-batch-close-failure-check.yaml"
+    },
+    {
       "id": "terraform-drift-check",
       "version": 1,
       "name": "Terraform Drift Check",
@@ -48260,6 +49000,32 @@
         "generic"
       ],
       "path": "jobs/crypto/token-unlock-vesting-watch.yaml"
+    },
+    {
+      "id": "tokenization-vault-key-rotation-check",
+      "version": 1,
+      "name": "Tokenization Vault Key Rotation Check",
+      "description": "Tracks the rotation schedule for your card tokenization/encryption vault's active key and flags if it is overdue for rotation. Use this if PCI DSS key-rotation requirements for your tokenization vault have ever slipped because the rotation date lived only in someone's memory.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "pci",
+        "tokenization",
+        "encryption",
+        "vault"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/tokenization-vault-key-rotation-check.yaml"
     },
     {
       "id": "toll-violation-tracker",
@@ -50533,6 +51299,31 @@
       "path": "jobs/fleet/vehicle-utilization-rate-check.yaml"
     },
     {
+      "id": "velocity-limit-breach-alert",
+      "version": 1,
+      "name": "Velocity Limit Breach Alert",
+      "description": "Scans a transaction log and flags any account or merchant whose transaction count or total dollar amount within a configured time window breaches configured velocity limits. Use this if you need to catch rapid bursts of transactions, a common signal of card testing, account takeover, or a merchant running outside their approved volume, before a human reviewer would otherwise notice.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "velocity-limits",
+        "fraud",
+        "transaction-monitoring"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/velocity-limit-breach-alert.yaml"
+    },
+    {
       "id": "vendor-certificate-of-insurance-expiration-check",
       "version": 1,
       "name": "Vendor Certificate of Insurance Expiration Check",
@@ -52148,6 +52939,31 @@
         "codex"
       ],
       "path": "jobs/devops/webhook-delivery-failure-check.yaml"
+    },
+    {
+      "id": "webhook-delivery-failure-monitor",
+      "version": 1,
+      "name": "Payment Webhook Delivery Failure Monitor",
+      "description": "Scans payment webhook delivery logs (transaction, dispute, and payout events) and flags endpoints with a high recent failure or retry rate. Use this if a merchant's webhook endpoint has ever silently failed for days before anyone noticed their order system stopped getting paid events.",
+      "category": "payments",
+      "tags": [
+        "payments",
+        "webhooks",
+        "reliability",
+        "integrations"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "path": "jobs/payments/webhook-delivery-failure-monitor.yaml"
     },
     {
       "id": "webinar-attendance-reminder",

@@ -1,0 +1,37 @@
+id: gateway-uptime-incident-tracker
+version: 1
+name: Payment Gateway Uptime Incident Tracker
+description: >
+  Checks your payment gateway's public status page or incident feed for new
+  or ongoing incidents that could be affecting transaction processing. Use
+  this if you've ever been blindsided by a gateway outage that your support
+  team found out about from angry merchants before you saw any alert.
+category: payments
+tags: [payments, gateway, uptime, incidents]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Fetch the incident/status feed at {{status_page_url}} for our payment
+  gateway provider. Identify any incidents that are new since the last check
+  or still marked as ongoing/investigating/monitoring (not resolved).
+
+  For each active or new incident, summarize:
+  - Component(s) affected (e.g. authorization, settlement, webhooks, API)
+  - Severity/impact level as reported by the provider
+  - Start time and current status
+  - Whether it plausibly affects our transaction processing given the
+    affected components
+
+  If nothing new or ongoing is found, say so briefly. If there is an active
+  incident affecting authorization or settlement specifically, flag it as
+  high priority and suggest checking recent decline rates.
+variables:
+  status_page_url:
+    default: "https://status.example-gateway.com"
+    description: "URL of the payment gateway provider's public status page or incident RSS/JSON feed."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Relies on the provider's public status page being accurate and timely,
+  which can lag real incidents. Treat this as an early-warning signal, not a
+  substitute for your own transaction monitoring.

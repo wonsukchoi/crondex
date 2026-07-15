@@ -1,0 +1,45 @@
+id: card-not-present-fraud-rate-monitor
+version: 1
+name: Card-Not-Present Fraud Rate Monitor
+description: >
+  Tracks the fraud rate on card-not-present (CNP) transactions from a daily
+  report and flags if it crosses a configurable threshold. Use this if you
+  process online or phone/mail-order payments and need to catch a rising CNP
+  fraud rate before it draws card network attention or eats into your
+  approved processing limits.
+category: payments
+tags: [payments, fraud, card-not-present, ecommerce, risk]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{cnp_fraud_rate_threshold_percent}}" '
+    NR==1 {next}
+    NF<3 {next}
+    {
+      day=$1; cnp_txns=$2+0; cnp_fraud_txns=$3+0;
+      if (cnp_txns==0) next;
+      rate = (cnp_fraud_txns / cnp_txns) * 100;
+      total_rate += rate; count++;
+      if (rate >= threshold) {
+        printf "OVER THRESHOLD: %s CNP fraud rate %.3f%% (limit %.3f%%)\n", day, rate, threshold;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no days over the CNP fraud rate threshold in this report.";
+      else printf "%d day(s) over threshold out of %d reported.\n", flagged, count;
+    }
+  ' "{{cnp_transaction_report_csv_path}}"
+variables:
+  cnp_transaction_report_csv_path:
+    default: "./daily_cnp_transaction_report.csv"
+    description: "Path to a CSV with columns: report_date,cnp_transaction_count,cnp_fraud_transaction_count (header row)."
+  cnp_fraud_rate_threshold_percent:
+    default: 1.0
+    description: CNP fraud rate as a percent of CNP transactions above which a day is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a fraud report your processor or fraud-scoring
+  vendor already produces. Confirmed-fraud labeling accuracy in that report
+  determines how reliable this check is.

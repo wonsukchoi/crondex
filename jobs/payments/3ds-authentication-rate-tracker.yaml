@@ -1,0 +1,54 @@
+id: 3ds-authentication-rate-tracker
+version: 1
+name: 3DS Authentication Rate Tracker
+description: >
+  Tracks the 3D Secure challenge and pass rate for card transactions over a
+  rolling window and flags if the pass rate drops or the challenge rate
+  spikes. Use this if a 3DS misconfiguration or issuer-side hiccup has ever
+  quietly tanked your checkout conversion before anyone connected it to
+  authentication failures.
+category: payments
+tags: [payments, 3ds, authentication, fraud, checkout]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pass="{{min_pass_rate_pct}}" -v max_challenge="{{max_challenge_rate_pct}}" -v window_hours="{{lookback_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if ((now_epoch - ts_epoch) / 3600 <= window_hours) {
+        total++;
+        if ($2=="challenged") { challenged++; }
+        if ($3=="authenticated") { passed++; }
+      }
+    }
+    END {
+      if (total == 0) { print "NO 3DS TRANSACTIONS FOUND in last " window_hours " hours."; exit; }
+      pass_rate = passed / total * 100;
+      challenge_rate = challenged / total * 100;
+      printf "3DS pass rate: %.1f%%, challenge rate: %.1f%% (%d transactions)\n", pass_rate, challenge_rate, total;
+      if (pass_rate < min_pass) { printf "ALERT: pass rate below floor of %.1f%%\n", min_pass; }
+      if (challenge_rate > max_challenge) { printf "ALERT: challenge rate above ceiling of %.1f%%\n", max_challenge; }
+    }
+  ' "{{transaction_log_csv_path}}"
+variables:
+  transaction_log_csv_path:
+    default: "./3ds_transaction_log.csv"
+    description: "Path to a CSV with columns: transaction_time (ISO 8601),challenge_status (challenged/frictionless),auth_status (authenticated/failed/abandoned)."
+  lookback_hours:
+    default: 4
+    description: How many hours of recent 3DS transactions to evaluate.
+  min_pass_rate_pct:
+    default: 85
+    description: Minimum acceptable 3DS authentication pass rate percentage before flagging.
+  max_challenge_rate_pct:
+    default: 20
+    description: Maximum acceptable 3DS challenge rate percentage before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a 3DS transaction log your gateway or 3DS server
+  provider already produces. Thresholds are illustrative — tune to your
+  issuer mix and risk profile.

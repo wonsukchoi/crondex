@@ -1,0 +1,45 @@
+id: kyb-reverification-due-check
+version: 1
+name: KYB Re-Verification Due Check
+description: >
+  Flags merchant accounts whose Know Your Business (KYB) re-verification is
+  overdue based on a configurable review interval since their last completed
+  verification. Use this if you're responsible for merchant onboarding
+  compliance and need periodic re-checks to actually happen on schedule
+  instead of only at initial signup.
+category: payments
+tags: [payments, kyb, compliance, merchant-risk, underwriting]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{reverification_interval_days}}" '
+    NR==1 {next}
+    NF<2 {next}
+    {
+      merchant=$1; last_verified=$2;
+      cmd = "date -d \"" last_verified "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_verified "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      if (days_since > max_days) {
+        printf "OVERDUE: merchant %s last KYB verification %s (%.0f days ago, limit %d)\n", merchant, last_verified, days_since, max_days;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no merchants overdue for KYB re-verification.";
+    }
+  ' "{{kyb_verification_log_csv_path}}"
+variables:
+  kyb_verification_log_csv_path:
+    default: "./merchant_kyb_verification_log.csv"
+    description: "Path to a CSV with columns: merchant_id,last_verified_date (YYYY-MM-DD) (header row)."
+  reverification_interval_days:
+    default: 365
+    description: Maximum number of days allowed between completed KYB verifications before a merchant is flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a KYB verification log you already maintain. It
+  does not perform the re-verification itself (business registry checks,
+  UBO checks, etc.), only tells you which merchants are due.

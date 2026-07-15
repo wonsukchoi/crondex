@@ -1,0 +1,52 @@
+id: interchange-rate-change-notification-check
+version: 1
+name: Interchange Rate Change Notification Check
+description: >
+  Reviews recent card network interchange rate change bulletins and
+  summarizes which ones take effect soon, flagging categories that likely
+  affect your merchant portfolio. Use this if interchange changes have ever
+  taken effect without your team having reviewed the bulletin in advance,
+  leaving pricing or merchant communications out of date.
+category: payments
+tags: [payments, interchange, card-networks, pricing]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the card network interchange rate change bulletins provided below
+  (or fetched from {{bulletin_source}}) covering {{card_networks}}.
+
+  For each rate change found:
+  1. Note the effective date, the interchange category/program it affects
+     (e.g. card-present retail, card-not-present, supermarket, T&E), and the
+     rate or fee change itself.
+  2. Flag any change with an effective date within the next
+     {{lookahead_days}} days as urgent.
+  3. Cross-reference against our merchant portfolio segments in
+     {{merchant_segment_summary}} and call out which segments are likely
+     affected and roughly how (higher/lower cost).
+  4. Note anything unclear or requiring the compliance/pricing team to
+     confirm directly with the network.
+
+  Produce a short summary table (effective date, network, category, change,
+  affected segments, urgency) followed by a one-paragraph plain-language
+  recap for a non-specialist stakeholder. Do not draft merchant-facing
+  pricing communications — flag that as a follow-up task instead.
+variables:
+  bulletin_source:
+    default: "./interchange_bulletins/"
+    description: "Path or URL where recent card network interchange bulletins/announcements can be found."
+  card_networks:
+    default: "Visa, Mastercard, Discover, American Express"
+    description: "Comma-separated list of card networks to check bulletins for."
+  lookahead_days:
+    default: 45
+    description: "Number of days ahead to treat an upcoming rate change as urgent."
+  merchant_segment_summary:
+    default: "./merchant_segment_summary.csv"
+    description: "Path to a summary of merchant portfolio segments (e.g. MCC mix, card-present vs. card-not-present split) used to assess impact."
+compatible_agents: [claude, codex, generic]
+notes: >
+  Judgment-heavy summarization task; it does not automatically update
+  merchant pricing schedules and any affected-segment call should be
+  verified against the actual bulletin text before acting on it.

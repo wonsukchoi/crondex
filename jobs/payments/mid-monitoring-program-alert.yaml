@@ -1,0 +1,61 @@
+id: mid-monitoring-program-alert
+version: 1
+name: MID Monitoring Program Alert
+description: >
+  Compares your active merchant portfolio against a consortium
+  merchant-monitoring list snapshot (MATCH, TMF, or similar) and flags any
+  merchant that newly appears on it. Use this if you underwrite or manage
+  merchant accounts and need to know fast when one of your merchants gets
+  added to a shared industry watchlist, not just when a network notifies you.
+category: payments
+tags: [payments, merchant-risk, match-list, kyb, underwriting]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) portfolio[$1]=$2; next }
+    FNR==1 { next }
+    ($1 in portfolio) {
+      printf "MATCH: merchant %s (%s) found on %s list, added %s, reason: %s\n", $1, portfolio[$1], $2, $3, $4;
+      count++;
+    }
+    END {
+      if (count==0) print "OK: no portfolio merchants found on the monitoring list this run.";
+      else printf "%d merchant(s) require escalation review.\n", count;
+    }
+  ' "{{portfolio_merchant_csv_path}}" "{{monitoring_list_csv_path}}"
+prompt: |
+  You are a payments risk analyst. Compare the active merchant portfolio in
+  {{portfolio_merchant_csv_path}} (columns: merchant_id,legal_name) against the
+  consortium merchant-monitoring list snapshot in {{monitoring_list_csv_path}}
+  (columns: merchant_id,list_name,added_date,reason_code), where list_name is
+  something like MATCH or TMF.
+
+  For every merchant_id that appears in both files:
+  1. Name the merchant and which list/reason code it landed on.
+  2. Explain in plain language why merchants typically end up on that type of
+     list.
+  3. Recommend a next step (e.g. request an explanation from the merchant,
+     open an enhanced review, escalate to compliance, or begin offboarding),
+     scaled to how serious the reason code is.
+
+  If no merchants match, simply confirm nothing needs escalation this run.
+  This is a notification and drafting task only — do not take any account
+  action yourself.
+script_note: >
+  `command` gives you the deterministic list of newly-matched merchant IDs
+  with no interpretation. `prompt` explains what each list/reason code means
+  and drafts a next-step recommendation for the underwriting or risk team.
+variables:
+  portfolio_merchant_csv_path:
+    default: "./active_merchant_portfolio.csv"
+    description: "Path to a CSV with columns: merchant_id,legal_name (header row)."
+  monitoring_list_csv_path:
+    default: "./consortium_monitoring_list_snapshot.csv"
+    description: "Path to a CSV snapshot with columns: merchant_id,list_name,added_date,reason_code (header row)."
+compatible_agents: [claude, codex, generic]
+notes: >
+  Read-only comparison against a monitoring list snapshot you already have
+  (e.g. from a MATCH/TMF vendor feed). It does not query the list provider
+  live or submit any merchant for listing/delisting itself.

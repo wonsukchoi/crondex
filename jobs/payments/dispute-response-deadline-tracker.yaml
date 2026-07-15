@@ -1,0 +1,48 @@
+id: dispute-response-deadline-tracker
+version: 1
+name: Dispute Response Deadline Tracker
+description: >
+  Scans your open dispute and chargeback cases and flags any whose evidence
+  submission deadline is coming up within a configurable number of days, or
+  has already passed. Use this if a chargeback has ever been lost by default
+  because nobody submitted evidence before the network's response window
+  closed.
+category: payments
+tags: [payments, disputes, chargebacks, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days_warn="{{days_before_deadline}}" '
+    NR==1 {next}
+    NF<5 {next}
+    tolower($5) ~ /open|pending/ {
+      due=$4;
+      cmd = "date -d \"" due "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" due "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      if (days_left < 0) {
+        printf "MISSED DEADLINE: case %s (merchant %s) evidence was due %s\n", $1, $2, due;
+        flagged++;
+      } else if (days_left <= days_warn) {
+        printf "DEADLINE SOON: case %s (merchant %s) evidence due %s (%.1f days left)\n", $1, $2, due, days_left;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no open dispute cases within the deadline warning window.";
+    }
+  ' "{{dispute_case_log_csv_path}}"
+variables:
+  dispute_case_log_csv_path:
+    default: "./open_dispute_cases.csv"
+    description: "Path to a CSV with columns: case_id,merchant_id,opened_date,evidence_due_date (YYYY-MM-DD),status (header row)."
+  days_before_deadline:
+    default: 3
+    description: Flag cases whose evidence submission deadline is this many days or fewer away.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a dispute case export from your chargeback
+  management platform. It only flags cases for follow-up; it does not submit
+  evidence or contact the card network itself.

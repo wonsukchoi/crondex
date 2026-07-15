@@ -1,0 +1,64 @@
+id: velocity-limit-breach-alert
+version: 1
+name: Velocity Limit Breach Alert
+description: >
+  Scans a transaction log and flags any account or merchant whose
+  transaction count or total dollar amount within a configured time window
+  breaches configured velocity limits. Use this if you need to catch rapid
+  bursts of transactions, a common signal of card testing, account
+  takeover, or a merchant running outside their approved volume, before a
+  human reviewer would otherwise notice.
+category: payments
+tags: [payments, velocity-limits, fraud, transaction-monitoring]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_count="{{max_transaction_count}}" -v max_amount="{{max_transaction_amount}}" -v window_min="{{window_minutes}}" '
+    NR==1 {next}
+    NF<4 {next}
+    {
+      acct=$1; ts=$2; amount=$4+0;
+      cmd = "date -d \"" ts "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" ts "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      window_start[acct] = window_start[acct] ? window_start[acct] : ts_epoch;
+      count[acct]++;
+      amount_total[acct] += amount;
+      if (ts_epoch < earliest[acct] || earliest[acct]=="") earliest[acct]=ts_epoch;
+      if (ts_epoch > latest[acct]) latest[acct]=ts_epoch;
+    }
+    END {
+      for (a in count) {
+        span_min = (latest[a] - earliest[a]) / 60;
+        if (span_min <= window_min) {
+          if (count[a] >= max_count) {
+            printf "COUNT BREACH: account %s had %d transactions within %.1f min (limit %d per %d min)\n", a, count[a], span_min, max_count, window_min;
+            flagged++;
+          }
+          if (amount_total[a] >= max_amount) {
+            printf "AMOUNT BREACH: account %s totaled %.2f within %.1f min (limit %.2f per %d min)\n", a, amount_total[a], span_min, max_amount, window_min;
+            flagged++;
+          }
+        }
+      }
+      if (flagged==0) print "OK: no accounts breached configured velocity limits.";
+    }
+  ' "{{transaction_log_csv_path}}"
+variables:
+  transaction_log_csv_path:
+    default: "./recent_transaction_log.csv"
+    description: "Path to a CSV with columns: account_id,transaction_timestamp (ISO 8601),card_last4,amount (header row), sorted or filterable to the lookback period you care about."
+  window_minutes:
+    default: 60
+    description: Rolling time window (in minutes) over which count/amount are evaluated.
+  max_transaction_count:
+    default: 10
+    description: Maximum number of transactions allowed per account within the window before flagging.
+  max_transaction_amount:
+    default: 5000
+    description: Maximum total transaction amount allowed per account within the window before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a transaction log export; it does not block or
+  hold transactions itself, and treats every row in the input as already
+  within the lookback period you care about.

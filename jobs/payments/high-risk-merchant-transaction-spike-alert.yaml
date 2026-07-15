@@ -1,0 +1,45 @@
+id: high-risk-merchant-transaction-spike-alert
+version: 1
+name: High-Risk Merchant Transaction Spike Alert
+description: >
+  Compares today's transaction volume and dollar amount for merchants
+  flagged as high-risk against their trailing baseline average and flags any
+  that spike past a configurable percentage. Use this if you monitor
+  high-risk merchant portfolios and want early warning of sudden volume
+  jumps that could mean fraud, laundering, or a merchant outgrowing their
+  approved processing limits.
+category: payments
+tags: [payments, merchant-risk, fraud, transaction-monitoring]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v spike_pct="{{spike_threshold_percent}}" '
+    NR==1 {next}
+    NF<6 {next}
+    tolower($2) ~ /true|yes|1/ {
+      merchant=$1; cur_count=$3+0; cur_amount=$4+0; base_count=$5+0; base_amount=$6+0;
+      if (base_count==0 || base_amount==0) next;
+      count_dev = ((cur_count - base_count) / base_count) * 100;
+      amount_dev = ((cur_amount - base_amount) / base_amount) * 100;
+      if (count_dev >= spike_pct || amount_dev >= spike_pct) {
+        printf "SPIKE: merchant %s count %.1f%% vs baseline, amount %.1f%% vs baseline (threshold %d%%)\n", merchant, count_dev, amount_dev, spike_pct;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no high-risk merchants spiking past the baseline threshold.";
+    }
+  ' "{{merchant_transaction_snapshot_csv_path}}"
+variables:
+  merchant_transaction_snapshot_csv_path:
+    default: "./high_risk_merchant_transaction_snapshot.csv"
+    description: "Path to a CSV with columns: merchant_id,is_high_risk,current_txn_count,current_txn_amount,baseline_avg_txn_count,baseline_avg_txn_amount (header row)."
+  spike_threshold_percent:
+    default: 50
+    description: Percentage increase over trailing baseline (in count or amount) that triggers a spike flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only comparison against a snapshot your transaction monitoring
+  system already produces; it does not compute the baseline itself or take
+  any action on the merchant account.

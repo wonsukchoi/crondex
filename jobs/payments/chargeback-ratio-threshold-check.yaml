@@ -1,0 +1,50 @@
+id: chargeback-ratio-threshold-check
+version: 1
+name: Chargeback Ratio Threshold Check
+description: >
+  Checks each merchant's monthly chargeback ratio (chargebacks divided by
+  transactions) against card network thresholds like Visa's Dispute
+  Monitoring Program or Mastercard's Excessive Chargeback Program. Use this
+  if you manage merchant risk at a payment processor or acquirer and want to
+  catch merchants drifting toward network penalties before the network does.
+category: payments
+tags: [payments, chargebacks, card-networks, merchant-risk]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{chargeback_ratio_threshold_percent}}" -v buffer="{{warning_buffer_percent}}" '
+    NR==1 {next}
+    NF<4 {next}
+    {
+      merchant=$1; txns=$3+0; cbs=$4+0;
+      if (txns==0) next;
+      ratio = (cbs/txns)*100;
+      warn_level = threshold - buffer;
+      if (ratio >= threshold) {
+        printf "OVER THRESHOLD: merchant %s chargeback ratio %.3f%% (limit %.3f%%)\n", merchant, ratio, threshold;
+        flagged++;
+      } else if (ratio >= warn_level) {
+        printf "APPROACHING THRESHOLD: merchant %s chargeback ratio %.3f%% (limit %.3f%%)\n", merchant, ratio, threshold;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no merchants near or over the chargeback ratio threshold.";
+    }
+  ' "{{chargeback_report_csv_path}}"
+variables:
+  chargeback_report_csv_path:
+    default: "./monthly_chargeback_report.csv"
+    description: "Path to a CSV with columns: merchant_id,month,transaction_count,chargeback_count (header row)."
+  chargeback_ratio_threshold_percent:
+    default: 0.9
+    description: "Chargeback ratio threshold as a percent, e.g. Visa VDMP standard is 0.9%, Mastercard ECM early warning is 1.5%. Set to match the relevant network program."
+  warning_buffer_percent:
+    default: 0.15
+    description: How many percentage points below the threshold counts as "approaching" and should also be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a chargeback report your processing platform already
+  produces. It does not submit anything to a card network or contact
+  merchants; it only flags who needs a closer look this cycle.

@@ -1,0 +1,43 @@
+id: currency-conversion-rate-margin-check
+version: 1
+name: Currency Conversion Rate Margin Check
+description: >
+  Checks the conversion rate the processor actually applied to cross-border
+  transactions against the mid-market rate at the time and flags any
+  transaction where the margin exceeds a configurable acceptable spread. Use
+  this if FX margins on cross-border settlements have ever crept wider than
+  intended without anyone noticing until a merchant questioned their payout.
+category: payments
+tags: [payments, fx, cross-border, settlement]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_margin_pct="{{max_margin_percent}}" '
+    NR==1 {next}
+    {
+      applied = $3; mid = $4; txn = $1;
+      if (mid == 0) { next }
+      margin_pct = ((applied - mid) / mid) * 100;
+      if (margin_pct < 0) margin_pct = -margin_pct;
+      if (margin_pct > max_margin_pct) {
+        printf "MARGIN EXCEEDED: txn %s applied=%.4f mid=%.4f margin=%.2f%% (limit %.2f%%)\n", txn, applied, mid, margin_pct, max_margin_pct;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged == 0) { print "OK: no cross-border transactions exceeded the acceptable FX margin."; }
+    }
+  ' "{{fx_transactions_csv_path}}"
+variables:
+  fx_transactions_csv_path:
+    default: "./fx_transactions.csv"
+    description: "Path to a CSV with columns: transaction_id,currency_pair,applied_rate,mid_market_rate."
+  max_margin_percent:
+    default: 3.0
+    description: "Maximum acceptable percentage spread between the applied conversion rate and the mid-market rate before flagging."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a transaction export that already includes a
+  mid-market rate reference (e.g. from an FX data feed); it does not fetch
+  live rates itself and does not adjust pricing.

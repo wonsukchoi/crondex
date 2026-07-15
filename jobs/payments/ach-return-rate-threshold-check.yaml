@@ -1,0 +1,53 @@
+id: ach-return-rate-threshold-check
+version: 1
+name: ACH Return Rate Threshold Check
+description: >
+  Calculates your ACH unauthorized and insufficient-funds return rates from
+  a settlement log and flags if either is approaching the Nacha rule
+  threshold. Use this if you've ever found out you were close to a Nacha
+  return-rate violation only after the network flagged your origination
+  account.
+category: payments
+tags: [payments, ach, nacha, returns, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v unauth_limit="{{unauthorized_return_threshold_pct}}" -v admin_limit="{{overall_return_threshold_pct}}" '
+    NR==1 { next }
+    {
+      total++;
+      if ($3 == "RETURNED") {
+        returned++;
+        if ($4 ~ /^R05|^R07|^R10|^R29|^R51/) unauth_returned++;
+      }
+    }
+    END {
+      if (total == 0) { print "No ACH transactions found in file."; exit; }
+      overall_rate = returned / total * 100;
+      unauth_rate = unauth_returned / total * 100;
+      printf "Overall return rate: %.3f%% (limit %s%%), unauthorized return rate: %.3f%% (limit %s%%)\n", overall_rate, admin_limit, unauth_rate, unauth_limit;
+      if (unauth_rate >= unauth_limit) {
+        printf "BREACH RISK: unauthorized return rate at or above Nacha threshold.\n";
+      } else if (overall_rate >= admin_limit) {
+        printf "BREACH RISK: overall return rate at or above threshold.\n";
+      } else {
+        print "OK: return rates within thresholds.";
+      }
+    }
+  ' "{{ach_settlement_log_csv_path}}"
+variables:
+  ach_settlement_log_csv_path:
+    default: "./ach_settlement_log.csv"
+    description: "Path to a CSV with columns: transaction_id,settlement_date,status (SETTLED/RETURNED),return_code (e.g. R01,R05,R07,R10,R29,R51), covering a trailing 60-day origination window."
+  unauthorized_return_threshold_pct:
+    default: 0.5
+    description: Nacha unauthorized-entry return rate threshold (percent) above which the account risks entering the High-Risk Originator process.
+  overall_return_threshold_pct:
+    default: 15
+    description: Nacha overall/administrative return rate threshold (percent) above which the account risks review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only threshold check against your own settlement/return log using
+  standard Nacha return reason codes as a proxy for the unauthorized-entry
+  category; confirm current Nacha rule thresholds, which can change.

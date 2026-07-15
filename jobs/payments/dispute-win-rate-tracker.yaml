@@ -1,0 +1,52 @@
+id: dispute-win-rate-tracker
+version: 1
+name: Chargeback Dispute Win Rate Tracker
+description: >
+  Tracks resolved chargeback dispute outcomes and flags if your win rate
+  drops below a baseline, which usually signals an evidence-quality
+  problem. Use this if your dispute win rate has ever quietly slid for
+  months before anyone compared it against a baseline.
+category: payments
+tags: [payments, chargebacks, disputes, win-rate]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v baseline="{{win_rate_baseline_pct}}" -v lookback_days="{{lookback_window_days}}" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline resolved_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - resolved_epoch) / 86400;
+      if ($2 == "RESOLVED" && age_days <= lookback_days) {
+        resolved++;
+        if ($4 == "WON") won++;
+      }
+    }
+    END {
+      if (resolved == 0) { print "No resolved disputes found in the lookback window."; exit; }
+      win_rate = won / resolved * 100;
+      printf "Dispute win rate over last %s days: %.1f%% (%d won / %d resolved), baseline %s%%\n", lookback_days, win_rate, won+0, resolved, baseline;
+      if (win_rate < baseline) {
+        printf "BELOW BASELINE: win rate is %.1f points under baseline — review evidence quality on lost disputes.\n", baseline - win_rate;
+      } else {
+        print "OK: win rate at or above baseline.";
+      }
+    }
+  ' "{{disputes_csv_path}}"
+variables:
+  disputes_csv_path:
+    default: "./chargeback_disputes.csv"
+    description: "Path to a CSV with columns: dispute_id,status (RESOLVED/PENDING),resolved_date (YYYY-MM-DD),outcome (WON/LOST)."
+  win_rate_baseline_pct:
+    default: 50
+    description: Baseline dispute win rate (percent) to compare current performance against.
+  lookback_window_days:
+    default: 30
+    description: Number of trailing days of resolved disputes to include in the win-rate calculation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only trend report against your own chargeback case log — does not
+  submit or draft evidence itself. Pair with a manual review of lost cases
+  when the win rate drops below baseline.

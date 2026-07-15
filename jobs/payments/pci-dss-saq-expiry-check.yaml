@@ -1,0 +1,48 @@
+id: pci-dss-saq-expiry-check
+version: 1
+name: PCI DSS SAQ/AOC Expiry Check
+description: >
+  Tracks each merchant's PCI DSS Self-Assessment Questionnaire (SAQ) or
+  Attestation of Compliance (AOC) expiry date and flags any expiring within a
+  configurable warning window. Use this if you're responsible for merchant
+  PCI compliance status and don't want a merchant to fall out of compliance
+  because their annual attestation quietly lapsed.
+category: payments
+tags: [payments, pci-dss, compliance, merchant-risk]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{expiry_warning_days}}" '
+    NR==1 {next}
+    NF<3 {next}
+    {
+      merchant=$1; expiry=$2; saq_type=$3;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (exp_epoch - now_epoch) / 86400;
+      if (days_left < 0) {
+        printf "EXPIRED: merchant %s SAQ %s expired %s\n", merchant, saq_type, expiry;
+        flagged++;
+      } else if (days_left <= warn_days) {
+        printf "EXPIRING SOON: merchant %s SAQ %s expires %s (%.0f days left)\n", merchant, saq_type, expiry, days_left;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged==0) print "OK: no merchant PCI attestations expiring within the warning window.";
+    }
+  ' "{{pci_attestation_csv_path}}"
+variables:
+  pci_attestation_csv_path:
+    default: "./merchant_pci_attestations.csv"
+    description: "Path to a CSV with columns: merchant_id,expiry_date (YYYY-MM-DD),saq_type (header row)."
+  expiry_warning_days:
+    default: 30
+    description: Flag attestations expiring within this many days, in addition to any already expired.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a PCI attestation tracker export. It does not
+  determine actual PCI scope or validate the SAQ content, only expiry dates
+  you've already recorded.

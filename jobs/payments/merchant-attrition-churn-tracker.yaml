@@ -1,0 +1,48 @@
+id: merchant-attrition-churn-tracker
+version: 1
+name: Merchant Attrition/Churn Tracker
+description: >
+  Compares this month's merchant account closures against a trailing
+  baseline and flags if the attrition rate has spiked. Use this if merchant
+  churn has ever crept up for weeks before anyone noticed a pattern in the
+  closure reasons.
+category: payments
+tags: [payments, merchant-attrition, churn, retention]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v spike_pct="{{churn_spike_threshold_pct}}" '
+    NR==1 { next }
+    {
+      month = substr($2, 1, 7);
+      total_by_month[month]++;
+      if ($3 == "CLOSED") closed_by_month[month]++;
+    }
+    END {
+      n = asorti(total_by_month, months);
+      if (n < 2) { print "Not enough months of data to compare churn rate."; exit; }
+      cur = months[n]; prev = months[n-1];
+      cur_rate = (total_by_month[cur] > 0) ? (closed_by_month[cur]+0) / total_by_month[cur] * 100 : 0;
+      prev_rate = (total_by_month[prev] > 0) ? (closed_by_month[prev]+0) / total_by_month[prev] * 100 : 0;
+      delta = cur_rate - prev_rate;
+      printf "Churn rate %s: %.2f%% (prior month %s: %.2f%%, delta %.2f pts)\n", cur, cur_rate, prev, prev_rate, delta;
+      if (delta > spike_pct) {
+        printf "SPIKE: churn rate increased by more than %.2f points vs prior month.\n", spike_pct;
+      } else {
+        print "OK: churn rate within normal range.";
+      }
+    }
+  ' "{{merchant_accounts_csv_path}}"
+variables:
+  merchant_accounts_csv_path:
+    default: "./merchant_accounts.csv"
+    description: "Path to a CSV with columns: merchant_id,status_date (YYYY-MM-DD),status (ACTIVE or CLOSED), one row per merchant per reporting period."
+  churn_spike_threshold_pct:
+    default: 2.0
+    description: Percentage-point increase in month-over-month closure rate that triggers a spike flag.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only trend check comparing the two most recent months present in the
+  file; requires gawk for asorti(). Does not diagnose the cause of churn —
+  pair with a follow-up review of closure reason codes.

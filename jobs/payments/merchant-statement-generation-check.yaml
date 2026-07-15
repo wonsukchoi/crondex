@@ -1,0 +1,38 @@
+id: merchant-statement-generation-check
+version: 1
+name: Merchant Statement Generation Check
+description: >
+  Cross-checks the list of active merchant accounts against the monthly
+  statement generation/delivery log and flags any active merchant missing a
+  statement by your target date. Use this if a merchant has ever called in
+  asking where their statement was, and you found out only then that
+  generation had silently failed for their account.
+category: payments
+tags: [payments, statements, merchant-servicing, delivery]
+schedule: "0 7 5 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==1 { file++; next }
+    file==1 { active[$1]=1; next }
+    file==2 && $3=="DELIVERED" { delivered[$1]=1 }
+    END {
+      for (m in active) {
+        if (!(m in delivered)) { printf "MISSING STATEMENT: merchant %s has no delivered statement for this period\n", m; n++; }
+      }
+      printf "%d active merchant(s) missing this period'"'"'s statement.\n", n+0;
+    }
+  ' "{{active_merchants_csv_path}}" "{{statement_log_csv_path}}"
+variables:
+  active_merchants_csv_path:
+    default: "./active_merchants.csv"
+    description: "Path to a CSV with columns: merchant_id,merchant_name — one row per currently active merchant account."
+  statement_log_csv_path:
+    default: "./statement_generation_log.csv"
+    description: "Path to a CSV with columns: merchant_id,period (YYYY-MM),status (DELIVERED/FAILED/PENDING) for the current statement period."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation between an active-merchant roster and a
+  statement-delivery log your billing/statement system already produces.
+  Does not itself generate or resend statements.

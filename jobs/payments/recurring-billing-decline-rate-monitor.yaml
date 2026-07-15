@@ -1,0 +1,48 @@
+id: recurring-billing-decline-rate-monitor
+version: 1
+name: Recurring Billing Decline Rate Monitor
+description: >
+  Tracks the decline rate on subscription/recurring-billing charge attempts
+  and flags if it rises above a baseline threshold. Use this if a spike in
+  card-expiry or insufficient-funds declines has ever eaten into recurring
+  revenue for days before anyone in billing ops noticed.
+category: payments
+tags: [payments, recurring-billing, declines, subscriptions]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_rate="{{max_decline_rate_pct}}" -v day="{{business_date}}" '
+    NR==1 {next}
+    $2==day {
+      total++;
+      if ($3=="declined") {
+        declined++;
+        reason[$4]++;
+      }
+    }
+    END {
+      if (total == 0) { print "NO RECURRING CHARGE ATTEMPTS FOUND for " day; exit; }
+      rate = declined / total * 100;
+      printf "Decline rate for %s: %.1f%% (%d of %d attempts)\n", day, rate, declined, total;
+      if (rate > max_rate) {
+        printf "ALERT: decline rate exceeds threshold of %.1f%%\n", max_rate;
+        for (r in reason) { printf "  reason=%s count=%d\n", r, reason[r]; }
+      }
+    }
+  ' "{{recurring_charges_csv_path}}"
+variables:
+  recurring_charges_csv_path:
+    default: "./recurring_charge_attempts.csv"
+    description: "Path to a CSV with columns: attempt_id,business_date (YYYY-MM-DD),status (approved/declined),decline_reason."
+  business_date:
+    default: "$(date +%Y-%m-%d)"
+    description: "Business date to evaluate the decline rate for, in YYYY-MM-DD format."
+  max_decline_rate_pct:
+    default: 15
+    description: Decline rate percentage above which the day is flagged as anomalous.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a recurring-charge attempt log your billing
+  platform already produces. Does not trigger dunning or retry logic itself
+  — pair with your dunning workflow to act on flagged spikes.

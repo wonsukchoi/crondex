@@ -1,0 +1,39 @@
+id: terminal-batch-close-failure-check
+version: 1
+name: Terminal Batch Close Failure Check
+description: >
+  Scans POS terminal batch-close logs and flags any terminal that failed to
+  close its daily settlement batch. Use this if you've ever discovered a
+  terminal sitting with an open batch overnight because nobody checked the
+  close logs, leaving those transactions unsettled.
+category: payments
+tags: [payments, settlement, pos, terminals]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v day="{{business_date}}" '
+    NR==1 {next}
+    $2==day {
+      seen[$1]=1;
+      if ($3=="closed") { closed[$1]=1 }
+    }
+    END {
+      for (t in seen) {
+        if (!(t in closed)) { printf "FAILED CLOSE: terminal %s did not close its batch for %s\n", t, day; failed++; }
+      }
+      if (failed == 0) { print "OK: all terminals closed their batch for " day; }
+    }
+  ' "{{batch_close_log_csv_path}}"
+variables:
+  batch_close_log_csv_path:
+    default: "./terminal_batch_close_log.csv"
+    description: "Path to a CSV with columns: terminal_id,business_date (YYYY-MM-DD),status (closed/open/failed)."
+  business_date:
+    default: "$(date +%Y-%m-%d)"
+    description: "Business date to check batch-close status for, in YYYY-MM-DD format. Defaults to today; set to yesterday's date if running after midnight for the prior business day."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a batch-close log your POS/terminal estate already
+  produces. It does not itself force a batch close or touch settlement
+  systems — a failed close still needs manual or vendor-side intervention.

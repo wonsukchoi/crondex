@@ -1,0 +1,44 @@
+id: tokenization-vault-key-rotation-check
+version: 1
+name: Tokenization Vault Key Rotation Check
+description: >
+  Tracks the rotation schedule for your card tokenization/encryption vault's
+  active key and flags if it is overdue for rotation. Use this if PCI DSS
+  key-rotation requirements for your tokenization vault have ever slipped
+  because the rotation date lived only in someone's memory.
+category: payments
+tags: [payments, pci, tokenization, encryption, vault]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_since_rotation}}" '
+    NR==1 {next}
+    $3=="active" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline created_ts; close(cmd);
+      if (created_ts > latest) { latest = created_ts; key = $1; }
+    }
+    END {
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (latest == 0) { print "NO ACTIVE VAULT KEY FOUND in rotation log."; exit; }
+      age_days = int((now_epoch - latest) / 86400);
+      if (age_days > max_days) {
+        printf "OVERDUE: active vault key %s is %d days old (limit %d days)\n", key, age_days, max_days;
+      } else {
+        printf "OK: active vault key %s is %d days old (limit %d days)\n", key, age_days, max_days;
+      }
+    }
+  ' "{{vault_key_log_csv_path}}"
+variables:
+  vault_key_log_csv_path:
+    default: "./vault_key_rotation_log.csv"
+    description: "Path to a CSV with columns: key_id,created_date (YYYY-MM-DD),status (active/retired)."
+  max_days_since_rotation:
+    default: 365
+    description: Maximum allowed age in days for the active tokenization/encryption vault key before flagging as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a key metadata log your HSM/vault provider already
+  exposes. It does not perform the key rotation itself — that still requires
+  your vault provider's rotation procedure.

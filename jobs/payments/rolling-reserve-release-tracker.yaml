@@ -1,0 +1,40 @@
+id: rolling-reserve-release-tracker
+version: 1
+name: Rolling Reserve Release Tracker
+description: >
+  Scans a list of merchant rolling reserve holds and flags any hold whose
+  scheduled release date has already passed but that is still marked as
+  held. Use this if merchants have ever had to call in asking where their
+  reserve funds are because a release that should have run automatically
+  never happened.
+category: payments
+tags: [payments, reserves, merchant-funding, risk]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today_str="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $4=="held" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline release_epoch; close(cmd);
+      cmd2 = "date -d \"" today_str "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today_str "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      if (release_epoch < today_epoch) {
+        printf "OVERDUE RELEASE: merchant %s reserve %s was scheduled to release %s, still held\n", $1, $2, $3;
+        overdue++;
+      }
+    }
+    END {
+      if (overdue == 0) { print "OK: no overdue rolling reserve releases found."; }
+    }
+  ' "{{reserve_holds_csv_path}}"
+variables:
+  reserve_holds_csv_path:
+    default: "./rolling_reserve_holds.csv"
+    description: "Path to a CSV with columns: merchant_id,reserve_id,scheduled_release_date (YYYY-MM-DD),status (held/released)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a reserve-holds export your risk/funding system
+  already produces. It does not itself release funds — a flagged reserve
+  still needs someone with authority to approve and process the release.

@@ -1,0 +1,39 @@
+id: payment-gateway-api-key-rotation-check
+version: 1
+name: Payment Gateway API Key Rotation Check
+description: >
+  Tracks the age of your payment gateway/processor API keys (live and test)
+  and flags any past a configurable rotation interval. Use this if a payment
+  gateway API key has ever gone untouched for years because it was buried in
+  a config file instead of a generic cloud IAM system that would catch it.
+category: payments
+tags: [payments, api-keys, gateway, pci]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_age_days}}" '
+    NR==1 {next}
+    $4=="active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline created_ts; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = int((now_epoch - created_ts) / 86400);
+      if (age_days >= max_days) {
+        printf "OVERDUE: gateway API key %s (%s, %s env) is %d days old (limit %d days)\n", $1, $2, $5, age_days, max_days;
+      }
+    }
+  ' "{{gateway_key_inventory_csv_path}}"
+variables:
+  gateway_key_inventory_csv_path:
+    default: "./gateway_api_key_inventory.csv"
+    description: "Path to a CSV with columns: key_id,gateway_name,created_date (YYYY-MM-DD),status (active/revoked),environment (live/test)."
+  max_age_days:
+    default: 180
+    description: Maximum allowed age in days for a live payment gateway/processor API key before flagging as overdue for rotation.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to payment gateway/processor API keys specifically (e.g. Stripe,
+  Adyen, Braintree, Worldpay credentials), not generic cloud IAM access
+  keys. Read-only check against a key inventory you maintain; it does not
+  rotate keys itself.

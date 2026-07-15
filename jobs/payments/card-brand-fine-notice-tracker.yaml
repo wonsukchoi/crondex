@@ -1,0 +1,47 @@
+id: card-brand-fine-notice-tracker
+version: 1
+name: Card Brand Fine Notice Tracker
+description: >
+  Scans a log of card network non-compliance fine and penalty notices — for
+  example excessive chargeback program fines — and flags any notice that is
+  unpaid and has a payment deadline coming up soon or already past. Use this
+  if a card brand fine has ever gone unnoticed until it accrued additional
+  penalties because nobody was watching the notice log.
+category: payments
+tags: [payments, card-networks, fines, compliance, chargebacks]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_deadline}}" -v today_str="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $5=="unpaid" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      cmd2 = "date -d \"" today_str "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today_str "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      days_left = (deadline_epoch - today_epoch) / 86400;
+      if (days_left < 0) {
+        printf "PAST DUE: notice %s (%s, %s) fine %.2f was due %s, still unpaid\n", $1, $2, $3, $6, $4;
+        flagged++;
+      } else if (days_left <= warn_days) {
+        printf "DUE SOON: notice %s (%s, %s) fine %.2f due %s in %d day(s)\n", $1, $2, $3, $6, $4, days_left;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged == 0) { print "OK: no unpaid card brand fine notices due soon or past due."; }
+    }
+  ' "{{fine_notices_csv_path}}"
+variables:
+  fine_notices_csv_path:
+    default: "./card_brand_fine_notices.csv"
+    description: "Path to a CSV with columns: notice_id,card_network,program (e.g. excessive_chargeback),payment_deadline (YYYY-MM-DD),status (unpaid/paid),fine_amount."
+  warn_days_before_deadline:
+    default: 10
+    description: "Number of days before a fine's payment deadline to start flagging it as due soon."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a fine/penalty notice log your risk or compliance
+  team already maintains. It does not itself dispute, pay, or escalate a
+  fine — a flagged notice still needs someone with authority to act.

@@ -1,0 +1,39 @@
+id: refund-processing-sla-tracker
+version: 1
+name: Refund Processing SLA Tracker
+description: >
+  Tracks open merchant refund requests and flags any that have not been
+  processed within your target SLA window. Use this if a stuck refund has
+  ever turned into a chargeback or a angry merchant escalation before
+  anyone caught that it was still sitting unprocessed.
+category: payments
+tags: [payments, refunds, sla, merchant-servicing]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_sla_hours}}" '
+    NR==1 { next }
+    $4 == "PENDING" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submit_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - submit_epoch) / 3600;
+      if (age_hours > target) {
+        printf "OVERDUE: refund %s for merchant %s ($%s) requested %s — %.1f hours pending, target %s\n", $1, $5, $3, $2, age_hours, target;
+        n++;
+      }
+    }
+    END { printf "%d refund request(s) past target SLA.\n", n+0; }
+  ' "{{refund_requests_csv_path}}"
+variables:
+  refund_requests_csv_path:
+    default: "./refund_requests.csv"
+    description: "Path to a CSV with columns: refund_id,request_timestamp (ISO 8601),amount,status (PENDING or PROCESSED),merchant_id."
+  target_sla_hours:
+    default: 72
+    description: Target number of hours from refund request to processing completion before it is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only SLA check against a refund queue your payment processing
+  platform already tracks — it does not itself trigger or approve refunds.

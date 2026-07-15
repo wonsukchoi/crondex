@@ -1,0 +1,44 @@
+id: negative-balance-merchant-account-alert
+version: 1
+name: Negative Balance Merchant Account Alert
+description: >
+  Scans merchant account balances and flags any account that has been
+  sitting negative — typically from chargebacks or refunds exceeding
+  available funds — for longer than a configurable grace period. Use this
+  if merchant negative balances have ever aged past the point of easy
+  recovery because nobody was tracking how long they'd been unresolved.
+category: payments
+tags: [payments, chargebacks, merchant-risk, collections]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{grace_period_days}}" -v today_str="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    $2 < 0 {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline since_epoch; close(cmd);
+      cmd2 = "date -d \"" today_str "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today_str "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      age_days = (today_epoch - since_epoch) / 86400;
+      if (age_days > max_days) {
+        printf "OVER GRACE: merchant %s balance %.2f negative since %s (%d days, grace %d days)\n", $1, $2, $3, age_days, max_days;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged == 0) { print "OK: no merchant negative balances past the grace period."; }
+    }
+  ' "{{merchant_balances_csv_path}}"
+variables:
+  merchant_balances_csv_path:
+    default: "./merchant_balances.csv"
+    description: "Path to a CSV with columns: merchant_id,current_balance,negative_since_date (YYYY-MM-DD)."
+  grace_period_days:
+    default: 14
+    description: "Number of days a merchant account may remain negative before being flagged for collections follow-up."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a merchant balance export your ledger already
+  produces. It does not itself attempt recovery or debit a merchant — a
+  flagged account still needs a collections or risk team to act.

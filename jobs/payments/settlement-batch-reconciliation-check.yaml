@@ -1,0 +1,47 @@
+id: settlement-batch-reconciliation-check
+version: 1
+name: Settlement Batch Reconciliation Check
+description: >
+  Compares each day's settlement batch total from the processor's settlement
+  report against the expected gross transaction total for that day and flags
+  any mismatch beyond a small tolerance. Use this if settlement files have
+  ever landed with a total that didn't match what your transaction system
+  recorded and nobody caught it until a merchant complained.
+category: payments
+tags: [payments, settlement, reconciliation, accounting]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v day="{{business_date}}" -v tolerance="{{tolerance_amount}}" '
+    NR==1 {next}
+    $1==day && $2=="settlement" { settled += $3 }
+    $1==day && $2=="expected" { expected += $3 }
+    END {
+      diff = settled - expected;
+      if (diff < 0) diff = -diff;
+      if (expected == 0 && settled == 0) {
+        printf "NO DATA: no settlement or expected totals found for %s\n", day;
+      } else if (diff > tolerance) {
+        printf "MISMATCH: %s settled=%.2f expected=%.2f diff=%.2f (tolerance %.2f)\n", day, settled, expected, diff, tolerance;
+      } else {
+        printf "OK: %s settled=%.2f expected=%.2f diff=%.2f within tolerance\n", day, settled, expected, diff;
+      }
+    }
+  ' "{{settlement_report_csv_path}}"
+variables:
+  settlement_report_csv_path:
+    default: "./settlement_report.csv"
+    description: "Path to a CSV with columns: business_date (YYYY-MM-DD),row_type (settlement/expected),amount."
+  business_date:
+    default: "$(date +%Y-%m-%d)"
+    description: "Business date to reconcile, in YYYY-MM-DD format."
+  tolerance_amount:
+    default: 1.00
+    description: "Maximum allowed absolute dollar difference between settled and expected totals before flagging a mismatch."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation against report totals your settlement/processing
+  system already produces. It does not investigate the root cause of a
+  mismatch — a flagged diff still needs someone to trace individual
+  transactions.

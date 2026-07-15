@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2056 jobs across 62 categories:
+2088 jobs across 63 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -231,6 +231,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `marketing` | 32 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 32 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `payments` | 32 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
 | `personal` | 32 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 32 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 32 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |

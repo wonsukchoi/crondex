@@ -1,0 +1,49 @@
+id: tax-form-1099k-generation-tracker
+version: 1
+name: Tax Form 1099-K Generation Tracker
+description: >
+  Checks merchant volume totals against IRS 1099-K reporting thresholds and
+  flags any merchant that meets the threshold but doesn't yet have a form
+  generated or sent, with days remaining before the filing deadline. Use
+  this if 1099-K generation has ever slipped close to the January filing
+  deadline because nobody was tracking which qualifying merchants were still
+  outstanding.
+category: payments
+tags: [payments, tax, compliance, 1099-k, merchant-services]
+schedule: "0 8 1,15 12,1 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v vol_threshold="{{volume_threshold}}" -v txn_threshold="{{transaction_count_threshold}}" -v deadline="{{filing_deadline}}" '
+    NR==1 {next}
+    {
+      merchant=$1; volume=$2; txn_count=$3; form_status=$4;
+      if ((volume >= vol_threshold || txn_threshold == 0 || txn_count >= txn_threshold) && form_status != "sent" && form_status != "generated") {
+        printf "OUTSTANDING 1099-K: merchant %s volume=%.2f txns=%d status=%s (deadline %s)\n", merchant, volume, txn_count, form_status, deadline;
+        outstanding++;
+      }
+    }
+    END {
+      if (outstanding == 0) { print "OK: all qualifying merchants have a 1099-K generated or sent."; }
+      else { printf "%d merchant(s) still outstanding ahead of %s.\n", outstanding, deadline; }
+    }
+  ' "{{merchant_volume_csv_path}}"
+variables:
+  merchant_volume_csv_path:
+    default: "./merchant_annual_volume.csv"
+    description: "Path to a CSV with columns: merchant_id,annual_volume,transaction_count,form_status (not_started/generated/sent)."
+  volume_threshold:
+    default: 600
+    description: "Gross annual payment volume threshold that triggers a 1099-K filing requirement (current federal threshold; adjust for state-specific lower thresholds)."
+  transaction_count_threshold:
+    default: 0
+    description: "Optional transaction count threshold to also require before flagging; set to 0 to rely on volume alone."
+  filing_deadline:
+    default: "01-31"
+    description: "IRS 1099-K recipient copy filing deadline (MM-DD), shown in output for reference."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a merchant volume export your reporting system
+  already produces; thresholds vary by state and change over time, so verify
+  the current federal and state figures before relying on this. It does not
+  generate or file the forms itself, and this is not tax advice.

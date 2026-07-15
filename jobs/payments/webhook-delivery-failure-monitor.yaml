@@ -1,0 +1,49 @@
+id: webhook-delivery-failure-monitor
+version: 1
+name: Payment Webhook Delivery Failure Monitor
+description: >
+  Scans payment webhook delivery logs (transaction, dispute, and payout
+  events) and flags endpoints with a high recent failure or retry rate. Use
+  this if a merchant's webhook endpoint has ever silently failed for days
+  before anyone noticed their order system stopped getting paid events.
+category: payments
+tags: [payments, webhooks, reliability, integrations]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window_hours="{{lookback_hours}}" -v max_rate="{{max_failure_rate_pct}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if ((now_epoch - ts_epoch) / 3600 <= window_hours) {
+        total[$2]++;
+        if ($3 == "failed" || $3 == "retrying") { fails[$2]++; }
+      }
+    }
+    END {
+      for (ep in total) {
+        rate = (fails[ep] + 0) / total[ep] * 100;
+        if (rate > max_rate) {
+          printf "HIGH FAILURE RATE: endpoint %s failed %.1f%% of %d deliveries in last %s hours\n", ep, rate, total[ep], window_hours;
+        }
+      }
+    }
+  ' "{{webhook_log_csv_path}}"
+variables:
+  webhook_log_csv_path:
+    default: "./webhook_delivery_log.csv"
+    description: "Path to a CSV with columns: delivered_at (ISO 8601),endpoint_url,status (delivered/failed/retrying)."
+  lookback_hours:
+    default: 6
+    description: How many hours of recent deliveries to evaluate per endpoint.
+  max_failure_rate_pct:
+    default: 10
+    description: Failure/retry rate percentage above which an endpoint is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a webhook delivery log your platform already logs.
+  It does not retry deliveries or contact the merchant — flagged endpoints
+  still need outreach or a manual resend.

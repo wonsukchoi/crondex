@@ -1,0 +1,41 @@
+id: compliance-filing-sar-deadline-tracker
+version: 1
+name: SAR Filing Deadline Tracker
+description: >
+  Tracks Suspicious Activity Report filing deadlines for flagged payment
+  activity and flags any case approaching its regulatory filing window. Use
+  this if a SAR has ever come close to missing its filing deadline because
+  the case sat in a queue without anyone watching the clock.
+category: payments
+tags: [payments, compliance, sar, aml, kyb]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $4=="open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_ts; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = int((deadline_ts - now_epoch) / 86400);
+      if (days_left < 0) {
+        printf "OVERDUE: SAR case %s filing deadline was %d days ago\n", $1, -days_left;
+      } else if (days_left <= warn_days) {
+        printf "APPROACHING DEADLINE: SAR case %s due in %d days (%s)\n", $1, days_left, $3;
+      }
+    }
+  ' "{{sar_case_log_csv_path}}"
+variables:
+  sar_case_log_csv_path:
+    default: "./sar_case_log.csv"
+    description: "Path to a CSV with columns: case_id,detected_date (YYYY-MM-DD),filing_deadline (YYYY-MM-DD),status (open/filed)."
+  warn_days_before_deadline:
+    default: 5
+    description: How many days before the filing deadline a still-open case should be flagged as approaching.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a SAR case tracking log your compliance/case
+  management system already maintains. It does not draft or file the SAR
+  itself, and deadline math is a scheduling aid, not legal advice — confirm
+  actual regulatory deadlines with your compliance/BSA officer.

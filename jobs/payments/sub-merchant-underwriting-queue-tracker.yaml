@@ -1,0 +1,45 @@
+id: sub-merchant-underwriting-queue-tracker
+version: 1
+name: Sub-Merchant Underwriting Queue Tracker
+description: >
+  For payment facilitator (PayFac) platforms, tracks how long sub-merchants
+  have been sitting in the underwriting queue and flags ones past your SLA
+  or above a risk-score threshold that need manual review. Use this if
+  automated underwriting has ever let a high-risk sub-merchant sit
+  unreviewed because nobody was watching the queue.
+category: payments
+tags: [payments, payfac, underwriting, sub-merchant, risk]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_review_hours}}" -v risk_threshold="{{risk_score_threshold}}" '
+    NR==1 { next }
+    $4 == "PENDING" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline submit_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_hours = (now_epoch - submit_epoch) / 3600;
+      overdue = (age_hours > target);
+      high_risk = ($3 + 0 >= risk_threshold);
+      if (overdue || high_risk) {
+        printf "REVIEW NEEDED: sub-merchant %s (risk score %s) queued %.1f hours%s%s\n", $1, $3, age_hours, (overdue ? ", past SLA" : ""), (high_risk ? ", high risk" : "");
+        n++;
+      }
+    }
+    END { printf "%d sub-merchant(s) flagged for manual underwriting review.\n", n+0; }
+  ' "{{sub_merchant_queue_csv_path}}"
+variables:
+  sub_merchant_queue_csv_path:
+    default: "./sub_merchant_underwriting_queue.csv"
+    description: "Path to a CSV with columns: sub_merchant_id,submit_timestamp (ISO 8601),risk_score (0-100),status (PENDING or DECISIONED)."
+  target_review_hours:
+    default: 24
+    description: Target number of hours a sub-merchant may sit in the underwriting queue before it is flagged as SLA-overdue.
+  risk_score_threshold:
+    default: 70
+    description: Risk score at or above which a queued sub-merchant is flagged for manual review regardless of queue age.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only queue triage report for PayFac risk/underwriting teams — does
+  not itself approve, decline, or auto-board sub-merchants.

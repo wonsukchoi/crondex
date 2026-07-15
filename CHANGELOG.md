@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-07-15
+
+### Added
+
+- Deepened `healthcare`: +12 jobs (33 -> 45) — 30-day readmission risk,
+  nurse staffing ratio, discharge medication reconciliation, adverse
+  drug event reporting lag, fall risk reassessment, HAI surveillance
+  gaps, critical supply backorders, standing consent expiry, bed
+  turnover time, claim write-off approval, state immunization registry
+  reporting lag, peer review case lag. Catalog now 2044 jobs across 62
+  categories.
+
 ## [0.62.0] - 2026-07-15
 
 ### Added

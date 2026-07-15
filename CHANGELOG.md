@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-07-15
+
+### Added
+
+- Deepened `finance`: +12 jobs (36 -> 48) — PO/invoice three-way match,
+  bank signatory review, capex budget, journal entry approval lag,
+  fixed asset disposal reconciliation, credit note approval, treasury
+  cash sweep execution, vendor payment terms drift, VAT/GST filing
+  deadlines, stale outstanding checks, budget transfer approval,
+  duplicate vendor records. Catalog now 2000 jobs across 61 categories.
+
 ## [0.60.0] - 2026-07-15
 
 ### Added

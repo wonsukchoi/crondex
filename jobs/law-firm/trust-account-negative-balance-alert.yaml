@@ -1,0 +1,40 @@
+id: trust-account-negative-balance-alert
+version: 1
+name: Trust Account Negative Balance Alert
+description: >
+  Scans per-matter client trust ledger balances and flags any matter that
+  has gone negative, which most bar rules treat as a serious trust
+  accounting violation. Use this if your firm wants an early warning before
+  a negative trust balance turns into a bar complaint or audit finding.
+category: law-firm
+tags: [law-firm, trust-accounting, iolta, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      balance = $3;
+      if (balance < 0) {
+        printf "NEGATIVE TRUST BALANCE: matter %s (%s) balance=%.2f\n", $1, $2, balance;
+        count++;
+      }
+    }
+    END {
+      if (count+0 > 0) {
+        printf "%d matter(s) with negative trust balances — resolve immediately, this is a compliance violation.\n", count;
+      } else {
+        print "OK: no negative trust balances found.";
+      }
+    }
+  ' "{{trust_ledger_csv_path}}"
+variables:
+  trust_ledger_csv_path:
+    default: "./trust_ledger_balances.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,trust_balance (current per-matter trust ledger balance, USD)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a per-matter ledger export your trust accounting
+  software already produces — it does not correct the balance or move
+  funds.

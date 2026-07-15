@@ -1,0 +1,65 @@
+id: trust-to-operating-transfer-audit
+version: 1
+name: Trust-to-Operating Transfer Audit
+description: >
+  Cross-checks a log of earned-fee transfers from the client trust account
+  to the firm's operating account against approved invoices and flags any
+  transfer with no matching approved invoice. Use this if your firm has
+  ever moved money out of trust before an invoice was actually approved,
+  which is the kind of gap bar regulators care about in trust audits.
+category: law-firm
+tags: [law-firm, trust-accounting, iolta, compliance, billing]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR==1) { next }
+      if ($4=="approved") {
+        key = $2 "|" sprintf("%.2f", $3+0);
+        approved[key] = 1;
+      }
+      next
+    }
+    FNR==1 { next }
+    {
+      key = $2 "|" sprintf("%.2f", $3+0);
+      if (!(key in approved)) {
+        flagged++;
+        printf "UNMATCHED TRANSFER: transfer %s moved $%.2f from trust to operating for matter %s (transfer date %s) with no matching approved invoice\n", $1, $3+0, $2, $4;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: every trust-to-operating transfer matches an approved invoice of the same matter and amount.";
+    }
+  ' "{{invoices_csv_path}}" "{{transfers_csv_path}}"
+prompt: |
+  Read the unmatched-transfer list produced against {{transfers_csv_path}}
+  and {{invoices_csv_path}} (transfers with no matching approved invoice of
+  the same matter and amount). For each unmatched transfer, use any
+  available matter notes, invoice memos, or engagement letter terms to
+  judge whether it is a benign timing gap (e.g. invoice approved the same
+  day but not yet exported) or a genuine trust-accounting exception that
+  needs escalation to the firm's trust account custodian or managing
+  partner. Produce a short list: transfer ID, your assessment, and the
+  recommended next action.
+script_note: >
+  The shell command does an exact matter+amount match between transfers and
+  approved invoices for free and lists unmatched transfers; it cannot judge
+  whether an unmatched transfer is a harmless timing gap or a real
+  trust-accounting violation, which is what the LLM pass adds.
+variables:
+  transfers_csv_path:
+    default: "./trust_to_operating_transfers.csv"
+    description: "Path to a CSV with columns: transfer_id,matter,amount,transfer_date."
+  invoices_csv_path:
+    default: "./client_invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,matter,amount,status (approved/pending/etc)."
+compatible_agents: [claude, codex, generic]
+notes: >
+  Matching is exact on matter and dollar amount only; partial transfers,
+  multi-invoice transfers, or rounding differences will show up as
+  unmatched and need the LLM review pass or manual bookkeeper judgment.
+  This is an audit aid, not a substitute for your jurisdiction's IOLTA
+  compliance procedures.

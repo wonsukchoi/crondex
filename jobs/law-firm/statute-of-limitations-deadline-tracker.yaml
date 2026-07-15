@@ -1,0 +1,43 @@
+id: statute-of-limitations-deadline-tracker
+version: 1
+name: Statute of Limitations Deadline Tracker
+description: >
+  Scans a CSV of open matters for statute-of-limitations dates and flags any
+  matter whose deadline falls within a configurable warning window. Use this
+  if your firm tracks SOL dates in a matter list and wants an automated
+  daily sweep instead of relying on someone remembering to check the docket.
+category: law-firm
+tags: [law-firm, statute-of-limitations, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" '
+    NR==1 {next}
+    $5=="open" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline sol_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (sol_epoch - now_epoch) / 86400;
+      if (days_left < 0) {
+        printf "EXPIRED: matter %s (%s) - SOL date %s is %d day(s) past\n", $1, $2, $4, -days_left;
+        flagged++;
+      } else if (days_left <= warn_days) {
+        printf "APPROACHING: matter %s (%s) - SOL date %s in %d day(s)\n", $1, $2, $4, days_left;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no open matters with SOL deadlines inside the warning window." }
+  ' "{{matters_csv_path}}"
+variables:
+  matters_csv_path:
+    default: "./matters.csv"
+    description: "Path to a CSV with columns: matter_id,matter_name,client_name,sol_date (YYYY-MM-DD),status (open/closed)."
+  warning_window_days:
+    default: 30
+    description: Number of days out from today to start flagging an approaching SOL deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a matter list your practice management system
+  exports; it does not calculate SOL dates itself (tolling, revival, and
+  jurisdiction-specific rules must already be reflected in the sol_date column).

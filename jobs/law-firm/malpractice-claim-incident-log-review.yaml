@@ -1,0 +1,55 @@
+id: malpractice-claim-incident-log-review
+version: 1
+name: Malpractice Claim Incident Log Review
+description: >
+  Reviews the firm's malpractice and incident log and identifies entries
+  that need a status update or are approaching an insurer notification
+  deadline. Use this if incident entries have gone stale because nobody
+  is re-reading the log after the initial entry was logged.
+category: law-firm
+tags: [law-firm, malpractice, risk-management, insurance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  You are reviewing the law firm's malpractice/incident log for {{firm_name}}.
+
+  Read the incident log at {{incident_log_path}}. Each row typically has
+  fields like: incident_id, matter, date_reported, description, status
+  (open/monitoring/reported-to-carrier/closed), last_updated_date, and
+  insurer_notification_deadline (if applicable, since most malpractice
+  policies require notice within a set window of discovery).
+
+  For each entry:
+  1. Flag any entry whose status has not changed and has not been
+     updated in over {{stale_days}} days — it likely needs a status
+     check-in with the responsible partner.
+  2. Flag any entry with an insurer_notification_deadline within
+     {{deadline_warning_days}} days that is not yet marked
+     "reported-to-carrier" or "closed" — this is time-sensitive because
+     missing a notice deadline can jeopardize coverage.
+  3. Summarize each flagged entry in one line: incident_id, matter,
+     current status, and why it was flagged (stale / nearing deadline).
+  4. Do not speculate about legal merits or liability — only report on
+     log hygiene and deadline proximity.
+
+  Output a short prioritized list, deadline-nearing entries first, then
+  stale entries, and note if the log has no flagged entries.
+variables:
+  firm_name:
+    default: "the firm"
+    description: Name of the firm, used only for framing the summary.
+  incident_log_path:
+    default: "./malpractice_incident_log.csv"
+    description: Path to the malpractice/incident log export (CSV or similar) to review.
+  stale_days:
+    default: 14
+    description: Number of days without a status update before an open entry is flagged as stale.
+  deadline_warning_days:
+    default: 10
+    description: Number of days before an insurer notification deadline at which an unresolved entry should be flagged.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Read-only review of an existing incident log; it does not file claims,
+  contact the carrier, or make any determination about fault or coverage
+  — a partner or general counsel must act on flagged items.

@@ -1,0 +1,37 @@
+id: matter-closing-checklist-completion-check
+version: 1
+name: Matter Closing Checklist Completion Check
+description: >
+  Scans a CSV of matters marked closed and flags any missing a required
+  closing step, such as the final invoice, file archival, or a zeroed
+  trust balance. Use this if your firm closes matters in practice
+  management software before the closing checklist is actually finished.
+category: law-firm
+tags: [law-firm, matter-closing, trust-accounting, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2=="closed" {
+      missing = "";
+      if ($3=="no") missing = missing "final invoice not sent; ";
+      if ($4=="no") missing = missing "file not archived; ";
+      if ($5=="no") missing = missing "trust balance not zeroed; ";
+      if (missing != "") {
+        printf "INCOMPLETE: matter %s - %s\n", $1, missing;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: all closed matters have completed the closing checklist." }
+  ' "{{matters_csv_path}}"
+variables:
+  matters_csv_path:
+    default: "./matter_closing_status.csv"
+    description: "Path to a CSV with columns: matter_id,status (open/closed),final_invoice_sent (yes/no),file_archived (yes/no),trust_balance_zeroed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a closing checklist your practice management
+  system or trust ledger exports; it does not itself send invoices, archive
+  files, or disburse trust funds.

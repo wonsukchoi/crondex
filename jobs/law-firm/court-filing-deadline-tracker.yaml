@@ -1,0 +1,42 @@
+id: court-filing-deadline-tracker
+version: 1
+name: Court Filing Deadline Tracker
+description: >
+  Scans a CSV of upcoming court filings across matters and flags any filing
+  deadline that falls within a configurable warning window. Use this if
+  your firm tracks filing due dates in a shared list and wants a daily
+  sweep so nothing slips past the clerk's deadline.
+category: law-firm
+tags: [law-firm, court-filings, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" '
+    NR==1 {next}
+    $5=="pending" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      if (days_left < 0) {
+        printf "MISSED: matter %s - filing \"%s\" was due %s (%d day(s) ago)\n", $1, $3, $4, -days_left;
+        flagged++;
+      } else if (days_left <= warn_days) {
+        printf "DUE SOON: matter %s - filing \"%s\" due %s (%d day(s))\n", $1, $3, $4, days_left;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no pending court filings inside the warning window." }
+  ' "{{filings_csv_path}}"
+variables:
+  filings_csv_path:
+    default: "./court_filings.csv"
+    description: "Path to a CSV with columns: matter_id,court,filing_description,due_date (YYYY-MM-DD),status (pending/filed)."
+  warning_window_days:
+    default: 7
+    description: Number of days out from today to start flagging an approaching filing deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a filing list your firm already maintains; it does
+  not compute deadlines from court rules or local practice orders itself.

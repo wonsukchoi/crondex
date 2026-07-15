@@ -1,0 +1,50 @@
+id: pro-bono-hours-tracking-check
+version: 1
+name: Pro Bono Hours Tracking Check
+description: >
+  Compares each attorney's logged pro bono hours against the firm's
+  target or state bar aspirational goal and flags anyone falling short
+  as the reporting period close approaches. Use this if pro bono
+  shortfalls tend to surface only at year-end reporting instead of with
+  enough runway to fix them.
+category: law-firm
+tags: [law-firm, pro-bono, compliance, attorneys]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target="{{target_pro_bono_hours}}" -v warn_days="{{warning_days_before_close}}" '
+    NR==1 {next}
+    {
+      attorney = $1; hours = $2 + 0; period_end = $3;
+      cmd = "date -d \"" period_end "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" period_end "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (end_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days && hours < target) {
+        shortfall = target - hours;
+        printf "SHORTFALL: %s has %.1f of %.1f target pro bono hours (%.1f short, %d days to period close %s)\n", attorney, hours, target, shortfall, days_left, period_end;
+        flagged++;
+      }
+      total++;
+    }
+    END {
+      if (flagged + 0 == 0) { print "OK: no attorneys below the pro bono target within the warning window."; }
+      else { printf "%d of %d attorneys are below the pro bono target within the warning window.\n", flagged, total; }
+    }
+  ' "{{pro_bono_hours_csv_path}}"
+variables:
+  pro_bono_hours_csv_path:
+    default: "./pro_bono_hours.csv"
+    description: "Path to a CSV with columns: attorney_name,pro_bono_hours_logged,reporting_period_end_date (YYYY-MM-DD)."
+  target_pro_bono_hours:
+    default: 50
+    description: Target or state bar aspirational pro bono hours goal per attorney for the reporting period.
+  warning_days_before_close:
+    default: 45
+    description: Number of days before the reporting period closes at which a shortfall should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a pro bono hours export; it does not log hours
+  or verify eligibility of the underlying matters as qualifying pro
+  bono work.

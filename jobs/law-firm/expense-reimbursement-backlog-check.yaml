@@ -1,0 +1,44 @@
+id: expense-reimbursement-backlog-check
+version: 1
+name: Expense Reimbursement Backlog Check
+description: >
+  Scans a log of attorney and staff expense reimbursement requests and
+  flags any still unprocessed past a configurable service-level target.
+  Use this if reimbursement requests have ever sat untouched long enough
+  that staff started asking finance where their money went.
+category: law-firm
+tags: [law-firm, expenses, reimbursement, operations, staff]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v sla_days="{{sla_days}}" '
+    BEGIN {
+      "date +%s" | getline now_epoch; close("date +%s");
+    }
+    NR==1 {next}
+    $5=="pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      if (ts_epoch == "") next;
+      age_days = int((now_epoch - ts_epoch) / 86400);
+      if (age_days > sla_days) {
+        flagged++;
+        printf "OVERDUE REIMBURSEMENT: request %s from %s for $%.2f submitted %s, unprocessed %d days (SLA %d)\n", $1, $2, $4, $3, age_days, sla_days;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: no expense reimbursement requests are past the SLA target.";
+    }
+  ' "{{expense_requests_csv_path}}"
+variables:
+  expense_requests_csv_path:
+    default: "./expense_reimbursement_requests.csv"
+    description: "Path to a CSV with columns: request_id,employee,submitted_date (YYYY-MM-DD),amount,status (pending/processed)."
+  sla_days:
+    default: 14
+    description: Maximum number of days an expense reimbursement request can remain unprocessed before it is flagged as backlogged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against an expense system export; it does not itself
+  approve, reject, or pay out reimbursement requests.

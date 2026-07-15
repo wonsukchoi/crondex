@@ -1,0 +1,57 @@
+id: accounts-receivable-aging-check
+version: 1
+name: Accounts Receivable Aging Check
+description: >
+  Scans a client invoice export and buckets unpaid invoices into 30/60/90-day
+  past-due tiers so overdue accounts don't slip through unnoticed. Use this
+  if your firm has ever let client invoices go stale for months without a
+  collections follow-up because no one was tracking invoice age.
+category: law-firm
+tags: [law-firm, billing, accounts-receivable, collections, cash-flow]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tier1="{{tier1_days}}" -v tier2="{{tier2_days}}" -v tier3="{{tier3_days}}" '
+    BEGIN {
+      "date +%s" | getline now_epoch; close("date +%s");
+    }
+    NR==1 {next}
+    $5=="unpaid" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      if (due_epoch == "") next;
+      days_past_due = int((now_epoch - due_epoch) / 86400);
+      if (days_past_due >= tier3) {
+        b3++; amt3 += $4;
+        printf "%d+ DAYS PAST DUE: invoice %s / %s $%.2f (%d days)\n", tier3, $1, $2, $4, days_past_due;
+      } else if (days_past_due >= tier2) {
+        b2++; amt2 += $4;
+        printf "%d-%d DAYS PAST DUE: invoice %s / %s $%.2f (%d days)\n", tier2, tier3-1, $1, $2, $4, days_past_due;
+      } else if (days_past_due >= tier1) {
+        b1++; amt1 += $4;
+        printf "%d-%d DAYS PAST DUE: invoice %s / %s $%.2f (%d days)\n", tier1, tier2-1, $1, $2, $4, days_past_due;
+      }
+    }
+    END {
+      if (b1+b2+b3 == 0) print "OK: no unpaid invoices past the first aging tier.";
+      else printf "SUMMARY: %d-%d days=%d ($%.2f), %d-%d days=%d ($%.2f), %d+ days=%d ($%.2f)\n", tier1, tier2-1, b1, amt1, tier2, tier3-1, b2, amt2, tier3, b3, amt3;
+    }
+  ' "{{invoices_csv_path}}"
+variables:
+  invoices_csv_path:
+    default: "./client_invoices.csv"
+    description: "Path to a CSV with columns: invoice_id,client,due_date (YYYY-MM-DD),amount,status (paid/unpaid)."
+  tier1_days:
+    default: 30
+    description: Days past due that starts the first aging bucket.
+  tier2_days:
+    default: 60
+    description: Days past due that starts the second aging bucket.
+  tier3_days:
+    default: 90
+    description: Days past due that starts the most severe aging bucket.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reads a billing-system invoice export and only reports aging buckets; it
+  does not send collection notices or modify invoice records.

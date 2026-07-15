@@ -1,0 +1,44 @@
+id: unbilled-time-aging-check
+version: 1
+name: Unbilled Time Aging Check
+description: >
+  Scans a log of attorney and staff time entries and flags entries still
+  marked unbilled once they pass a configurable age threshold. Use this if
+  your firm has ever written off time or forgotten to invoice for work
+  because unbilled hours sat too long before anyone reviewed them.
+category: law-firm
+tags: [law-firm, billing, time-entries, wip, revenue-leakage]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_unbilled}}" '
+    BEGIN {
+      "date +%s" | getline now_epoch; close("date +%s");
+    }
+    NR==1 {next}
+    $5=="unbilled" {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      if (ts_epoch == "") next;
+      age_days = int((now_epoch - ts_epoch) / 86400);
+      if (age_days > max_days) {
+        flagged++;
+        printf "AGING WIP: %s hrs by %s on matter %s, entered %s (%d days old, limit %d)\n", $4, $2, $3, $1, age_days, max_days;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: no unbilled time entries older than the threshold.";
+    }
+  ' "{{time_entries_csv_path}}"
+variables:
+  time_entries_csv_path:
+    default: "./time_entries.csv"
+    description: "Path to a CSV with columns: entry_date (YYYY-MM-DD),attorney,matter,hours,status (billed/unbilled)."
+  max_days_unbilled:
+    default: 30
+    description: Maximum number of days a time entry can remain unbilled (WIP) before it is flagged as at risk of write-off or being forgotten.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only aging check against your time-and-billing export; it does not
+  itself post bills or move time entries into an invoice.

@@ -1,0 +1,57 @@
+id: flat-fee-earned-unearned-tracking-check
+version: 1
+name: Flat-Fee Earned/Unearned Tracking Check
+description: >
+  Compares milestone completion percentage against the percentage of a flat
+  fee still recorded as unearned, and flags matters where the gap suggests
+  fees should have been reclassified as earned. Use this if your firm bills
+  flat fees and has ever left money sitting in trust as "unearned" well
+  after the work it was tied to was actually finished.
+category: law-firm
+tags: [law-firm, trust-accounting, flat-fee, billing, fee-recognition]
+schedule: "0 7 * * 3"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v gap_threshold="{{recognition_gap_pct_threshold}}" '
+    NR==1 {next}
+    {
+      milestone = $4 + 0;
+      recognized = $5 + 0;
+      gap = milestone - recognized;
+      if (gap > gap_threshold) {
+        flagged++;
+        printf "POSSIBLE UNDER-RECOGNIZED FEE: matter %s (%s) is %.0f%% complete by milestone but only %.0f%% of the $%.2f flat fee is recognized as earned (gap %.0f pts)\n", $1, $2, milestone, recognized, $3+0, gap;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: earned/unearned recognition tracks milestone completion within the configured tolerance for all flat-fee matters.";
+    }
+  ' "{{flat_fee_matters_csv_path}}"
+prompt: |
+  Review the flagged matters from {{flat_fee_matters_csv_path}} where
+  milestone completion is running ahead of the percentage of the flat fee
+  recognized as earned by more than {{recognition_gap_pct_threshold}}
+  points. For each, check the matter's engagement letter or fee agreement
+  notes (if available) to confirm what "earned" means for that milestone,
+  and draft a short list of matters where the trust-to-operating journal
+  entry likely needs to be updated, addressed to the billing partner or
+  bookkeeper.
+script_note: >
+  The shell command computes the numeric gap between milestone completion
+  and recognized-earned percentage for free; it cannot read the engagement
+  letter's milestone definitions or judge whether a given milestone truly
+  counts as "earned" under the fee agreement, which is what the LLM pass
+  adds.
+variables:
+  flat_fee_matters_csv_path:
+    default: "./flat_fee_matters.csv"
+    description: "Path to a CSV with columns: matter,client,flat_fee_amount,milestone_pct_complete,pct_recognized_earned."
+  recognition_gap_pct_threshold:
+    default: 20
+    description: Percentage-point gap between milestone completion and recognized-earned percentage before a matter is flagged for review.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Milestone completion and recognized-earned percentages must come from
+  your practice management or trust accounting system; this job does not
+  itself move funds or reclassify fees.

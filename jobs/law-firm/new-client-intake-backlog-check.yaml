@@ -1,0 +1,45 @@
+id: new-client-intake-backlog-check
+version: 1
+name: New Client Intake Backlog Check
+description: >
+  Scans the new client intake queue and flags requests that have been
+  waiting longer than a target turnaround time for their conflicts check
+  and engagement letter to go out. Use this if intake requests sometimes
+  sit untouched because nobody is watching the queue between the initial
+  request and the conflicts clearance.
+category: law-firm
+tags: [law-firm, intake, conflicts-check, engagement-letter]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_in_queue}}" '
+    NR==1 {next}
+    $3=="pending" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - received_epoch) / 86400;
+      if (age_days > max_days) {
+        printf "BACKLOGGED: intake %s (%s) received %s, %d days in queue (limit %d)\n", $1, $4, $2, age_days, max_days;
+        flagged++;
+      }
+      total++;
+    }
+    END {
+      if (flagged + 0 == 0) { print "OK: no pending intake requests past the turnaround target."; }
+      else { printf "%d of %d pending intake requests are past the turnaround target.\n", flagged, total; }
+    }
+  ' "{{intake_queue_csv_path}}"
+variables:
+  intake_queue_csv_path:
+    default: "./client_intake_queue.csv"
+    description: "Path to a CSV with columns: intake_id,received_date (YYYY-MM-DD),status (pending/cleared/declined),prospective_client_name."
+  max_days_in_queue:
+    default: 3
+    description: Maximum allowed business days a pending intake request can sit before conflicts check and engagement letter go out.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only queue-age check; it does not run the conflicts search itself
+  or draft the engagement letter, it only flags which requests need
+  attention.

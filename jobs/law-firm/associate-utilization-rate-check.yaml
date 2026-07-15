@@ -1,0 +1,44 @@
+id: associate-utilization-rate-check
+version: 1
+name: Associate Utilization Rate Check
+description: >
+  Reads a period-end timesheet summary of billable and available hours per
+  associate and flags anyone whose utilization rate has dropped below a
+  target threshold. Use this if you want early warning on associates who
+  are under-billing for the period before it shows up in monthly firm
+  reporting.
+category: law-firm
+tags: [law-firm, utilization, timekeeping, associates]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_rate="{{min_utilization_rate}}" '
+    NR==1 {next}
+    {
+      associate = $1; billable = $2 + 0; available = $3 + 0;
+      if (available <= 0) { next; }
+      rate = (billable / available) * 100;
+      if (rate < min_rate) {
+        printf "LOW UTILIZATION: %s billed %.1f of %.1f available hours (%.1f%%, target %.1f%%)\n", associate, billable, available, rate, min_rate;
+        flagged++;
+      }
+      total++;
+    }
+    END {
+      if (flagged + 0 == 0) { print "OK: no associates below target utilization rate."; }
+      else { printf "%d of %d associates below target utilization rate.\n", flagged, total; }
+    }
+  ' "{{timesheet_summary_csv_path}}"
+variables:
+  timesheet_summary_csv_path:
+    default: "./associate_utilization.csv"
+    description: "Path to a CSV with columns: associate_name,billable_hours,available_hours for the current billing period."
+  min_utilization_rate:
+    default: 75
+    description: Minimum acceptable utilization rate as a percentage before an associate is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a timesheet export your billing system already
+  produces; it does not adjust rates, reassign matters, or write back to
+  the timekeeping system.

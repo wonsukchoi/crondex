@@ -1,0 +1,40 @@
+id: engagement-letter-missing-check
+version: 1
+name: Engagement Letter Missing Check
+description: >
+  Scans a CSV of newly opened matters and flags any that have been open
+  longer than a configurable grace period without a signed engagement
+  letter or retainer agreement on file. Use this if your firm opens
+  matters before paperwork is fully executed and wants a backstop so no
+  matter proceeds indefinitely without a signed engagement.
+category: law-firm
+tags: [law-firm, engagement-letter, intake, risk-management]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace_days="{{grace_period_days}}" '
+    NR==1 {next}
+    $4=="no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline opened_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_open = (now_epoch - opened_epoch) / 86400;
+      if (days_open > grace_days) {
+        printf "MISSING: matter %s (%s) opened %d day(s) ago, no signed engagement letter on file\n", $1, $2, days_open;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no open matters past the grace period without a signed engagement letter." }
+  ' "{{matters_csv_path}}"
+variables:
+  matters_csv_path:
+    default: "./matter_intake.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,date_opened (YYYY-MM-DD),engagement_letter_signed (yes/no)."
+  grace_period_days:
+    default: 10
+    description: Number of days a matter may remain open before a missing signed engagement letter is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against an intake list your practice management system
+  exports; it does not verify engagement letter content, only whether the signed flag is set.

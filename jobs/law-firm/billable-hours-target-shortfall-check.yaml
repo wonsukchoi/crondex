@@ -1,0 +1,56 @@
+id: billable-hours-target-shortfall-check
+version: 1
+name: Billable Hours Target Shortfall Check
+description: >
+  Compares each attorney's logged hours against a pro-rated pace toward
+  their billable-hours target for the current period and flags anyone
+  falling meaningfully behind. Use this if attorneys have ever discovered
+  they were far short of their annual or quarterly billable target only
+  once the period was nearly over.
+category: law-firm
+tags: [law-firm, billable-hours, attorney-performance, utilization]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v shortfall_threshold="{{shortfall_hours_threshold}}" '
+    BEGIN {
+      "date +%s" | getline now_epoch; close("date +%s");
+    }
+    NR==1 {next}
+    {
+      cmd_s = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd_s | getline start_epoch; close(cmd_s);
+      cmd_e = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd_e | getline end_epoch; close(cmd_e);
+      if (start_epoch == "" || end_epoch == "") next;
+      total_days = (end_epoch - start_epoch) / 86400;
+      if (total_days <= 0) next;
+      elapsed_days = (now_epoch - start_epoch) / 86400;
+      if (elapsed_days < 0) elapsed_days = 0;
+      if (elapsed_days > total_days) elapsed_days = total_days;
+      target = $4 + 0;
+      logged = $5 + 0;
+      expected_hours = target * (elapsed_days / total_days);
+      shortfall = expected_hours - logged;
+      if (shortfall > shortfall_threshold) {
+        flagged++;
+        printf "PACE SHORTFALL: %s has logged %.1f hrs, expected ~%.1f hrs by now toward a %.0f hr target (shortfall %.1f hrs)\n", $1, logged, expected_hours, target, shortfall;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: all attorneys are on pace to meet their billable-hours target.";
+    }
+  ' "{{billable_hours_csv_path}}"
+variables:
+  billable_hours_csv_path:
+    default: "./billable_hours_progress.csv"
+    description: "Path to a CSV with columns: attorney,period_start (YYYY-MM-DD),period_end (YYYY-MM-DD),target_hours,hours_logged."
+  shortfall_hours_threshold:
+    default: 20
+    description: Hours below pro-rated pace before an attorney is flagged as falling behind their billable-hours target.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Pace math is a simple linear pro-ration of the target across the period;
+  it does not account for planned leave, part-time schedules, or
+  non-billable-heavy roles, so thresholds may need per-attorney tuning.

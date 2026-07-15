@@ -1,0 +1,44 @@
+id: write-off-approval-pending-tracker
+version: 1
+name: Write-Off Approval Pending Tracker
+description: >
+  Scans a log of time or fee write-off requests and flags any still awaiting
+  partner approval after sitting longer than a configurable number of days.
+  Use this if write-off requests have ever stalled in someone's approval
+  queue long enough to distort your firm's realization and billing reports.
+category: law-firm
+tags: [law-firm, billing, write-offs, approvals, realization]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_pending}}" '
+    BEGIN {
+      "date +%s" | getline now_epoch; close("date +%s");
+    }
+    NR==1 {next}
+    $6=="pending" {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline ts_epoch; close(cmd);
+      if (ts_epoch == "") next;
+      age_days = int((now_epoch - ts_epoch) / 86400);
+      if (age_days > max_days) {
+        flagged++;
+        printf "STALE WRITE-OFF REQUEST: request %s on matter %s for $%.2f submitted by %s, pending %d days (limit %d)\n", $1, $2, $4, $3, age_days, max_days;
+      }
+    }
+    END {
+      if (flagged == 0) print "OK: no write-off requests pending longer than the threshold.";
+    }
+  ' "{{writeoff_requests_csv_path}}"
+variables:
+  writeoff_requests_csv_path:
+    default: "./writeoff_requests.csv"
+    description: "Path to a CSV with columns: request_id,matter,attorney,amount,submitted_date (YYYY-MM-DD),status (pending/approved/denied)."
+  max_days_pending:
+    default: 10
+    description: Maximum number of days a write-off request can sit pending before it is flagged for follow-up with the approving partner.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only queue check against a write-off request log your billing system
+  already produces; it does not approve, deny, or apply write-offs itself.

@@ -1,0 +1,46 @@
+id: cle-credit-shortfall-tracker
+version: 1
+name: CLE Credit Shortfall Tracker
+description: >
+  Compares each attorney's earned continuing legal education (CLE) credit
+  hours against what their jurisdiction requires and flags shortfalls,
+  marking ones close to the reporting deadline as urgent. Use this if
+  attorneys have ever found out about a CLE shortfall only after the
+  reporting deadline passed.
+category: law-firm
+tags: [law-firm, cle, licensing, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{deadline_warn_days}}" '
+    NR==1 {next}
+    {
+      earned=$3; required=$4; deadline=$5;
+      shortfall = required - earned;
+      if (shortfall > 0) {
+        cmd = "date -d \"" deadline "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" deadline "\" +%s 2>/dev/null";
+        cmd | getline due_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_left = (due_epoch - now_epoch) / 86400;
+        urgency = (days_left <= warn_days) ? "URGENT" : "SHORTFALL";
+        printf "%s: %s (%s) — %.1f of %.1f required CLE credits earned, short %.1f, deadline %s (%d days)\n", urgency, $1, $2, earned, required, shortfall, deadline, days_left;
+        count++;
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no CLE credit shortfalls found.";
+    }
+  ' "{{cle_credits_csv_path}}"
+variables:
+  cle_credits_csv_path:
+    default: "./cle_credit_tracking.csv"
+    description: "Path to a CSV with columns: attorney_name,jurisdiction,credits_earned,credits_required,reporting_deadline (YYYY-MM-DD)."
+  deadline_warn_days:
+    default: 45
+    description: Days-out threshold at which a CLE shortfall is marked urgent rather than just flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reads whatever credit totals your CLE tracking spreadsheet or provider
+  export gives you — it does not verify individual course attendance or
+  submit hours to any state bar.

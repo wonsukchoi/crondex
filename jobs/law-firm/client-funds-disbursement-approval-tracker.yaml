@@ -1,0 +1,41 @@
+id: client-funds-disbursement-approval-tracker
+version: 1
+name: Client Funds Disbursement Approval Tracker
+description: >
+  Checks pending trust-fund disbursement requests and flags any that have
+  sat without approval or denial past a set number of days. Use this if a
+  client has ever been left waiting on trust funds because an approval
+  request got stuck in someone's inbox.
+category: law-firm
+tags: [law-firm, trust-accounting, disbursements, approvals]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{overdue_days}}" '
+    NR==1 {next}
+    $5=="pending" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline req_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      pending_days = (now_epoch - req_epoch) / 86400;
+      if (pending_days >= days) {
+        printf "DISBURSEMENT APPROVAL OVERDUE: request %s (matter %s, $%.2f) — requested %s (%d days ago)\n", $1, $2, $3, $4, pending_days;
+        count++;
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no trust disbursement approvals pending beyond " days " days.";
+    }
+  ' "{{disbursement_requests_csv_path}}"
+variables:
+  disbursement_requests_csv_path:
+    default: "./trust_disbursement_requests.csv"
+    description: "Path to a CSV with columns: request_id,matter_id,amount,requested_date (YYYY-MM-DD),status (pending/approved/denied)."
+  overdue_days:
+    default: 3
+    description: Days a disbursement approval request can sit pending before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a disbursement request log your trust accounting
+  workflow already produces — it does not approve requests or move funds.

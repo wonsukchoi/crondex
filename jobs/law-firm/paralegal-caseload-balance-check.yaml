@@ -1,0 +1,52 @@
+id: paralegal-caseload-balance-check
+version: 1
+name: Paralegal Caseload Balance Check
+description: >
+  Compares each paralegal's active case count against the team average
+  and flags anyone significantly above or below the norm. Use this if
+  caseloads tend to drift unevenly across the paralegal team and you
+  want a regular nudge to rebalance before someone is overloaded or
+  under-utilized.
+category: law-firm
+tags: [law-firm, paralegals, caseload, staffing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{deviation_tolerance_pct}}" '
+    NR==1 {next}
+    {
+      names[NR] = $1; cases[NR] = $2 + 0;
+      sum += $2 + 0; count++;
+    }
+    END {
+      if (count == 0) { print "NO DATA: no paralegal caseload rows found."; exit; }
+      avg = sum / count;
+      printf "Team average caseload: %.1f cases across %d paralegals\n", avg, count;
+      for (i = 1; i <= NR; i++) {
+        if (names[i] == "") continue;
+        if (avg == 0) continue;
+        dev_pct = ((cases[i] - avg) / avg) * 100;
+        if (dev_pct > tolerance) {
+          printf "OVERLOADED: %s has %d cases (%.1f%% above average)\n", names[i], cases[i], dev_pct;
+          flagged++;
+        } else if (dev_pct < -tolerance) {
+          printf "UNDERLOADED: %s has %d cases (%.1f%% below average)\n", names[i], cases[i], -dev_pct;
+          flagged++;
+        }
+      }
+      if (flagged + 0 == 0) { print "OK: all paralegal caseloads within tolerance of the team average."; }
+    }
+  ' "{{paralegal_caseload_csv_path}}"
+variables:
+  paralegal_caseload_csv_path:
+    default: "./paralegal_caseload.csv"
+    description: "Path to a CSV with columns: paralegal_name,active_case_count."
+  deviation_tolerance_pct:
+    default: 25
+    description: Percentage deviation from the team average caseload before a paralegal is flagged for rebalancing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only staffing check against a case management export; it does not
+  reassign matters itself, it only surfaces imbalance for a supervising
+  attorney or office manager to act on.

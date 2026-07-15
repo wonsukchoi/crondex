@@ -1,0 +1,38 @@
+id: calendar-conflict-double-booking-check
+version: 1
+name: Calendar Conflict Double-Booking Check
+description: >
+  Scans a CSV of scheduled court dates and hearings and flags any attorney
+  booked into two events at the same date and time. Use this if your firm
+  schedules court appearances across multiple matters and wants an
+  automated check before an attorney is double-booked in front of a judge.
+category: law-firm
+tags: [law-firm, calendaring, court-dates, scheduling]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    { key = $1 "|" $3 "|" $4; count[key]++; detail[key] = detail[key] "matter " $5 " (" $2 "); "; }
+    END {
+      flagged = 0;
+      for (k in count) {
+        if (count[k] > 1) {
+          split(k, parts, "|");
+          printf "DOUBLE-BOOKED: %s on %s at %s - %s\n", parts[1], parts[2], parts[3], detail[k];
+          flagged++;
+        }
+      }
+      if (flagged == 0) print "OK: no attorney double-bookings found.";
+    }
+  ' "{{calendar_csv_path}}"
+variables:
+  calendar_csv_path:
+    default: "./attorney_calendar.csv"
+    description: "Path to a CSV with columns: attorney_name,event_type,date (YYYY-MM-DD),start_time (HH:MM),matter_id."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Detects exact same-date/same-start-time conflicts on identical field
+  values; it does not detect overlapping-but-offset time ranges or account
+  for travel time between courthouses.

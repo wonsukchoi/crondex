@@ -1,0 +1,44 @@
+id: malpractice-insurance-renewal-check
+version: 1
+name: Malpractice Insurance Renewal Check
+description: >
+  Checks your professional liability (malpractice) insurance policy
+  renewal date and flags it if the renewal is approaching and hasn't been
+  confirmed yet. Use this if your firm has ever come close to a coverage
+  gap because a malpractice policy renewal slipped past without anyone
+  confirming it went through.
+category: law-firm
+tags: [law-firm, malpractice-insurance, risk-management, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      confirmed = tolower($4);
+      if (days_left <= days && confirmed != "yes") {
+        status = (days_left < 0) ? "LAPSED" : "UNCONFIRMED RENEWAL";
+        printf "%s: policy \"%s\" (%s) renews %s (%d days) — renewal not yet confirmed\n", status, $1, $2, $3, days_left;
+        count++;
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no unconfirmed malpractice insurance renewals within " days " days.";
+    }
+  ' "{{malpractice_policy_csv_path}}"
+variables:
+  malpractice_policy_csv_path:
+    default: "./malpractice_insurance_policies.csv"
+    description: "Path to a CSV with columns: policy_name,carrier,renewal_date (YYYY-MM-DD),renewal_confirmed (yes/no)."
+  warn_days:
+    default: 30
+    description: Days-out threshold for flagging an unconfirmed malpractice insurance renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a policy list you maintain — it does not bind
+  coverage, negotiate renewal terms, or contact the carrier.

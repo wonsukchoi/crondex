@@ -1,0 +1,45 @@
+id: case-outcome-appeal-deadline-tracker
+version: 1
+name: Case Outcome Appeal Deadline Tracker
+description: >
+  Scans a matter outcomes log for adverse judgments and flags any whose
+  appeal filing deadline is approaching. Use this if you want a safety
+  net so an appeal window is never missed after a client receives an
+  unfavorable outcome.
+category: law-firm
+tags: [law-firm, appeals, deadlines, litigation]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{deadline_warning_days}}" '
+    NR==1 {next}
+    $3=="adverse" && $5!="filed" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (deadline_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days) {
+        printf "APPEAL DEADLINE APPROACHING: matter %s, deadline %s (%d days left), status: %s\n", $1, $4, days_left, $5;
+        flagged++;
+      }
+      total++;
+    }
+    END {
+      if (flagged + 0 == 0) { print "OK: no adverse-outcome matters with an appeal deadline in the warning window."; }
+      else { printf "%d adverse-outcome matter(s) have an appeal deadline within %d days.\n", flagged, warn_days; }
+    }
+  ' "{{case_outcomes_csv_path}}"
+variables:
+  case_outcomes_csv_path:
+    default: "./case_outcomes.csv"
+    description: "Path to a CSV with columns: matter_id,judgment_date (YYYY-MM-DD),outcome (favorable/adverse/settled),appeal_deadline_date (YYYY-MM-DD),appeal_status (not-filed/filed/waived)."
+  deadline_warning_days:
+    default: 10
+    description: Number of days before the appeal filing deadline at which an unfiled adverse-outcome matter should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only deadline check against a matter outcomes log; it does not
+  calculate jurisdiction-specific appeal windows itself, so
+  appeal_deadline_date must already reflect the correct deadline for
+  each matter's jurisdiction.

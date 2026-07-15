@@ -1,0 +1,40 @@
+id: retainer-replenishment-tracker
+version: 1
+name: Retainer Replenishment Tracker
+description: >
+  Checks a client retainer balance report and flags any matter whose
+  remaining trust retainer has dropped below a configurable replenishment
+  threshold. Use this if your firm has ever kept doing billable work on a
+  matter after its retainer ran dry because nobody caught the low balance
+  in time to send a replenishment request.
+category: law-firm
+tags: [law-firm, trust-accounting, retainers, billing, client-funds]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_balance="{{min_retainer_balance}}" '
+    NR==1 {next}
+    {
+      balance = $3 + 0;
+      if (balance < min_balance) {
+        flagged++;
+        printf "LOW RETAINER: %s / matter %s balance $%.2f is below the $%.2f replenishment threshold\n", $1, $2, balance, min_balance;
+      }
+    }
+    END {
+      if (flagged == 0) printf "OK: all retainer balances are at or above $%.2f.\n", min_balance;
+    }
+  ' "{{retainer_balances_csv_path}}"
+variables:
+  retainer_balances_csv_path:
+    default: "./retainer_balances.csv"
+    description: "Path to a CSV with columns: client,matter,retainer_balance."
+  min_retainer_balance:
+    default: 1000
+    description: Retainer balance (in the firm's base currency) below which a matter is flagged for client replenishment outreach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reads a retainer balance export (from your trust accounting system) and
+  only flags low balances; it does not itself draft replenishment invoices
+  or move trust funds.

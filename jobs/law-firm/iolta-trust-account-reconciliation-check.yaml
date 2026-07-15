@@ -1,0 +1,43 @@
+id: iolta-trust-account-reconciliation-check
+version: 1
+name: IOLTA Trust Account Three-Way Reconciliation Check
+description: >
+  Compares the bank balance, the sum of individual client ledger balances,
+  and the internal book balance for your IOLTA/trust account and flags any
+  mismatch beyond a small tolerance. Use this if your firm reconciles trust
+  accounts on a schedule and wants an automatic check that the three numbers
+  actually agree before a partner signs off.
+category: law-firm
+tags: [law-firm, trust-accounting, iolta, reconciliation, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_amount}}" '
+    NR==1 {next}
+    {
+      bank=$2; ledger=$3; book=$4; date=$1;
+    }
+    END {
+      d1 = bank - ledger; if (d1 < 0) d1 = -d1;
+      d2 = bank - book; if (d2 < 0) d2 = -d2;
+      d3 = ledger - book; if (d3 < 0) d3 = -d3;
+      if (d1 > tol || d2 > tol || d3 > tol) {
+        printf "MISMATCH on %s: bank=%.2f client_ledger_total=%.2f book=%.2f (bank-vs-ledger=%.2f bank-vs-book=%.2f ledger-vs-book=%.2f, tolerance=%.2f)\n", date, bank, ledger, book, d1, d2, d3, tol;
+      } else {
+        printf "OK on %s: three-way reconciliation within tolerance (bank=%.2f client_ledger_total=%.2f book=%.2f)\n", date, bank, ledger, book;
+      }
+    }
+  ' "{{trust_recon_csv_path}}"
+variables:
+  trust_recon_csv_path:
+    default: "./trust_reconciliation_log.csv"
+    description: "Path to a CSV with columns: recon_date (YYYY-MM-DD),bank_balance,client_ledger_total,book_balance. Uses the last row as the most recent reconciliation."
+  tolerance_amount:
+    default: 1.00
+    description: Maximum allowed dollar variance between any two of the three balances before flagging a mismatch.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reads whatever bank statement, client-ledger export, and book-balance
+  totals you feed it as a single row — it does not pull data from your bank
+  or trust accounting software itself.

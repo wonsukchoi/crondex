@@ -1,0 +1,48 @@
+id: conflict-of-interest-check-reminder
+version: 1
+name: Conflict-of-Interest Check Before Work Start Reminder
+description: >
+  Checks your matter intake log for matters where work has started but the
+  conflict-of-interest check was never logged as completed, or was
+  completed after work already began. Use this if timekeepers have ever
+  opened a matter and started billing before the conflicts check formally
+  cleared.
+category: law-firm
+tags: [law-firm, conflicts-check, risk-management, intake]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      matter_id=$1; client=$2; work_start=$3; status=$4; completed_date=$5;
+      if (work_start != "" && (status != "completed" || completed_date == "")) {
+        printf "WORK STARTED WITHOUT CLEARED CONFLICTS CHECK: matter %s (%s) — work started %s, conflict check status: %s\n", matter_id, client, work_start, (status == "" ? "not logged" : status);
+        count++;
+        next;
+      }
+      if (work_start != "" && completed_date != "") {
+        cmd1 = "date -d \"" work_start "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" work_start "\" +%s 2>/dev/null";
+        cmd1 | getline ws_epoch; close(cmd1);
+        cmd2 = "date -d \"" completed_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" completed_date "\" +%s 2>/dev/null";
+        cmd2 | getline cc_epoch; close(cmd2);
+        if (cc_epoch > ws_epoch) {
+          printf "CONFLICTS CHECK COMPLETED AFTER WORK STARTED: matter %s (%s) — work started %s, check completed %s\n", matter_id, client, work_start, completed_date;
+          count++;
+        }
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no matters found where work started before conflicts clearance.";
+    }
+  ' "{{matter_intake_csv_path}}"
+variables:
+  matter_intake_csv_path:
+    default: "./matter_intake_log.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,work_start_date (YYYY-MM-DD, blank if not started),conflict_check_status (pending/completed/conflict-identified),conflict_check_completed_date (YYYY-MM-DD, blank if not completed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks the sequencing of conflicts clearance against work start dates in
+  your intake log — it does not perform the conflicts search itself, which
+  depends on your practice management/conflicts database.

@@ -188,7 +188,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2088 jobs across 63 categories:
+2120 jobs across 64 categories:
 
 | category | jobs | description |
 |---|---|---|
@@ -224,6 +224,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `inventory` | 32 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 32 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 32 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
+| `law-firm` | 32 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
 | `learning` | 32 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 32 | Shipping ops — customs, freight, delays, fees. |

@@ -1,0 +1,37 @@
+id: matter-status-report-overdue-check
+version: 1
+name: Matter Status Report Overdue Check
+description: >
+  Scans a CSV of open matters and flags any where a client status update
+  hasn't been sent within that matter's expected reporting cadence. Use
+  this if your firm promises clients regular status updates and wants an
+  automated check for matters that have gone quiet.
+category: law-firm
+tags: [law-firm, client-communication, matter-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $5=="open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_since = (now_epoch - last_epoch) / 86400;
+      cadence = $4 + 0;
+      if (days_since > cadence) {
+        printf "OVERDUE: matter %s (%s) - last client update %d day(s) ago, cadence is every %d day(s)\n", $1, $2, days_since, cadence;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no open matters overdue for a client status update." }
+  ' "{{matters_csv_path}}"
+variables:
+  matters_csv_path:
+    default: "./matter_status_updates.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,last_status_update_date (YYYY-MM-DD),expected_cadence_days,status (open/closed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a matter list where the last-update date is
+  maintained by staff; it does not verify the content or quality of a status update.

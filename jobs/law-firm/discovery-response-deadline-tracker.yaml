@@ -1,0 +1,42 @@
+id: discovery-response-deadline-tracker
+version: 1
+name: Discovery Response Deadline Tracker
+description: >
+  Scans a CSV of outstanding discovery requests and flags any response
+  deadline approaching within a configurable window where no response has
+  been logged yet. Use this if your litigation team tracks discovery
+  requests in a list and wants an automated check before deadlines lapse.
+category: law-firm
+tags: [law-firm, discovery, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" '
+    NR==1 {next}
+    $5=="no" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      if (days_left < 0) {
+        printf "OVERDUE: matter %s - %s response was due %s (%d day(s) ago), not logged\n", $1, $3, $4, -days_left;
+        flagged++;
+      } else if (days_left <= warn_days) {
+        printf "AT RISK: matter %s - %s response due %s (%d day(s)), not yet logged\n", $1, $3, $4, days_left;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no unresponded discovery requests inside the warning window." }
+  ' "{{discovery_csv_path}}"
+variables:
+  discovery_csv_path:
+    default: "./discovery_requests.csv"
+    description: "Path to a CSV with columns: matter_id,request_id,request_type,due_date (YYYY-MM-DD),response_logged (yes/no)."
+  warning_window_days:
+    default: 5
+    description: Number of days out from today to start flagging an at-risk discovery response deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a discovery tracker your firm already maintains;
+  it flags missing responses by date, not the substantive adequacy of a response.

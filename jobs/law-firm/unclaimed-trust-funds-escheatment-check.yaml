@@ -1,0 +1,61 @@
+id: unclaimed-trust-funds-escheatment-check
+version: 1
+name: Unclaimed Trust Funds Escheatment Check
+description: >
+  Flags client trust balances that have gone dormant long enough to be at
+  risk of state unclaimed-property (escheatment) reporting deadlines. Use
+  this if your firm has ever discovered an old client trust balance only
+  after it was already overdue for escheatment reporting to the state.
+category: law-firm
+tags: [law-firm, trust-accounting, escheatment, unclaimed-property, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v warn_years="{{dormancy_warn_years}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      years_dormant = (now_epoch - last_epoch) / 31536000;
+      if (years_dormant >= warn_years && $4+0 > 0) {
+        printf "DORMANT TRUST BALANCE: matter %s (%s, %s) — $%.2f unclaimed, last activity %s (%.1f years dormant)\n", $1, $2, $3, $4, $5, years_dormant;
+        count++;
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no trust balances dormant beyond " warn_years " years.";
+    }
+  ' "{{trust_balances_csv_path}}"
+prompt: |
+  Review the client trust balances in {{trust_balances_csv_path}} that have
+  gone dormant beyond {{dormancy_warn_years}} years (matter, client, state,
+  balance, last activity date). For each state represented, determine the
+  unclaimed-property/escheatment dormancy period that state's law applies
+  to attorney trust/IOLTA funds — these periods vary by state and commonly
+  range from 1 to 5 years, and some states have client-fund-specific rules
+  that differ from general unclaimed property. Report which flagged
+  balances are actually approaching or past their state-specific
+  escheatment reporting deadline versus which are dormant but not yet at
+  risk, and recommend which clients need a due-diligence outreach letter
+  before the deadline. If you are not confident of a state's exact
+  statutory period, say so explicitly and recommend the firm confirm with
+  escheatment compliance counsel rather than guessing.
+script_note: >
+  `command` only computes raw years-dormant per matter against one generic
+  threshold — it does not know each state's actual escheatment deadline.
+  `prompt` maps the dormant balances to state-specific unclaimed-property
+  rules and judges which are truly at risk versus just old.
+variables:
+  trust_balances_csv_path:
+    default: "./trust_balances_dormancy.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,state,trust_balance,last_activity_date (YYYY-MM-DD)."
+  dormancy_warn_years:
+    default: 2.5
+    description: Years of dormancy after which a client trust balance is flagged for escheatment review; a conservative generic threshold since actual state deadlines vary.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Escheatment/unclaimed-property statutes vary significantly by state and
+  change over time — treat the prompt's state-deadline analysis as a
+  starting point for your compliance team, not a final legal determination.

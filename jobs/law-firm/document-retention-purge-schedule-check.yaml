@@ -1,0 +1,36 @@
+id: document-retention-purge-schedule-check
+version: 1
+name: Document Retention Purge Schedule Check
+description: >
+  Scans a CSV of closed-matter files and flags any that have passed their
+  retention period and are eligible for scheduled destruction review. Use
+  this if your firm sets a retention period per matter at closing and
+  wants an automated sweep instead of manually auditing old file lists.
+category: law-firm
+tags: [law-firm, document-retention, file-management, compliance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $4=="pending" {
+      cmd = "date -d \"" $2 " +" $3 " years\" +%s 2>/dev/null || date -j -v+" $3 "y -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline eligible_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      if (eligible_epoch <= now_epoch) {
+        printf "ELIGIBLE: matter %s - closed %s, retention %d year(s), eligible for purge review\n", $1, $2, $3;
+        flagged++;
+      }
+    }
+    END { if (flagged=="") print "OK: no closed-matter files currently eligible for purge review." }
+  ' "{{closed_matters_csv_path}}"
+variables:
+  closed_matters_csv_path:
+    default: "./closed_matter_files.csv"
+    description: "Path to a CSV with columns: matter_id,close_date (YYYY-MM-DD),retention_years,purge_status (pending/completed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only eligibility check, not an automated destruction job — flagged
+  files still require a manual conflicts/malpractice-tail review before
+  anything is actually purged, per your jurisdiction's retention rules.

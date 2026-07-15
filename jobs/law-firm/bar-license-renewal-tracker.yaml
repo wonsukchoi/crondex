@@ -1,0 +1,42 @@
+id: bar-license-renewal-tracker
+version: 1
+name: Attorney Bar License Renewal Tracker
+description: >
+  Checks each attorney's bar license renewal date per jurisdiction and
+  flags any license due soon or already past due. Use this if your firm
+  has ever had an attorney's license lapse because nobody was tracking
+  renewal dates across multiple state bars.
+category: law-firm
+tags: [law-firm, bar-license, licensing, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (due_epoch - now_epoch) / 86400;
+      if (days_left <= days) {
+        status = (days_left < 0) ? "EXPIRED" : "DUE SOON";
+        printf "%s: %s — %s bar license #%s due %s (%d days)\n", status, $1, $2, $3, $4, days_left;
+        count++;
+      }
+    }
+    END {
+      if (count+0 == 0) print "OK: no bar license renewals due within " days " days.";
+    }
+  ' "{{bar_license_csv_path}}"
+variables:
+  bar_license_csv_path:
+    default: "./bar_license_renewals.csv"
+    description: "Path to a CSV with columns: attorney_name,jurisdiction,license_number,renewal_due_date (YYYY-MM-DD)."
+  warn_days:
+    default: 60
+    description: Days-out threshold for flagging an upcoming bar license renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a renewal-date list you maintain — it does not
+  file renewals or pull dates from any state bar's website.

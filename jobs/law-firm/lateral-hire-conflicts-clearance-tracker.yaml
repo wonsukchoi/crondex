@@ -1,0 +1,45 @@
+id: lateral-hire-conflicts-clearance-tracker
+version: 1
+name: Lateral Hire Conflicts Clearance Tracker
+description: >
+  Checks the lateral hire pipeline for incoming attorneys whose
+  conflict-of-interest clearance against the firm's current client list
+  has not been completed before their scheduled start date. Use this if
+  lateral hires have ever started before their conflicts check against
+  the firm's client roster was finished.
+category: law-firm
+tags: [law-firm, lateral-hire, conflicts-check, risk-management]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_days_before_start}}" '
+    NR==1 {next}
+    $3!="cleared" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline start_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_until_start = (start_epoch - now_epoch) / 86400;
+      if (days_until_start <= warn_days) {
+        printf "NOT CLEARED: %s starts %s (%d days out), clearance status: %s\n", $1, $2, days_until_start, $3;
+        flagged++;
+      }
+      total++;
+    }
+    END {
+      if (flagged + 0 == 0) { print "OK: no unresolved lateral hire conflicts checks within the warning window."; }
+      else { printf "%d of %d not-yet-cleared lateral hires are within the warning window.\n", flagged, total; }
+    }
+  ' "{{lateral_hire_pipeline_csv_path}}"
+variables:
+  lateral_hire_pipeline_csv_path:
+    default: "./lateral_hire_pipeline.csv"
+    description: "Path to a CSV with columns: candidate_name,start_date (YYYY-MM-DD),clearance_status (pending/in-review/cleared/blocked)."
+  warning_days_before_start:
+    default: 14
+    description: Number of days before start date at which an unresolved clearance check should be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only pipeline check; it does not run the conflicts search against
+  the client database itself, it only flags candidates whose clearance
+  status hasn't caught up to their approaching start date.

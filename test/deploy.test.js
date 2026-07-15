@@ -224,6 +224,10 @@ test("cronToAwsCron: */n step becomes 0/n", () => {
   assert.equal(cronToAwsCron("*/15 * * * *"), "cron(0/15 * * * ? *)");
 });
 
+test("cronToAwsCron: numeric day-of-month range keeps cron's - (AWS syntax, unlike systemd's ..)", () => {
+  assert.equal(cronToAwsCron("0 9 1-15 * *"), "cron(0 9 1-15 * ? *)");
+});
+
 test("cronToAwsCron: a-b/n step-in-range day-of-week throws a clear error", () => {
   assert.throws(() => cronToAwsCron("0 14 * * 1-5/2"), /unsupported day-of-week step-in-range syntax/);
 });

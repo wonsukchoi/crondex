@@ -20,6 +20,7 @@ import {
   buildShellBody,
   buildK8sCronJob,
   buildTerraformKubernetesCronJob,
+  buildNomadPeriodicJob,
   buildGithubActionsWorkflow,
   buildEventBridgeCommand,
   buildCloudSchedulerCommand,
@@ -147,6 +148,13 @@ for (const file of walk(JOBS_DIR)) {
       const tf = buildTerraformKubernetesCronJob(doc, resolvedText, isPrompt);
       assertNoUnescapedHclInterpolation(rel, "terraform", tf);
       assertValidTerraformSyntax(rel, "terraform", tf);
+
+      // Nomad job specs are also HCL2 and reuse the same hclString() escaping as the
+      // terraform target — same structural invariant applies. No `nomad` binary syntax
+      // check (unlike terraform): nomad is far less likely to be on a CI runner's PATH
+      // and its fmt/validate flags aren't worth guessing at; the structural check is
+      // what actually caught the real escaping bug this file exists to prevent.
+      assertNoUnescapedHclInterpolation(rel, "nomad", buildNomadPeriodicJob(doc, resolvedText, isPrompt));
     }
 
     assertValidYaml(rel, "github-actions", buildGithubActionsWorkflow(doc, { command, prompt, mode }), (w) => [
@@ -162,6 +170,6 @@ for (const file of walk(JOBS_DIR)) {
 }
 
 console.log(
-  `checked ${checked} job(s) across k8s-cronjob/terraform/github-actions/eventbridge/cloud-scheduler/shell-body artifacts, ${failed} failed`
+  `checked ${checked} job(s) across k8s-cronjob/terraform/nomad/github-actions/eventbridge/cloud-scheduler/shell-body artifacts, ${failed} failed`
 );
 if (failed > 0) process.exit(1);

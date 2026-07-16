@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `deploy --target nomad`: generates a Nomad periodic batch job spec,
+  mirroring the `terraform` target's structure and reusing its
+  `hclString()` HCL2 escaping as-is. Wired into `deploy`, `bundle`, and
+  the `crondex_deploy` MCP tool.
+- `SECURITY.md` and `.github/dependabot.yml` (npm + GitHub Actions,
+  weekly).
+- `scripts/check-smoke-sync.js` / `npm run check-smoke-sync`: advisory,
+  non-blocking check that flags a changed shell/hybrid job whose
+  `smoke-test-status.json` entry doesn't match its current `version`.
+  Wired into `pr-jobs.yml`'s PR comment.
+
+### Changed
+
+- `scripts/verify-deploy-artifacts.js` now also checks: the `nomad`
+  target (same structural HCL-escaping invariant proven on `terraform`)
+  and a `shell-body` check (crontab/systemd/docker's shared embedded-
+  command escaping, previously only unit-tested with synthetic cases,
+  now checked against all 2182 real catalog jobs via `bash -n`).
+- `lib/deploy.js`'s `buildShellBody()` is now exported (was
+  internal-only) so it's directly checkable and reusable.
+
 ## [0.72.0] - 2026-07-16
 
 ### Added

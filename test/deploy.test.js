@@ -12,6 +12,7 @@ import {
   buildDockerArtifacts,
   buildK8sCronJob,
   buildTerraformKubernetesCronJob,
+  buildNomadPeriodicJob,
   cronToAwsCron,
   buildEventBridgeCommand,
   buildCloudSchedulerCommand,
@@ -290,6 +291,41 @@ test("buildTerraformKubernetesCronJob: emits time_zone with a 2.20+ note when th
 test("buildTerraformKubernetesCronJob: no time_zone field when the job has no timezone set", () => {
   const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
   const hcl = buildTerraformKubernetesCronJob(job, "echo hi", false);
+  assert.doesNotMatch(hcl, /time_zone/);
+});
+
+test("buildNomadPeriodicJob: embeds job id, schedule, and command", () => {
+  const job = { id: "my-cool-job", name: "My Job", schedule: "0 6 * * *", path: "jobs/x/my-cool-job.yaml" };
+  const hcl = buildNomadPeriodicJob(job, 'echo "hello"', false);
+  assert.match(hcl, /job "my-cool-job" \{/);
+  assert.match(hcl, /type\s*=\s*"batch"/);
+  assert.match(hcl, /cron\s*=\s*"0 6 \* \* \*"/);
+  assert.match(hcl, /command = "bash"/);
+  assert.match(hcl, /args\s*=\s*\["-lc", "echo \\"hello\\""\]/);
+});
+
+test("buildNomadPeriodicJob: prompt mode adds a CRONDEX_AGENT_CLI env block and uses sh", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildNomadPeriodicJob(job, "do the thing", true);
+  assert.match(hcl, /CRONDEX_AGENT_CLI = "REPLACE_ME"/);
+  assert.match(hcl, /command = "sh"/);
+});
+
+test("buildNomadPeriodicJob: escapes a literal ${ in the command as $${ (HCL interpolation escape)", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildNomadPeriodicJob(job, 'echo "${HOST:-example.com}"', false);
+  assert.match(hcl, /\$\$\{HOST:-example\.com\}/);
+});
+
+test("buildNomadPeriodicJob: emits time_zone when the job sets a timezone", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", timezone: "America/New_York", path: "x.yaml" };
+  const hcl = buildNomadPeriodicJob(job, "echo hi", false);
+  assert.match(hcl, /time_zone\s*=\s*"America\/New_York"/);
+});
+
+test("buildNomadPeriodicJob: no time_zone field when the job has no timezone set", () => {
+  const job = { id: "my-job", name: "My Job", schedule: "0 6 * * *", path: "x.yaml" };
+  const hcl = buildNomadPeriodicJob(job, "echo hi", false);
   assert.doesNotMatch(hcl, /time_zone/);
 });
 

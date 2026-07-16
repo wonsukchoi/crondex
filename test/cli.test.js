@@ -235,6 +235,24 @@ test("deploy --target terraform: writes a kubernetes_cron_job_v1 Terraform resou
   }
 });
 
+test("deploy --target nomad: writes a Nomad periodic batch job spec", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "crondex-cli-test-"));
+  try {
+    const dest = join(tmp, "job.nomad.hcl");
+    const out = run(["deploy", "ssl-cert-expiry-check", "--target", "nomad", "--dest", dest]);
+    assert.match(out, /wrote/);
+    const content = readFileSync(dest, "utf8");
+    assert.match(content, /job "ssl-cert-expiry-check" \{/);
+    assert.match(content, /cron\s*=\s*"0 6 \* \* \*"/);
+    assert.throws(
+      () => run(["deploy", "ssl-cert-expiry-check", "--target", "nomad", "--dest", dest]),
+      /already exists/
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("deploy --target eventbridge: prints an aws scheduler command with a converted cron expression", () => {
   const out = run(["deploy", "ssl-cert-expiry-check", "--target", "eventbridge"]);
   assert.match(out, /aws scheduler create-schedule/);

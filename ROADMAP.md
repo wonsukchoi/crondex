@@ -13,9 +13,9 @@ session with no other ask in mind.
   directly, it'll just drift stale again like the old hardcoded note here
   did once already.
 - **CLI**: `list`, `categories`, `show`, `add`, `recommend`, `init`,
-  `update` (with diff + `--dry-run`), `deploy` (8 targets: crontab,
-  github-actions, systemd, docker, k8s-cronjob, terraform, eventbridge,
-  cloud-scheduler), `deploy --list-installed`, `uninstall`.
+  `update` (with diff + `--dry-run`), `deploy` (9 targets: crontab,
+  github-actions, systemd, docker, k8s-cronjob, terraform, nomad,
+  eventbridge, cloud-scheduler), `deploy --list-installed`, `uninstall`.
 - **Quality gates**: schema validation, shellcheck, near-duplicate
   detection, and a local sandboxed smoke-test all run in CI (smoke-test is
   local-only — some job defaults make real network calls).
@@ -76,8 +76,24 @@ the new default order.
   `verify-deploy-artifacts.js` (a `terraform`-binary-optional check,
   since none is installed in this environment — falls back to a
   tool-free structural invariant: every `${`/`%{` in generated output
-  must be part of the doubled escape). Nomad and Windows Task Scheduler
-  remain parked — no concrete need identified for either yet.
+  must be part of the doubled escape).
+
+  Nomad done (2026-07-16): `--target nomad` generates a periodic batch
+  job spec, mirroring the terraform target's structure — same
+  actually-runs-the-job philosophy, same HCL2 syntax, same `hclString()`
+  escaping (reused as-is, no new escaping logic to get wrong). One real
+  Nomad-specific shape: `job { periodic { cron = ... } group { task {
+  driver = "docker"; config { command/args } } } }` instead of a single
+  `kubernetes_cron_job_v1` resource. Verified structurally against all
+  2182 catalog jobs via the same `assertNoUnescapedHclInterpolation`
+  check already proven on the terraform target (no `nomad` binary
+  syntax check — nomad is far less likely to be on a CI runner's PATH
+  than terraform, and guessing at its fmt/validate flags wasn't worth
+  it for a structural check that already caught the real bug class).
+  Wired through CLI (`crondex deploy <id> --target nomad`), `bundle`,
+  and the MCP `crondex_deploy` tool, same as every other target.
+
+  Windows Task Scheduler remains parked — no concrete need identified.
 - **Edge-case correctness** — first pass done (0.70.0): systemd range syntax (`-` vs `..`), the AWS EventBridge
   regression that fix briefly introduced, an AWS dom+dow-both-restricted
   case, and an unquoted `job.name` in the GitHub Actions YAML emission —

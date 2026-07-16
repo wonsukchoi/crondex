@@ -1,0 +1,36 @@
+id: seasonal-rate-plan-update-reminder
+version: 1
+name: Seasonal Rate Plan Update Reminder
+description: >
+  Reminds you to review and update seasonal pricing ahead of an upcoming
+  high- or low-demand season, rather than letting last season's rates
+  carry over by default. Use this if a property has ever entered peak
+  season still priced at off-season rates because nobody updated the
+  seasonal plan in time.
+category: short-term-rental
+tags: [short-term-rental, pricing, seasonality, revenue-management]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check whether any upcoming season in {{season_calendar}} starts within
+  the next {{lookahead_days}} days for property {{property_id}}.
+  1. If one does, state which season and its start date.
+  2. Compare the current nightly rate plan against last year's rates for
+     that same season, if available, and flag whether this year's plan
+     still looks like it was never updated.
+  3. Recommend specific rate/minimum-stay adjustments to consider before
+     the season starts, based on any local event calendar or demand
+     signal available.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property to review.
+  season_calendar:
+    default: "Spring: Mar-May, Summer: Jun-Aug, Fall: Sep-Nov, Winter: Dec-Feb"
+    description: Definition of your local seasons and their date ranges.
+  lookahead_days:
+    default: 30
+    description: How many days ahead to check for an upcoming season start.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: A reminder/review aid — it flags stale-looking rate plans, it doesn't change any prices itself.

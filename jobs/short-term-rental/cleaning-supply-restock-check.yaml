@@ -1,0 +1,20 @@
+id: cleaning-supply-restock-check
+version: 1
+name: Cleaning Supply Restock Check
+description: >
+  Flags turnover supplies (linens, toiletries, cleaning chemicals) that
+  have dropped below their reorder threshold. Use this if a cleaner has
+  ever shown up for a turnover and run out of sheets or soap mid-clean.
+category: short-term-rental
+tags: [short-term-rental, cleaning, inventory, supplies]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, item_name, quantity_on_hand, reorder_threshold from turnover_supplies where quantity_on_hand <= reorder_threshold;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the supply-inventory database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `turnover_supplies` table with `property_id`, `item_name`, `quantity_on_hand`, and `reorder_threshold` columns — adjust the query to your inventory tracker's schema.

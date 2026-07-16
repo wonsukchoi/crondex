@@ -1,0 +1,38 @@
+id: dynamic-pricing-sync-drift-check
+version: 1
+name: Dynamic Pricing Sync Drift Check
+description: >
+  Checks whether the nightly rate your pricing tool computed actually
+  made it onto each listing platform. Use this if a pricing tool has
+  ever silently failed to push an update, leaving a listing underpriced
+  or overpriced for days without anyone noticing.
+category: short-term-rental
+tags: [short-term-rental, pricing, revenue-management, ota]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  For property {{property_id}}, compare the rate the pricing tool
+  computed for the next {{lookahead_days}} nights against the live rate
+  shown on each platform in {{listing_platforms}}.
+  1. List any date where the live rate differs from the computed rate by
+     more than {{alert_threshold_pct}}%.
+  2. Note whether the gap looks like a stale/failed sync (platform rate
+     matches an older computed rate) or a manual override someone made
+     on purpose.
+  3. Recommend which mismatches need a manual re-push.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property/listing to check.
+  lookahead_days:
+    default: 30
+    description: How many nights ahead to compare.
+  listing_platforms:
+    default: "Airbnb, VRBO, Booking.com"
+    description: Comma-separated list of platforms to check live rates on.
+  alert_threshold_pct:
+    default: 10
+    description: Percent difference between computed and live rate that counts as drift.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires read access to the pricing tool's computed rates and each platform's live rates (via connector/API/export).

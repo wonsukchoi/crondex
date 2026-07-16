@@ -1,0 +1,37 @@
+id: noise-complaint-log-review
+version: 1
+name: Noise Complaint Log Review
+description: >
+  Reviews recent neighbor or noise-monitoring-device complaints for a
+  property and flags any pattern worth acting on before it escalates to
+  a platform strike or city citation. Use this if a run of noise
+  complaints for the same property has ever gone unnoticed until a
+  neighbor called the city instead of you.
+category: short-term-rental
+tags: [short-term-rental, noise, neighbor-relations, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review noise complaints and noise-monitoring-device alerts for property
+  {{property_id}} logged in the last {{lookback_days}} days.
+  1. List each complaint/alert with date, time, and source (neighbor call,
+     device alert, platform report).
+  2. Flag a property with {{alert_threshold}} or more complaints in the
+     window as a pattern, not a one-off — note whether they cluster
+     around specific guests, days of week, or times.
+  3. Recommend a next step: a warning to the current guest, a house-rule
+     reminder in future check-in messages, or escalation if this is a
+     repeat pattern across multiple guests.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property to review.
+  lookback_days:
+    default: 30
+    description: How many days of complaint history to review.
+  alert_threshold:
+    default: 2
+    description: Number of complaints in the window that counts as a pattern worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires read access to your complaint log and/or noise-monitoring-device alerts (e.g. NoiseAware, Minut) — this job reviews the data it's given, it doesn't pull from the device API itself.

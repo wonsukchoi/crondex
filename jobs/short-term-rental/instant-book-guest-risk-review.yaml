@@ -1,0 +1,37 @@
+id: instant-book-guest-risk-review
+version: 1
+name: Instant Book Guest Risk Review
+description: >
+  Reviews new instant-booked reservations from guests with thin or no
+  review history before their check-in date, since instant book skips
+  the manual approval step where you'd normally screen a first-time
+  guest. Use this if a risky booking has ever only gotten looked at
+  after check-in, when it's too late to ask questions.
+category: short-term-rental
+tags: [short-term-rental, guest-screening, instant-book, risk]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review instant-book reservations for {{property_id}} checking in within
+  the next {{lookahead_days}} days where the guest has fewer than
+  {{min_review_count}} prior reviews.
+  1. List each: guest name, check-in date, review count, and any profile
+     signals available (verified ID, response rate, join date).
+  2. Flag anything that looks worth a closer look before check-in — e.g.
+     a brand-new account booking a large group size, or a same-day
+     booking for a high-occupancy property.
+  3. Suggest whether to send a pre-arrival message confirming house rules,
+     or nothing at all if the booking looks routine.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property to review.
+  lookahead_days:
+    default: 7
+    description: How many days ahead to check upcoming check-ins.
+  min_review_count:
+    default: 3
+    description: Review count below which a guest is considered thin-history.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is a screening aid, not an approval gate — instant book already accepted the reservation; use this to decide whether extra pre-arrival communication is warranted, not to cancel bookings.

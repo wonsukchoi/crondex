@@ -1,0 +1,24 @@
+id: occupancy-tax-remittance-deadline-check
+version: 1
+name: Occupancy Tax Remittance Deadline Check
+description: >
+  Flags an approaching transient occupancy/lodging tax filing deadline
+  along with the total collected tax owed for the period. Use this if a
+  filing has ever been late because nobody was watching the calendar
+  between quarterly reminders from the tax authority.
+category: short-term-rental
+tags: [short-term-rental, tax, compliance, deadlines]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select jurisdiction, filing_deadline, sum(tax_collected) as tax_owed from occupancy_tax_ledger where filing_deadline <= current_date + interval '{{warning_days}} days' and remitted = false group by jurisdiction, filing_deadline;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the accounting/tax-ledger database.
+  warning_days:
+    default: 14
+    description: Days before the filing deadline to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `occupancy_tax_ledger` table with `jurisdiction`, `filing_deadline`, `tax_collected`, and `remitted` columns — adjust the query to your accounting system's schema. This flags the deadline, it doesn't file the return.

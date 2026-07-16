@@ -1,0 +1,24 @@
+id: guest-id-verification-pending-check
+version: 1
+name: Guest ID Verification Pending Check
+description: >
+  Flags upcoming bookings where the guest still hasn't completed
+  ID/age verification close to check-in. Use this if a guest has ever
+  shown up without having actually finished verification, leaving you
+  deciding on the doorstep whether to let them in.
+category: short-term-rental
+tags: [short-term-rental, guest-screening, verification, check-in]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, checkin_date, verification_status from bookings where verification_status != 'verified' and checkin_date <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  warning_days:
+    default: 2
+    description: Days before check-in to start flagging an unverified guest.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `bookings` table with a `verification_status` column populated by your guest-screening tool (e.g. Autohost, Superhog) or platform — adjust to your integration's schema.

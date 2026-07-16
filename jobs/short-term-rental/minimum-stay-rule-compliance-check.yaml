@@ -1,0 +1,21 @@
+id: minimum-stay-rule-compliance-check
+version: 1
+name: Minimum Stay Rule Compliance Check
+description: >
+  Flags upcoming bookings shorter than the jurisdiction's legally
+  required minimum stay. Use this if a booking has ever slipped through
+  under the local minimum-night ordinance because the platform's own
+  minimum-stay setting didn't match what the city actually requires.
+category: short-term-rental
+tags: [short-term-rental, compliance, minimum-stay, local-law]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select b.property_id, b.guest_name, b.checkin_date, b.checkout_date, (b.checkout_date - b.checkin_date) as nights from bookings b join properties p on p.property_id = b.property_id where b.checkin_date >= current_date and (b.checkout_date - b.checkin_date) < p.legal_min_stay_nights;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `properties` table with a `legal_min_stay_nights` column you keep current per jurisdiction, and a `bookings` table with `checkin_date`/`checkout_date` — adjust to your PMS's schema.

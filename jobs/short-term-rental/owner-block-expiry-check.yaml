@@ -1,0 +1,21 @@
+id: owner-block-expiry-check
+version: 1
+name: Owner Block Expiry Check
+description: >
+  Flags owner-use or maintenance calendar blocks whose end date has
+  passed but were never released back to bookable inventory. Use this
+  if a property has ever sat empty and unbookable for days after a
+  personal-use trip ended because someone forgot to clear the block.
+category: short-term-rental
+tags: [short-term-rental, calendar, availability, revenue]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, block_type, block_start, block_end from calendar_blocks where block_type in ('owner_use','maintenance') and block_end < current_date and released = false;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `calendar_blocks` table with `property_id`, `block_type`, `block_end`, and `released` columns — adjust to your PMS's schema.

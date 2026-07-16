@@ -1,0 +1,24 @@
+id: property-inspection-between-stays-check
+version: 1
+name: Property Inspection Between Stays Check
+description: >
+  Flags properties that haven't had a manual walkthrough inspection in
+  longer than your target interval. Use this if a maintenance issue has
+  ever gone unnoticed for weeks because inspections only happened
+  reactively, after a guest complained.
+category: short-term-rental
+tags: [short-term-rental, inspection, maintenance, property-condition]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, last_inspected_at, current_date - last_inspected_at as days_since_inspection from properties where last_inspected_at < current_date - interval '{{max_interval_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  max_interval_days:
+    default: 30
+    description: Maximum days allowed between inspections before a property is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `properties` table with a `last_inspected_at` column updated each time a manual walkthrough happens — adjust to your record-keeping system's schema.

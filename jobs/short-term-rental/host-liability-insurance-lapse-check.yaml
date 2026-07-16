@@ -1,0 +1,24 @@
+id: host-liability-insurance-lapse-check
+version: 1
+name: Host Liability Insurance Lapse Check
+description: >
+  Flags a property whose short-term-rental liability/host-protection
+  insurance policy is expiring soon or already lapsed. Use this if a
+  claim has ever come up right when coverage had quietly lapsed because
+  the renewal reminder went to a mailbox nobody checks.
+category: short-term-rental
+tags: [short-term-rental, insurance, liability, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, insurer, policy_number, expiration_date from host_insurance_policies where expiration_date <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the insurance-tracking database.
+  warning_days:
+    default: 30
+    description: Days before expiration to start flagging a policy for renewal.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `host_insurance_policies` table with `property_id`, `insurer`, `policy_number`, and `expiration_date` columns — adjust to your record-keeping system. Covers standalone host liability policies, not the platform's built-in host guarantee/damage protection.

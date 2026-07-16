@@ -1,0 +1,42 @@
+id: co-host-payout-reconciliation-check
+version: 1
+name: Co-host Payout Reconciliation Check
+description: >
+  Checks that each co-host or property manager's revenue-share payout
+  matches their agreed split of the period's actual booking revenue. Use
+  this if a payout has ever gone out wrong because nobody cross-checked
+  the split percentage against what the platform actually paid.
+category: short-term-rental
+tags: [short-term-rental, payments, co-hosting, reconciliation]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select co_host_id, split_pct, expected_payout, actual_payout, expected_payout - actual_payout as delta from co_host_payouts where period_end = date_trunc('month', current_date) - interval '1 day' and abs(expected_payout - actual_payout) > {{tolerance_amount}};"
+prompt: |
+  Run the reconciliation query for co-host payouts for the period ending
+  {{period_label}}, using a tolerance of {{tolerance_amount}} on the
+  expected-vs-actual delta. For each mismatch found:
+  1. State the co-host, the split percentage, and the exact dollar delta.
+  2. Suggest a likely cause (e.g. a booking excluded from the split
+     calculation, a platform fee deducted twice, a manual adjustment
+     that wasn't logged).
+  3. Flag any delta over 5x the tolerance as needing manual review before
+     the next payout run, not just a note.
+script_note: >
+  The `command` alone gives you the raw mismatch list with exact dollar
+  deltas — useful for a quick eyeball check. The `prompt` adds likely-cause
+  triage and prioritization, which matters once there are more than a
+  couple of co-hosts to reconcile per cycle.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the payouts database.
+  tolerance_amount:
+    default: 5
+    description: Dollar tolerance below which a payout delta is not flagged.
+  period_label:
+    default: "last month"
+    description: Human-readable label for the reconciliation period, used in the prompt.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Assumes a `co_host_payouts` table with `co_host_id`, `split_pct`, `expected_payout`, `actual_payout`, and `period_end` columns — adjust the query to your accounting system's schema.

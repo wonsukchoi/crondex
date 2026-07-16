@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2214,
+  "count": 2246,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -5338,6 +5338,32 @@
       "path": "jobs/hospitality/cancellation-rate-spike-check.yaml"
     },
     {
+      "id": "cancellation-refund-processing-backlog-check",
+      "version": 1,
+      "name": "Cancellation Refund Processing Backlog Check",
+      "description": "Flags guest cancellations whose refund, per your cancellation policy, hasn't actually been processed yet. Use this if a refund has ever sat unprocessed long enough that the guest disputed the charge with their bank instead of waiting.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "refunds",
+        "cancellations",
+        "payments"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/cancellation-refund-processing-backlog-check.yaml"
+    },
+    {
       "id": "cancellation-waitlist-fill-check",
       "version": 2,
       "name": "Cancellation Waitlist Fill Check",
@@ -8063,6 +8089,32 @@
       "path": "jobs/cleaning-services/cleaning-invoice-aging-check.yaml"
     },
     {
+      "id": "cleaning-supply-restock-check",
+      "version": 1,
+      "name": "Cleaning Supply Restock Check",
+      "description": "Flags turnover supplies (linens, toiletries, cleaning chemicals) that have dropped below their reorder threshold. Use this if a cleaner has ever shown up for a turnover and run out of sheets or soap mid-clean.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "cleaning",
+        "inventory",
+        "supplies"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/cleaning-supply-restock-check.yaml"
+    },
+    {
       "id": "client-allergy-contraindication-audit",
       "version": 1,
       "name": "Client Allergy & Contraindication Flag Audit",
@@ -8841,6 +8893,35 @@
       ],
       "verified": true,
       "path": "jobs/security/cloud-security-group-overexposure-check.yaml"
+    },
+    {
+      "id": "co-host-payout-reconciliation-check",
+      "version": 1,
+      "name": "Co-host Payout Reconciliation Check",
+      "description": "Checks that each co-host or property manager's revenue-share payout matches their agreed split of the period's actual booking revenue. Use this if a payout has ever gone out wrong because nobody cross-checked the split percentage against what the platform actually paid.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "payments",
+        "co-hosting",
+        "reconciliation"
+      ],
+      "schedule": "0 9 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/co-host-payout-reconciliation-check.yaml"
     },
     {
       "id": "co-marketing-partner-mdf-utilization-check",
@@ -13794,6 +13875,32 @@
       "path": "jobs/utilities/dam-safety-inspection-reminder.yaml"
     },
     {
+      "id": "damage-deposit-hold-release-window-check",
+      "version": 1,
+      "name": "Damage Deposit Hold Release Window Check",
+      "description": "Flags security/damage deposit holds that are approaching their auto-release deadline so you can inspect and file a claim before the window closes. Use this if a deposit has ever auto-released before anyone got around to checking the property for damage.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "deposits",
+        "payments",
+        "deadlines"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/damage-deposit-hold-release-window-check.yaml"
+    },
+    {
       "id": "damage-incident-report-tracker",
       "version": 1,
       "name": "Damage Incident Report Tracker",
@@ -17233,6 +17340,34 @@
       "path": "jobs/veterinary/dvm-license-dea-registration-expiry-check.yaml"
     },
     {
+      "id": "dynamic-pricing-sync-drift-check",
+      "version": 1,
+      "name": "Dynamic Pricing Sync Drift Check",
+      "description": "Checks whether the nightly rate your pricing tool computed actually made it onto each listing platform. Use this if a pricing tool has ever silently failed to push an update, leaving a listing underpriced or overpriced for days without anyone noticing.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "pricing",
+        "revenue-management",
+        "ota"
+      ],
+      "schedule": "0 5 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/dynamic-pricing-sync-drift-check.yaml"
+    },
+    {
       "id": "e-waste-collection-event-reminder",
       "version": 1,
       "name": "E-Waste Collection Event Reminder",
@@ -17784,6 +17919,32 @@
       ],
       "verified": true,
       "path": "jobs/childcare/emergency-contact-information-currency-check.yaml"
+    },
+    {
+      "id": "emergency-contact-list-staleness-check",
+      "version": 1,
+      "name": "Emergency Contact List Staleness Check",
+      "description": "Flags a property whose local emergency/service contact list (cleaner, handyman, co-host, plumber) hasn't been verified as current in longer than your target interval. Use this if a maintenance emergency has ever hit a property whose on-file handyman number was disconnected.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "emergency-contacts",
+        "maintenance",
+        "staleness"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/emergency-contact-list-staleness-check.yaml"
     },
     {
       "id": "emergency-dispatch-escalation-check",
@@ -23909,6 +24070,32 @@
       "path": "jobs/fitness/group-fitness-instructor-sub-request-coverage-check.yaml"
     },
     {
+      "id": "guest-checkin-code-rotation-check",
+      "version": 1,
+      "name": "Guest Check-in Code Rotation Check",
+      "description": "Flags any smart-lock or lockbox code that hasn't been rotated since the last guest checked out. Use this if a departed guest has ever still been able to let themselves back into a property because the entry code was reused for the next stay.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "security",
+        "smart-lock",
+        "check-in"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/guest-checkin-code-rotation-check.yaml"
+    },
+    {
       "id": "guest-complaint-sla-tracker",
       "version": 1,
       "name": "Guest Complaint Resolution SLA Tracker",
@@ -23933,6 +24120,32 @@
       ],
       "verified": true,
       "path": "jobs/hospitality/guest-complaint-sla-tracker.yaml"
+    },
+    {
+      "id": "guest-damage-claim-filing-deadline-check",
+      "version": 1,
+      "name": "Guest Damage Claim Filing Deadline Check",
+      "description": "Flags a logged property damage incident whose platform claim-filing window is about to close. Use this if a real damage claim has ever gone unfiled and unreimbursed simply because the filing window (often just 14 days from checkout) passed before anyone got around to it.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "damage-claims",
+        "deadlines",
+        "payments"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/guest-damage-claim-filing-deadline-check.yaml"
     },
     {
       "id": "guest-followup-reminder",
@@ -23960,6 +24173,32 @@
       "path": "jobs/podcast/guest-followup-reminder.yaml"
     },
     {
+      "id": "guest-id-verification-pending-check",
+      "version": 1,
+      "name": "Guest ID Verification Pending Check",
+      "description": "Flags upcoming bookings where the guest still hasn't completed ID/age verification close to check-in. Use this if a guest has ever shown up without having actually finished verification, leaving you deciding on the doorstep whether to let them in.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "guest-screening",
+        "verification",
+        "check-in"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/guest-id-verification-pending-check.yaml"
+    },
+    {
       "id": "guest-maintenance-request-backlog-check",
       "version": 1,
       "name": "Guest Maintenance Request Backlog Check",
@@ -23984,6 +24223,32 @@
       ],
       "verified": true,
       "path": "jobs/hospitality/guest-maintenance-request-backlog-check.yaml"
+    },
+    {
+      "id": "guest-messaging-response-sla-check",
+      "version": 1,
+      "name": "Guest Messaging Response SLA Check",
+      "description": "Flags guest inquiries and booking messages that have gone unanswered past your response-time target. Use this if a slow reply has ever cost a booking, or ever pushed your platform response-rate metric toward a penalty threshold.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "guest-messaging",
+        "sla",
+        "response-time"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/guest-messaging-response-sla-check.yaml"
     },
     {
       "id": "guest-registration-compliance-check",
@@ -25225,6 +25490,115 @@
       "path": "jobs/healthcare/hospital-acquired-infection-surveillance-gap-check.yaml"
     },
     {
+      "id": "host-1099k-reconciliation-check",
+      "version": 1,
+      "name": "Host 1099-K Reconciliation Check",
+      "description": "Compares the gross payments total on a platform-issued 1099-K against your own booking records for the same tax year and flags any mismatch. Use this if a 1099-K total has ever been trusted at face value and turned out to include double-counted or since-refunded bookings.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "tax",
+        "1099-k",
+        "reconciliation"
+      ],
+      "schedule": "0 8 15 1 *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/host-1099k-reconciliation-check.yaml"
+    },
+    {
+      "id": "host-liability-insurance-lapse-check",
+      "version": 1,
+      "name": "Host Liability Insurance Lapse Check",
+      "description": "Flags a property whose short-term-rental liability/host-protection insurance policy is expiring soon or already lapsed. Use this if a claim has ever come up right when coverage had quietly lapsed because the renewal reminder went to a mailbox nobody checks.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "insurance",
+        "liability",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/host-liability-insurance-lapse-check.yaml"
+    },
+    {
+      "id": "host-permit-registration-renewal-check",
+      "version": 1,
+      "name": "Host Permit Registration Renewal Check",
+      "description": "Flags short-term-rental operating permits or city registration numbers that are close to expiring. Use this if a listing has ever been pulled offline by a platform because a permit lapsed and nobody was tracking the renewal date.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "compliance",
+        "permits",
+        "licensing"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/host-permit-registration-renewal-check.yaml"
+    },
+    {
+      "id": "host-response-rate-metric-watch",
+      "version": 1,
+      "name": "Host Response Rate Metric Watch",
+      "description": "Watches your platform host-performance metrics (response rate, acceptance rate, cancellation rate) and flags any that are drifting toward a Superhost/penalty threshold. Use this if a metric has ever quietly slipped below the required minimum and only got noticed when Superhost status was already lost.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "host-metrics",
+        "platform-standing",
+        "superhost"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/host-response-rate-metric-watch.yaml"
+    },
+    {
       "id": "hot-desk-overbooking-check",
       "version": 1,
       "name": "Hot Desk Overbooking Check",
@@ -25249,6 +25623,33 @@
       ],
       "verified": true,
       "path": "jobs/coworking/hot-desk-overbooking-check.yaml"
+    },
+    {
+      "id": "hot-tub-pool-chemical-log-check",
+      "version": 1,
+      "name": "Hot Tub/Pool Chemical Log Check",
+      "description": "Flags a property with a hot tub or pool that's missing a recent chemical/water-safety log entry. Use this if a required chemical check has ever been skipped and only discovered when a guest reported cloudy or unsafe water.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "amenities",
+        "safety",
+        "hot-tub",
+        "pool"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/hot-tub-pool-chemical-log-check.yaml"
     },
     {
       "id": "hot-tub-water-chemistry-log-check",
@@ -26592,6 +26993,34 @@
       ],
       "verified": true,
       "path": "jobs/construction/inspection-deadline-reminder.yaml"
+    },
+    {
+      "id": "instant-book-guest-risk-review",
+      "version": 1,
+      "name": "Instant Book Guest Risk Review",
+      "description": "Reviews new instant-booked reservations from guests with thin or no review history before their check-in date, since instant book skips the manual approval step where you'd normally screen a first-time guest. Use this if a risky booking has ever only gotten looked at after check-in, when it's too late to ask questions.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "guest-screening",
+        "instant-book",
+        "risk"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/instant-book-guest-risk-review.yaml"
     },
     {
       "id": "instrument-tray-turnaround-check",
@@ -28148,6 +28577,32 @@
       "path": "jobs/automotive/key-fob-inventory-check.yaml"
     },
     {
+      "id": "keyless-entry-failed-attempt-alert",
+      "version": 1,
+      "name": "Keyless Entry Failed Attempt Alert",
+      "description": "Flags a property whose smart lock logged an unusual number of failed entry attempts recently. Use this if repeated failed unlock attempts have ever turned out to be an attempted break-in, or a guest who was given the wrong code and locked out for hours before anyone noticed.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "security",
+        "smart-lock",
+        "access-log"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/keyless-entry-failed-attempt-alert.yaml"
+    },
+    {
       "id": "keyword-cannibalization-check",
       "version": 1,
       "name": "Keyword Cannibalization Check",
@@ -28787,6 +29242,32 @@
       ],
       "verified": false,
       "path": "jobs/logistics/last-mile-delivery-exception-check.yaml"
+    },
+    {
+      "id": "late-checkout-fee-reconciliation-check",
+      "version": 1,
+      "name": "Late Checkout Fee Reconciliation Check",
+      "description": "Flags guests who checked out later than the agreed time but were never charged the late checkout fee. Use this if a late checkout has ever gone unbilled simply because nobody cross-checked the actual checkout time against the fee ledger.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "fees",
+        "checkout",
+        "reconciliation"
+      ],
+      "schedule": "0 11 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/late-checkout-fee-reconciliation-check.yaml"
     },
     {
       "id": "late-fee-interest-risk-check",
@@ -29784,6 +30265,60 @@
       ],
       "verified": true,
       "path": "jobs/podcast/listener-review-response-lag-check.yaml"
+    },
+    {
+      "id": "listing-calendar-sync-drift-check",
+      "version": 1,
+      "name": "Listing Calendar Sync Drift Check",
+      "description": "Checks whether your listing's availability calendar across platforms (Airbnb, VRBO, Booking.com) still matches your source-of-truth PMS calendar. Use this if a stale iCal sync has ever produced a real double-booking across two platforms for the same dates.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "calendar-sync",
+        "double-booking",
+        "ota"
+      ],
+      "schedule": "0 */4 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/listing-calendar-sync-drift-check.yaml"
+    },
+    {
+      "id": "listing-photo-staleness-check",
+      "version": 1,
+      "name": "Listing Photo Staleness Check",
+      "description": "Flags a listing whose photos or description haven't been refreshed in longer than your target interval. Use this if outdated listing photos have ever caused a guest complaint about the property \"not looking like the pictures\" after a renovation or furniture change.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "listing",
+        "photos",
+        "guest-experience"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/listing-photo-staleness-check.yaml"
     },
     {
       "id": "litigation-hold-acknowledgment-tracker",
@@ -32701,6 +33236,32 @@
       "path": "jobs/hospitality/minibar-charge-reconciliation-check.yaml"
     },
     {
+      "id": "minimum-stay-rule-compliance-check",
+      "version": 1,
+      "name": "Minimum Stay Rule Compliance Check",
+      "description": "Flags upcoming bookings shorter than the jurisdiction's legally required minimum stay. Use this if a booking has ever slipped through under the local minimum-night ordinance because the platform's own minimum-stay setting didn't match what the city actually requires.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "compliance",
+        "minimum-stay",
+        "local-law"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/minimum-stay-rule-compliance-check.yaml"
+    },
+    {
       "id": "minimum-wage-rate-compliance-check",
       "version": 1,
       "name": "Minimum Wage Rate Compliance Check",
@@ -33650,6 +34211,34 @@
       ],
       "verified": true,
       "path": "jobs/inventory/multi-location-stock-imbalance-check.yaml"
+    },
+    {
+      "id": "multi-property-cleaner-workload-balance-check",
+      "version": 1,
+      "name": "Multi-Property Cleaner Workload Balance Check",
+      "description": "Reviews next week's turnover assignments across all cleaners managing multiple properties and flags anyone overloaded relative to realistic travel and clean time between jobs. Use this if a cleaner has ever been double-booked across two properties on the same day because assignments were made property-by-property instead of per-cleaner.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "cleaning",
+        "staffing",
+        "workload"
+      ],
+      "schedule": "0 8 * * 5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/multi-property-cleaner-workload-balance-check.yaml"
     },
     {
       "id": "multi-stop-route-sequence-deviation-check",
@@ -34826,6 +35415,34 @@
       "path": "jobs/personal/no-spend-day-streak-check.yaml"
     },
     {
+      "id": "noise-complaint-log-review",
+      "version": 1,
+      "name": "Noise Complaint Log Review",
+      "description": "Reviews recent neighbor or noise-monitoring-device complaints for a property and flags any pattern worth acting on before it escalates to a platform strike or city citation. Use this if a run of noise complaints for the same property has ever gone unnoticed until a neighbor called the city instead of you.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "noise",
+        "neighbor-relations",
+        "compliance"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/noise-complaint-log-review.yaml"
+    },
+    {
       "id": "non-compete-expiry-tracker",
       "version": 1,
       "name": "Non-Compete / Non-Solicit Expiry Tracker",
@@ -35145,6 +35762,32 @@
       ],
       "verified": true,
       "path": "jobs/hospitality/occupancy-forecast-variance-check.yaml"
+    },
+    {
+      "id": "occupancy-tax-remittance-deadline-check",
+      "version": 1,
+      "name": "Occupancy Tax Remittance Deadline Check",
+      "description": "Flags an approaching transient occupancy/lodging tax filing deadline along with the total collected tax owed for the period. Use this if a filing has ever been late because nobody was watching the calendar between quarterly reminders from the tax authority.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "tax",
+        "compliance",
+        "deadlines"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/occupancy-tax-remittance-deadline-check.yaml"
     },
     {
       "id": "odometer-fuel-mileage-reconciliation-check",
@@ -36530,6 +37173,32 @@
       ],
       "verified": true,
       "path": "jobs/team/overtime-pattern-check.yaml"
+    },
+    {
+      "id": "owner-block-expiry-check",
+      "version": 1,
+      "name": "Owner Block Expiry Check",
+      "description": "Flags owner-use or maintenance calendar blocks whose end date has passed but were never released back to bookable inventory. Use this if a property has ever sat empty and unbookable for days after a personal-use trip ended because someone forgot to clear the block.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "calendar",
+        "availability",
+        "revenue"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/owner-block-expiry-check.yaml"
     },
     {
       "id": "packing-materials-low-stock-check",
@@ -41802,6 +42471,32 @@
       "path": "jobs/cleaning-services/property-damage-waiver-expiry-check.yaml"
     },
     {
+      "id": "property-inspection-between-stays-check",
+      "version": 1,
+      "name": "Property Inspection Between Stays Check",
+      "description": "Flags properties that haven't had a manual walkthrough inspection in longer than your target interval. Use this if a maintenance issue has ever gone unnoticed for weeks because inspections only happened reactively, after a guest complained.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "inspection",
+        "maintenance",
+        "property-condition"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/property-inspection-between-stays-check.yaml"
+    },
+    {
       "id": "property-listing-syndication-staleness-check",
       "version": 1,
       "name": "Property Listing Syndication Staleness Check",
@@ -46873,6 +47568,34 @@
       "path": "jobs/spa/seasonal-package-promo-reminder.yaml"
     },
     {
+      "id": "seasonal-rate-plan-update-reminder",
+      "version": 1,
+      "name": "Seasonal Rate Plan Update Reminder",
+      "description": "Reminds you to review and update seasonal pricing ahead of an upcoming high- or low-demand season, rather than letting last season's rates carry over by default. Use this if a property has ever entered peak season still priced at off-season rates because nobody updated the seasonal plan in time.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "pricing",
+        "seasonality",
+        "revenue-management"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/short-term-rental/seasonal-rate-plan-update-reminder.yaml"
+    },
+    {
       "id": "seasonal-staffing-coverage-check",
       "version": 1,
       "name": "Seasonal Staffing Coverage Check",
@@ -48580,6 +49303,32 @@
       ],
       "verified": true,
       "path": "jobs/crypto/smart-contract-upgrade-watch.yaml"
+    },
+    {
+      "id": "smart-lock-battery-level-check",
+      "version": 1,
+      "name": "Smart Lock Battery Level Check",
+      "description": "Flags smart locks reporting a low battery level before they die and lock a guest out entirely. Use this if a lock has ever gone dead mid-stay, turning a routine check-in into an after-hours lockout call.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "smart-lock",
+        "maintenance",
+        "check-in"
+      ],
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/smart-lock-battery-level-check.yaml"
     },
     {
       "id": "smart-meter-firmware-rollout-tracker",
@@ -50698,6 +51447,32 @@
       ],
       "verified": true,
       "path": "jobs/government/stormwater-permit-report-deadline-tracker.yaml"
+    },
+    {
+      "id": "str-zoning-classification-renewal-check",
+      "version": 1,
+      "name": "STR Zoning Classification Renewal Check",
+      "description": "Flags a property whose short-term-rental zoning classification or annual land-use certification is due for renewal. Use this if a property has ever fallen out of its approved STR zoning status because an annual re-certification deadline was missed.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "zoning",
+        "compliance",
+        "permits"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/str-zoning-classification-renewal-check.yaml"
     },
     {
       "id": "stream-schedule-reminder",
@@ -54889,6 +55664,32 @@
       "path": "jobs/learning/tuition-reimbursement-deadline-reminder.yaml"
     },
     {
+      "id": "turnover-cleaning-schedule-conflict-check",
+      "version": 1,
+      "name": "Turnover Cleaning Schedule Conflict Check",
+      "description": "Flags back-to-back bookings where checkout and next check-in leave too little turnover time for the assigned cleaner to finish. Use this if a same-day turnover has ever run late because the cleaning window was never actually checked against the cleaner's real travel/clean time.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "cleaning",
+        "turnover",
+        "scheduling"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/turnover-cleaning-schedule-conflict-check.yaml"
+    },
+    {
       "id": "unassigned-ticket-check",
       "version": 1,
       "name": "Unassigned Ticket Check",
@@ -55737,6 +56538,32 @@
       ],
       "verified": true,
       "path": "jobs/realestate/utility-billback-reconciliation-check.yaml"
+    },
+    {
+      "id": "utility-usage-spike-check",
+      "version": 1,
+      "name": "Utility Usage Spike Check",
+      "description": "Flags a property whose electricity or water usage during a recent stay was well above its normal baseline. Use this if an unauthorized party or a running toilet has ever gone unnoticed until the utility bill arrived weeks later.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "utilities",
+        "monitoring",
+        "damage-prevention"
+      ],
+      "schedule": "0 10 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/utility-usage-spike-check.yaml"
     },
     {
       "id": "vacant-unit-marketing-listing-check",
@@ -58617,6 +59444,32 @@
       ],
       "verified": true,
       "path": "jobs/coworking/wifi-bandwidth-utilization-alert.yaml"
+    },
+    {
+      "id": "wifi-password-rotation-check",
+      "version": 1,
+      "name": "Wi-Fi Password Rotation Check",
+      "description": "Flags a property whose guest Wi-Fi password hasn't been rotated since the last checkout. Use this if a departed guest has ever still been connected to the network — or worse, still reachable on it — during the next guest's stay because the password never changed.",
+      "category": "short-term-rental",
+      "tags": [
+        "short-term-rental",
+        "security",
+        "wifi",
+        "check-in"
+      ],
+      "schedule": "0 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/short-term-rental/wifi-password-rotation-check.yaml"
     },
     {
       "id": "will-call-bin-aging-check",

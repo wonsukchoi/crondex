@@ -1,0 +1,24 @@
+id: guest-damage-claim-filing-deadline-check
+version: 1
+name: Guest Damage Claim Filing Deadline Check
+description: >
+  Flags a logged property damage incident whose platform claim-filing
+  window is about to close. Use this if a real damage claim has ever
+  gone unfiled and unreimbursed simply because the filing window (often
+  just 14 days from checkout) passed before anyone got around to it.
+category: short-term-rental
+tags: [short-term-rental, damage-claims, deadlines, payments]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, incident_logged_at, claim_deadline from damage_incidents where claim_filed = false and claim_deadline <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the damage-incident tracking database.
+  warning_days:
+    default: 3
+    description: Days before the claim-filing deadline to start flagging an unfiled incident.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `damage_incidents` table with `claim_filed`, `claim_deadline`, and `incident_logged_at` columns — adjust to your record-keeping system. Filing deadlines vary by platform, so keep `claim_deadline` set from the actual platform policy at logging time.

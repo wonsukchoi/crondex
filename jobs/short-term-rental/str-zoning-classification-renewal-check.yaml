@@ -1,0 +1,24 @@
+id: str-zoning-classification-renewal-check
+version: 1
+name: STR Zoning Classification Renewal Check
+description: >
+  Flags a property whose short-term-rental zoning classification or
+  annual land-use certification is due for renewal. Use this if a
+  property has ever fallen out of its approved STR zoning status because
+  an annual re-certification deadline was missed.
+category: short-term-rental
+tags: [short-term-rental, zoning, compliance, permits]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, zoning_classification, jurisdiction, certification_expires_at from str_zoning_records where certification_expires_at <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the compliance/zoning database.
+  warning_days:
+    default: 60
+    description: Days before certification expiration to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `str_zoning_records` table with `property_id`, `zoning_classification`, `jurisdiction`, and `certification_expires_at` columns — adjust to your record-keeping system. Distinct from the general STR operating permit (see host-permit-registration-renewal-check) — some jurisdictions require both.

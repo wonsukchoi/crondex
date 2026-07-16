@@ -1,0 +1,27 @@
+id: keyless-entry-failed-attempt-alert
+version: 1
+name: Keyless Entry Failed Attempt Alert
+description: >
+  Flags a property whose smart lock logged an unusual number of failed
+  entry attempts recently. Use this if repeated failed unlock attempts
+  have ever turned out to be an attempted break-in, or a guest who was
+  given the wrong code and locked out for hours before anyone noticed.
+category: short-term-rental
+tags: [short-term-rental, security, smart-lock, access-log]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 5 -H "Authorization: Bearer {{api_token}}" "{{lock_api_url}}/access-logs?since=1h&result=failed" | jq --argjson threshold {{failed_attempt_threshold}} 'group_by(.property_id) | map(select(length >= $threshold)) | map({property_id: .[0].property_id, failed_attempts: length})'
+variables:
+  lock_api_url:
+    default: "https://api.example-smartlock.com/v1"
+    description: Base URL for your smart-lock provider's API.
+  api_token:
+    default: "REPLACE_ME"
+    description: API token for the smart-lock provider.
+  failed_attempt_threshold:
+    default: 3
+    description: Number of failed entry attempts within the last hour that triggers a flag.
+compatible_agents: [generic, claude, codex]
+notes: Endpoint/response shape shown is illustrative — replace {{lock_api_url}} and the jq filter with your actual smart-lock provider's API. Requires `jq` on PATH. A cluster of failures right at a scheduled check-in time is more likely a wrong-code guest than an intrusion attempt — check the booking calendar before escalating.

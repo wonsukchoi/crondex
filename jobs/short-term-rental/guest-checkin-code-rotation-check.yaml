@@ -1,0 +1,21 @@
+id: guest-checkin-code-rotation-check
+version: 1
+name: Guest Check-in Code Rotation Check
+description: >
+  Flags any smart-lock or lockbox code that hasn't been rotated since
+  the last guest checked out. Use this if a departed guest has ever
+  still been able to let themselves back into a property because the
+  entry code was reused for the next stay.
+category: short-term-rental
+tags: [short-term-rental, security, smart-lock, check-in]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, last_checkout_at, code_last_rotated_at from lock_codes where code_last_rotated_at < last_checkout_at;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the smart-lock/PMS database.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `lock_codes` table with `property_id`, `last_checkout_at`, and `code_last_rotated_at` columns — adjust the query to your access-control system's schema.

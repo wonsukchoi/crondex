@@ -1,0 +1,24 @@
+id: utility-usage-spike-check
+version: 1
+name: Utility Usage Spike Check
+description: >
+  Flags a property whose electricity or water usage during a recent stay
+  was well above its normal baseline. Use this if an unauthorized party
+  or a running toilet has ever gone unnoticed until the utility bill
+  arrived weeks later.
+category: short-term-rental
+tags: [short-term-rental, utilities, monitoring, damage-prevention]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, reading_date, usage_kwh, baseline_kwh, round(100.0 * (usage_kwh - baseline_kwh) / nullif(baseline_kwh, 0), 1) as pct_over_baseline from utility_readings where reading_date = current_date - interval '1 day' and usage_kwh > baseline_kwh * (1 + {{spike_threshold_pct}} / 100.0);"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the utility-monitoring database.
+  spike_threshold_pct:
+    default: 50
+    description: Percent above baseline usage that counts as a spike.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `utility_readings` table with `property_id`, `reading_date`, `usage_kwh`, and a precomputed `baseline_kwh` column (e.g. a trailing average) — adjust to your smart-meter or utility-monitoring integration's schema.

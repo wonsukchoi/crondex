@@ -1,0 +1,24 @@
+id: late-checkout-fee-reconciliation-check
+version: 1
+name: Late Checkout Fee Reconciliation Check
+description: >
+  Flags guests who checked out later than the agreed time but were never
+  charged the late checkout fee. Use this if a late checkout has ever
+  gone unbilled simply because nobody cross-checked the actual checkout
+  time against the fee ledger.
+category: short-term-rental
+tags: [short-term-rental, fees, checkout, reconciliation]
+schedule: "0 11 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, agreed_checkout_time, actual_checkout_time from bookings where actual_checkout_time > agreed_checkout_time + interval '{{grace_minutes}} minutes' and late_checkout_fee_charged = false and actual_checkout_time::date = current_date - interval '1 day';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  grace_minutes:
+    default: 30
+    description: Minutes of grace period after agreed checkout time before a late fee applies.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `bookings` table with `agreed_checkout_time`, `actual_checkout_time`, and `late_checkout_fee_charged` columns — adjust to your PMS's schema. Flags the gap; doesn't charge the fee itself.

@@ -1,0 +1,32 @@
+id: listing-calendar-sync-drift-check
+version: 1
+name: Listing Calendar Sync Drift Check
+description: >
+  Checks whether your listing's availability calendar across platforms
+  (Airbnb, VRBO, Booking.com) still matches your source-of-truth PMS
+  calendar. Use this if a stale iCal sync has ever produced a real
+  double-booking across two platforms for the same dates.
+category: short-term-rental
+tags: [short-term-rental, calendar-sync, double-booking, ota]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Compare the availability calendar for property {{property_id}} in the
+  PMS against each platform listed in {{listing_platforms}}.
+  1. List any date where one platform shows available and another shows
+     booked/blocked for the same property.
+  2. For each mismatch, state which platform is likely stale (usually the
+     one that hasn't synced recently) and what to fix.
+  3. Flag any date with two *different* confirmed bookings across
+     platforms as urgent — that's an active double-booking, not just
+     drift, and needs one guest relocated immediately.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property/listing to check.
+  listing_platforms:
+    default: "Airbnb, VRBO, Booking.com"
+    description: Comma-separated list of platforms whose calendars to compare.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires read access to the PMS calendar and each listing platform (via connector/API/export) — this job only compares data it's given, it doesn't fetch the calendars itself.

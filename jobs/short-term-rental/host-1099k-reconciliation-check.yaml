@@ -1,0 +1,47 @@
+id: host-1099k-reconciliation-check
+version: 1
+name: Host 1099-K Reconciliation Check
+description: >
+  Compares the gross payments total on a platform-issued 1099-K against
+  your own booking records for the same tax year and flags any
+  mismatch. Use this if a 1099-K total has ever been trusted at face
+  value and turned out to include double-counted or since-refunded
+  bookings.
+category: short-term-rental
+tags: [short-term-rental, tax, 1099-k, reconciliation]
+schedule: "0 8 15 1 *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select tax_year, platform, sum(gross_payout) as recorded_gross from booking_payouts where tax_year = {{tax_year}} group by tax_year, platform;"
+prompt: |
+  Run the reconciliation query for tax year {{tax_year}} to get your
+  recorded gross payout per platform, then compare each total against
+  the gross amount reported on that platform's 1099-K for
+  {{tax_year}} ({{form_1099k_totals}}).
+  1. State the recorded-vs-reported delta per platform.
+  2. If a delta exists, suggest likely causes (refunds included in the
+     1099-K gross, payouts spanning tax years, host-fee timing
+     differences) rather than assuming the records are simply wrong.
+  3. Flag any delta over {{material_threshold}} as needing accountant
+     review before filing.
+script_note: >
+  The `command` alone gives you your own recorded gross payout per
+  platform for the year — useful as a quick sanity total. The `prompt`
+  adds the actual 1099-K comparison and likely-cause analysis, which is
+  the part that actually matters for filing.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the bookings/payouts database.
+  tax_year:
+    default: 2026
+    description: Tax year to reconcile.
+  form_1099k_totals:
+    default: "Airbnb: $0, VRBO: $0"
+    description: Gross payment totals as reported on each platform's 1099-K, filled in manually.
+  material_threshold:
+    default: 100
+    description: Dollar delta above which a mismatch is flagged as needing accountant review.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Not tax advice — surfaces discrepancies for your accountant to resolve before filing. Assumes a `booking_payouts` table with `tax_year`, `platform`, and `gross_payout` columns.

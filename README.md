@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2214 jobs across 65 categories (1864 smoke-tested clean):
+2246 jobs across 66 categories (1889 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -249,6 +249,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 32 | 31 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
+| `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
 | `spa` | 32 | 30 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 32 | 27 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |

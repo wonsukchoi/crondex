@@ -1,0 +1,24 @@
+id: turnover-cleaning-schedule-conflict-check
+version: 1
+name: Turnover Cleaning Schedule Conflict Check
+description: >
+  Flags back-to-back bookings where checkout and next check-in leave too
+  little turnover time for the assigned cleaner to finish. Use this if a
+  same-day turnover has ever run late because the cleaning window was
+  never actually checked against the cleaner's real travel/clean time.
+category: short-term-rental
+tags: [short-term-rental, cleaning, turnover, scheduling]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select b1.property_id, b1.checkout_time, b2.checkin_time, extract(epoch from (b2.checkin_time - b1.checkout_time))/60 as turnover_minutes from bookings b1 join bookings b2 on b1.property_id = b2.property_id and b2.checkin_time > b1.checkout_time and b2.checkin_time < b1.checkout_time + interval '1 day' where b1.checkout_time::date = current_date and extract(epoch from (b2.checkin_time - b1.checkout_time))/60 < {{min_turnover_minutes}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  min_turnover_minutes:
+    default: 180
+    description: Minimum minutes required between checkout and next check-in for a reliable turnover.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `bookings` table with `property_id`, `checkout_time`, and `checkin_time` columns — adjust the query to your PMS's schema.

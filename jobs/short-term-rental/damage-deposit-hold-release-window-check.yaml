@@ -1,0 +1,24 @@
+id: damage-deposit-hold-release-window-check
+version: 1
+name: Damage Deposit Hold Release Window Check
+description: >
+  Flags security/damage deposit holds that are approaching their
+  auto-release deadline so you can inspect and file a claim before the
+  window closes. Use this if a deposit has ever auto-released before
+  anyone got around to checking the property for damage.
+category: short-term-rental
+tags: [short-term-rental, deposits, payments, deadlines]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, deposit_amount, release_deadline from damage_deposits where inspected = false and release_deadline <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  warning_days:
+    default: 2
+    description: Days before the auto-release deadline to start flagging an uninspected deposit.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `damage_deposits` table with `inspected`, `release_deadline`, and `deposit_amount` columns — adjust the query to your platform's schema. Each platform (Airbnb, VRBO) has its own claim-filing window, so cross-check the actual deadline there too.

@@ -1,0 +1,26 @@
+id: smart-lock-battery-level-check
+version: 1
+name: Smart Lock Battery Level Check
+description: >
+  Flags smart locks reporting a low battery level before they die and
+  lock a guest out entirely. Use this if a lock has ever gone dead
+  mid-stay, turning a routine check-in into an after-hours lockout call.
+category: short-term-rental
+tags: [short-term-rental, smart-lock, maintenance, check-in]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s --max-time 5 -H "Authorization: Bearer {{api_token}}" "{{lock_api_url}}/devices?status=battery" | jq -r --argjson threshold {{battery_threshold_pct}} '.devices[] | select(.battery_pct < $threshold) | "\(.property_id) \(.device_name) battery=\(.battery_pct)%"'
+variables:
+  lock_api_url:
+    default: "https://api.example-smartlock.com/v1"
+    description: Base URL for your smart-lock provider's API (e.g. August, Schlage, Igloohome).
+  api_token:
+    default: "REPLACE_ME"
+    description: API token for the smart-lock provider.
+  battery_threshold_pct:
+    default: 20
+    description: Battery percentage below which a lock is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Endpoint/response shape shown is illustrative — replace {{lock_api_url}} and the jq filter with your actual smart-lock provider's API. Requires `jq` on PATH.

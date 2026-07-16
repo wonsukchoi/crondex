@@ -1,0 +1,24 @@
+id: cancellation-refund-processing-backlog-check
+version: 1
+name: Cancellation Refund Processing Backlog Check
+description: >
+  Flags guest cancellations whose refund, per your cancellation policy,
+  hasn't actually been processed yet. Use this if a refund has ever sat
+  unprocessed long enough that the guest disputed the charge with their
+  bank instead of waiting.
+category: short-term-rental
+tags: [short-term-rental, refunds, cancellations, payments]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, cancelled_at, refund_due_amount from cancellations where refund_processed = false and cancelled_at < now() - interval '{{max_hours_to_process}} hours';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the bookings/payments database.
+  max_hours_to_process:
+    default: 24
+    description: Hours after cancellation before an unprocessed refund is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `cancellations` table with `refund_processed`, `cancelled_at`, and `refund_due_amount` columns — adjust to your payments system's schema.

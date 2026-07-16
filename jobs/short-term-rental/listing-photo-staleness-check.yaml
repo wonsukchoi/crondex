@@ -1,0 +1,24 @@
+id: listing-photo-staleness-check
+version: 1
+name: Listing Photo Staleness Check
+description: >
+  Flags a listing whose photos or description haven't been refreshed in
+  longer than your target interval. Use this if outdated listing photos
+  have ever caused a guest complaint about the property "not looking
+  like the pictures" after a renovation or furniture change.
+category: short-term-rental
+tags: [short-term-rental, listing, photos, guest-experience]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, last_photo_update, current_date - last_photo_update as days_stale from listings where last_photo_update < current_date - interval '{{max_staleness_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the listings database.
+  max_staleness_days:
+    default: 365
+    description: Maximum days allowed since the last photo/description update before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `listings` table with a `last_photo_update` column you update whenever photos or the description change — adjust to your listing-management system's schema.

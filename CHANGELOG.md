@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-07-17
+
+### Added
+
+- New category: `short-term-rental` (66th category, 32 jobs) — Airbnb/
+  VRBO/vacation-rental host ops not covered by `realestate` (long-term
+  leases) or `hospitality` (hotels): turnover cleaning scheduling,
+  cross-platform calendar/pricing sync drift, guest ID verification and
+  messaging SLAs, damage deposits, STR permits/zoning, occupancy tax,
+  smart-lock security (code rotation, battery, failed-entry alerts),
+  co-host payout and 1099-K reconciliation, and host-performance metric
+  watch. All 25 shell/hybrid jobs smoke-tested clean; the other 7 are
+  agent-prompt-only.
+
 ## [0.73.1] - 2026-07-16
 
 ### Fixed

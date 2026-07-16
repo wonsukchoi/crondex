@@ -1,0 +1,24 @@
+id: host-permit-registration-renewal-check
+version: 1
+name: Host Permit Registration Renewal Check
+description: >
+  Flags short-term-rental operating permits or city registration numbers
+  that are close to expiring. Use this if a listing has ever been pulled
+  offline by a platform because a permit lapsed and nobody was tracking
+  the renewal date.
+category: short-term-rental
+tags: [short-term-rental, compliance, permits, licensing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, permit_number, jurisdiction, expiration_date from str_permits where expiration_date <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the compliance/permits database.
+  warning_days:
+    default: 45
+    description: Days before expiration to start flagging a permit for renewal.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `str_permits` table with `property_id`, `permit_number`, `jurisdiction`, and `expiration_date` columns — adjust the query to your record-keeping system.

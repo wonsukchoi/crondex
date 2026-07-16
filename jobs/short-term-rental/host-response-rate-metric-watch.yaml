@@ -1,0 +1,39 @@
+id: host-response-rate-metric-watch
+version: 1
+name: Host Response Rate Metric Watch
+description: >
+  Watches your platform host-performance metrics (response rate,
+  acceptance rate, cancellation rate) and flags any that are drifting
+  toward a Superhost/penalty threshold. Use this if a metric has ever
+  quietly slipped below the required minimum and only got noticed when
+  Superhost status was already lost.
+category: short-term-rental
+tags: [short-term-rental, host-metrics, platform-standing, superhost]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review current host-performance metrics for {{property_id}} on
+  {{listing_platforms}} against these minimum thresholds:
+  {{metric_thresholds}}
+  1. List each metric, its current value, and its threshold.
+  2. Flag any metric within {{warning_margin_pct}}% of its threshold as
+     at risk, even if it hasn't been breached yet.
+  3. For each at-risk metric, name the most likely lever to pull (e.g.
+     faster message replies for response rate, fewer host-initiated
+     cancellations for cancellation rate).
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property/host account to review.
+  listing_platforms:
+    default: "Airbnb, VRBO"
+    description: Comma-separated list of platforms to check host metrics on.
+  metric_thresholds:
+    default: "response rate >= 90%, acceptance rate >= 88%, cancellation rate <= 1%"
+    description: Minimum/maximum thresholds that determine your host tier or standing.
+  warning_margin_pct:
+    default: 10
+    description: Percent margin from a threshold that counts as at-risk rather than fine.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires read access to your platform's host-performance dashboard or API — this job reviews the metrics it's given, it doesn't fetch them itself.

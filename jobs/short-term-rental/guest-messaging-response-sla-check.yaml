@@ -1,0 +1,24 @@
+id: guest-messaging-response-sla-check
+version: 1
+name: Guest Messaging Response SLA Check
+description: >
+  Flags guest inquiries and booking messages that have gone unanswered
+  past your response-time target. Use this if a slow reply has ever cost
+  a booking, or ever pushed your platform response-rate metric toward a
+  penalty threshold.
+category: short-term-rental
+tags: [short-term-rental, guest-messaging, sla, response-time]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, sent_at, extract(epoch from (now() - sent_at))/60 as minutes_waiting from guest_messages where responded = false and extract(epoch from (now() - sent_at))/60 > {{sla_minutes}} order by sent_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the messaging/PMS database.
+  sla_minutes:
+    default: 60
+    description: Minutes an inquiry can wait before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `guest_messages` table with `responded`, `sent_at`, and `property_id` columns — adjust the query to your messaging system's schema.

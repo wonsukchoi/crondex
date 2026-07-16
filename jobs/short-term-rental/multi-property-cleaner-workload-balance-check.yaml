@@ -1,0 +1,37 @@
+id: multi-property-cleaner-workload-balance-check
+version: 1
+name: Multi-Property Cleaner Workload Balance Check
+description: >
+  Reviews next week's turnover assignments across all cleaners managing
+  multiple properties and flags anyone overloaded relative to realistic
+  travel and clean time between jobs. Use this if a cleaner has ever
+  been double-booked across two properties on the same day because
+  assignments were made property-by-property instead of per-cleaner.
+category: short-term-rental
+tags: [short-term-rental, cleaning, staffing, workload]
+schedule: "0 8 * * 5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review turnover assignments for the week of {{week_start_date}} across
+  all cleaners in {{cleaner_roster}}.
+  1. For each cleaner, list their assigned turnovers with property,
+     date, and scheduled time.
+  2. Flag any day where a cleaner has back-to-back turnovers at
+     different properties with less than {{min_travel_buffer_minutes}}
+     minutes between the previous checkout and the next check-in,
+     accounting for realistic travel time between the properties.
+  3. Suggest a rebalanced assignment for any overloaded day, moving a
+     turnover to a cleaner with slack that day if one exists.
+variables:
+  week_start_date:
+    default: "next Monday"
+    description: Start date of the week to review.
+  cleaner_roster:
+    default: "cleaner A, cleaner B, cleaner C"
+    description: Comma-separated list of cleaners to include in the review.
+  min_travel_buffer_minutes:
+    default: 45
+    description: Minimum minutes needed between a checkout and the next check-in at a different property, including travel.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires the turnover assignment schedule and each property's approximate travel distance from the others — this job reviews the data it's given, it doesn't pull from a scheduling tool itself.

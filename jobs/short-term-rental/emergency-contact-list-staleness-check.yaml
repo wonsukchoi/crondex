@@ -1,0 +1,24 @@
+id: emergency-contact-list-staleness-check
+version: 1
+name: Emergency Contact List Staleness Check
+description: >
+  Flags a property whose local emergency/service contact list (cleaner,
+  handyman, co-host, plumber) hasn't been verified as current in longer
+  than your target interval. Use this if a maintenance emergency has
+  ever hit a property whose on-file handyman number was disconnected.
+category: short-term-rental
+tags: [short-term-rental, emergency-contacts, maintenance, staleness]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, contact_role, contact_name, last_verified_at from emergency_contacts where last_verified_at < current_date - interval '{{max_staleness_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  max_staleness_days:
+    default: 180
+    description: Maximum days allowed since a contact was last verified before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `emergency_contacts` table with `property_id`, `contact_role`, `contact_name`, and `last_verified_at` columns — adjust to your record-keeping system.

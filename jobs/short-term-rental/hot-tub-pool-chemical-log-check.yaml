@@ -1,0 +1,24 @@
+id: hot-tub-pool-chemical-log-check
+version: 1
+name: Hot Tub/Pool Chemical Log Check
+description: >
+  Flags a property with a hot tub or pool that's missing a recent
+  chemical/water-safety log entry. Use this if a required chemical check
+  has ever been skipped and only discovered when a guest reported cloudy
+  or unsafe water.
+category: short-term-rental
+tags: [short-term-rental, amenities, safety, hot-tub, pool]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, amenity_type, last_logged_at from amenity_chemical_logs where amenity_type in ('pool','hot_tub') and last_logged_at < now() - interval '{{max_hours_since_check}} hours';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property/amenity-tracking database.
+  max_hours_since_check:
+    default: 48
+    description: Maximum hours allowed since the last chemical check before flagging.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an `amenity_chemical_logs` table with `property_id`, `amenity_type`, and `last_logged_at` columns — adjust to your maintenance-tracking system's schema. Only relevant to properties with a pool or hot tub.

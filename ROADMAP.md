@@ -116,12 +116,16 @@ smoke-tested count), and `llms.txt`. First real run: 1836/2182 jobs
 (84%) smoke-tested clean — the other 346 are `agent-prompt`-only jobs
 with no shell command to smoke-test, not failures.
 
-Not yet done: keeping this fresh. `smoke-test-status.json` only updates
-when a maintainer runs `npm run smoke-test` locally and commits the
-result — there's no CI enforcement that it stays in sync with job edits
-(a job's `version` bump without a re-run just makes it read as
-unverified again, which is safe-by-default, but there's no reminder to
-go re-run it). Revisit if this drifts noticeably stale.
+Freshness — done: `npm run check-smoke-sync` (`scripts/check-smoke-sync.js`)
+diffs the PR against its base ref and flags any changed shell/hybrid job
+whose `smoke-test-status.json` entry doesn't match its current `version`.
+Wired into `pr-jobs.yml` as an advisory PR-comment section, not a merge
+gate — smoke-test itself needs local network access (see
+`scripts/smoke-test.js`), so this surfaces drift without blocking
+contributors who can't run it. `smoke-test-status.json` still only
+updates when a maintainer runs `npm run smoke-test` locally and commits
+the result; this just makes it visible in the PR when that didn't
+happen.
 
 ## 3. Registry / discoverability (primary) — first pass done, published (0.72.0)
 

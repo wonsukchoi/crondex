@@ -145,11 +145,11 @@ built — found real gaps, not just "already fine, checked the box":
   — clear config snippets, tool list, safety notes, reasonably prominent
   (2nd section). Not the weak link; left as-is.
 
-Not done: actually submitting to external MCP registries/directories
-(mcpservers.org, Smithery, glama.ai, etc.) — that's an account-holding,
-manual submission action outside what a coding session should do
-unprompted, not a code change. Flagging it here as the next concrete
-step if registry-stickiness is still worth pushing on after this.
+External registry submission — account-holding, manual action, not a
+code change:
+
+- **mcpservers.org**: submitted 2026-07-16 (free listing).
+- **Smithery**, **glama.ai**: not yet submitted.
 
 ## 4. Catalog growth (secondary, opportunistic)
 

@@ -186,6 +186,17 @@ in one pass has worked well and scales better than one job at a time.
   moved past `version: 1` even after edits). Not urgent — `crondex update`
   now shows a real diff regardless of whether `version` was bumped — but
   worth a periodic spot-check on jobs that get meaningfully edited.
+  Spot-checked 2026-07-16: 69 job files have 2+ real commits touching
+  them but are still `version: 1`. Sampled 3 (`jobs/productivity/{weekly
+  -report,inbox-triage,daily-standup-summary}.yaml`) — confirmed real
+  drift, not just formatting: `weekly-report.yaml`'s runner changed
+  `agent-prompt` → `hybrid` and gained an entirely new `command` field
+  without a version bump. Deliberately not mass-bumped here — that would
+  claim re-verification that didn't happen. `check-smoke-sync` (§2)
+  covers new drift going forward for shell/hybrid jobs specifically;
+  this backlog is the pre-existing gap for edits made before that check
+  existed. Worth a real pass (open each flagged file, confirm what
+  changed, bump deliberately) when picked up, not a scripted bulk-bump.
 - **CI cost/speed**: currently fast (schema + shellcheck + duplicate scan,
   no network calls). Revisit only if catalog growth makes any of these
   noticeably slow.

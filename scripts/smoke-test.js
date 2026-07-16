@@ -13,7 +13,7 @@ import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { resolveJobCommand, buildSandboxScript, updateSmokeStatus } from "../lib/smoke-test.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));

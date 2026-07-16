@@ -12,7 +12,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import {
   resolveVariables,
   substitutePlaceholders,

@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { CATEGORY_DESCRIPTIONS } from "../lib/category-descriptions.js";
 import { isVerified } from "../lib/smoke-test.js";
 import {

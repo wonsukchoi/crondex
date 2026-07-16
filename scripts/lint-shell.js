@@ -6,7 +6,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { buildShellcheckScript } from "../lib/shellcheck-prep.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));

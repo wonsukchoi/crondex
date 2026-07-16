@@ -55,9 +55,9 @@ reached for when it surfaces a real narrow gap, not run as the default
 no-specific-ask session anymore. See §5 "How to pick up a session" for
 the new default order.
 
-## 1. Deploy engine hardening (primary)
+## 1. Deploy engine hardening (primary) — done, published (0.72.0)
 
-- **New targets** — Terraform done, unpublished as of this writing:
+- **New targets** — Terraform done:
   `--target terraform` generates a `kubernetes_cron_job_v1` Terraform
   resource, mirroring `k8s-cronjob`'s structure/behavior field-for-field
   (same target philosophy: it actually runs the job, not just schedules
@@ -78,8 +78,7 @@ the new default order.
   tool-free structural invariant: every `${`/`%{` in generated output
   must be part of the doubled escape). Nomad and Windows Task Scheduler
   remain parked — no concrete need identified for either yet.
-- **Edge-case correctness** — first pass done (0.70.0, unpublished as of
-  this writing): systemd range syntax (`-` vs `..`), the AWS EventBridge
+- **Edge-case correctness** — first pass done (0.70.0): systemd range syntax (`-` vs `..`), the AWS EventBridge
   regression that fix briefly introduced, an AWS dom+dow-both-restricted
   case, and an unquoted `job.name` in the GitHub Actions YAML emission —
   four real bugs, all found by actually auditing `lib/deploy.js`
@@ -90,7 +89,7 @@ the new default order.
   the only two doing real field translation, and are now the two most
   test-covered. Remaining: this was one focused pass, not an exhaustive
   one — revisit if a new target is added or a translation bug surfaces.
-- **Deploy-output verification** — done (0.70.0, unpublished): added
+- **Deploy-output verification** — done (0.70.0): added
   `scripts/verify-deploy-artifacts.js` / `npm run verify-deploy-artifacts`,
   wired into CI. Checks the *generated artifact* itself (not the job's
   own command, that's `smoke-test`'s job) — k8s/github-actions YAML
@@ -102,7 +101,7 @@ the new default order.
   in `test/deploy.test.js`), not per-job-content-dependent the way YAML
   emission is.
 
-## 2. Trust/provenance signal (primary) — done, unpublished
+## 2. Trust/provenance signal (primary) — done, published (0.72.0)
 
 `smoke-test-status.json` (new, committed) tracks each job's last
 successful `npm run smoke-test` run — id -> `{version, tested_at}`. A job
@@ -124,7 +123,7 @@ result — there's no CI enforcement that it stays in sync with job edits
 unverified again, which is safe-by-default, but there's no reminder to
 go re-run it). Revisit if this drifts noticeably stale.
 
-## 3. Registry / discoverability (primary) — first pass done, unpublished
+## 3. Registry / discoverability (primary) — first pass done, published (0.72.0)
 
 Audited `llms.txt` and npm package metadata against what's actually
 built — found real gaps, not just "already fine, checked the box":

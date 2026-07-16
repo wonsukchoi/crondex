@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.73.1] - 2026-07-16
+
+### Fixed
+
+- `js-yaml` 5.x is ESM-only with named exports, no default export — the
+  default import used across `lib/`, `scripts/`, and `test/` broke at
+  runtime (`SyntaxError: The requested module 'js-yaml' does not provide
+  an export named 'default'`). Switched all 11 call sites to a namespace
+  import (`import * as yaml from "js-yaml"`); every call site only uses
+  `yaml.load`, so no call-site changes were needed.
+
+### Changed
+
+- Dependency bumps: `js-yaml` 4.3.0 → 5.2.1, `@biomejs/biome` 2.5.3 →
+  2.5.4, and `actions/configure-pages`, `actions/upload-pages-artifact`,
+  `actions/deploy-pages`, `actions/github-script` GitHub Actions to their
+  latest majors.
+
 ## [0.73.0] - 2026-07-16
 
 ### Added

@@ -6,12 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-07-16
+
 ### Added
 
 - `deploy --target nomad`: generates a Nomad periodic batch job spec,
   mirroring the `terraform` target's structure and reusing its
   `hclString()` HCL2 escaping as-is. Wired into `deploy`, `bundle`, and
   the `crondex_deploy` MCP tool.
+- New category: `waste-management` (65th category, 32 jobs) — waste
+  hauling, recycling, and landfill/transfer-station ops: routes,
+  contamination, tonnage, permits, billing, driver/personnel compliance.
 - `SECURITY.md` and `.github/dependabot.yml` (npm + GitHub Actions,
   weekly).
 - `scripts/check-smoke-sync.js` / `npm run check-smoke-sync`: advisory,

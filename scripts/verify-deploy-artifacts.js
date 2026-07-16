@@ -17,6 +17,7 @@ import {
   resolveVariables,
   substitutePlaceholders,
   pickMode,
+  buildShellBody,
   buildK8sCronJob,
   buildTerraformKubernetesCronJob,
   buildGithubActionsWorkflow,
@@ -135,6 +136,11 @@ for (const file of walk(JOBS_DIR)) {
         ["spec.schedule matches the job schedule", m?.spec?.schedule === doc.schedule],
       ]);
 
+      // crontab, systemd's ExecStart=, and docker's /etc/cron.d entry all embed this
+      // exact string (see lib/deploy.js's buildShellBody) as the command they invoke —
+      // checking it once here covers all three, rather than three near-duplicate checks.
+      assertValidBashSyntax(rel, "shell-body (crontab/systemd/docker)", buildShellBody(resolvedText, isPrompt));
+
       assertValidBashSyntax(rel, "eventbridge", buildEventBridgeCommand(doc, resolvedText, isPrompt));
       assertValidBashSyntax(rel, "cloud-scheduler", buildCloudSchedulerCommand(doc, resolvedText, isPrompt));
 
@@ -156,6 +162,6 @@ for (const file of walk(JOBS_DIR)) {
 }
 
 console.log(
-  `checked ${checked} job(s) across k8s-cronjob/terraform/github-actions/eventbridge/cloud-scheduler artifacts, ${failed} failed`
+  `checked ${checked} job(s) across k8s-cronjob/terraform/github-actions/eventbridge/cloud-scheduler/shell-body artifacts, ${failed} failed`
 );
 if (failed > 0) process.exit(1);

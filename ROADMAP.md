@@ -95,11 +95,16 @@ the new default order.
   own command, that's `smoke-test`'s job) — k8s/github-actions YAML
   actually parses with the right shape, eventbridge/cloud-scheduler
   snippets have valid bash syntax. This is exactly what caught the
-  unquoted-`job.name` bug above. Not yet covered: crontab/systemd/docker's
-  `bash -lc '...'` escaping — lower priority, that's a provably-correct
-  generic escaping idiom (already unit-tested with synthetic edge cases
-  in `test/deploy.test.js`), not per-job-content-dependent the way YAML
-  emission is.
+  unquoted-`job.name` bug above.
+
+  Coverage extended (2026-07-16): crontab/systemd/docker's `bash -lc
+  '...'` escaping was already unit-tested with synthetic edge cases in
+  `test/deploy.test.js`, but never checked against the real catalog.
+  Exported `buildShellBody()` from `lib/deploy.js` (was internal-only —
+  the one function all three targets share for the embedded command) and
+  added a `shell-body` check in `verify-deploy-artifacts.js` that runs
+  `bash -n` on its output for every job, same as the existing
+  eventbridge/cloud-scheduler checks. All 2182 catalog jobs pass.
 
 ## 2. Trust/provenance signal (primary) — done, published (0.72.0)
 

@@ -12,6 +12,7 @@ A directory, not a framework.
 
 [![npm version](https://img.shields.io/npm/v/@wonsukchoi/crondex.svg)](https://www.npmjs.com/package/@wonsukchoi/crondex)
 [![npm downloads](https://img.shields.io/npm/dm/@wonsukchoi/crondex.svg)](https://www.npmjs.com/package/@wonsukchoi/crondex)
+[![npm total downloads](https://img.shields.io/npm/dt/@wonsukchoi/crondex.svg)](https://www.npmjs.com/package/@wonsukchoi/crondex)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 </div>

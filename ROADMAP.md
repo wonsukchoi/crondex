@@ -186,21 +186,29 @@ in one pass has worked well and scales better than one job at a time.
 ## 5. Maintenance backlog (reach for when higher priorities stall or surface a need)
 
 - **Version-bump discipline**: `version` field is manually maintained per
-  CONTRIBUTING.md's convention but under-followed (most jobs have never
-  moved past `version: 1` even after edits). Not urgent — `crondex update`
-  now shows a real diff regardless of whether `version` was bumped — but
-  worth a periodic spot-check on jobs that get meaningfully edited.
-  Spot-checked 2026-07-16: 69 job files have 2+ real commits touching
-  them but are still `version: 1`. Sampled 3 (`jobs/productivity/{weekly
-  -report,inbox-triage,daily-standup-summary}.yaml`) — confirmed real
-  drift, not just formatting: `weekly-report.yaml`'s runner changed
-  `agent-prompt` → `hybrid` and gained an entirely new `command` field
-  without a version bump. Deliberately not mass-bumped here — that would
-  claim re-verification that didn't happen. `check-smoke-sync` (§2)
-  covers new drift going forward for shell/hybrid jobs specifically;
-  this backlog is the pre-existing gap for edits made before that check
-  existed. Worth a real pass (open each flagged file, confirm what
-  changed, bump deliberately) when picked up, not a scripted bulk-bump.
+  CONTRIBUTING.md's convention but under-followed. `check-smoke-sync`
+  (§2) covers new drift going forward for shell/hybrid jobs; this was
+  the pre-existing backlog from before that check existed.
+  Done (2026-07-16): worked the full backlog, not just a sample. Of the
+  69 job files flagged by `git log --follow` as having 2+ commits while
+  still `version: 1`, most (59) turned out to be `--follow` rename
+  misattribution or wording-only edits (typos, description rewording,
+  reformatting) — correctly left at `version: 1` per CONTRIBUTING.md's
+  "don't bump for wording-only edits" rule. 6 had genuine behavior
+  changes and were bumped to `version: 2`, each re-smoke-tested clean
+  before committing (not just bumped blind):
+  `productivity/weekly-report.yaml` and `productivity/daily-standup
+  -summary.yaml` (both gained a real `command` when their runner
+  changed `agent-prompt` → `hybrid`), `realestate/tenant-renters
+  -insurance-compliance-check.yaml`, `nonprofit/lapsed-donor-check.yaml`,
+  `learning/spaced-repetition-deck-staleness-check.yaml`, and
+  `finance/fx-rate-watch.yaml` (all four had their `command`/`variables`
+  rewritten since creation). Verified each against its actual creation
+  commit rather than trusting `--follow`'s file list at face value —
+  several of the other 4 unresolved-by-script candidates turned out to
+  be exact content matches to their true creation commit once traced
+  through the real history, i.e. no drift at all despite the naive
+  commit-count heuristic flagging them.
 - **CI cost/speed**: currently fast (schema + shellcheck + duplicate scan,
   no network calls). Revisit only if catalog growth makes any of these
   noticeably slow.

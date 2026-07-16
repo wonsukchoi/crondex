@@ -149,7 +149,11 @@ External registry submission — account-holding, manual action, not a
 code change:
 
 - **mcpservers.org**: submitted 2026-07-16 (free listing).
-- **Smithery**, **glama.ai**: not yet submitted.
+- **Smithery**: skipped (2026-07-16) — their "Publish" form wants an HTTP
+  URL to a hosted server; crondex is local-stdio (`npx`), not a fit
+  without standing up hosting. Revisit if Smithery adds a local/stdio
+  registration path.
+- **glama.ai**: not yet submitted.
 
 ## 4. Catalog growth (secondary, opportunistic)
 

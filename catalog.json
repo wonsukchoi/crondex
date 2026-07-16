@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2182,
+  "count": 2214,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -4940,6 +4940,33 @@
       "path": "jobs/gaming/bug-report-triage-backlog-check.yaml"
     },
     {
+      "id": "bulk-item-pickup-backlog-check",
+      "version": 1,
+      "name": "Bulk Item Pickup Backlog Check",
+      "description": "Flags scheduled bulk-item pickup requests (furniture, appliances, mattresses) that are overdue against their promised pickup window, so dispatch can reschedule or escalate before a customer complains. Use this if bulk requests have ever sat in the queue past their promised window without anyone noticing until the customer called in.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "bulk-pickup",
+        "backlog",
+        "dispatch",
+        "scheduling"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/bulk-item-pickup-backlog-check.yaml"
+    },
+    {
       "id": "bundle-component-stock-mismatch-check",
       "version": 1,
       "name": "Bundle Component Stock Mismatch Check",
@@ -6297,6 +6324,33 @@
       ],
       "verified": true,
       "path": "jobs/growth/cart-abandonment-followup.yaml"
+    },
+    {
+      "id": "cart-inventory-reconciliation-check",
+      "version": 1,
+      "name": "Cart Inventory Reconciliation Check",
+      "description": "Reconciles the count of trash/recycling carts issued to customers against the physical cart-inventory/asset-tracking log, grouped by cart type, and flags any shortfall (more issued than tracked) or unaccounted surplus (more in inventory than issued). Use this if cart counts have ever quietly drifted apart between the customer-issuance records and the warehouse's physical inventory log.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "carts",
+        "inventory",
+        "reconciliation",
+        "asset-tracking"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/cart-inventory-reconciliation-check.yaml"
     },
     {
       "id": "cart-tax-calculation-error-check",
@@ -9137,6 +9191,32 @@
       "path": "jobs/creator/collab-outreach-followup-check.yaml"
     },
     {
+      "id": "collection-route-fuel-cost-per-ton-watch",
+      "version": 1,
+      "name": "Collection Route Fuel Cost Per Ton Watch",
+      "description": "Computes fuel cost per ton collected for each collection route from a daily route log and flags any route trending above a cost-per-ton threshold over a lookback window. Use this if fuel spend has ever crept up on a route without anyone noticing because nobody was tying it back to how much waste that route actually collected.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "collection-routes",
+        "fuel-cost",
+        "unit-economics"
+      ],
+      "schedule": "0 5 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/collection-route-fuel-cost-per-ton-watch.yaml"
+    },
+    {
       "id": "colo-power-redundancy-test-compliance-check",
       "version": 1,
       "name": "Colo/Data Center Power Redundancy Test Compliance Check",
@@ -9840,6 +9920,34 @@
       "path": "jobs/hr/compliance-training-completion-check.yaml"
     },
     {
+      "id": "compost-program-participation-check",
+      "version": 1,
+      "name": "Compost Program Participation Check",
+      "description": "Tracks organics/compost cart set-out participation rate from route or RFID cart-scan data over two periods, flags a meaningful decline, and drafts a short outreach nudge for the affected route or neighborhood. Use this if a compost program has ever seen participation quietly slide for a few months before anyone noticed and reached out to customers.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "compost",
+        "organics",
+        "participation",
+        "outreach"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/compost-program-participation-check.yaml"
+    },
+    {
       "id": "compounding-log-review",
       "version": 1,
       "name": "Compounding Log Review",
@@ -10217,6 +10325,86 @@
       ],
       "verified": true,
       "path": "jobs/security/container-image-vulnerability-scan-check.yaml"
+    },
+    {
+      "id": "container-overflow-complaint-tracker",
+      "version": 1,
+      "name": "Container Overflow Complaint Tracker",
+      "description": "Tracks container-overflow complaints per customer/location and flags anyone with recurring overflow reports within a lookback window, then drafts a short internal recommendation on whether the account needs a larger container or more frequent pickups. Use this if a customer has ever called in about an overflowing dumpster more than once before anyone suggested a service-level change instead of just sending another truck.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "container-overflow",
+        "complaints",
+        "service-level"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/container-overflow-complaint-tracker.yaml"
+    },
+    {
+      "id": "container-rental-overdue-check",
+      "version": 1,
+      "name": "Container Rental Overdue Check",
+      "description": "Flags rented roll-off or dumpster containers still sitting on a customer site past their scheduled pull or swap date. Use this if idle rental containers have ever quietly sat on a job site for weeks past their scheduled removal, tying up fleet inventory and going unbilled for extended-rental fees.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "container-rental",
+        "roll-off",
+        "fleet",
+        "billing"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/container-rental-overdue-check.yaml"
+    },
+    {
+      "id": "contamination-customer-notice-draft",
+      "version": 1,
+      "name": "Contamination Customer Notice Draft",
+      "description": "Reviews a customer's recycling-cart contamination-flag history and, for any customer with repeated flags, drafts a customer-facing notice explaining the issue and what to do about it. Use this after a route crew or on-truck camera has flagged the same customer's cart for contamination more than once, when a form notice needs to go out but someone still has to write it. The output is a draft only — it is never sent automatically.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "recycling",
+        "contamination",
+        "customer-notice"
+      ],
+      "schedule": "0 9 * * 2",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": false,
+      "path": "jobs/waste-management/contamination-customer-notice-draft.yaml"
     },
     {
       "id": "content-calendar-gap-check",
@@ -13066,6 +13254,33 @@
       "path": "jobs/telecom/customer-bandwidth-overage-billing-accuracy-check.yaml"
     },
     {
+      "id": "customer-billing-discrepancy-check",
+      "version": 1,
+      "name": "Customer Billing Discrepancy Check",
+      "description": "Reconciles each customer's actually-billed service level (container size and pickup frequency) against what their signed contract specifies, and flags any mismatch — whether it means the customer is being over-billed or under-billed relative to the service they contracted for. Use this if a container upsize or frequency change has ever been made in the field without billing being updated to match.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "billing",
+        "contracts",
+        "reconciliation",
+        "revenue-leakage"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/customer-billing-discrepancy-check.yaml"
+    },
+    {
       "id": "customer-contract-expiry-churn-risk-check",
       "version": 1,
       "name": "Telecom Customer Contract Expiry Churn Risk Check",
@@ -13256,6 +13471,33 @@
       ],
       "verified": false,
       "path": "jobs/support/customer-sentiment-spike-check.yaml"
+    },
+    {
+      "id": "customer-service-request-backlog-check",
+      "version": 1,
+      "name": "Customer Service Request Backlog Check",
+      "description": "Reviews open customer service tickets (missed pickup, damaged cart, billing question, etc.) and flags any ticket that has aged past a configurable response-time SLA without being closed. Use this if customer service requests have ever sat untouched long enough that a resident called back angrier than the first time.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "customer-service",
+        "sla",
+        "backlog",
+        "tickets"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/customer-service-request-backlog-check.yaml"
     },
     {
       "id": "customer-sla-credit-issuance-backlog-check",
@@ -16475,6 +16717,33 @@
       "path": "jobs/fleet/driver-mvr-review-tracker.yaml"
     },
     {
+      "id": "driver-route-deviation-check",
+      "version": 1,
+      "name": "Driver Route Deviation Check",
+      "description": "Compares a collection driver's actual GPS/telematics stop-completion log against the planned route sequence for the day and flags any stop that was skipped entirely or completed out of the planned order. Use this if missed pickups or route-order complaints have ever surfaced hours after the fact instead of the same afternoon.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "routing",
+        "telematics",
+        "driver-performance",
+        "gps"
+      ],
+      "schedule": "0 18 * * 1-6",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/driver-route-deviation-check.yaml"
+    },
+    {
       "id": "driver-safety-score-monitor",
       "version": 1,
       "name": "Driver Safety Score Monitor",
@@ -16725,6 +16994,33 @@
       "path": "jobs/home/dryer-vent-cleaning-reminder.yaml"
     },
     {
+      "id": "dumpster-placement-permit-expiry-check",
+      "version": 1,
+      "name": "Dumpster Placement Permit Expiry Check",
+      "description": "Tracks expiry dates for temporary dumpster/roll-off street-placement permits at customer sites (construction and renovation jobs) and flags any permit that has expired or is expiring soon while the dumpster is still marked as placed. Use this if a customer's roll-off has ever sat on the street past its permit date and drawn a city citation.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "dumpster",
+        "permits",
+        "roll-off",
+        "compliance"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/dumpster-placement-permit-expiry-check.yaml"
+    },
+    {
       "id": "duplicate-content-check",
       "version": 1,
       "name": "Duplicate Content Check",
@@ -16935,6 +17231,33 @@
       ],
       "verified": true,
       "path": "jobs/veterinary/dvm-license-dea-registration-expiry-check.yaml"
+    },
+    {
+      "id": "e-waste-collection-event-reminder",
+      "version": 1,
+      "name": "E-Waste Collection Event Reminder",
+      "description": "Drafts a reminder message for staff and customers about an upcoming scheduled e-waste (electronics) collection event, pulling the event details from an events file. Use this if turnout for e-waste collection events has ever suffered because nobody sent a reminder until it was too late for people to plan around.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "e-waste",
+        "outreach",
+        "reminder",
+        "events"
+      ],
+      "schedule": "0 9 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": false,
+      "path": "jobs/waste-management/e-waste-collection-event-reminder.yaml"
     },
     {
       "id": "e911-address-database-accuracy-audit",
@@ -24093,6 +24416,33 @@
       "path": "jobs/agriculture/harvest-timing-window-check.yaml"
     },
     {
+      "id": "hazardous-waste-manifest-expiry-check",
+      "version": 1,
+      "name": "Hazardous Waste Manifest Expiry Check",
+      "description": "Tracks hazardous-waste manifest and EPA ID documentation for expiry within an upcoming warning window or missing required signatures, since an expired or incomplete manifest legally blocks a shipment from moving. Use this if a hazardous-waste load has ever been held at the gate because a manifest signature or EPA ID renewal was missed until the truck was already there.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "hazardous-waste",
+        "manifest",
+        "compliance",
+        "epa"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/hazardous-waste-manifest-expiry-check.yaml"
+    },
+    {
       "id": "hazmat-documentation-compliance-check",
       "version": 1,
       "name": "Hazmat Shipment Documentation Compliance Check",
@@ -25477,6 +25827,33 @@
       ],
       "verified": true,
       "path": "jobs/fleet/ifta-fuel-tax-report-deadline-check.yaml"
+    },
+    {
+      "id": "illegal-dumping-report-followup-check",
+      "version": 1,
+      "name": "Illegal Dumping Report Followup Check",
+      "description": "Cross-references logged illegal-dumping reports against cleanup-crew dispatch and closure records, identifies reports still open past a follow-up SLA, and prioritizes which ones need attention first based on location risk factors and how overdue they are. Use this if illegal- dumping reports have ever sat unclosed for weeks without anyone triaging which ones actually need a crew sent this week.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "illegal-dumping",
+        "sla",
+        "cleanup-crew",
+        "follow-up"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": false,
+      "path": "jobs/waste-management/illegal-dumping-report-followup-check.yaml"
     },
     {
       "id": "image-alt-text-audit",
@@ -28197,6 +28574,60 @@
       "path": "jobs/agriculture/land-lease-renewal-reminder.yaml"
     },
     {
+      "id": "landfill-diversion-rate-report",
+      "version": 1,
+      "name": "Landfill Diversion Rate Report",
+      "description": "Computes the waste diversion rate — tonnage recycled plus composted divided by total tonnage collected — over a reporting period from tonnage records, for municipal contract or regulatory reporting. Use this if a franchise agreement or state reporting requirement has ever needed a diversion rate figure pulled together by hand at the end of the month or quarter.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "diversion-rate",
+        "recycling",
+        "compost",
+        "reporting"
+      ],
+      "schedule": "0 5 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/landfill-diversion-rate-report.yaml"
+    },
+    {
+      "id": "landfill-gas-monitoring-threshold-check",
+      "version": 1,
+      "name": "Landfill Gas Monitoring Threshold Check",
+      "description": "Reviews the latest round of landfill methane/gas monitoring well readings against the regulatory action-level threshold, identifies any well over the limit, and reasons about whether the pattern (single well, cluster of wells, rising trend) suggests a localized issue or something that needs broader investigation. Use this if a gas monitoring exceedance has ever been logged without anyone stepping back to check whether nearby wells were trending the same way.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "landfill-gas",
+        "methane",
+        "environmental-monitoring",
+        "compliance"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": false,
+      "path": "jobs/waste-management/landfill-gas-monitoring-threshold-check.yaml"
+    },
+    {
       "id": "landing-page-conversion-drop-check",
       "version": 1,
       "name": "Landing Page Conversion Drop Check",
@@ -28461,6 +28892,34 @@
       ],
       "verified": true,
       "path": "jobs/retail/layaway-special-order-pickup-tracker.yaml"
+    },
+    {
+      "id": "leachate-monitoring-report-due-check",
+      "version": 1,
+      "name": "Leachate Monitoring Report Due Check",
+      "description": "Tracks the due date for a landfill's periodic leachate-monitoring report submission to the regulator, flags reports approaching or past their deadline, and has an agent assess whether the underlying monitoring data collection is actually on track to support an on-time filing. Use this if a leachate report has ever been rushed at the last minute because sampling data wasn't fully compiled yet.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "leachate",
+        "landfill",
+        "regulatory-reporting",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/leachate-monitoring-report-due-check.yaml"
     },
     {
       "id": "lead-magnet-conversion-rate-check",
@@ -32324,6 +32783,33 @@
       "path": "jobs/dental/missed-hygiene-reappointment-check.yaml"
     },
     {
+      "id": "missed-pickup-complaint-tracker",
+      "version": 1,
+      "name": "Missed Pickup Complaint Tracker",
+      "description": "Cross-references logged customer missed-pickup complaints against the actual route completion log for the same day and stop, separating complaints where the route genuinely wasn't run from ones where the stop was already serviced, then drafts a short CSR follow-up note per complaint. Use this if your CSRs have ever issued a redo truck (or a credit) for a stop the driver actually completed, or missed a real skip because nobody checked the route log.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "customer-service",
+        "route-audit",
+        "complaints"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/missed-pickup-complaint-tracker.yaml"
+    },
+    {
       "id": "mobile-data-roaming-overage-watch",
       "version": 1,
       "name": "Mobile Data Roaming Overage Watch",
@@ -33327,6 +33813,33 @@
       "path": "jobs/government/municipal-bond-covenant-compliance-check.yaml"
     },
     {
+      "id": "municipal-contract-renewal-deadline-tracker",
+      "version": 1,
+      "name": "Municipal Contract Renewal Deadline Tracker",
+      "description": "Scans your list of municipal waste-hauling contracts and flags any whose renewal or rebid deadline falls within a configurable lead window, so a bid or renewal package can be prepared instead of discovered at the last minute. Use this if a city or county contract has ever gone out to rebid before your team started drafting a response.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "municipal-contracts",
+        "renewals",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/municipal-contract-renewal-deadline-tracker.yaml"
+    },
+    {
       "id": "mutual-fund-redemption-fee-window-check",
       "version": 1,
       "name": "Mutual Fund Short-Term Redemption Fee Window Check",
@@ -33694,6 +34207,32 @@
       ],
       "verified": true,
       "path": "jobs/veterinary/new-client-intake-packet-completion-check.yaml"
+    },
+    {
+      "id": "new-customer-service-start-checklist",
+      "version": 1,
+      "name": "New Customer Service-Start Checklist",
+      "description": "Checks a newly signed customer's service-start checklist against their first scheduled pickup date and flags any customer whose cart delivery, route assignment, or billing setup is still incomplete with too little lead time to fix it. Use this if new customers have ever shown up on a route with no cart delivered or no billing account set up because the onboarding steps weren't tracked in one place.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "onboarding",
+        "customer-service",
+        "checklist"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/new-customer-service-start-checklist.yaml"
     },
     {
       "id": "new-driver-onboarding-training-check",
@@ -34633,6 +35172,32 @@
       ],
       "verified": true,
       "path": "jobs/fleet/odometer-fuel-mileage-reconciliation-check.yaml"
+    },
+    {
+      "id": "odor-complaint-log-review",
+      "version": 1,
+      "name": "Odor Complaint Log Review",
+      "description": "Reviews logged odor complaints from a landfill or transfer station's neighbors, grouped by location and date, and flags a spike in volume or a geographic cluster worth investigating. Use this if odor complaints have ever piled up quietly until a regulator or the local news noticed before your own operations team did.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "landfill",
+        "transfer-station",
+        "odor-complaints"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/odor-complaint-log-review.yaml"
     },
     {
       "id": "oee-efficiency-check",
@@ -37720,6 +38285,34 @@
       ],
       "verified": true,
       "path": "jobs/construction/permit-expiry-check.yaml"
+    },
+    {
+      "id": "permit-renewal-deadline-tracker",
+      "version": 1,
+      "name": "Permit Renewal Deadline Tracker",
+      "description": "Scans a facility or hauling operation's list of operating permits (landfill permits, transfer station permits, hauling licenses) and flags any permit whose expiry date falls inside the configured lead-time warning window, then has an agent triage which ones are routine renewals versus which carry real risk of a lapse. Use this if a permit has ever come uncomfortably close to (or past) its expiry before the renewal paperwork was even started.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "permits",
+        "compliance",
+        "regulatory",
+        "renewal"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/permit-renewal-deadline-tracker.yaml"
     },
     {
       "id": "permit-required-job-missing-permit-check",
@@ -42764,6 +43357,86 @@
       "path": "jobs/productivity/recurring-task-queue-reset.yaml"
     },
     {
+      "id": "recycling-audit-sample-schedule-reminder",
+      "version": 1,
+      "name": "Recycling Audit Sample Schedule Reminder",
+      "description": "Reminds staff when the next scheduled recycling-stream composition audit (a periodic sample-and-sort to characterize what's actually in the recycling stream) is coming up, based on the date of the last audit and a recurring cadence. Use this if composition audits have ever slipped past their planned interval because nobody had a standing reminder tied to the last audit date.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "recycling",
+        "composition-audit",
+        "reminder"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/recycling-audit-sample-schedule-reminder.yaml"
+    },
+    {
+      "id": "recycling-commodity-price-watch",
+      "version": 1,
+      "name": "Recycling Commodity Price Watch",
+      "description": "Tracks recyclable commodity prices (cardboard, mixed paper, aluminum, PET, etc.) against a floor and ceiling threshold per material, and flags any material whose latest price has moved past either bound — a move worth revisiting a rebate agreement or hauling-fee structure over. Use this if commodity swings have ever eaten into rebate revenue or driven up net hauling costs before anyone noticed the market had moved.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "recycling",
+        "commodities",
+        "pricing",
+        "rebates"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/recycling-commodity-price-watch.yaml"
+    },
+    {
+      "id": "recycling-contamination-rate-check",
+      "version": 1,
+      "name": "Recycling Contamination Rate Check",
+      "description": "Computes a contamination rate per route or per customer account from load-inspection and MRF (materials recovery facility) rejection data — rejected or non-recyclable weight divided by total inspected weight — and flags any route or account trending above a configured threshold. Use this if a hauler has ever gotten hit with an MRF rejection fee without knowing which route was driving the contamination.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "recycling",
+        "contamination",
+        "mrf",
+        "quality"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/recycling-contamination-rate-check.yaml"
+    },
+    {
       "id": "redirect-chain-loop-check",
       "version": 1,
       "name": "Redirect Chain & Loop Check",
@@ -45736,6 +46409,33 @@
       "path": "jobs/utilities/scada-alarm-backlog-check.yaml"
     },
     {
+      "id": "scale-ticket-reconciliation-check",
+      "version": 1,
+      "name": "Scale Ticket Reconciliation Check",
+      "description": "Reconciles inbound weighbridge scale tickets against the manifest or hauler-reported load weight for each shipment, and flags any load whose variance between scaled weight and reported weight exceeds a set tolerance. Use this if a hauler's reported tonnage has ever drifted from what the scale actually recorded, whether from equipment drift or under/over-reporting.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "scale-tickets",
+        "weighbridge",
+        "reconciliation",
+        "tonnage"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/scale-ticket-reconciliation-check.yaml"
+    },
+    {
       "id": "schema-markup-validation-check",
       "version": 2,
       "name": "Schema Markup Validation Check",
@@ -46278,6 +46978,34 @@
       ],
       "verified": false,
       "path": "jobs/fleet/seasonal-vehicle-readiness-check.yaml"
+    },
+    {
+      "id": "seasonal-yard-waste-volume-forecast",
+      "version": 1,
+      "name": "Seasonal Yard Waste Volume Forecast",
+      "description": "Projects expected yard-waste and leaf-collection tonnage for an upcoming seasonal peak (e.g. fall leaf season, spring cleanup) from prior-year tonnage history, to help route planning and temporary staffing decisions. Use this if seasonal yard-waste volume has ever caught the ops team off guard because nobody looked at last year's numbers until routes were already falling behind.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "yard-waste",
+        "forecasting",
+        "seasonal",
+        "route-planning"
+      ],
+      "schedule": "0 6 1 * *",
+      "timezone": "UTC",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/seasonal-yard-waste-volume-forecast.yaml"
     },
     {
       "id": "seat-upgrade-award-availability-watch",
@@ -48281,6 +49009,33 @@
       "path": "jobs/education/special-education-initial-evaluation-timeline-tracker.yaml"
     },
     {
+      "id": "special-waste-pickup-scheduling-backlog-check",
+      "version": 1,
+      "name": "Special Waste Pickup Scheduling Backlog Check",
+      "description": "Scans scheduled special-waste pickup requests (tires, appliances, e-waste, asbestos, and other items outside regular curbside service) and flags any request whose scheduled pickup window has already passed but is still marked open. Use this if special-waste jobs have ever quietly slipped past their promised window because they don't show up in the regular route dispatch board.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "special-waste",
+        "scheduling",
+        "backlog",
+        "bulk-pickup"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/special-waste-pickup-scheduling-backlog-check.yaml"
+    },
+    {
       "id": "specialist-referral-followup-check",
       "version": 1,
       "name": "Veterinary Specialist Referral Follow-Up Check",
@@ -49969,6 +50724,33 @@
       ],
       "verified": true,
       "path": "jobs/gaming/stream-schedule-reminder.yaml"
+    },
+    {
+      "id": "street-sweeping-schedule-conflict-check",
+      "version": 1,
+      "name": "Street Sweeping Schedule Conflict Check",
+      "description": "Cross-references upcoming street-sweeping routes against other scheduled city services and events on the same street and date (parking enforcement, festivals, construction closures) and flags any conflicts. Use this if a sweeper has ever shown up on a street that was already blocked off for a festival or construction closure, wasting the route.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "street-sweeping",
+        "scheduling",
+        "city-services",
+        "conflicts"
+      ],
+      "schedule": "0 5 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/street-sweeping-schedule-conflict-check.yaml"
     },
     {
       "id": "studio-space-booking-conflict-check",
@@ -53387,6 +54169,33 @@
       ],
       "verified": true,
       "path": "jobs/podcast/transcript-publish-lag-check.yaml"
+    },
+    {
+      "id": "transfer-station-tonnage-reconciliation",
+      "version": 1,
+      "name": "Transfer Station Tonnage Reconciliation",
+      "description": "Reconciles inbound scale-ticket tonnage received at a transfer station against outbound tonnage shipped to disposal or processing facilities for the same period, and flags an unreconciled variance beyond a configured tolerance. Use this if a transfer station has ever closed out a month with inbound and outbound tonnage that quietly didn't add up, and nobody caught it until an audit.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "transfer-station",
+        "tonnage",
+        "reconciliation",
+        "scale-tickets"
+      ],
+      "schedule": "0 6 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/transfer-station-tonnage-reconciliation.yaml"
     },
     {
       "id": "transformer-load-threshold-alert",
@@ -56927,6 +57736,33 @@
       "path": "jobs/home/washing-machine-hose-inspection-reminder.yaml"
     },
     {
+      "id": "waste-collector-hazmat-certification-expiry-check",
+      "version": 1,
+      "name": "Waste Collector Hazmat Certification Expiry Check",
+      "description": "Tracks hazmat-handling certification expiry dates for waste-collection drivers and staff who handle household hazardous waste programs, and flags anyone whose certification has expired or is expiring within a configurable warning window. Use this if a driver has ever kept working a household hazardous waste route on a lapsed certification because nobody was watching the renewal dates.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "hazmat",
+        "certification",
+        "compliance",
+        "personnel"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/waste-collector-hazmat-certification-expiry-check.yaml"
+    },
+    {
       "id": "watchlist-price-target-alert",
       "version": 1,
       "name": "Watchlist Price Target Alert",
@@ -57563,6 +58399,32 @@
       ],
       "verified": true,
       "path": "jobs/logistics/weigh-station-bypass-compliance-check.yaml"
+    },
+    {
+      "id": "weighbridge-calibration-due-check",
+      "version": 1,
+      "name": "Weighbridge Calibration Due Check",
+      "description": "Tracks the next required calibration or certification date for each weighbridge/scale and flags any that are due within a lead window or already overdue. Use this if a scale has ever gone out of calibration unnoticed — an out-of-cal scale invalidates customer billing weights and any regulatory tonnage reporting built on it.",
+      "category": "waste-management",
+      "tags": [
+        "waste-management",
+        "weighbridge",
+        "calibration",
+        "compliance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/waste-management/weighbridge-calibration-due-check.yaml"
     },
     {
       "id": "welcome-email-drip-check",

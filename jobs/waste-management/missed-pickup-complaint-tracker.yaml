@@ -1,0 +1,86 @@
+id: missed-pickup-complaint-tracker
+version: 1
+name: Missed Pickup Complaint Tracker
+description: >
+  Cross-references logged customer missed-pickup complaints against the
+  actual route completion log for the same day and stop, separating
+  complaints where the route genuinely wasn't run from ones where the
+  stop was already serviced, then drafts a short CSR follow-up note per
+  complaint. Use this if your CSRs have ever issued a redo truck (or a
+  credit) for a stop the driver actually completed, or missed a real skip
+  because nobody checked the route log.
+category: waste-management
+tags: [waste-management, customer-service, route-audit, complaints]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v target_date="{{report_date}}" '
+    FNR==1 { file++; next }
+    file==1 {
+      if ($3 == target_date) {
+        key = $1 "|" $2;
+        completed[key] = $4;
+      }
+      next;
+    }
+    file==2 {
+      if ($3 != target_date) next;
+      key = $1 "|" $2;
+      if (key in completed) {
+        if (completed[key] == "yes") {
+          printf "ALREADY SERVICED,%s,%s,%s,%s\n", $4, $1, $3, completed[key];
+        } else {
+          printf "GENUINE MISS,%s,%s,%s,%s\n", $4, $1, $3, completed[key];
+        }
+      } else {
+        printf "NO ROUTE RECORD,%s,%s,%s,n/a\n", $4, $1, $3;
+      }
+    }
+  ' "{{route_completion_csv_path}}" "{{complaints_csv_path}}"
+prompt: |
+  You were given a list of missed-pickup complaints, each tagged as one of
+  ALREADY SERVICED, GENUINE MISS, or NO ROUTE RECORD, in the format:
+  status,complaint_id,stop_id,service_date,crew_or_flag.
+
+  For each complaint:
+  1. If GENUINE MISS: draft a one- or two-sentence internal note for
+     dispatch recommending a redo-truck visit, referencing the stop_id
+     and service_date.
+  2. If ALREADY SERVICED: draft a short, polite customer-facing note
+     explaining the stop was completed by crew {{crew_field_label}} on
+     {{service_date_field_label}}, and invite them to share a photo if
+     they still believe it was missed.
+  3. If NO ROUTE RECORD: flag it separately as needing manual
+     investigation — do not draft any customer or dispatch note for it.
+
+  Present the results as three short sections (Genuine Misses, Already
+  Serviced, Needs Investigation) and do not send anything — these are
+  drafts for a human CSR to review and send.
+script_note: >
+  The command reconciles each complaint against the route log and outputs
+  a status per complaint; the prompt turns the GENUINE MISS and ALREADY
+  SERVICED rows into ready-to-review draft notes, which a plain
+  reconciliation script can't do on its own.
+variables:
+  route_completion_csv_path:
+    default: "./route-completion-log.csv"
+    description: "CSV with header row, columns: stop_id,route_id,service_date,completed(yes/no) — one row per stop per route run."
+  complaints_csv_path:
+    default: "./missed-pickup-complaints.csv"
+    description: "CSV with header row, columns: stop_id,route_id,service_date,complaint_id — logged customer complaints to check."
+  report_date:
+    default: "2024-01-01"
+    description: "Service date (YYYY-MM-DD) to reconcile complaints against, matching the date format used in both CSVs."
+  crew_field_label:
+    default: "on file"
+    description: "How to refer to the servicing crew in customer-facing notes when a specific crew name/ID isn't available."
+  service_date_field_label:
+    default: "the scheduled date"
+    description: "How to refer to the service date in customer-facing notes."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matches on exact stop_id + route_id + date, so it will not catch cases
+  where a stop was serviced on the wrong route or a day late — those show
+  up as NO ROUTE RECORD and need a human look. All drafted notes are for
+  review only; nothing is sent or dispatched automatically.

@@ -1,0 +1,59 @@
+id: contamination-customer-notice-draft
+version: 1
+name: Contamination Customer Notice Draft
+description: >
+  Reviews a customer's recycling-cart contamination-flag history and, for
+  any customer with repeated flags, drafts a customer-facing notice
+  explaining the issue and what to do about it. Use this after a route
+  crew or on-truck camera has flagged the same customer's cart for
+  contamination more than once, when a form notice needs to go out but
+  someone still has to write it. The output is a draft only — it is never
+  sent automatically.
+category: waste-management
+tags: [waste-management, recycling, contamination, customer-notice]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read the contamination-flag history at {{contamination_flags_csv_path}}.
+  It has one row per flagged pickup with columns: customer_name,
+  address, flag_date, contamination_type, notes.
+
+  1. Group flags by customer and address, and identify any customer with
+     {{flag_threshold}} or more contamination flags in the trailing
+     {{lookback_days}} days.
+  2. For each such customer, summarize what was found (contamination
+     types, dates, any recurring pattern like "plastic bags" or "food
+     waste").
+  3. Draft a short, polite customer notice (do NOT send it — output the
+     draft text only) that:
+     - States the cart has been flagged for contamination on the
+       specific dates found.
+     - Explains in plain language what does and does not belong in
+       recycling, tailored to the contamination types seen.
+     - Notes that continued contamination may result in the cart being
+       serviced as trash, per {{escalation_policy_hint}}.
+     - Ends with a clear next step for the customer (e.g. who to call
+       with questions).
+  4. Label the output clearly as "DRAFT — NOT SENT" and list it under the
+     customer's name so a human can review before mailing/emailing.
+variables:
+  contamination_flags_csv_path:
+    default: "./contamination-flags.csv"
+    description: "CSV with header row, columns: customer_name,address,flag_date,contamination_type,notes — one row per flagged pickup."
+  flag_threshold:
+    default: 3
+    description: Minimum number of contamination flags in the lookback window before a customer notice is drafted.
+  lookback_days:
+    default: 90
+    description: How many days back to look when counting contamination flags for a customer.
+  escalation_policy_hint:
+    default: "your municipality's or company's contamination escalation policy"
+    description: Short description of what happens if contamination continues, to reference in the notice.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Always produces a draft for human review, never an actual sent
+  email/letter — wire the draft into your own mail-merge or CRM send
+  step only after someone approves it. Does not determine contamination
+  itself; it relies entirely on flags already logged by crews or
+  on-truck systems.

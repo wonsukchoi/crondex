@@ -1,0 +1,39 @@
+id: street-sweeping-schedule-conflict-check
+version: 1
+name: Street Sweeping Schedule Conflict Check
+description: >
+  Cross-references upcoming street-sweeping routes against other scheduled
+  city services and events on the same street and date (parking
+  enforcement, festivals, construction closures) and flags any conflicts.
+  Use this if a sweeper has ever shown up on a street that was already
+  blocked off for a festival or construction closure, wasting the route.
+category: waste-management
+tags: [waste-management, street-sweeping, scheduling, city-services, conflicts]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==1 { file++; next }
+    file==1 { key = $2 "|" $3; sweep_route[key] = $1; next }
+    file==2 {
+      key = $2 "|" $3;
+      if (key in sweep_route) {
+        printf "SCHEDULE CONFLICT: sweep route %s on %s (%s) conflicts with %s event \"%s\"\n", sweep_route[key], $2, $3, $4, $1;
+      }
+    }
+  ' "{{sweeping_schedule_csv_path}}" "{{city_events_csv_path}}"
+variables:
+  sweeping_schedule_csv_path:
+    default: "./sweeping-schedule.csv"
+    description: "CSV with header row, columns: route_id,street_name,sweep_date (YYYY-MM-DD) — planned street-sweeping routes."
+  city_events_csv_path:
+    default: "./city-events.csv"
+    description: "CSV with header row, columns: event_name,street_name,event_date (YYYY-MM-DD),event_type — other scheduled city services or events (parking enforcement, festivals, construction closures) that could block a street."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matches on exact street name and date only — normalize street name
+  spelling/abbreviations (e.g. "Main St" vs "Main Street") in both CSVs
+  before running, or matches will be missed. Does not account for partial-
+  street closures (a specific block range); treat flagged conflicts as
+  candidates to verify against the actual closure extent.

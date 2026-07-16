@@ -1,0 +1,47 @@
+id: new-customer-service-start-checklist
+version: 1
+name: New Customer Service-Start Checklist
+description: >
+  Checks a newly signed customer's service-start checklist against their
+  first scheduled pickup date and flags any customer whose cart delivery,
+  route assignment, or billing setup is still incomplete with too little
+  lead time to fix it. Use this if new customers have ever shown up on a
+  route with no cart delivered or no billing account set up because the
+  onboarding steps weren't tracked in one place.
+category: waste-management
+tags: [waste-management, onboarding, customer-service, checklist]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v lead_days="{{lead_time_days}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      customer=$1; first_pickup=$2; cart_delivered=$3; route_assigned=$4; billing_setup=$5;
+      cmd = "date -d \"" first_pickup "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" first_pickup "\" +%s 2>/dev/null";
+      cmd | getline pickup_epoch; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      days_left = int((pickup_epoch - today_epoch) / 86400);
+      incomplete = "";
+      if (cart_delivered != "yes") incomplete = incomplete "cart_delivery ";
+      if (route_assigned != "yes") incomplete = incomplete "route_assignment ";
+      if (billing_setup != "yes") incomplete = incomplete "billing_setup ";
+      if (incomplete != "" && days_left <= lead_days) {
+        printf "INCOMPLETE ONBOARDING: %s first pickup %s (%d days out) missing: %s\n", customer, first_pickup, days_left, incomplete;
+      }
+    }
+  ' "{{onboarding_checklist_csv_path}}"
+variables:
+  onboarding_checklist_csv_path:
+    default: "./onboarding-checklist.csv"
+    description: "CSV with header row, columns: customer_name,first_pickup_date,cart_delivered,route_assigned,billing_setup — the last three are yes/no values from your onboarding tracker."
+  lead_time_days:
+    default: 3
+    description: How many days before the first scheduled pickup a customer should be flagged if any checklist item is still incomplete.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires GNU or BSD date (script tries both syntaxes). Only checks the
+  three fields present in the CSV — if your onboarding process has
+  additional steps (e.g. welcome call, service agreement signed), add
+  columns and extend the incomplete-item logic accordingly.

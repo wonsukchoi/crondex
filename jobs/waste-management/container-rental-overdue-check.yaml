@@ -1,0 +1,42 @@
+id: container-rental-overdue-check
+version: 1
+name: Container Rental Overdue Check
+description: >
+  Flags rented roll-off or dumpster containers still sitting on a customer
+  site past their scheduled pull or swap date. Use this if idle rental
+  containers have ever quietly sat on a job site for weeks past their
+  scheduled removal, tying up fleet inventory and going unbilled for
+  extended-rental fees.
+category: waste-management
+tags: [waste-management, container-rental, roll-off, fleet, billing]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="{{today_override_date}}" '
+    BEGIN {
+      if (today == "") {
+        "date +%Y-%m-%d" | getline today;
+      }
+    }
+    FNR==1 { next }
+    {
+      container_id=$1; customer=$2; site=$3; scheduled_pull=$4;
+      if (scheduled_pull < today) {
+        printf "OVERDUE CONTAINER: %s at %s (customer %s) scheduled for pull on %s, still on site as of %s\n", container_id, site, customer, scheduled_pull, today;
+      }
+    }
+  ' "{{active_rentals_csv_path}}"
+variables:
+  active_rentals_csv_path:
+    default: "./active-rentals.csv"
+    description: "CSV with header row, columns: container_id,customer_id,site_address,scheduled_pull_date (YYYY-MM-DD) — every currently-deployed rental container not yet marked picked up."
+  today_override_date:
+    default: ""
+    description: "Optional YYYY-MM-DD to use instead of the system date, for testing or backfilling a report against a past date. Leave blank to use today's date."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the active-rentals export only contains containers not yet
+  confirmed pulled — once a container is picked up it should be removed
+  from (or marked in) the source system before the next run, or it will
+  keep being reported as overdue.

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2182 jobs across 64 categories (1836 smoke-tested clean):
+2214 jobs across 65 categories (1864 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -258,6 +258,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `utilities` | 32 | 29 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 32 | 24 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 32 | 25 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
+| `waste-management` | 32 | 28 | Waste hauling, recycling, and landfill/transfer-station ops — routes, contamination, tonnage, permits, billing. |
 <!-- END JOB SUMMARY -->
 
 ---

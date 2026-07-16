@@ -1,0 +1,58 @@
+id: driver-route-deviation-check
+version: 1
+name: Driver Route Deviation Check
+description: >
+  Compares a collection driver's actual GPS/telematics stop-completion log
+  against the planned route sequence for the day and flags any stop that
+  was skipped entirely or completed out of the planned order. Use this if
+  missed pickups or route-order complaints have ever surfaced hours after
+  the fact instead of the same afternoon.
+category: waste-management
+tags: [waste-management, routing, telematics, driver-performance, gps]
+schedule: "0 18 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{sequence_tolerance_stops}}" '
+    FNR==NR {
+      if (FNR==1) { next }
+      planned_seq[$1] = $2; planned_order[++pcount] = $1; next
+    }
+    FNR==1 { next }
+    {
+      if (!($1 in planned_seq)) { next }
+      actual_order[$1] = $3;
+      completed[$1] = 1;
+    }
+    END {
+      for (i=1; i<=pcount; i++) {
+        stop = planned_order[i];
+        if (!(stop in completed)) {
+          printf "SKIPPED STOP: %s (planned position %s) was not completed\n", stop, planned_seq[stop];
+          continue;
+        }
+        diff = actual_order[stop] - planned_seq[stop];
+        if (diff < 0) diff = -diff;
+        if (diff > tol) {
+          printf "OUT OF SEQUENCE: stop %s planned at position %s, completed at position %s (diff %s > tolerance %s)\n", stop, planned_seq[stop], actual_order[stop], diff, tol;
+        }
+      }
+    }
+  ' "{{planned_route_csv_path}}" "{{actual_stops_csv_path}}"
+variables:
+  planned_route_csv_path:
+    default: "./planned-route.csv"
+    description: "CSV with header row, columns: stop_id,planned_position — the dispatched route sequence for one driver/truck for the day."
+  actual_stops_csv_path:
+    default: "./actual-stops.csv"
+    description: "CSV with header row, columns: stop_id,timestamp,actual_position — from telematics/GPS stop-completion export for the same driver/truck/day."
+  sequence_tolerance_stops:
+    default: 2
+    description: How many positions of drift between planned and actual sequence is acceptable before flagging as out-of-sequence.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires the two CSVs to already be scoped to the same driver, truck, and
+  service day — this job does not do that matching itself. A skipped stop
+  is reported whenever it never appears in the actual-stops file, which
+  also catches stops logged after the report window; re-run later in the
+  evening to reduce false positives from late completions.

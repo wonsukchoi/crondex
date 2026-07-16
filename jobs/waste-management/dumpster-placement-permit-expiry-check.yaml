@@ -1,0 +1,47 @@
+id: dumpster-placement-permit-expiry-check
+version: 1
+name: Dumpster Placement Permit Expiry Check
+description: >
+  Tracks expiry dates for temporary dumpster/roll-off street-placement
+  permits at customer sites (construction and renovation jobs) and flags
+  any permit that has expired or is expiring soon while the dumpster is
+  still marked as placed. Use this if a customer's roll-off has ever sat
+  on the street past its permit date and drawn a city citation.
+category: waste-management
+tags: [waste-management, dumpster, permits, roll-off, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" -v today_epoch="$(date -u +%s)" '
+    NR==1 { next }
+    {
+      status=$5;
+      if (status == "placed") {
+        cmd="date -u -d \"" $4 "\" +%s 2>/dev/null || date -u -j -f \"%Y-%m-%d\" \"" $4 "\" +%s 2>/dev/null";
+        cmd | getline exp_epoch;
+        close(cmd);
+        if (exp_epoch > 0) {
+          days_left = (exp_epoch - today_epoch) / 86400;
+          if (days_left < 0) {
+            printf "PERMIT EXPIRED: dumpster %s at %s (permit %s) expired %s (%.0f days ago) — citation risk\n", $1, $2, $3, $4, -days_left;
+          } else if (days_left <= warn_days) {
+            printf "PERMIT EXPIRING SOON: dumpster %s at %s (permit %s) expires %s (%.0f days left)\n", $1, $2, $3, $4, days_left;
+          }
+        }
+      }
+    }
+  ' "{{dumpster_placements_csv_path}}"
+variables:
+  dumpster_placements_csv_path:
+    default: "./dumpster-placements.csv"
+    description: "CSV with header row, columns: dumpster_id,site_address,permit_number,permit_expiry_date (YYYY-MM-DD),status. status is one of placed,removed."
+  warning_window_days:
+    default: 5
+    description: How many days before permit expiry to start flagging it as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only flags dumpsters still marked "placed" in the CSV — update status to
+  "removed" promptly after pickup or this will keep flagging a unit that
+  is already gone. Does not check jurisdiction-specific permit renewal
+  rules; it only compares the expiry date you provide.

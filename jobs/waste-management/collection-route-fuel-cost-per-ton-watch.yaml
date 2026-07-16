@@ -1,0 +1,50 @@
+id: collection-route-fuel-cost-per-ton-watch
+version: 1
+name: Collection Route Fuel Cost Per Ton Watch
+description: >
+  Computes fuel cost per ton collected for each collection route from a
+  daily route log and flags any route trending above a cost-per-ton
+  threshold over a lookback window. Use this if fuel spend has ever crept
+  up on a route without anyone noticing because nobody was tying it back
+  to how much waste that route actually collected.
+category: waste-management
+tags: [waste-management, collection-routes, fuel-cost, unit-economics]
+schedule: "0 5 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{cost_per_ton_threshold}}" '
+    NR==1 { next }
+    {
+      route=$1; fuel_cost=$3; tons_collected=$4;
+      route_fuel[route] += fuel_cost;
+      route_tons[route] += tons_collected;
+    }
+    END {
+      for (r in route_fuel) {
+        if (route_tons[r] > 0) {
+          cost_per_ton = route_fuel[r] / route_tons[r];
+          if (cost_per_ton > threshold) {
+            printf "HIGH FUEL COST/TON: route %s = $%.2f/ton (total fuel $%.2f over %.2f tons)\n", r, cost_per_ton, route_fuel[r], route_tons[r];
+          }
+        }
+      }
+    }
+  ' "{{route_log_csv_path}}"
+variables:
+  route_log_csv_path:
+    default: "./route-fuel-log.csv"
+    description: "CSV with header row, columns: route_id,date,fuel_cost,tons_collected — one row per route per day (or per run) over the lookback window you want summed."
+  cost_per_ton_threshold:
+    default: 25
+    description: Fuel cost per ton collected (in your local currency) above which a route is flagged as trending high.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a waste-ops-specific unit-economics metric — fuel cost per ton
+  actually collected — and is distinct from a generic fleet
+  fuel-efficiency check (e.g. miles per gallon) elsewhere in the
+  catalog. A route can look fuel-efficient per mile and still be
+  expensive per ton if it collects light loads over long distances, so
+  do not substitute a generic MPG job for this one. Pre-filter the CSV
+  to your desired lookback window (e.g. last 30 days) before running,
+  since this job sums every row it's given.

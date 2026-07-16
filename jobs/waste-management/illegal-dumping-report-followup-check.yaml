@@ -1,0 +1,50 @@
+id: illegal-dumping-report-followup-check
+version: 1
+name: Illegal Dumping Report Followup Check
+description: >
+  Cross-references logged illegal-dumping reports against cleanup-crew
+  dispatch and closure records, identifies reports still open past a
+  follow-up SLA, and prioritizes which ones need attention first based on
+  location risk factors and how overdue they are. Use this if illegal-
+  dumping reports have ever sat unclosed for weeks without anyone
+  triaging which ones actually need a crew sent this week.
+category: waste-management
+tags: [waste-management, illegal-dumping, sla, cleanup-crew, follow-up]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  You have two data sources to work from: an illegal-dumping report log
+  at {{dumping_reports_source_hint}}, and cleanup-crew dispatch/closure
+  records at {{dispatch_records_source_hint}}.
+
+  1. For each report older than {{followup_sla_days}} days, check whether
+     a matching dispatch/closure record exists for that report_id.
+  2. Classify each old, unclosed report as: still open with no crew ever
+     dispatched, dispatched but not closed out, or falsely still marked
+     open (a closure record exists but the report status wasn't updated).
+  3. For the reports genuinely still open, prioritize them using these
+     signals if available in the data: proximity to waterways or
+     residential areas, report recency, and repeat-location history
+     (has this address been reported before).
+  4. Produce a ranked follow-up list (most urgent first) with the report
+     ID, location, days open, and a one-line reason for the ranking.
+     Do not dispatch a crew yourself — this is a prioritized worklist for
+     the person who assigns cleanup crews.
+variables:
+  dumping_reports_source_hint:
+    default: "your illegal-dumping report log or 311/citizen-reporting export"
+    description: "Where illegal-dumping reports with report_id, location, and report_date can be found."
+  dispatch_records_source_hint:
+    default: "your cleanup-crew dispatch/work-order system export"
+    description: "Where crew dispatch and closure records, keyed by report_id, can be found."
+  followup_sla_days:
+    default: 7
+    description: "Number of days a report can remain open before it is considered overdue for a follow-up SLA."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Relies on report_id matching between the two data sources being
+  consistent — if your reporting log and dispatch system use different
+  IDs, provide a crosswalk or matching key in the source hints. This job
+  produces a prioritized worklist only; it never dispatches a crew or
+  closes a report on its own.

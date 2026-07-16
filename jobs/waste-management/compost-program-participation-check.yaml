@@ -1,0 +1,77 @@
+id: compost-program-participation-check
+version: 1
+name: Compost Program Participation Check
+description: >
+  Tracks organics/compost cart set-out participation rate from route or
+  RFID cart-scan data over two periods, flags a meaningful decline, and
+  drafts a short outreach nudge for the affected route or neighborhood.
+  Use this if a compost program has ever seen participation quietly slide
+  for a few months before anyone noticed and reached out to customers.
+category: waste-management
+tags: [waste-management, compost, organics, participation, outreach]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v decline_threshold="{{decline_threshold_pct}}" '
+    FNR==1 { file++; next }
+    file==1 {
+      route[$1] = 1;
+      total_prior[$1]++;
+      if ($3 == "yes") setout_prior[$1]++;
+      next;
+    }
+    file==2 {
+      route[$1] = 1;
+      total_current[$1]++;
+      if ($3 == "yes") setout_current[$1]++;
+    }
+    END {
+      for (r in route) {
+        if (total_prior[r] <= 0 || total_current[r] <= 0) continue;
+        prior_rate = (setout_prior[r] / total_prior[r]) * 100;
+        current_rate = (setout_current[r] / total_current[r]) * 100;
+        decline = prior_rate - current_rate;
+        if (decline >= decline_threshold) {
+          printf "DECLINE,%s,%.1f,%.1f,%.1f\n", r, prior_rate, current_rate, decline;
+        }
+      }
+    }
+  ' "{{prior_period_scans_csv_path}}" "{{current_period_scans_csv_path}}"
+prompt: |
+  You were given a list of routes/neighborhoods with a compost set-out
+  participation decline, in the format:
+  DECLINE,route_id,prior_rate_pct,current_rate_pct,decline_points.
+
+  For each declining route:
+  1. Note the size of the drop and whether it looks like a gradual
+     erosion or a sharp one-period cliff (a cliff may point to a truck
+     schedule change or missed carts rather than customer disengagement).
+  2. Draft a short outreach message (mailer or email copy) for that
+     route encouraging compost cart participation, mentioning what goes
+     in the cart and the pickup day.
+  3. Rank the routes from most to least urgent to follow up on.
+
+  Do not send anything — these are drafts for a program coordinator to
+  review, personalize, and approve before any outreach goes out.
+script_note: >
+  The command computes prior-vs-current set-out rates per route and flags
+  declines past the threshold; the prompt adds judgment about likely
+  cause and drafts the actual outreach copy, which the script can't write.
+variables:
+  prior_period_scans_csv_path:
+    default: "./compost-scans-prior-period.csv"
+    description: "CSV with header row, columns: route_id,stop_id,setout(yes/no) — cart-scan or route data from the prior comparison period."
+  current_period_scans_csv_path:
+    default: "./compost-scans-current-period.csv"
+    description: "CSV with header row, columns: route_id,stop_id,setout(yes/no) — cart-scan or route data from the current period."
+  decline_threshold_pct:
+    default: 10
+    description: "Minimum drop in set-out rate (percentage points, current vs. prior period) to flag a route for outreach."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Compares two pre-aggregated period files rather than raw timestamps —
+  you're responsible for splitting your scan export into the two periods
+  before running this. A sharp single-period cliff can also mean a truck
+  broke down or carts weren't delivered, not customer disengagement, so
+  check operational logs before sending outreach for a cliff-shaped drop.

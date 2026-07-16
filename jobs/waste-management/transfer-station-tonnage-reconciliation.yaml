@@ -1,0 +1,53 @@
+id: transfer-station-tonnage-reconciliation
+version: 1
+name: Transfer Station Tonnage Reconciliation
+description: >
+  Reconciles inbound scale-ticket tonnage received at a transfer station
+  against outbound tonnage shipped to disposal or processing facilities
+  for the same period, and flags an unreconciled variance beyond a
+  configured tolerance. Use this if a transfer station has ever closed
+  out a month with inbound and outbound tonnage that quietly didn't add
+  up, and nobody caught it until an audit.
+category: waste-management
+tags: [waste-management, transfer-station, tonnage, reconciliation, scale-tickets]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance_pct="{{variance_tolerance_pct}}" '
+    FNR==1 { file++; next }
+    file==1 { inbound += $3; next }
+    file==2 { outbound += $3; }
+    END {
+      if (inbound <= 0) {
+        print "NO DATA: no inbound scale-ticket tonnage found for the period.";
+        exit;
+      }
+      variance = inbound - outbound;
+      variance_pct = (variance / inbound) * 100;
+      abs_variance_pct = (variance_pct < 0) ? -variance_pct : variance_pct;
+      if (abs_variance_pct >= tolerance_pct) {
+        printf "VARIANCE FLAGGED: inbound %.1f tons, outbound %.1f tons, variance %.1f tons (%.1f%%), tolerance %.1f%%\n", inbound, outbound, variance, variance_pct, tolerance_pct;
+      } else {
+        printf "RECONCILED: inbound %.1f tons, outbound %.1f tons, variance %.1f%% within tolerance\n", inbound, outbound, variance_pct;
+      }
+    }
+  ' "{{inbound_tickets_csv_path}}" "{{outbound_tickets_csv_path}}"
+variables:
+  inbound_tickets_csv_path:
+    default: "./inbound-scale-tickets.csv"
+    description: "CSV with header row, columns: ticket_id,ticket_date,tons — inbound weigh-in tickets for the reporting period."
+  outbound_tickets_csv_path:
+    default: "./outbound-scale-tickets.csv"
+    description: "CSV with header row, columns: ticket_id,ticket_date,tons — outbound weigh-out tickets to disposal/processing for the same period."
+  variance_tolerance_pct:
+    default: 3
+    description: "Acceptable variance between inbound and outbound tonnage, as a percentage of inbound tonnage, before it gets flagged."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Sums every row in each file, so pre-filter both CSVs to the same date
+  range before running or the comparison will be meaningless. A small
+  positive variance (inbound > outbound) is expected due to on-site
+  storage/staging; this check only tells you the variance is outside
+  tolerance, not the cause — check for uninvoiced outbound loads,
+  moisture loss, or scale calibration drift on a flagged period.

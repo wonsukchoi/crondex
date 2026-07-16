@@ -1,0 +1,55 @@
+id: hazardous-waste-manifest-expiry-check
+version: 1
+name: Hazardous Waste Manifest Expiry Check
+description: >
+  Tracks hazardous-waste manifest and EPA ID documentation for expiry
+  within an upcoming warning window or missing required signatures, since
+  an expired or incomplete manifest legally blocks a shipment from
+  moving. Use this if a hazardous-waste load has ever been held at the
+  gate because a manifest signature or EPA ID renewal was missed until
+  the truck was already there.
+category: waste-management
+tags: [waste-management, hazardous-waste, manifest, compliance, epa]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="{{check_date}}" -v warn_until="{{warn_until_date}}" '
+    FNR==1 { next }
+    {
+      manifest_id = $1;
+      expiry_date = $2;
+      signed = $3;
+      epa_id_status = $4;
+      if (signed != "yes") {
+        printf "MISSING SIGNATURE: manifest %s — required signature not on file, shipment blocked.\n", manifest_id;
+      }
+      if (epa_id_status != "active") {
+        printf "EPA ID ISSUE: manifest %s — EPA ID status is \"%s\", not active.\n", manifest_id, epa_id_status;
+      }
+      if (expiry_date < today) {
+        printf "EXPIRED: manifest %s — expired on %s, shipment blocked until renewed.\n", manifest_id, expiry_date;
+      } else if (expiry_date <= warn_until) {
+        printf "EXPIRING SOON: manifest %s — expires %s, within warning window (through %s).\n", manifest_id, expiry_date, warn_until;
+      }
+    }
+  ' "{{manifests_csv_path}}"
+variables:
+  manifests_csv_path:
+    default: "./hazardous-waste-manifests.csv"
+    description: "CSV with header row, columns: manifest_id,expiry_date,signed(yes/no),epa_id_status — one row per manifest tracked, expiry_date in YYYY-MM-DD."
+  check_date:
+    default: "2024-01-01"
+    description: "Today's date (YYYY-MM-DD) to check manifests against, matching the CSV date format."
+  warn_until_date:
+    default: "2024-01-15"
+    description: "End of the lookahead warning window (YYYY-MM-DD) — manifests expiring on or before this date but not yet expired are flagged as EXPIRING SOON. Compute as check_date plus your desired warning-days offset."
+compatible_agents: [generic, claude, codex]
+notes: >
+  warn_until_date must be computed and passed in by the caller (e.g. via
+  `date -d "+14 days"` on GNU systems or `date -v+14d` on BSD/macOS)
+  rather than a day-count, since portable POSIX awk/shell has no reliable
+  cross-platform date-math built in. Treat any MISSING SIGNATURE or
+  EXPIRED line as a hard compliance block, not just a reminder — do not
+  let a flagged shipment move until resolved. EXPIRING SOON is an
+  advance-notice heads-up only, not a shipment block.

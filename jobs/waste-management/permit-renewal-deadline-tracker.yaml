@@ -1,0 +1,70 @@
+id: permit-renewal-deadline-tracker
+version: 1
+name: Permit Renewal Deadline Tracker
+description: >
+  Scans a facility or hauling operation's list of operating permits
+  (landfill permits, transfer station permits, hauling licenses) and
+  flags any permit whose expiry date falls inside the configured
+  lead-time warning window, then has an agent triage which ones are
+  routine renewals versus which carry real risk of a lapse. Use this if
+  a permit has ever come uncomfortably close to (or past) its expiry
+  before the renewal paperwork was even started.
+category: waste-management
+tags: [waste-management, permits, compliance, regulatory, renewal]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v window="{{lead_time_days}}" -v today="{{today_override_date}}" '
+    BEGIN {
+      if (today == "") {
+        "date +%Y-%m-%d" | getline today;
+      }
+      cmd = "date -d \"" today " +" window " days\" +%Y-%m-%d 2>/dev/null || date -v+" window "d -j -f %Y-%m-%d \"" today "\" +%Y-%m-%d";
+      cmd | getline cutoff;
+      close(cmd);
+    }
+    FNR==1 { next }
+    {
+      permit_id=$1; facility=$2; permit_type=$3; expiry=$4;
+      if (expiry < today) {
+        printf "EXPIRED: %s permit %s at %s expired on %s\n", permit_type, permit_id, facility, expiry;
+      } else if (expiry <= cutoff) {
+        printf "EXPIRING SOON: %s permit %s at %s expires on %s (within %s-day window)\n", permit_type, permit_id, facility, expiry, window;
+      }
+    }
+  ' "{{permits_csv_path}}"
+prompt: |
+  The command above lists permits that are already expired or expiring
+  within {{lead_time_days}} days, from {{permits_csv_path}}.
+  For each flagged permit:
+  1. Note the permit type and facility, and how many days remain (or
+     how overdue it already is).
+  2. Based on the permit type, flag which ones are likely to have a
+     lengthy regulatory review process (e.g. landfill operating permits
+     typically take longer than a local hauling license renewal) and
+     should be treated as higher risk even if not the most imminent.
+  3. Produce a prioritized list: which permit to start renewal
+     paperwork on first, and why.
+  Do not file or submit anything — this is a prioritization draft only.
+script_note: >
+  The command does the date math and produces the raw list of expired
+  and soon-to-expire permits; the prompt adds judgment about renewal
+  lead-time risk by permit type and produces a prioritized action list.
+variables:
+  permits_csv_path:
+    default: "./permits.csv"
+    description: "CSV with header row, columns: permit_id,facility_name,permit_type,expiry_date (YYYY-MM-DD) — all active operating permits and licenses."
+  lead_time_days:
+    default: 90
+    description: How many days before expiry to start flagging a permit as expiring soon.
+  today_override_date:
+    default: ""
+    description: "Optional YYYY-MM-DD to use instead of the system date, for testing. Leave blank to use today's date."
+compatible_agents: [generic, claude, codex]
+notes: >
+  The date-arithmetic line tries GNU date syntax first and falls back to
+  BSD/macOS date syntax — verify it resolves correctly on your shell
+  before relying on it in production. This job only tracks expiry dates
+  it's given; it does not know actual regulatory processing times for
+  your jurisdiction.

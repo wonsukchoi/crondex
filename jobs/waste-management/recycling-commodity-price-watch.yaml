@@ -1,0 +1,46 @@
+id: recycling-commodity-price-watch
+version: 1
+name: Recycling Commodity Price Watch
+description: >
+  Tracks recyclable commodity prices (cardboard, mixed paper, aluminum,
+  PET, etc.) against a floor and ceiling threshold per material, and flags
+  any material whose latest price has moved past either bound — a move
+  worth revisiting a rebate agreement or hauling-fee structure over. Use
+  this if commodity swings have ever eaten into rebate revenue or driven
+  up net hauling costs before anyone noticed the market had moved.
+category: waste-management
+tags: [waste-management, recycling, commodities, pricing, rebates]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR==1) { next }
+      floor[$1]=$2; ceiling[$1]=$3; next
+    }
+    FNR==1 { next }
+    {
+      material=$1; price=$2;
+      if (!(material in floor)) { next }
+      if (price+0 < floor[material]+0) {
+        printf "BELOW FLOOR: %s at $%s/ton, floor is $%s/ton — revisit rebate or hauling-fee terms\n", material, price, floor[material];
+      } else if (price+0 > ceiling[material]+0) {
+        printf "ABOVE CEILING: %s at $%s/ton, ceiling is $%s/ton — revisit rebate share or contract lock-in\n", material, price, ceiling[material];
+      }
+    }
+  ' "{{price_thresholds_csv_path}}" "{{latest_commodity_prices_csv_path}}"
+variables:
+  price_thresholds_csv_path:
+    default: "./price-thresholds.csv"
+    description: "CSV with header row, columns: material,floor_price_per_ton,ceiling_price_per_ton — the trigger bounds you've set per recyclable material."
+  latest_commodity_prices_csv_path:
+    default: "./latest-commodity-prices.csv"
+    description: "CSV with header row, columns: material,price_per_ton — the most recent price quote per material from your recycling broker or index feed."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This job does not fetch live market prices itself — point it at a
+  local export of whatever price feed or broker report you already
+  receive. Materials in the price file that have no matching threshold
+  row are silently skipped, so keep the thresholds file in sync with
+  whatever materials you actually track.

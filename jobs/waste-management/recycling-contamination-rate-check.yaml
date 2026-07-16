@@ -1,0 +1,47 @@
+id: recycling-contamination-rate-check
+version: 1
+name: Recycling Contamination Rate Check
+description: >
+  Computes a contamination rate per route or per customer account from
+  load-inspection and MRF (materials recovery facility) rejection data —
+  rejected or non-recyclable weight divided by total inspected weight —
+  and flags any route or account trending above a configured threshold.
+  Use this if a hauler has ever gotten hit with an MRF rejection fee
+  without knowing which route was driving the contamination.
+category: waste-management
+tags: [waste-management, recycling, contamination, mrf, quality]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{contamination_threshold_pct}}" '
+    FNR==1 { next }
+    {
+      key = $1;
+      inspected[key] += $3;
+      rejected[key] += $4;
+    }
+    END {
+      for (k in inspected) {
+        if (inspected[k] <= 0) continue;
+        rate = (rejected[k] / inspected[k]) * 100;
+        if (rate >= threshold) {
+          printf "HIGH CONTAMINATION: route/account %s — %.1f%% rejected (%.0f of %.0f lbs), threshold %.1f%%\n", k, rate, rejected[k], inspected[k], threshold;
+        }
+      }
+    }
+  ' "{{load_inspection_csv_path}}"
+variables:
+  load_inspection_csv_path:
+    default: "./load-inspections.csv"
+    description: "CSV with header row, columns: route_or_account_id,inspection_date,inspected_weight_lbs,rejected_weight_lbs — per-load MRF inspection records."
+  contamination_threshold_pct:
+    default: 15
+    description: "Contamination rate percentage at or above which a route/account gets flagged for outreach or driver retraining."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Aggregates across every row in the input file — pre-filter the CSV to a
+  single reporting period (e.g. the trailing 30 days) before running if you
+  don't want an all-time rate. Flags trends only; it does not identify
+  which specific material caused the rejection, so use MRF rejection notes
+  for root-causing a flagged route.

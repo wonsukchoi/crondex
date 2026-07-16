@@ -1,0 +1,73 @@
+id: leachate-monitoring-report-due-check
+version: 1
+name: Leachate Monitoring Report Due Check
+description: >
+  Tracks the due date for a landfill's periodic leachate-monitoring
+  report submission to the regulator, flags reports approaching or past
+  their deadline, and has an agent assess whether the underlying
+  monitoring data collection is actually on track to support an
+  on-time filing. Use this if a leachate report has ever been rushed at
+  the last minute because sampling data wasn't fully compiled yet.
+category: waste-management
+tags: [waste-management, leachate, landfill, regulatory-reporting, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" -v today="{{today_override_date}}" '
+    BEGIN {
+      if (today == "") {
+        "date +%Y-%m-%d" | getline today;
+      }
+    }
+    FNR==1 { next }
+    {
+      facility=$1; report_period=$2; due_date=$3; status=$4;
+      if (status == "submitted") { next; }
+      if (due_date < today) {
+        printf "PAST DUE: %s leachate report for period %s was due %s and is not marked submitted\n", facility, report_period, due_date;
+      } else {
+        printf "UPCOMING: %s leachate report for period %s due %s, status=%s\n", facility, report_period, due_date, status;
+      }
+    }
+  ' "{{leachate_reports_csv_path}}"
+prompt: |
+  The command above lists leachate-monitoring reports for
+  {{facility_name}} that are past due or upcoming within the tracking
+  window, from {{leachate_reports_csv_path}}.
+  For each report listed:
+  1. Note whether it is past due or upcoming, and how much time
+     remains for the upcoming ones.
+  2. If sampling/lab-turnaround data is available in
+     {{sampling_status_hint}}, note whether the underlying data
+     collection appears complete enough to support drafting the report
+     now versus still waiting on lab results.
+  3. Recommend a concrete next action per report (start drafting now,
+     chase lab results, escalate an already-missed deadline) — do not
+     submit or draft the actual regulatory filing.
+script_note: >
+  The command flags which reports are past due or due within the
+  warning window based on submission status; the prompt adds judgment
+  about whether underlying sampling data is actually ready to support
+  timely drafting, which the CSV alone can't tell you.
+variables:
+  leachate_reports_csv_path:
+    default: "./leachate-reports.csv"
+    description: "CSV with header row, columns: facility_name,report_period,due_date (YYYY-MM-DD),status — one row per required periodic leachate report, status is e.g. 'not_started', 'in_progress', or 'submitted'."
+  warning_window_days:
+    default: 21
+    description: How many days before the due date to start surfacing a report as upcoming (informational, not enforced by the command's date filter beyond listing all non-submitted rows).
+  facility_name:
+    default: "your landfill facility"
+    description: Name of the facility whose leachate reporting is being tracked, for prompt context.
+  sampling_status_hint:
+    default: "your environmental lab's sample tracking log or LIMS export"
+    description: Where the agent can check whether leachate sampling results needed for the report are back from the lab yet.
+  today_override_date:
+    default: ""
+    description: "Optional YYYY-MM-DD to use instead of the system date, for testing. Leave blank to use today's date."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Report submission cadence and exact regulatory deadlines vary by
+  jurisdiction and permit — this job only tracks the due_date column
+  you supply, it does not calculate reporting periods itself.

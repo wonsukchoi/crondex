@@ -1,0 +1,35 @@
+id: special-waste-pickup-scheduling-backlog-check
+version: 1
+name: Special Waste Pickup Scheduling Backlog Check
+description: >
+  Scans scheduled special-waste pickup requests (tires, appliances, e-waste,
+  asbestos, and other items outside regular curbside service) and flags any
+  request whose scheduled pickup window has already passed but is still
+  marked open. Use this if special-waste jobs have ever quietly slipped past
+  their promised window because they don't show up in the regular route
+  dispatch board.
+category: waste-management
+tags: [waste-management, special-waste, scheduling, backlog, bulk-pickup]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="$(date -u +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      status=$5; window_end=$4;
+      if (status != "completed" && status != "cancelled" && window_end < today) {
+        printf "OVERDUE SPECIAL WASTE PICKUP: request %s (%s) at %s — window ended %s, status=%s\n", $1, $3, $2, $4, $5;
+      }
+    }
+  ' "{{special_waste_requests_csv_path}}"
+variables:
+  special_waste_requests_csv_path:
+    default: "./special-waste-requests.csv"
+    description: "CSV with header row, columns: request_id,address,item_type,scheduled_window_end_date,status. status is one of scheduled,in_progress,completed,cancelled."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only checks requests already logged in the CSV — it does not detect
+  requests that were never entered into the system. Items with status
+  "in_progress" past their window still count as overdue; adjust the awk
+  condition if your workflow allows a grace period after the window closes.

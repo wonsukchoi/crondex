@@ -1,0 +1,59 @@
+id: landfill-gas-monitoring-threshold-check
+version: 1
+name: Landfill Gas Monitoring Threshold Check
+description: >
+  Reviews the latest round of landfill methane/gas monitoring well
+  readings against the regulatory action-level threshold, identifies
+  any well over the limit, and reasons about whether the pattern (single
+  well, cluster of wells, rising trend) suggests a localized issue or
+  something that needs broader investigation. Use this if a gas
+  monitoring exceedance has ever been logged without anyone stepping
+  back to check whether nearby wells were trending the same way.
+category: waste-management
+tags: [waste-management, landfill-gas, methane, environmental-monitoring, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the latest landfill gas monitoring well readings for
+  {{facility_name}} from {{gas_monitoring_data_hint}}, covering the
+  monitoring round dated {{monitoring_round_date}}.
+  1. For each monitoring well, compare its methane reading against the
+     regulatory action level of {{action_level_pct_methane}}% methane
+     (or the applicable local limit) and list every well at or over
+     that threshold.
+  2. For each exceedance, check the well's prior {{lookback_rounds}}
+     readings if available and note whether it's an isolated spike or
+     part of a rising trend.
+  3. Note whether multiple exceeding wells are geographically clustered
+     (adjacent well IDs or the same landfill cell/zone), which would
+     suggest a localized gas migration issue rather than an isolated
+     sensor anomaly.
+  4. Summarize findings as a triage list: which wells need immediate
+     re-check or corrective-action-plan initiation under your permit's
+     requirements, and which look like isolated readings worth a
+     re-test before escalating. Do not file or submit any regulatory
+     notification — flag it for a human to review and file.
+variables:
+  facility_name:
+    default: "your landfill facility"
+    description: Name of the landfill facility whose gas monitoring wells are being reviewed.
+  gas_monitoring_data_hint:
+    default: "your gas monitoring system export or field data logger CSV"
+    description: Where the latest well-by-well methane readings can be found.
+  monitoring_round_date:
+    default: "the most recent monitoring round"
+    description: Which monitoring round/date to review, if readings are collected periodically.
+  action_level_pct_methane:
+    default: 5
+    description: "Regulatory action-level methane concentration threshold (percent by volume) applicable to your permit — commonly 5% for perimeter/structure monitoring in many US jurisdictions; confirm your actual permit limit."
+  lookback_rounds:
+    default: 3
+    description: How many prior monitoring rounds to consider when assessing whether an exceedance is a trend or an isolated spike.
+compatible_agents: [generic, claude, codex]
+notes: >
+  The default action-level threshold is a common reference point, not a
+  universal regulatory value — confirm the actual limit in your
+  facility's permit before relying on this job's output. This job
+  triages and prioritizes; it does not generate or submit the
+  corrective-action-plan or regulatory notification itself.

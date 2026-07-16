@@ -1,0 +1,53 @@
+id: odor-complaint-log-review
+version: 1
+name: Odor Complaint Log Review
+description: >
+  Reviews logged odor complaints from a landfill or transfer station's
+  neighbors, grouped by location and date, and flags a spike in volume or
+  a geographic cluster worth investigating. Use this if odor complaints
+  have ever piled up quietly until a regulator or the local news noticed
+  before your own operations team did.
+category: waste-management
+tags: [waste-management, landfill, transfer-station, odor-complaints]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v spike_threshold="{{daily_spike_threshold}}" -v cluster_threshold="{{cluster_threshold}}" '
+    NR==1 { next }
+    {
+      complaint_date=$2; area=$3;
+      date_count[complaint_date]++;
+      area_count[area]++;
+    }
+    END {
+      for (d in date_count) {
+        if (date_count[d] >= spike_threshold) {
+          printf "SPIKE: %d odor complaints logged on %s (threshold %d)\n", date_count[d], d, spike_threshold;
+        }
+      }
+      for (a in area_count) {
+        if (area_count[a] >= cluster_threshold) {
+          printf "CLUSTER: %d odor complaints from area \"%s\" (threshold %d)\n", area_count[a], a, cluster_threshold;
+        }
+      }
+    }
+  ' "{{odor_complaints_csv_path}}"
+variables:
+  odor_complaints_csv_path:
+    default: "./odor-complaints.csv"
+    description: "CSV with header row, columns: complaint_id,complaint_date,area_or_neighborhood,notes — one row per logged complaint over the window you want reviewed."
+  daily_spike_threshold:
+    default: 5
+    description: Number of odor complaints on a single day that counts as a spike worth investigating.
+  cluster_threshold:
+    default: 4
+    description: Number of odor complaints from the same area/neighborhood (across the whole file) that counts as a geographic cluster.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Area/neighborhood grouping is only as good as the free-text field in
+  your complaint log — normalize area names in your export before
+  running this if the same neighborhood is logged with inconsistent
+  spelling. This job only surfaces patterns in already-logged
+  complaints; it does not detect odor itself or file anything with a
+  regulator.

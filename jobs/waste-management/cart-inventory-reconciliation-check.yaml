@@ -1,0 +1,57 @@
+id: cart-inventory-reconciliation-check
+version: 1
+name: Cart Inventory Reconciliation Check
+description: >
+  Reconciles the count of trash/recycling carts issued to customers
+  against the physical cart-inventory/asset-tracking log, grouped by cart
+  type, and flags any shortfall (more issued than tracked) or unaccounted
+  surplus (more in inventory than issued). Use this if cart counts have
+  ever quietly drifted apart between the customer-issuance records and the
+  warehouse's physical inventory log.
+category: waste-management
+tags: [waste-management, carts, inventory, reconciliation, asset-tracking]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{allowed_variance}}" '
+    FNR==1 { file++; next }
+    file==1 { issued[$2] += 1; next }
+    file==2 { inventory[$1] = $2; next }
+    END {
+      for (type in issued) {
+        inv = (type in inventory) ? inventory[type] : 0;
+        diff = issued[type] - inv;
+        abs_diff = (diff < 0) ? -diff : diff;
+        if (abs_diff > tolerance) {
+          if (diff > 0) {
+            printf "SHORTFALL: cart type %s — %d issued to customers but only %d in inventory log (missing %d)\n", type, issued[type], inv, diff;
+          } else {
+            printf "UNACCOUNTED SURPLUS: cart type %s — %d in inventory log but only %d issued to customers (surplus %d)\n", type, inv, issued[type], -diff;
+          }
+        }
+      }
+      for (type in inventory) {
+        if (!(type in issued) && inventory[type] > tolerance) {
+          printf "UNACCOUNTED SURPLUS: cart type %s — %d in inventory log but 0 issued to customers\n", type, inventory[type];
+        }
+      }
+    }
+  ' "{{cart_issuance_csv_path}}" "{{cart_inventory_csv_path}}"
+variables:
+  cart_issuance_csv_path:
+    default: "./cart-issuance.csv"
+    description: "CSV with header row, columns: customer_id,cart_type — one row per cart currently issued to a customer."
+  cart_inventory_csv_path:
+    default: "./cart-inventory.csv"
+    description: "CSV with header row, columns: cart_type,total_units_tracked — physical cart-inventory/asset-tracking totals per cart type."
+  allowed_variance:
+    default: 2
+    description: Number of carts a type can be off by before it's flagged (buffer for carts in transit, being repaired, etc.).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reconciles by cart_type totals, not individual serial numbers — if your
+  inventory system tracks carts by asset tag/serial number, pre-aggregate
+  to per-type counts before feeding this in. A flagged shortfall does not
+  by itself prove theft or loss; check for unlogged issuances or pending
+  inventory receipts before escalating.

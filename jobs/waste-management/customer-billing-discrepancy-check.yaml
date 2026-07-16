@@ -1,0 +1,49 @@
+id: customer-billing-discrepancy-check
+version: 1
+name: Customer Billing Discrepancy Check
+description: >
+  Reconciles each customer's actually-billed service level (container size
+  and pickup frequency) against what their signed contract specifies, and
+  flags any mismatch — whether it means the customer is being over-billed
+  or under-billed relative to the service they contracted for. Use this if
+  a container upsize or frequency change has ever been made in the field
+  without billing being updated to match.
+category: waste-management
+tags: [waste-management, billing, contracts, reconciliation, revenue-leakage]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR {
+      if (FNR==1) { next }
+      contract_size[$1] = $2; contract_freq[$1] = $3; next
+    }
+    FNR==1 { next }
+    {
+      cust = $1;
+      if (!(cust in contract_size)) {
+        printf "NO CONTRACT ON FILE: customer %s is billed but has no contracted service record\n", cust;
+        next;
+      }
+      billed_size = $2; billed_freq = $3;
+      if (billed_size != contract_size[cust] || billed_freq != contract_freq[cust]) {
+        printf "BILLING MISMATCH: customer %s billed for %s container @ %sx/wk, contract says %s container @ %sx/wk\n", cust, billed_size, billed_freq, contract_size[cust], contract_freq[cust];
+      }
+    }
+  ' "{{contracted_service_csv_path}}" "{{billed_service_csv_path}}"
+variables:
+  contracted_service_csv_path:
+    default: "./contracted-service.csv"
+    description: "CSV with header row, columns: customer_id,container_size,pickup_frequency_per_week — the signed contract terms per customer."
+  billed_service_csv_path:
+    default: "./billed-service.csv"
+    description: "CSV with header row, columns: customer_id,container_size,pickup_frequency_per_week — what's actually on the current billing cycle's invoice per customer."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely a string-equality comparison on size and frequency fields, so
+  both CSVs must use identical value formats (e.g. "2yd" vs "2-yard" will
+  false-positive) — normalize exports to a shared vocabulary before
+  running. Does not determine which side is correct, only that they
+  disagree; someone still needs to check whether the contract or the
+  invoice needs correcting.

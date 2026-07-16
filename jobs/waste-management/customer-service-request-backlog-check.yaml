@@ -1,0 +1,44 @@
+id: customer-service-request-backlog-check
+version: 1
+name: Customer Service Request Backlog Check
+description: >
+  Reviews open customer service tickets (missed pickup, damaged cart,
+  billing question, etc.) and flags any ticket that has aged past a
+  configurable response-time SLA without being closed. Use this if
+  customer service requests have ever sat untouched long enough that a
+  resident called back angrier than the first time.
+category: waste-management
+tags: [waste-management, customer-service, sla, backlog, tickets]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v sla_hours="{{sla_response_hours}}" -v now_epoch="$(date -u +%s)" '
+    NR==1 { next }
+    {
+      status=$4;
+      cmd="date -u -d \"" $3 "\" +%s 2>/dev/null || date -u -j -f \"%Y-%m-%dT%H:%M:%S\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline opened_epoch;
+      close(cmd);
+      if (status != "closed" && opened_epoch > 0) {
+        age_hours = (now_epoch - opened_epoch) / 3600;
+        if (age_hours > sla_hours) {
+          printf "SLA BREACH: ticket %s (%s) opened %s — %.1f hours open, status=%s\n", $1, $2, $3, age_hours, status;
+        }
+      }
+    }
+  ' "{{service_tickets_csv_path}}"
+variables:
+  service_tickets_csv_path:
+    default: "./service-tickets.csv"
+    description: "CSV with header row, columns: ticket_id,category,opened_at (ISO 8601 UTC),status. status is one of open,in_progress,closed."
+  sla_response_hours:
+    default: 48
+    description: Maximum hours a ticket may remain open before it is considered an SLA breach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Timestamp parsing tries GNU date syntax first, then BSD/macOS date syntax,
+  as a fallback — export opened_at in ISO 8601 UTC (e.g. 2026-07-10T14:30:00)
+  to keep this portable across platforms. Does not distinguish ticket
+  severity; pair with a separate high-priority queue if some categories
+  need a tighter SLA than others.

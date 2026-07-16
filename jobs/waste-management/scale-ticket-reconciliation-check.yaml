@@ -1,0 +1,54 @@
+id: scale-ticket-reconciliation-check
+version: 1
+name: Scale Ticket Reconciliation Check
+description: >
+  Reconciles inbound weighbridge scale tickets against the manifest or
+  hauler-reported load weight for each shipment, and flags any load whose
+  variance between scaled weight and reported weight exceeds a set
+  tolerance. Use this if a hauler's reported tonnage has ever drifted from
+  what the scale actually recorded, whether from equipment drift or
+  under/over-reporting.
+category: waste-management
+tags: [waste-management, scale-tickets, weighbridge, reconciliation, tonnage]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol_pct="{{variance_tolerance_pct}}" '
+    FNR==NR {
+      if (FNR==1) { next }
+      manifest_wt[$1]=$2; next
+    }
+    FNR==1 { next }
+    {
+      ticket=$1; scale_wt=$2;
+      if (!(ticket in manifest_wt)) {
+        printf "NO MANIFEST MATCH: scale ticket %s (%s tons) has no corresponding manifest entry\n", ticket, scale_wt;
+        next;
+      }
+      mwt = manifest_wt[ticket]+0;
+      if (mwt == 0) { continue; }
+      diff_pct = ((scale_wt+0) - mwt) / mwt * 100;
+      if (diff_pct < 0) diff_pct = -diff_pct;
+      if (diff_pct > tol_pct+0) {
+        printf "WEIGHT VARIANCE: ticket %s scaled at %s tons vs manifest %s tons (%.1f%% variance, tolerance %s%%)\n", ticket, scale_wt, manifest_wt[ticket], diff_pct, tol_pct;
+      }
+    }
+  ' "{{manifest_csv_path}}" "{{scale_tickets_csv_path}}"
+variables:
+  manifest_csv_path:
+    default: "./manifest.csv"
+    description: "CSV with header row, columns: ticket_id,manifest_weight_tons — hauler-reported or manifest weight per shipment."
+  scale_tickets_csv_path:
+    default: "./scale-tickets.csv"
+    description: "CSV with header row, columns: ticket_id,scale_weight_tons — actual weighbridge-recorded weight per shipment, matched by ticket_id."
+  variance_tolerance_pct:
+    default: 3
+    description: Maximum acceptable percentage variance between scale weight and manifest weight before flagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matching is by ticket_id only, so both exports must use the same ticket
+  identifier scheme — if your scale system and your manifest system use
+  different ID formats, normalize one before running this. Does not
+  investigate root cause (scale calibration vs. hauler error), only
+  surfaces the variance for someone to look into.

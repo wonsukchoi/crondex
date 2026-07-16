@@ -1,0 +1,64 @@
+id: municipal-contract-renewal-deadline-tracker
+version: 1
+name: Municipal Contract Renewal Deadline Tracker
+description: >
+  Scans your list of municipal waste-hauling contracts and flags any whose
+  renewal or rebid deadline falls within a configurable lead window, so a
+  bid or renewal package can be prepared instead of discovered at the last
+  minute. Use this if a city or county contract has ever gone out to rebid
+  before your team started drafting a response.
+category: waste-management
+tags: [waste-management, municipal-contracts, renewals, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v lead_days="{{lead_time_days}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      municipality=$1; contract_id=$2; deadline=$3; deadline_type=$4;
+      cmd = "date -d \"" deadline "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" deadline "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      days_left = int((deadline_epoch - today_epoch) / 86400);
+      if (days_left >= 0 && days_left <= lead_days) {
+        printf "UPCOMING %s: %s (contract %s) due %s, %d days left\n", deadline_type, municipality, contract_id, deadline, days_left;
+      }
+    }
+  ' "{{municipal_contracts_csv_path}}"
+script_note: >
+  The command computes which municipal contracts have a renewal/rebid
+  deadline inside the lead window and how many days remain. The prompt
+  turns that flagged list into a prioritized prep plan (bid vs. renewal
+  packet, rough milestones) so the flag doesn't just sit as raw output.
+prompt: |
+  Below are municipal waste-hauling contracts with an upcoming renewal or
+  rebid deadline:
+
+  {{command_output}}
+
+  For each one, in order of soonest deadline first:
+  1. State whether it needs a renewal packet or a competitive rebid
+     response, based on the deadline_type label.
+  2. Suggest a rough prep milestone plan working backward from the
+     deadline (e.g. internal go/no-go decision, pricing review, final
+     package assembly), scaled to how many days are left.
+  3. Flag any contract with fewer than {{urgent_days_threshold}} days
+     left as urgent and needing immediate assignment to an owner.
+variables:
+  municipal_contracts_csv_path:
+    default: "./municipal-contracts.csv"
+    description: "CSV with header row, columns: municipality,contract_id,renewal_or_rebid_deadline,deadline_type — deadline_type is a free-text label like 'renewal' or 'rebid'."
+  lead_time_days:
+    default: 90
+    description: How many days of lead time before a renewal/rebid deadline the job should start flagging the contract.
+  urgent_days_threshold:
+    default: 30
+    description: Days remaining below which a flagged contract should be called out as urgent and needing an assigned owner.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags on the deadline date alone — it does not track the status of an
+  in-progress bid package. Pair with your own tracker or a separate
+  checklist job once a contract is flagged here to avoid re-flagging the
+  same contract every week.

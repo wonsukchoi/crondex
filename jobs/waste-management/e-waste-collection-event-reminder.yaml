@@ -1,0 +1,45 @@
+id: e-waste-collection-event-reminder
+version: 1
+name: E-Waste Collection Event Reminder
+description: >
+  Drafts a reminder message for staff and customers about an upcoming
+  scheduled e-waste (electronics) collection event, pulling the event
+  details from an events file. Use this if turnout for e-waste collection
+  events has ever suffered because nobody sent a reminder until it was
+  too late for people to plan around.
+category: waste-management
+tags: [waste-management, e-waste, outreach, reminder, events]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Look through {{upcoming_events_csv_path}} for e-waste collection events
+  scheduled within the next {{lookahead_days}} days.
+
+  For each event found:
+  1. Draft a short staff-facing reminder (2-3 sentences) noting the event
+     date, time window, and drop-off location, plus any prep needed
+     (e.g. extra bins, signage, or additional staffing).
+  2. Draft a separate short customer-facing reminder (2-3 sentences,
+     friendly tone) announcing the event, what materials are accepted
+     (e.g. TVs, computers, small appliances with cords), and what is NOT
+     accepted if that's noted in the event data.
+  3. Clearly label both drafts as DRAFT ONLY — do not send, post, or
+     publish anything. Output the drafts for a human to review and send
+     through the appropriate channel.
+
+  If no events fall within the lookahead window, state that plainly and
+  do not fabricate an event.
+variables:
+  upcoming_events_csv_path:
+    default: "./upcoming-events.csv"
+    description: "CSV with header row, columns: event_name,event_type,event_date,start_time,end_time,location,accepted_items,excluded_items — should include e-waste collection events among possibly other event types."
+  lookahead_days:
+    default: 14
+    description: How many days ahead to look for upcoming e-waste collection events worth reminding about.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This job only drafts reminder text — it does not send email, post to
+  social media, or otherwise publish anything. Wire the draft output into
+  your own review-and-send process (e.g. paste into an email client or
+  scheduling tool) rather than automating delivery directly.

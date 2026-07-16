@@ -1,0 +1,66 @@
+id: container-overflow-complaint-tracker
+version: 1
+name: Container Overflow Complaint Tracker
+description: >
+  Tracks container-overflow complaints per customer/location and flags
+  anyone with recurring overflow reports within a lookback window, then
+  drafts a short internal recommendation on whether the account needs a
+  larger container or more frequent pickups. Use this if a customer has
+  ever called in about an overflowing dumpster more than once before
+  anyone suggested a service-level change instead of just sending another
+  truck.
+category: waste-management
+tags: [waste-management, container-overflow, complaints, service-level]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v threshold="{{overflow_count_threshold}}" '
+    NR==1 { next }
+    {
+      key=$1 "|" $2;
+      count[key]++;
+      cur_size[key]=$3;
+      cur_freq[key]=$4;
+    }
+    END {
+      for (k in count) {
+        if (count[k] >= threshold) {
+          split(k, parts, "|");
+          printf "RECURRING OVERFLOW: customer=%s location=%s complaints=%d current_container=%s current_frequency=%s\n", parts[1], parts[2], count[k], cur_size[k], cur_freq[k];
+        }
+      }
+    }
+  ' "{{overflow_complaints_csv_path}}"
+script_note: >
+  The command counts overflow complaints per customer/location and
+  surfaces current container size and pickup frequency for anyone over
+  threshold. The prompt turns each flagged row into a concrete upsize
+  recommendation (bigger container vs. more frequent pickup) grounded in
+  the complaint count and current service level.
+prompt: |
+  Below is a list of customer/location accounts with recurring container
+  overflow complaints, each showing their current container size and
+  pickup frequency:
+
+  {{command_output}}
+
+  For each account, recommend one specific service-level change: either
+  a larger container size or a more frequent pickup schedule (or both, if
+  warranted), based on the complaint count and current service level.
+  Briefly justify each recommendation in one sentence. Do not recommend
+  simply sending an extra one-off pickup — the point is to flag accounts
+  where the standing service level itself should change.
+variables:
+  overflow_complaints_csv_path:
+    default: "./overflow-complaints.csv"
+    description: "CSV with header row, columns: customer_name,location,current_container_size,current_pickup_frequency — one row per logged overflow complaint."
+  overflow_count_threshold:
+    default: 3
+    description: Number of overflow complaints for the same customer/location within the file's window that counts as recurring.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Counts every row in the file, so pre-filter the CSV to your desired
+  lookback window (e.g. last 60 days) before running. This does not
+  change any account automatically — it only produces a recommendation
+  for a human to act on in your billing/routing system.

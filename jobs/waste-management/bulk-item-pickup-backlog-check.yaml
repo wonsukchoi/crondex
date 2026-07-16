@@ -1,0 +1,39 @@
+id: bulk-item-pickup-backlog-check
+version: 1
+name: Bulk Item Pickup Backlog Check
+description: >
+  Flags scheduled bulk-item pickup requests (furniture, appliances,
+  mattresses) that are overdue against their promised pickup window, so
+  dispatch can reschedule or escalate before a customer complains. Use
+  this if bulk requests have ever sat in the queue past their promised
+  window without anyone noticing until the customer called in.
+category: waste-management
+tags: [waste-management, bulk-pickup, backlog, dispatch, scheduling]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today="{{check_date}}" '
+    FNR==1 { next }
+    {
+      if ($4 == "completed" || $4 == "cancelled") next;
+      if ($3 < today) {
+        printf "OVERDUE: request %s (%s) for %s — promised by %s, still status=%s\n", $1, $5, $2, $3, $4;
+      }
+    }
+  ' "{{bulk_pickup_requests_csv_path}}"
+variables:
+  bulk_pickup_requests_csv_path:
+    default: "./bulk-pickup-requests.csv"
+    description: "CSV with header row, columns: request_id,address,promised_by_date,status,item_description — one row per bulk-item pickup request."
+  check_date:
+    default: "2024-01-01"
+    description: "Date (YYYY-MM-DD) to check overdue requests against — typically today's date, matching the CSV date format."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only checks the promised_by_date against a single reference date; it
+  does not account for weekends/holidays unless your promised_by_date
+  export already skips them. Skips rows with status exactly "completed"
+  or "cancelled" — normalize your export's status column to one of those
+  two spellings (versus e.g. "done" or "canceled") or requests may be
+  flagged as overdue incorrectly.

@@ -1,0 +1,47 @@
+id: recycling-audit-sample-schedule-reminder
+version: 1
+name: Recycling Audit Sample Schedule Reminder
+description: >
+  Reminds staff when the next scheduled recycling-stream composition
+  audit (a periodic sample-and-sort to characterize what's actually in
+  the recycling stream) is coming up, based on the date of the last audit
+  and a recurring cadence. Use this if composition audits have ever
+  slipped past their planned interval because nobody had a standing
+  reminder tied to the last audit date.
+category: waste-management
+tags: [waste-management, recycling, composition-audit, reminder]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cadence_days="{{audit_cadence_days}}" -v lead_days="{{reminder_lead_days}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      stream_or_facility=$1; last_audit_date=$2;
+      cmd = "date -d \"" last_audit_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last_audit_date "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      next_due_epoch = last_epoch + (cadence_days * 86400);
+      days_until_due = int((next_due_epoch - today_epoch) / 86400);
+      if (days_until_due <= lead_days) {
+        printf "AUDIT DUE: %s last sampled %s, next audit due in %d days (cadence %d days)\n", stream_or_facility, last_audit_date, days_until_due, cadence_days;
+      }
+    }
+  ' "{{audit_schedule_csv_path}}"
+variables:
+  audit_schedule_csv_path:
+    default: "./recycling-audit-schedule.csv"
+    description: "CSV with header row, columns: stream_or_facility,last_audit_date — one row per recycling stream or facility being tracked."
+  audit_cadence_days:
+    default: 90
+    description: How many days between recurring recycling-stream composition audits.
+  reminder_lead_days:
+    default: 14
+    description: How many days before the next audit is due to start surfacing the reminder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a fixed cadence per row; if different streams/facilities use
+  different cadences, either add a per-row cadence column and adjust the
+  awk logic, or run separate copies of this job with different
+  audit_cadence_days values per facility group.

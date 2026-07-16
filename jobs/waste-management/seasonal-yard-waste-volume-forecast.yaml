@@ -1,0 +1,68 @@
+id: seasonal-yard-waste-volume-forecast
+version: 1
+name: Seasonal Yard Waste Volume Forecast
+description: >
+  Projects expected yard-waste and leaf-collection tonnage for an upcoming
+  seasonal peak (e.g. fall leaf season, spring cleanup) from prior-year
+  tonnage history, to help route planning and temporary staffing decisions.
+  Use this if seasonal yard-waste volume has ever caught the ops team off
+  guard because nobody looked at last year's numbers until routes were
+  already falling behind.
+category: waste-management
+tags: [waste-management, yard-waste, forecasting, seasonal, route-planning]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v season="{{target_season}}" -v growth="{{expected_growth_pct}}" '
+    NR==1 { next }
+    $2 == season {
+      sum += $3; count++;
+      printf "%s %s: %s tons\n", $1, $2, $3;
+    }
+    END {
+      if (count > 0) {
+        avg = sum / count;
+        projected = avg * (1 + growth / 100);
+        printf "AVERAGE PRIOR TONNAGE for %s: %.1f tons over %d year(s)\n", season, avg, count;
+        printf "PROJECTED TONNAGE for upcoming %s (with %.1f%% growth assumption): %.1f tons\n", season, growth, projected;
+      } else {
+        printf "No prior-year history found for season=%s\n", season;
+      }
+    }
+  ' "{{yard_waste_tonnage_history_csv_path}}"
+script_note: >
+  The command computes a straight average-plus-growth-rate projection from
+  the CSV history. The prompt below adds judgment: interpreting whether the
+  trend is noisy or reliable, and translating tonnage into a route/staffing
+  recommendation.
+prompt: |
+  Using the projected tonnage figure and the per-year history printed by
+  the command above for season {{target_season}}, do the following:
+  1. Note whether prior-year tonnage looks stable, trending up, or
+     volatile (large year-to-year swings), and flag if the {{expected_growth_pct}}%
+     growth assumption seems reasonable given that trend.
+  2. Convert the projected tonnage into a rough estimate of additional
+     truck-days or route capacity needed, using {{avg_tons_per_truck_load}}
+     tons per truck load as a reference.
+  3. Suggest whether temporary staffing or extra collection days are
+     likely needed for the upcoming {{target_season}} peak.
+variables:
+  yard_waste_tonnage_history_csv_path:
+    default: "./yard-waste-tonnage-history.csv"
+    description: "CSV with header row, columns: year,season,tons_collected — historical seasonal tonnage totals."
+  target_season:
+    default: "fall"
+    description: The seasonal label to forecast for (must match a value in the season column, e.g. fall, spring).
+  expected_growth_pct:
+    default: 0
+    description: Assumed percentage growth over the historical average (e.g. new subdivisions added, set to 0 for a flat projection).
+  avg_tons_per_truck_load:
+    default: 8
+    description: Average tons hauled per truck load, used to translate projected tonnage into rough route capacity.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a simple average-based projection, not a statistical time-series
+  model — with only a couple years of history the estimate is a rough
+  planning input, not a precise forecast. Feed in more years of history for
+  a more reliable average.

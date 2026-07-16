@@ -1,0 +1,44 @@
+id: weighbridge-calibration-due-check
+version: 1
+name: Weighbridge Calibration Due Check
+description: >
+  Tracks the next required calibration or certification date for each
+  weighbridge/scale and flags any that are due within a lead window or
+  already overdue. Use this if a scale has ever gone out of calibration
+  unnoticed — an out-of-cal scale invalidates customer billing weights and
+  any regulatory tonnage reporting built on it.
+category: waste-management
+tags: [waste-management, weighbridge, calibration, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v lead_days="{{lead_time_days}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      scale_id=$1; location=$2; next_cal_date=$3;
+      cmd = "date -d \"" next_cal_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" next_cal_date "\" +%s 2>/dev/null";
+      cmd | getline cal_epoch; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline today_epoch; close(cmd2);
+      days_left = int((cal_epoch - today_epoch) / 86400);
+      if (days_left < 0) {
+        printf "OVERDUE: scale %s at %s calibration expired %s (%d days ago)\n", scale_id, location, next_cal_date, -days_left;
+      } else if (days_left <= lead_days) {
+        printf "DUE SOON: scale %s at %s calibration due %s (%d days left)\n", scale_id, location, next_cal_date, days_left;
+      }
+    }
+  ' "{{weighbridge_calibration_csv_path}}"
+variables:
+  weighbridge_calibration_csv_path:
+    default: "./weighbridge-calibration.csv"
+    description: "CSV with header row, columns: scale_id,location,next_calibration_date — one row per weighbridge/scale."
+  lead_time_days:
+    default: 21
+    description: How many days before the next calibration due date to start flagging the scale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Treat any OVERDUE line as a hard stop for billing/reporting off that
+  scale until recalibration is confirmed and the CSV updated — this job
+  only reads dates you maintain, it does not talk to the scale or a
+  certification vendor's system.

@@ -1,0 +1,48 @@
+id: waste-collector-hazmat-certification-expiry-check
+version: 1
+name: Waste Collector Hazmat Certification Expiry Check
+description: >
+  Tracks hazmat-handling certification expiry dates for waste-collection
+  drivers and staff who handle household hazardous waste programs, and
+  flags anyone whose certification has expired or is expiring within a
+  configurable warning window. Use this if a driver has ever kept working
+  a household hazardous waste route on a lapsed certification because
+  nobody was watching the renewal dates.
+category: waste-management
+tags: [waste-management, hazmat, certification, compliance, personnel]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" -v today="$(date -u +%Y-%m-%d)" -v today_epoch="$(date -u +%s)" '
+    NR==1 { next }
+    {
+      cmd="date -u -d \"" $3 "\" +%s 2>/dev/null || date -u -j -f \"%Y-%m-%d\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch;
+      close(cmd);
+      if (exp_epoch > 0) {
+        days_left = (exp_epoch - today_epoch) / 86400;
+        if (days_left < 0) {
+          printf "EXPIRED: %s (%s) hazmat cert expired %s (%.0f days ago)\n", $1, $2, $3, -days_left;
+        } else if (days_left <= warn_days) {
+          printf "EXPIRING SOON: %s (%s) hazmat cert expires %s (%.0f days left)\n", $1, $2, $3, days_left;
+        }
+      }
+    }
+  ' "{{staff_hazmat_certs_csv_path}}"
+variables:
+  staff_hazmat_certs_csv_path:
+    default: "./staff-hazmat-certs.csv"
+    description: "CSV with header row, columns: employee_id,name,hazmat_cert_expiry_date (YYYY-MM-DD) — one row per waste-collection employee holding a household hazardous waste handling certification."
+  warning_window_days:
+    default: 30
+    description: How many days before expiry to start flagging a certification as expiring soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this job tracks *personnel* hazmat-handling certifications for
+  waste-collection drivers and staff working household hazardous waste
+  programs — it is distinct from generic freight hazmat-paperwork/shipment
+  documentation checks elsewhere in the catalog, which cover shipment-level
+  compliance rather than an individual's certification status. Does not
+  verify the certifying body or renewal process — it only compares dates in
+  the CSV you provide.

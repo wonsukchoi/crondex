@@ -1,0 +1,52 @@
+id: landfill-diversion-rate-report
+version: 1
+name: Landfill Diversion Rate Report
+description: >
+  Computes the waste diversion rate — tonnage recycled plus composted
+  divided by total tonnage collected — over a reporting period from
+  tonnage records, for municipal contract or regulatory reporting. Use
+  this if a franchise agreement or state reporting requirement has ever
+  needed a diversion rate figure pulled together by hand at the end of
+  the month or quarter.
+category: waste-management
+tags: [waste-management, diversion-rate, recycling, compost, reporting]
+schedule: "0 5 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v start_date="{{period_start_date}}" -v end_date="{{period_end_date}}" '
+    FNR==1 { next }
+    {
+      if ($1 < start_date || $1 > end_date) next;
+      total += $3;
+      if ($2 == "recycling" || $2 == "compost" || $2 == "organics") {
+        diverted += $3;
+      }
+    }
+    END {
+      if (total <= 0) {
+        print "NO DATA: no tonnage records found in the given period.";
+        exit;
+      }
+      rate = (diverted / total) * 100;
+      printf "DIVERSION RATE %s to %s: %.2f%% (%.1f tons diverted of %.1f tons total)\n", start_date, end_date, rate, diverted, total;
+    }
+  ' "{{tonnage_records_csv_path}}"
+variables:
+  tonnage_records_csv_path:
+    default: "./tonnage-records.csv"
+    description: "CSV with header row, columns: record_date,stream_type,tons — stream_type is one of landfill,recycling,compost,organics per load/ticket."
+  period_start_date:
+    default: "2024-01-01"
+    description: "Reporting period start date (YYYY-MM-DD), inclusive, matching the record_date format in the CSV."
+  period_end_date:
+    default: "2024-01-31"
+    description: "Reporting period end date (YYYY-MM-DD), inclusive."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Treats "organics" and "compost" as separate stream_type labels that both
+  count toward diversion — normalize your export to use one or the other
+  consistently, or the script will still sum both correctly as long as
+  they're spelled exactly as above. Does not weight by material type or
+  apply any regulatory adjustment factors some jurisdictions require;
+  treat this as the raw tonnage-based rate, not a certified filing figure.

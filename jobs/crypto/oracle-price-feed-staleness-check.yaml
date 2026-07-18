@@ -1,0 +1,37 @@
+id: oracle-price-feed-staleness-check
+version: 1
+name: Oracle Price Feed Staleness Check
+description: >
+  Checks an on-chain price oracle feed's last-updated timestamp against
+  its expected heartbeat interval and flags any feed that's gone stale.
+  Use this if a protocol relying on an oracle has ever mispriced
+  collateral or triggered a bad liquidation because the price feed
+  quietly stopped updating and the last reported price kept being
+  treated as current.
+category: crypto
+tags: [crypto, oracle, price-feed, defi, risk]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s "{{oracle_status_api_url}}" | awk -F',' -v max_age="{{max_staleness_minutes}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M:%S\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_update_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_minutes = (now_epoch - last_update_epoch) / 60;
+      if (age_minutes >= max_age) {
+        printf "ORACLE FEED STALE: %s — last updated %s (%d minutes ago)\n", $1, $2, age_minutes;
+      }
+    }
+  '
+variables:
+  oracle_status_api_url:
+    default: "https://example.com/oracle-feed-status.csv"
+    description: "URL or local path returning a CSV with columns: feed_pair (e.g. ETH/USD),last_update_timestamp (YYYY-MM-DD HH:MM:SS)."
+  max_staleness_minutes:
+    default: 60
+    description: How many minutes a feed can go without an update before this flags it as stale, relative to the oracle's expected heartbeat.
+compatible_agents: [generic, claude, codex]
+notes: Expected heartbeat interval varies significantly by oracle provider and feed — confirm the specific feed's documented heartbeat rather than assuming one interval fits every pair. Distinct from `stablecoin-peg-deviation-watch` (a stablecoin's market price vs its peg, not an oracle's update freshness) and `defi-liquidation-risk-watch` (position-level liquidation proximity, not the underlying price feed's health).

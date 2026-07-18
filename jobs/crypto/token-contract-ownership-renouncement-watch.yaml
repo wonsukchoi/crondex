@@ -1,0 +1,33 @@
+id: token-contract-ownership-renouncement-watch
+version: 1
+name: Token Contract Ownership Renouncement Watch
+description: >
+  Checks a token/protocol contract's on-chain owner or admin address
+  against what was publicly promised (renounced ownership, timelocked
+  multisig, etc.) and flags any mismatch. Use this if a project has
+  ever claimed ownership was renounced while an EOA still quietly held
+  mint, pause, or upgrade privileges — a common rug-pull setup that only
+  gets caught if someone actually checks the contract's current owner
+  against the claim.
+category: crypto
+tags: [crypto, contract-security, ownership, rug-pull, due-diligence]
+schedule: "0 */12 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  current_owner=$(curl -s "{{contract_owner_api_url}}" | tr -d '"' | tr -d '\n');
+  if [ "$current_owner" != "{{expected_owner_address}}" ]; then
+    printf "OWNERSHIP MISMATCH: contract %s — current owner %s, expected %s\n" "{{contract_address}}" "$current_owner" "{{expected_owner_address}}";
+  fi
+variables:
+  contract_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: The token/protocol contract address being watched.
+  contract_owner_api_url:
+    default: "https://example.com/contract-owner-lookup"
+    description: "A block explorer API or your own indexer endpoint that returns the contract's current owner() call result as plain text."
+  expected_owner_address:
+    default: "0x000000000000000000000000000000000000dEaD"
+    description: The address ownership was supposed to be renounced/transferred to (e.g. the burn address for a full renouncement, or a known timelock/multisig address).
+compatible_agents: [generic, claude, codex]
+notes: A mismatch is a due-diligence signal, not proof of malice — some legitimate projects transfer ownership between multisigs for operational reasons, so confirm the new owner's identity before treating this as a red flag. Distinct from `smart-contract-upgrade-watch` (proxy implementation changes, not the owner/admin address itself) and `multisig-signer-availability-watch` (an already-known multisig's own signer set, not verifying the ownership claim in the first place).

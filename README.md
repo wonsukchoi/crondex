@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2292 jobs across 66 categories (1934 smoke-tested clean):
+2295 jobs across 66 categories (1937 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -204,7 +204,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `content` | 32 | 15 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 32 | 28 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | 21 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 32 | 14 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `crypto` | 35 | 17 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `dental` | 44 | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
 | `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 32 | 24 | Storefront ops — carts, stock, returns, reviews. |

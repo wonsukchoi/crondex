@@ -1,0 +1,31 @@
+id: green-waste-disposal-manifest-check
+version: 1
+name: Green Waste Disposal Manifest Check
+description: >
+  Checks logged green waste/yard debris loads against a completed
+  disposal manifest or facility receipt and flags any load missing one.
+  Use this if a municipality or landfill has ever rejected a load — or
+  flagged a compliance issue — because the required disposal manifest
+  for that load was never actually collected from the drop-off
+  facility.
+category: landscaping
+tags: [landscaping, green-waste, disposal, compliance]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      manifest_on_file = tolower($3);
+      if (manifest_on_file != "yes" && manifest_on_file != "true") {
+        printf "MANIFEST MISSING: load %s (crew %s) — no disposal manifest/receipt on file\n", $1, $2;
+      }
+    }
+  ' "{{green_waste_log_csv_path}}"
+variables:
+  green_waste_log_csv_path:
+    default: "./green-waste-disposal-log.csv"
+    description: "Path to a CSV with columns: load_id,crew_name,manifest_on_file (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Manifest/receipt requirements vary by municipality and disposal facility — some accept informal weigh tickets, others require a formal waste manifest. Distinct from `mulch-inventory-low-stock-check` (incoming material stock, not outbound disposal documentation).

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2295 jobs across 66 categories (1937 smoke-tested clean):
+2298 jobs across 66 categories (1940 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -225,7 +225,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `insurance` | 32 | 25 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 32 | 29 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 32 | 25 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
-| `landscaping` | 32 | 29 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
+| `landscaping` | 35 | 32 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `law-firm` | 35 | 34 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
 | `learning` | 32 | 30 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | 30 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |

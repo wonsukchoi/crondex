@@ -1,0 +1,31 @@
+id: chemical-spill-kit-inventory-check
+version: 1
+name: Chemical Spill Kit Inventory Check
+description: >
+  Checks each crew truck's chemical spill kit (absorbent, containment
+  berm, PPE, disposal bags) against the required contents list and
+  flags any truck missing an item or carrying an expired absorbent. Use
+  this if a fertilizer or pesticide spill has ever gone poorly contained
+  because the truck's spill kit was down an item and nobody checked it
+  since the last restock.
+category: landscaping
+tags: [landscaping, spill-kit, safety, compliance, pesticide]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      complete = tolower($2);
+      if (complete != "yes" && complete != "true") {
+        printf "SPILL KIT INCOMPLETE: truck %s — missing item(s): %s\n", $1, $3;
+      }
+    }
+  ' "{{spill_kit_checklist_csv_path}}"
+variables:
+  spill_kit_checklist_csv_path:
+    default: "./spill-kit-checklist.csv"
+    description: "Path to a CSV with columns: truck_id,kit_complete (yes/no),missing_items (free text, blank if complete)."
+compatible_agents: [generic, claude, codex]
+notes: Required spill kit contents vary by what chemicals the crew actually carries — confirm your kit meets your state's applicator/transport regulations. Distinct from `pesticide-application-log-compliance-check` (records of applications already made, not spill-response readiness).

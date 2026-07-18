@@ -1,0 +1,39 @@
+id: irrigation-winterization-scheduling-check
+version: 1
+name: Irrigation Winterization Scheduling Check
+description: >
+  Checks each client property against the first-frost date for its
+  region and flags any irrigation system not yet scheduled for its
+  winterization blow-out. Use this if a client has ever had a burst
+  pipe or cracked backflow device from a hard freeze because the
+  seasonal blow-out was still sitting unscheduled after frost had
+  already arrived.
+category: landscaping
+tags: [landscaping, irrigation, winterization, seasonal, scheduling]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before_frost}}" '
+    NR==1 {next}
+    {
+      scheduled = tolower($3);
+      if (scheduled == "yes" || scheduled == "true") { next }
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline frost_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (frost_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "WINTERIZATION NOT SCHEDULED: %s — first frost date %s (%d days), no blow-out scheduled\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{winterization_schedule_csv_path}}"
+variables:
+  winterization_schedule_csv_path:
+    default: "./irrigation-winterization-schedule.csv"
+    description: "Path to a CSV with columns: property_name,expected_first_frost_date (YYYY-MM-DD),blowout_scheduled (yes/no)."
+  warn_days_before_frost:
+    default: 21
+    description: How many days before the expected first frost date to start warning if the blow-out isn't scheduled yet.
+compatible_agents: [generic, claude, codex]
+notes: Expected first-frost date varies by region and year — update per property/season rather than hardcoding a fixed calendar date. Distinct from `backflow-preventer-test-compliance-check` (annual regulatory certification testing, not seasonal freeze-protection scheduling) and `irrigation-inspection-scheduling-check` (general system health inspection, not the specific pre-freeze blow-out task).

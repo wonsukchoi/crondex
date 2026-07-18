@@ -1,0 +1,42 @@
+id: multi-state-payroll-tax-setup-check
+version: 1
+name: Multi-State Payroll Tax Setup Check
+description: >
+  Checks new placements against the agency's state payroll tax
+  registration list and flags any worker assigned to a state where the
+  agency isn't yet registered to withhold. Use this if a placement in a
+  new state has ever run several pay cycles before anyone noticed the
+  agency had no active withholding account there, creating a
+  retroactive filing mess.
+category: staffing
+tags: [staffing, payroll-tax, multi-state, compliance]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    BEGIN {
+      reg_row = 0;
+      while ((getline line < "{{registered_states_csv_path}}") > 0) {
+        reg_row++;
+        if (reg_row == 1) { continue }
+        split(line, f, ",");
+        registered[f[1]] = 1;
+      }
+    }
+    NR==1 {next}
+    {
+      if (!($2 in registered)) {
+        printf "UNREGISTERED STATE: worker %s placed in %s — no active payroll tax withholding account on file\n", $1, $2;
+      }
+    }
+  ' "{{new_placements_csv_path}}"
+variables:
+  new_placements_csv_path:
+    default: "./new-placements.csv"
+    description: "Path to a CSV with columns: worker_id,work_state."
+  registered_states_csv_path:
+    default: "./registered-payroll-tax-states.csv"
+    description: "Path to a CSV with columns: state_code — states the agency currently holds an active payroll withholding registration in."
+compatible_agents: [generic, claude, codex]
+notes: Registration typically needs to happen before the first paycheck in a new state, not after — treat a flag here as urgent, not routine. Distinct from `staffing-agency-license-renewal-check` (the agency's own staffing/business license, not per-state tax withholding registration).

@@ -1,0 +1,33 @@
+id: client-site-orientation-completion-check
+version: 1
+name: Client Site Orientation Completion Check
+description: >
+  Checks newly placed workers against whether the specific client site's
+  in-person orientation (facility walkthrough, emergency exits, PPE
+  issuance, site-specific hazards) was completed before their first
+  shift and flags any who started without it. Use this if a worker has
+  ever begun a shift at a client site having only completed the
+  agency's own paperwork and general certifications, without the
+  client's own site-specific orientation that a general safety
+  certification doesn't cover.
+category: staffing
+tags: [staffing, onboarding, site-orientation, safety, compliance]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      orientation_completed = tolower($3);
+      if (orientation_completed != "yes" && orientation_completed != "true") {
+        printf "SITE ORIENTATION MISSING: worker %s — client %s, first shift already scheduled/started, no site orientation on file\n", $1, $2;
+      }
+    }
+  ' "{{site_orientation_log_csv_path}}"
+variables:
+  site_orientation_log_csv_path:
+    default: "./client-site-orientation-log.csv"
+    description: "Path to a CSV with columns: worker_id,client_name,site_orientation_completed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `temp-worker-onboarding-paperwork-check` (documents/forms, not an in-person site walkthrough) and `worker-safety-training-expiry-check` (general certifications like OSHA 10 or forklift, not this specific client site's own hazards and layout).

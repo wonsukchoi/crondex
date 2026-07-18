@@ -1,0 +1,40 @@
+id: predictive-scheduling-notice-compliance-check
+version: 1
+name: Predictive Scheduling Notice Compliance Check
+description: >
+  Checks upcoming shift schedules against fair-workweek/predictive
+  scheduling advance-notice requirements and flags any shift published
+  or changed inside the required notice window without a documented
+  worker consent. Use this if a shift change has ever gone out with
+  less than the legally required advance notice — triggering predictability
+  pay obligations or a fine — in a jurisdiction with a fair workweek
+  ordinance.
+category: staffing
+tags: [staffing, predictive-scheduling, fair-workweek, compliance]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v required_hours="{{required_notice_hours}}" '
+    NR==1 {next}
+    {
+      consent = tolower($4);
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M:%S\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline published_epoch; close(cmd);
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M:%S\" \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline shift_start_epoch; close(cmd2);
+      notice_hours = (shift_start_epoch - published_epoch) / 3600;
+      if (notice_hours < required_hours && consent != "yes" && consent != "true") {
+        printf "SHORT-NOTICE SHIFT: worker %s — %.0f hours notice given (required %s), no documented consent\n", $1, notice_hours, required_hours;
+      }
+    }
+  ' "{{shift_schedule_csv_path}}"
+variables:
+  shift_schedule_csv_path:
+    default: "./shift-schedule-notices.csv"
+    description: "Path to a CSV with columns: worker_id,schedule_published_timestamp (YYYY-MM-DD HH:MM:SS),shift_start_timestamp (YYYY-MM-DD HH:MM:SS),worker_consent_on_file (yes/no)."
+  required_notice_hours:
+    default: 336
+    description: "Required advance notice in hours per your jurisdiction's fair workweek ordinance (many US city ordinances require 14 days = 336 hours; confirm your actual requirement)."
+compatible_agents: [generic, claude, codex]
+notes: Applicable ordinances, required notice periods, and predictability-pay triggers vary by city/state and worker classification — confirm your jurisdiction's actual rule rather than assuming the default applies. Distinct from `unfilled-order-aging-check` (open requisitions, not published-shift notice timing).

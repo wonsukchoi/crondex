@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2289 jobs across 66 categories (1931 smoke-tested clean):
+2292 jobs across 66 categories (1934 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -251,7 +251,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `senior-living` | 35 | 34 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
 | `spa` | 32 | 30 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
-| `staffing` | 32 | 27 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
+| `staffing` | 35 | 30 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 44 | 43 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 32 | 28 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2274 jobs across 66 categories (1916 smoke-tested clean):
+2280 jobs across 66 categories (1922 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -220,13 +220,13 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `healthcare` | 45 | 39 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 32 | 21 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 32 | 30 | Household reminders — maintenance, warranties, plants, safety. |
-| `hospitality` | 32 | 26 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
+| `hospitality` | 35 | 29 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 44 | 38 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 32 | 25 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 32 | 29 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 32 | 25 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 32 | 29 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
-| `law-firm` | 32 | 31 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
+| `law-firm` | 35 | 34 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
 | `learning` | 32 | 30 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | 30 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 45 | 32 | Shipping ops — customs, freight, delays, fees. |

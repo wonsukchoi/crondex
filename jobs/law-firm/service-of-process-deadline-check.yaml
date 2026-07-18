@@ -1,0 +1,39 @@
+id: service-of-process-deadline-check
+version: 1
+name: Service of Process Deadline Check
+description: >
+  Scans a CSV of filed complaints/summonses awaiting proof of service and
+  flags any approaching or past the jurisdiction's service deadline. Use
+  this if a case has ever risked dismissal because service on a
+  defendant wasn't completed and proven within the required window after
+  filing — a separate deadline from the filing itself or any discovery
+  schedule.
+category: law-firm
+tags: [law-firm, service-of-process, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      served = tolower($4);
+      if (served == "yes" || served == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "SERVICE DEADLINE APPROACHING: %s — defendant %s, deadline %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{service_of_process_csv_path}}"
+variables:
+  service_of_process_csv_path:
+    default: "./service-of-process-log.csv"
+    description: "Path to a CSV with columns: matter_id,defendant_name,service_deadline_date (YYYY-MM-DD),proof_of_service_filed (yes/no)."
+  warn_days_before:
+    default: 14
+    description: How many days before the service deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Service deadlines vary by jurisdiction and case type — confirm your applicable rule (e.g. FRCP 4(m)'s 90-day federal default, or your state's own rule) rather than assuming one interval fits every matter. Distinct from `court-filing-deadline-tracker` (filing due dates, not service completion) and `discovery-response-deadline-tracker` (post-appearance discovery, not initial service).

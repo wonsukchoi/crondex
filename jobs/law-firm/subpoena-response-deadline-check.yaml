@@ -1,0 +1,39 @@
+id: subpoena-response-deadline-check
+version: 1
+name: Subpoena Response Deadline Check
+description: >
+  Scans a CSV of third-party subpoenas received or issued and flags any
+  response/compliance deadline approaching with no response logged yet.
+  Use this if a subpoena has ever gone unanswered past its deadline —
+  risking a motion to compel or a contempt finding — because it arrived
+  outside the firm's normal matter-deadline tracking as a separate
+  document from the underlying case's own discovery requests.
+category: law-firm
+tags: [law-firm, subpoena, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      responded = tolower($4);
+      if (responded == "yes" || responded == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "SUBPOENA RESPONSE DUE: %s — recipient %s, deadline %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{subpoena_log_csv_path}}"
+variables:
+  subpoena_log_csv_path:
+    default: "./subpoena-log.csv"
+    description: "Path to a CSV with columns: subpoena_id,recipient_or_matter,response_deadline_date (YYYY-MM-DD),response_filed (yes/no)."
+  warn_days_before:
+    default: 7
+    description: How many days before the subpoena's response deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Covers both subpoenas the firm receives (as a non-party) and issues to third parties — track both in the same log since either direction risks a motion to compel if missed. Distinct from `discovery-response-deadline-tracker` (discovery requests between parties to the case, not third-party subpoenas).

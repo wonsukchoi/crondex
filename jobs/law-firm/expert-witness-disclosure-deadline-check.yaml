@@ -1,0 +1,39 @@
+id: expert-witness-disclosure-deadline-check
+version: 1
+name: Expert Witness Disclosure Deadline Check
+description: >
+  Scans a CSV of retained experts across matters and flags any whose
+  written report/disclosure deadline is approaching with no disclosure
+  logged yet. Use this if an expert's report has ever come in late
+  enough to risk exclusion because the disclosure deadline was tracked
+  loosely alongside general discovery instead of as its own
+  court-ordered date.
+category: law-firm
+tags: [law-firm, expert-witness, litigation, deadlines]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      disclosed = tolower($4);
+      if (disclosed == "yes" || disclosed == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "EXPERT DISCLOSURE DUE: %s — expert %s, deadline %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{expert_disclosure_csv_path}}"
+variables:
+  expert_disclosure_csv_path:
+    default: "./expert-witness-disclosures.csv"
+    description: "Path to a CSV with columns: matter_id,expert_name,disclosure_deadline_date (YYYY-MM-DD),report_disclosed (yes/no)."
+  warn_days_before:
+    default: 21
+    description: How many days before the disclosure deadline to start warning, enough lead time to chase a slow expert's report.
+compatible_agents: [generic, claude, codex]
+notes: Missing an expert disclosure deadline commonly means the expert's testimony gets excluded outright — confirm your court's scheduling order for the actual date rather than assuming a fixed lead time before trial. Distinct from `discovery-response-deadline-tracker` (fact discovery responses, not expert report disclosure) and `court-filing-deadline-tracker` (filings generally, not this specific scheduling-order deadline).

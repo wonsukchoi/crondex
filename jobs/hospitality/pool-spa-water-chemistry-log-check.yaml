@@ -1,0 +1,46 @@
+id: pool-spa-water-chemistry-log-check
+version: 1
+name: Pool/Spa Water Chemistry Log Check
+description: >
+  Checks today's logged pool/spa chlorine and pH readings against your
+  facility's safe range and flags any reading outside it. Use this if a
+  pool has ever stayed open on a reading that was actually out of range
+  because the required chemical check was logged as done without anyone
+  reviewing the numbers against the safe range that same day.
+category: hospitality
+tags: [hospitality, pool, spa, water-chemistry, safety, compliance]
+schedule: "0 8,14,20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_cl="{{minimum_chlorine_ppm}}" -v max_cl="{{maximum_chlorine_ppm}}" -v min_ph="{{minimum_ph}}" -v max_ph="{{maximum_ph}}" '
+    NR==1 {next}
+    {
+      chlorine = $2 + 0;
+      ph = $3 + 0;
+      if (chlorine < min_cl || chlorine > max_cl) {
+        printf "CHLORINE OUT OF RANGE: %s — %.1f ppm (required %s-%s ppm)\n", $1, chlorine, min_cl, max_cl;
+      }
+      if (ph < min_ph || ph > max_ph) {
+        printf "PH OUT OF RANGE: %s — %.1f (required %s-%s)\n", $1, ph, min_ph, max_ph;
+      }
+    }
+  ' "{{pool_chemistry_log_csv_path}}"
+variables:
+  pool_chemistry_log_csv_path:
+    default: "./pool-spa-chemistry-log.csv"
+    description: "Path to a CSV with columns: pool_or_spa_name,chlorine_ppm,ph."
+  minimum_chlorine_ppm:
+    default: 1
+    description: Minimum free chlorine (ppm) per your jurisdiction's public pool code.
+  maximum_chlorine_ppm:
+    default: 10
+    description: Maximum free chlorine (ppm) per your jurisdiction's public pool code.
+  minimum_ph:
+    default: 7.2
+    description: Minimum acceptable pH per your jurisdiction's public pool code.
+  maximum_ph:
+    default: 7.8
+    description: Maximum acceptable pH per your jurisdiction's public pool code.
+compatible_agents: [generic, claude, codex]
+notes: Required ranges vary by jurisdiction — confirm your local public pool/spa code rather than relying on the defaults here. Distinct from `food-safety-temp-log-check` (kitchen/food temperature, not pool chemistry).

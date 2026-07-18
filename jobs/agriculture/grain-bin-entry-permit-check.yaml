@@ -1,0 +1,31 @@
+id: grain-bin-entry-permit-check
+version: 1
+name: Grain Bin Confined-Space Entry Permit Check
+description: >
+  Checks logged grain bin entries against a completed confined-space
+  entry permit (lockout of augers/sweep, attendant assigned, atmosphere
+  tested) and flags any entry missing one. Use this since grain bin
+  engulfment is one of agriculture's most common preventable fatalities,
+  and entries have too often gone ahead as a quick in-and-out without
+  the permit actually being completed first.
+category: agriculture
+tags: [agriculture, grain-bin, confined-space, safety, compliance]
+schedule: "0 6 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      permit_completed = tolower($3);
+      if (permit_completed != "yes" && permit_completed != "true") {
+        printf "GRAIN BIN ENTRY MISSING PERMIT: bin %s — entry logged %s, no completed confined-space entry permit on file\n", $1, $2;
+      }
+    }
+  ' "{{grain_bin_entry_log_csv_path}}"
+variables:
+  grain_bin_entry_log_csv_path:
+    default: "./grain-bin-entry-log.csv"
+    description: "Path to a CSV with columns: bin_id,entry_date,confined_space_permit_completed (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: This is a records check, not a physical safeguard — it only catches a missing permit if the entry itself got logged, so pair with (never replace) a hard rule that no one enters a bin without the permit signed off first. Distinct from `grain-storage-temperature-check` (stored-grain condition monitoring, not entry safety).

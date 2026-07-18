@@ -1,0 +1,44 @@
+id: pesticide-applicator-license-renewal-check
+version: 1
+name: Pesticide Applicator License Renewal Check
+description: >
+  Checks each certified pesticide applicator's license/certification
+  expiration date and continuing-education credit total and flags
+  anyone coming due for renewal. Use this if a restricted-use pesticide
+  has ever been applied by someone whose applicator license had quietly
+  lapsed, separate from whether the application itself was recorded
+  correctly.
+category: agriculture
+tags: [agriculture, pesticide, applicator, license, compliance]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" -v min_credits="{{required_ce_credits}}" '
+    NR==1 {next}
+    {
+      credits = $3 + 0;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "LICENSE RENEWAL DUE: %s — expires %s (%d days)\n", $1, $2, diff_days;
+      }
+      if (credits < min_credits) {
+        printf "CE CREDIT SHORTFALL: %s — %d credits logged (required %s)\n", $1, credits, min_credits;
+      }
+    }
+  ' "{{applicator_license_csv_path}}"
+variables:
+  applicator_license_csv_path:
+    default: "./pesticide-applicator-licenses.csv"
+    description: "Path to a CSV with columns: applicator_name,license_expiry_date (YYYY-MM-DD),ce_credits_logged."
+  warn_days_before:
+    default: 45
+    description: How many days before license expiry to start warning.
+  required_ce_credits:
+    default: 6
+    description: Continuing-education credits required per your state's renewal cycle — confirm your actual requirement.
+compatible_agents: [generic, claude, codex]
+notes: Renewal cycle, CE requirements, and reciprocity rules vary by state — confirm your jurisdiction's actual requirements rather than assuming the defaults here. Distinct from `restricted-use-pesticide-record-retention-check` (whether each spray application record is complete, not the applicator's own license status).

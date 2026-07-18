@@ -1,0 +1,40 @@
+id: irrigation-well-water-quality-test-check
+version: 1
+name: Irrigation Well Water Quality Test Check
+description: >
+  Checks each irrigation well's water quality test date against the
+  required testing interval and flags any well coming due. Use this if
+  a well's water quality (nitrates, bacteria, salinity) has ever gone
+  years untested because the well's permit renewal was tracked but the
+  separate, recurring water-quality testing requirement wasn't.
+category: agriculture
+tags: [agriculture, water-quality, irrigation, well, compliance]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v days="{{test_interval_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_test_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      next_due_epoch = last_test_epoch + (days * 86400);
+      diff_days = (next_due_epoch - now_epoch) / 86400;
+      if (diff_days <= warn) {
+        printf "WELL WATER TEST DUE: %s — last tested %s, %s-day interval (%d days until/past due)\n", $1, $2, days, diff_days;
+      }
+    }
+  ' "{{well_water_test_log_csv_path}}"
+variables:
+  well_water_test_log_csv_path:
+    default: "./irrigation-well-water-tests.csv"
+    description: "Path to a CSV with columns: well_id,last_test_date (YYYY-MM-DD)."
+  test_interval_days:
+    default: 365
+    description: Required water-quality test interval in days per your state/local health or ag extension guidance.
+  warn_days_before:
+    default: 30
+    description: How many days before the next required test is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Testing requirements and required interval vary by state, well use (potable vs. irrigation-only), and whether the water contacts food-contact surfaces (produce washing) — confirm your actual requirement. Distinct from `water-rights-permit-renewal-reminder` (the legal right to draw water, not water quality testing).

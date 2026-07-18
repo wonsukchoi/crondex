@@ -190,12 +190,12 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2283 jobs across 66 categories (1925 smoke-tested clean):
+2286 jobs across 66 categories (1928 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
 | `agency` | 32 | 29 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
-| `agriculture` | 32 | 25 | Farm operations — weather risk, irrigation, equipment, market prices. |
+| `agriculture` | 35 | 28 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 32 | 26 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `banking` | 32 | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
 | `childcare` | 36 | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |

@@ -1,0 +1,36 @@
+id: ev-charging-station-uptime-check
+version: 1
+name: EV Charging Station Uptime Check
+description: >
+  Checks depot EV charging stations against their last-reported-online
+  timestamp and flags any station that's gone quiet past a threshold. Use
+  this if an EV has ever shown up for a shift undercharged because a
+  charging station silently went offline and nobody noticed until a driver
+  needed it.
+category: fleet
+tags: [fleet, ev, charging, maintenance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hours="{{offline_alert_hours}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M:%S\" \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_seen_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      offline_hours = (now_epoch - last_seen_epoch) / 3600;
+      if (offline_hours >= hours) {
+        printf "CHARGING STATION OFFLINE: %s — last seen %s (%d hours ago)\n", $1, $2, offline_hours;
+      }
+    }
+  ' "{{charger_status_csv_path}}"
+variables:
+  charger_status_csv_path:
+    default: "./ev-charger-status.csv"
+    description: "Path to a CSV with columns: station_id,last_online_timestamp (YYYY-MM-DD HH:MM:SS)."
+  offline_alert_hours:
+    default: 4
+    description: How many hours a charging station can go without a heartbeat before this flags it as offline.
+compatible_agents: [generic, claude, codex]
+notes: Assumes charger_status_csv_path is kept current by the charging network's own monitoring export or API poll — this job only evaluates staleness against a threshold, it doesn't poll hardware directly. Distinct from `ev-battery-health-check` (vehicle battery condition, not charging infrastructure).

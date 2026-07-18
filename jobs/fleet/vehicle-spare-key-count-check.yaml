@@ -1,0 +1,33 @@
+id: vehicle-spare-key-count-check
+version: 1
+name: Vehicle Spare Key/Fob Count Check
+description: >
+  Checks each vehicle's tracked key/fob count against its expected count
+  and flags any vehicle missing a spare. Use this if a vehicle has ever
+  been stuck waiting on an expensive dealer-cut replacement key because
+  the last spare walked off with a departed driver or a lost fob was
+  never replaced.
+category: fleet
+tags: [fleet, key-fob, inventory, cost-control]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v expected="{{expected_keys_per_vehicle}}" '
+    NR==1 {next}
+    {
+      on_hand = $2 + 0;
+      if (on_hand < expected) {
+        printf "KEY/FOB SHORTAGE: vehicle %s — %d on hand (expected %s)\n", $1, on_hand, expected;
+      }
+    }
+  ' "{{key_inventory_csv_path}}"
+variables:
+  key_inventory_csv_path:
+    default: "./vehicle-key-inventory.csv"
+    description: "Path to a CSV with columns: vehicle_id,keys_on_hand."
+  expected_keys_per_vehicle:
+    default: 2
+    description: Expected number of working keys/fobs per vehicle (typically original + one spare) before this flags a shortage.
+compatible_agents: [generic, claude, codex]
+notes: Tracks physical key/fob count only — it doesn't distinguish a lost key from one held by a departed driver, so pair with offboarding checklists to recover keys before they're reported missing here. Distinct from automotive category's `key-fob-inventory-check` (a repair shop's own key-blank/fob programming stock, not per-vehicle spare counts).

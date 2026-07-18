@@ -1,0 +1,31 @@
+id: reefer-unit-temperature-check
+version: 1
+name: Refrigerated Unit Temperature Check
+description: >
+  Checks logged refrigerated trailer/truck unit temperatures against each
+  load's required range and flags any reading outside it. Use this if a
+  temperature-sensitive load has ever been rejected or spoiled because a
+  reefer unit drifted out of range and nobody caught it before delivery.
+category: fleet
+tags: [fleet, reefer, refrigerated, temperature, cold-chain]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      temp = $2 + 0;
+      min_temp = $3 + 0;
+      max_temp = $4 + 0;
+      if (temp < min_temp || temp > max_temp) {
+        printf "REEFER OUT OF RANGE: unit %s — %.1f°F logged, required %.1f-%.1f°F\n", $1, temp, min_temp, max_temp;
+      }
+    }
+  ' "{{reefer_temp_log_csv_path}}"
+variables:
+  reefer_temp_log_csv_path:
+    default: "./reefer-temperature-log.csv"
+    description: "Path to a CSV with columns: unit_id,logged_temp_f,required_min_temp_f,required_max_temp_f."
+compatible_agents: [generic, claude, codex]
+notes: Assumes reefer_temp_log_csv_path is refreshed from the unit's own telematics/data-logger export — this job only evaluates logged readings against the load's required range, it doesn't poll hardware directly. Run at a short interval (every 30 min or tighter) since cold-chain excursions compound quickly.

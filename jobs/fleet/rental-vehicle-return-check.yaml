@@ -1,0 +1,36 @@
+id: rental-vehicle-return-check
+version: 1
+name: Rental Vehicle Return Check
+description: >
+  Checks fleet-augmenting rental vehicles (brought in for overflow or
+  while a fleet vehicle is down) against their scheduled return date and
+  flags any approaching or past due. Use this if a rental has ever racked
+  up late fees because it got folded into daily fleet operations and
+  nobody was watching the rental agreement's own return deadline.
+category: fleet
+tags: [fleet, rental, return, cost-control]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "RENTAL RETURN DUE: %s (rental agreement %s) — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{rental_agreements_csv_path}}"
+variables:
+  rental_agreements_csv_path:
+    default: "./rental-vehicle-agreements.csv"
+    description: "Path to a CSV with columns: rental_vehicle_id,agreement_id,return_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 2
+    description: How many days before the scheduled return date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: For rental vehicles temporarily operating inside fleet workflows (overflow capacity, loaner while a fleet vehicle is in repair) — not owned/leased fleet vehicles, which are covered by `lease-return-condition-check` (condition/damage at lease-end, not a rolling short-term rental deadline).

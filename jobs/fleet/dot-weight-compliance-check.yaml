@@ -1,0 +1,32 @@
+id: dot-weight-compliance-check
+version: 1
+name: DOT Weight Compliance Check
+description: >
+  Checks logged gross vehicle weights against each vehicle's DOT-rated
+  weight limit and flags any overweight reading. Use this if a truck has
+  ever been pulled at a weigh station over its rated gross vehicle weight
+  because loading was tracked by volume or count, not against the
+  vehicle's actual weight rating.
+category: fleet
+tags: [fleet, weight, dot, compliance, safety]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      gvw = $2 + 0;
+      rated_limit = $3 + 0;
+      if (gvw > rated_limit) {
+        over = gvw - rated_limit;
+        printf "OVERWEIGHT: vehicle %s — %d lbs logged, rated limit %d lbs (%d lbs over)\n", $1, gvw, rated_limit, over;
+      }
+    }
+  ' "{{weight_log_csv_path}}"
+variables:
+  weight_log_csv_path:
+    default: "./vehicle-weight-log.csv"
+    description: "Path to a CSV with columns: vehicle_id,logged_gross_vehicle_weight_lbs,rated_gvw_limit_lbs."
+compatible_agents: [generic, claude, codex]
+notes: Assumes gross vehicle weight is logged per trip or load (scale ticket, onboard load cell, or manual entry) — this job only compares the logged figure against the rated limit, it doesn't weigh the vehicle itself. Distinct from `vehicle-inspection-due-check` (safety inspection schedule, not per-load weight).

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2246 jobs across 66 categories (1889 smoke-tested clean):
+2255 jobs across 66 categories (1897 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -213,7 +213,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fieldservice` | 32 | 30 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 32 | 28 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 32 | 24 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `fleet` | 41 | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 32 | 23 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 32 | 29 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 32 | 25 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |

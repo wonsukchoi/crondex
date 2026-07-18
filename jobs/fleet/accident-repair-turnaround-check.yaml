@@ -1,0 +1,38 @@
+id: accident-repair-turnaround-check
+version: 1
+name: Accident Repair Turnaround Check
+description: >
+  Checks vehicles currently at a body shop after an accident against the
+  shop's estimated completion date and flags any that have run past it.
+  Use this if a vehicle has ever sat at a repair shop far longer than
+  quoted because nobody was tracking the estimate against actual
+  turnaround once the incident report itself was filed.
+category: fleet
+tags: [fleet, accident, repair, downtime]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v grace="{{overdue_grace_days}}" '
+    NR==1 {next}
+    {
+      status = tolower($4);
+      if (status != "in_repair") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline est_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      overdue_days = (now_epoch - est_epoch) / 86400;
+      if (overdue_days >= grace) {
+        printf "REPAIR OVERDUE: vehicle %s at %s — estimated completion %s (%d days overdue)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{repair_status_csv_path}}"
+variables:
+  repair_status_csv_path:
+    default: "./accident-repair-status.csv"
+    description: "Path to a CSV with columns: vehicle_id,shop_name,estimated_completion_date (YYYY-MM-DD),status (in_repair/completed)."
+  overdue_grace_days:
+    default: 2
+    description: How many days past the estimated completion date to allow before flagging as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Tracks shop turnaround against the vehicle's own downtime, not claim paperwork. Distinct from `accident-incident-report-tracker` (whether the incident report itself was filed and closed, not repair progress).

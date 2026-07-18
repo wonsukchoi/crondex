@@ -1,0 +1,38 @@
+id: vehicle-recall-notice-check
+version: 1
+name: Vehicle Recall Notice Check
+description: >
+  Checks a fleet's open manufacturer/NHTSA recall list against a tracked
+  resolution log and flags any recall still open past a grace window. Use
+  this if a vehicle has ever kept running with an unresolved safety recall
+  because the recall notice arrived by mail or email and got lost outside
+  the fleet's normal maintenance tracking.
+category: fleet
+tags: [fleet, recall, safety, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{grace_period_days}}" '
+    NR==1 {next}
+    {
+      resolved = tolower($4);
+      if (resolved == "yes" || resolved == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline notice_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      open_days = (now_epoch - notice_epoch) / 86400;
+      if (open_days >= days) {
+        printf "OPEN RECALL PAST GRACE PERIOD: vehicle %s — recall %s, notice date %s (%d days open)\n", $1, $2, $3, open_days;
+      }
+    }
+  ' "{{recall_log_csv_path}}"
+variables:
+  recall_log_csv_path:
+    default: "./vehicle-recalls.csv"
+    description: "Path to a CSV with columns: vehicle_id,recall_id,notice_date (YYYY-MM-DD),resolved (yes/no)."
+  grace_period_days:
+    default: 14
+    description: How many days a recall can stay open before this flags it.
+compatible_agents: [generic, claude, codex]
+notes: This tracks recall *resolution*, not recall *discovery* — populating recall_log_csv_path still requires pulling open recalls per VIN from the manufacturer or NHTSA's VIN lookup (manual or a separate integration), since crondex jobs don't make outbound network calls by default. Distinct from `vehicle-inspection-due-check` (routine safety inspection) and `fleet-insurance-expiry-check` (insurance coverage, not safety defects).

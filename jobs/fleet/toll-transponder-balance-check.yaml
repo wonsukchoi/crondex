@@ -1,0 +1,33 @@
+id: toll-transponder-balance-check
+version: 1
+name: Toll Transponder Balance Check
+description: >
+  Checks each fleet toll transponder's prepaid account balance and flags
+  any that have dropped below a minimum threshold. Use this if a vehicle
+  has ever gotten hit with a toll-plaza violation fee because its
+  transponder ran out of prepaid balance and quietly stopped covering
+  tolls automatically.
+category: fleet
+tags: [fleet, toll, transponder, prepaid]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_balance="{{minimum_balance}}" '
+    NR==1 {next}
+    {
+      balance = $2 + 0;
+      if (balance < min_balance) {
+        printf "LOW TRANSPONDER BALANCE: vehicle %s (transponder %s) — balance $%.2f (minimum $%s)\n", $1, $3, balance, min_balance;
+      }
+    }
+  ' "{{toll_balance_csv_path}}"
+variables:
+  toll_balance_csv_path:
+    default: "./toll-transponder-balances.csv"
+    description: "Path to a CSV with columns: vehicle_id,prepaid_balance,transponder_id."
+  minimum_balance:
+    default: 20
+    description: Minimum prepaid balance (in account currency) before this flags the transponder as low.
+compatible_agents: [generic, claude, codex]
+notes: Assumes toll_balance_csv_path is refreshed from the toll network's own account export or API poll — this job only evaluates the balance against a threshold, it doesn't query the toll operator directly. Distinct from `toll-violation-tracker` (unpaid violation fees after the fact, not prepaid balance monitoring).

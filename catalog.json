@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2246,
+  "count": 2255,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -378,6 +378,32 @@
       ],
       "verified": true,
       "path": "jobs/fleet/accident-incident-report-tracker.yaml"
+    },
+    {
+      "id": "accident-repair-turnaround-check",
+      "version": 1,
+      "name": "Accident Repair Turnaround Check",
+      "description": "Checks vehicles currently at a body shop after an accident against the shop's estimated completion date and flags any that have run past it. Use this if a vehicle has ever sat at a repair shop far longer than quoted because nobody was tracking the estimate against actual turnaround once the incident report itself was filed.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "accident",
+        "repair",
+        "downtime"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/accident-repair-turnaround-check.yaml"
     },
     {
       "id": "account-expansion-whitespace-scan",
@@ -16499,6 +16525,33 @@
       "path": "jobs/moving-relocation/dot-vehicle-annual-inspection-check.yaml"
     },
     {
+      "id": "dot-weight-compliance-check",
+      "version": 1,
+      "name": "DOT Weight Compliance Check",
+      "description": "Checks logged gross vehicle weights against each vehicle's DOT-rated weight limit and flags any overweight reading. Use this if a truck has ever been pulled at a weigh station over its rated gross vehicle weight because loading was tracked by volume or count, not against the vehicle's actual weight rating.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "weight",
+        "dot",
+        "compliance",
+        "safety"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/dot-weight-compliance-check.yaml"
+    },
+    {
       "id": "double-brokering-fraud-check",
       "version": 1,
       "name": "Double Brokering Fraud Check",
@@ -19597,6 +19650,32 @@
       ],
       "verified": true,
       "path": "jobs/fleet/ev-battery-health-check.yaml"
+    },
+    {
+      "id": "ev-charging-station-uptime-check",
+      "version": 1,
+      "name": "EV Charging Station Uptime Check",
+      "description": "Checks depot EV charging stations against their last-reported-online timestamp and flags any station that's gone quiet past a threshold. Use this if an EV has ever shown up for a shift undercharged because a charging station silently went offline and nobody noticed until a driver needed it.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "ev",
+        "charging",
+        "maintenance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": false,
+      "path": "jobs/fleet/ev-charging-station-uptime-check.yaml"
     },
     {
       "id": "ev-charging-station-uptime-monitor",
@@ -37515,6 +37594,32 @@
       "path": "jobs/education/parent-teacher-conference-noshow-tracker.yaml"
     },
     {
+      "id": "parking-citation-check",
+      "version": 1,
+      "name": "Parking Citation Check",
+      "description": "Checks fleet parking citations against their payment due date and flags any unpaid citation approaching or past due. Use this if a fleet vehicle has ever accrued late penalties or a registration hold because a parking ticket sat unpaid outside the normal toll and moving-violation tracking.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "parking",
+        "citation",
+        "compliance"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/parking-citation-check.yaml"
+    },
+    {
       "id": "parking-spot-allocation-conflict-check",
       "version": 1,
       "name": "Parking Spot Allocation Conflict Check",
@@ -44184,6 +44289,33 @@
       "path": "jobs/logistics/reefer-temperature-excursion-watch.yaml"
     },
     {
+      "id": "reefer-unit-temperature-check",
+      "version": 1,
+      "name": "Refrigerated Unit Temperature Check",
+      "description": "Checks logged refrigerated trailer/truck unit temperatures against each load's required range and flags any reading outside it. Use this if a temperature-sensitive load has ever been rejected or spoiled because a reefer unit drifted out of range and nobody caught it before delivery.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "reefer",
+        "refrigerated",
+        "temperature",
+        "cold-chain"
+      ],
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/reefer-unit-temperature-check.yaml"
+    },
+    {
       "id": "reference-check-overdue-reminder",
       "version": 1,
       "name": "Reference Check Overdue Reminder",
@@ -45034,6 +45166,32 @@
       ],
       "verified": true,
       "path": "jobs/realestate/rental-vacancy-check.yaml"
+    },
+    {
+      "id": "rental-vehicle-return-check",
+      "version": 1,
+      "name": "Rental Vehicle Return Check",
+      "description": "Checks fleet-augmenting rental vehicles (brought in for overflow or while a fleet vehicle is down) against their scheduled return date and flags any approaching or past due. Use this if a rental has ever racked up late fees because it got folded into daily fleet operations and nobody was watching the rental agreement's own return deadline.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "rental",
+        "return",
+        "cost-control"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/rental-vehicle-return-check.yaml"
     },
     {
       "id": "reorder-point-staleness-check",
@@ -54602,6 +54760,32 @@
       "path": "jobs/payments/tokenization-vault-key-rotation-check.yaml"
     },
     {
+      "id": "toll-transponder-balance-check",
+      "version": 1,
+      "name": "Toll Transponder Balance Check",
+      "description": "Checks each fleet toll transponder's prepaid account balance and flags any that have dropped below a minimum threshold. Use this if a vehicle has ever gotten hit with a toll-plaza violation fee because its transponder ran out of prepaid balance and quietly stopped covering tolls automatically.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "toll",
+        "transponder",
+        "prepaid"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/toll-transponder-balance-check.yaml"
+    },
+    {
       "id": "toll-violation-tracker",
       "version": 1,
       "name": "Toll & Parking Violation Tracker",
@@ -57073,6 +57257,32 @@
       "path": "jobs/fleet/vehicle-pool-scheduling-conflict-check.yaml"
     },
     {
+      "id": "vehicle-recall-notice-check",
+      "version": 1,
+      "name": "Vehicle Recall Notice Check",
+      "description": "Checks a fleet's open manufacturer/NHTSA recall list against a tracked resolution log and flags any recall still open past a grace window. Use this if a vehicle has ever kept running with an unresolved safety recall because the recall notice arrived by mail or email and got lost outside the fleet's normal maintenance tracking.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "recall",
+        "safety",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/vehicle-recall-notice-check.yaml"
+    },
+    {
       "id": "vehicle-registration-expiry-check",
       "version": 1,
       "name": "Fleet Vehicle Registration Expiry Check",
@@ -57122,6 +57332,32 @@
       ],
       "verified": true,
       "path": "jobs/personal/vehicle-registration-renewal-reminder.yaml"
+    },
+    {
+      "id": "vehicle-spare-key-count-check",
+      "version": 1,
+      "name": "Vehicle Spare Key/Fob Count Check",
+      "description": "Checks each vehicle's tracked key/fob count against its expected count and flags any vehicle missing a spare. Use this if a vehicle has ever been stuck waiting on an expensive dealer-cut replacement key because the last spare walked off with a departed driver or a lost fob was never replaced.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "key-fob",
+        "inventory",
+        "cost-control"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/vehicle-spare-key-count-check.yaml"
     },
     {
       "id": "vehicle-storage-title-documentation-check",

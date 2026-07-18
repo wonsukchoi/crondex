@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2271 jobs across 66 categories (1913 smoke-tested clean):
+2274 jobs across 66 categories (1916 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -230,7 +230,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `learning` | 32 | 30 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 32 | 30 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 45 | 32 | Shipping ops — customs, freight, delays, fees. |
-| `manufacturing` | 32 | 29 | Production ops — downtime, defects, maintenance, suppliers, materials. |
+| `manufacturing` | 35 | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 32 | 22 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 32 | 30 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 32 | 27 | Fundraising ops — grants, donors, volunteers, board follow-ups. |

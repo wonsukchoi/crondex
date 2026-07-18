@@ -1,0 +1,35 @@
+id: forklift-daily-inspection-compliance-check
+version: 1
+name: Forklift Daily Inspection Compliance Check
+description: >
+  Checks each powered industrial truck (forklift, pallet jack, order
+  picker) against today's required pre-shift inspection checklist and
+  flags any that's missing one or was logged with an unresolved defect.
+  Use this if a forklift has ever been operated on a shift its pre-use
+  inspection was skipped, or a logged defect (worn forks, brake issue,
+  leaking hydraulics) got ignored instead of pulling the unit from
+  service.
+category: manufacturing
+tags: [manufacturing, forklift, osha, safety, compliance]
+schedule: "0 6,14,22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      inspected = tolower($3);
+      defect_status = tolower($4);
+      if (inspected != "yes" && inspected != "true") {
+        printf "FORKLIFT NOT INSPECTED THIS SHIFT: %s (shift %s)\n", $1, $2;
+      } else if (defect_status == "fail" || defect_status == "defect") {
+        printf "FORKLIFT DEFECT LOGGED, PULL FROM SERVICE: %s (shift %s)\n", $1, $2;
+      }
+    }
+  ' "{{forklift_inspection_log_csv_path}}"
+variables:
+  forklift_inspection_log_csv_path:
+    default: "./forklift-inspection-log.csv"
+    description: "Path to a CSV with columns: forklift_id,shift,inspected_this_shift (yes/no),defect_status (pass/fail/defect)."
+compatible_agents: [generic, claude, codex]
+notes: A logged defect means the unit should already be tagged out and pulled from service per your safety program — this only flags that the log shows an unresolved defect, it doesn't itself enforce the tag-out. Distinct from `preventive-maintenance-due-check` (scheduled maintenance intervals, not per-shift operator inspection).

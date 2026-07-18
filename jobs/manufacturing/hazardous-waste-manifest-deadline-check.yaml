@@ -1,0 +1,39 @@
+id: hazardous-waste-manifest-deadline-check
+version: 1
+name: Hazardous Waste Manifest Deadline Check
+description: >
+  Checks open hazardous waste manifests against their required
+  disposal/accumulation timeline and flags any approaching or past the
+  deadline. Use this if hazardous waste has ever sat past its allowed
+  accumulation time, or a signed manifest copy never came back from the
+  disposal facility, because nobody was tracking manifests against their
+  own deadlines separately from routine EHS paperwork.
+category: manufacturing
+tags: [manufacturing, hazardous-waste, epa, rcra, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      returned = tolower($4);
+      if (returned == "yes" || returned == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "MANIFEST DEADLINE APPROACHING: %s (waste stream %s) — deadline %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{hazardous_waste_manifest_csv_path}}"
+variables:
+  hazardous_waste_manifest_csv_path:
+    default: "./hazardous-waste-manifests.csv"
+    description: "Path to a CSV with columns: manifest_id,waste_stream,deadline_date (YYYY-MM-DD — accumulation limit or expected signed-copy return),signed_copy_returned (yes/no)."
+  warn_days_before:
+    default: 10
+    description: How many days before the manifest deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Deadline rules (accumulation time limits, signed-copy return windows) vary by generator status and jurisdiction (US RCRA vs. other regulatory regimes) — confirm your facility's actual applicable limits rather than assuming one rule fits every waste stream. Distinct from `emissions-permit-compliance-check` (air permit conditions, not waste manifest tracking).

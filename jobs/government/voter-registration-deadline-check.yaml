@@ -1,0 +1,38 @@
+id: voter-registration-deadline-check
+version: 1
+name: Voter Registration Deadline Check
+description: >
+  Checks the upcoming election's voter registration cutoff date and
+  flags when it's approaching, so outreach and processing capacity can
+  be planned before the deadline hits. Use this if a registration
+  deadline has ever arrived without the elections office having pushed
+  a public reminder ahead of it, distinct from `election-filing-deadline-reminder`
+  which tracks candidate and petition filing windows, not voter
+  registration.
+category: government
+tags: [government, elections, voter-registration, deadline]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "VOTER REGISTRATION DEADLINE APPROACHING: %s — deadline %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{election_registration_csv_path}}"
+variables:
+  election_registration_csv_path:
+    default: "./election-registration-deadlines.csv"
+    description: "Path to a CSV with columns: election_name,registration_deadline_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before the registration deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Registration deadlines and same-day-registration rules vary widely by state — confirm your jurisdiction's actual rule, including whether same-day registration removes the deadline entirely for in-person voting.

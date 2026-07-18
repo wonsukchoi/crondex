@@ -1,0 +1,39 @@
+id: right-of-way-encroachment-permit-check
+version: 1
+name: Right-of-Way Encroachment Permit Check
+description: >
+  Checks issued right-of-way/encroachment permits (utility cuts,
+  driveway aprons, sidewalk obstructions) against their required
+  restoration inspection date and flags any coming due or overdue. Use
+  this if a street cut or sidewalk obstruction has ever gone unrestored
+  past its permit condition because the permit was tracked as issued
+  but nobody followed up on the required post-work inspection.
+category: government
+tags: [government, right-of-way, encroachment, permits, public-works]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      inspected = tolower($4);
+      if (inspected == "yes" || inspected == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "ROW RESTORATION INSPECTION DUE: permit %s (%s) — due %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{row_permit_csv_path}}"
+variables:
+  row_permit_csv_path:
+    default: "./right-of-way-permits.csv"
+    description: "Path to a CSV with columns: permit_id,work_description,restoration_inspection_due_date (YYYY-MM-DD),inspected (yes/no)."
+  warn_days_before:
+    default: 5
+    description: How many days before the restoration inspection due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `infrastructure-asset-inspection-due-tracker` (the municipality's own owned asset inspections, not third-party permit holder restoration compliance) and `permit-application-backlog-check` (application review backlog, not post-issuance follow-up).

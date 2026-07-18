@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2280 jobs across 66 categories (1922 smoke-tested clean):
+2283 jobs across 66 categories (1925 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -215,7 +215,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fitness` | 32 | 28 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 41 | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 32 | 23 | Streaming and community server ops — schedules, patches, tournaments. |
-| `government` | 32 | 29 | Public-sector ops — records requests, permits, constituent casework. |
+| `government` | 35 | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 32 | 25 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 45 | 39 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 32 | 21 | Recruiting pipeline — candidates, offers, interviews, reqs. |

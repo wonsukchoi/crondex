@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2280,
+  "count": 2283,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -30088,6 +30088,33 @@
       "path": "jobs/legal/legal-document-retention-purge-review.yaml"
     },
     {
+      "id": "legal-hold-retention-conflict-check",
+      "version": 1,
+      "name": "Legal Hold vs Retention Purge Conflict Check",
+      "description": "Checks records flagged for scheduled purge against the active legal hold list and flags any overlap before the purge runs. Use this if a record has ever been destroyed on schedule while under an active litigation or public-records legal hold, because the retention schedule and the legal hold list were maintained separately with nobody cross-checking them before purge day.",
+      "category": "government",
+      "tags": [
+        "government",
+        "legal-hold",
+        "records",
+        "retention",
+        "compliance"
+      ],
+      "schedule": "0 7 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/government/legal-hold-retention-conflict-check.yaml"
+    },
+    {
       "id": "library-book-due-reminder",
       "version": 1,
       "name": "Library Book Due Date Reminder",
@@ -46793,6 +46820,33 @@
       "path": "jobs/agency/rfp-submission-deadline-reminder.yaml"
     },
     {
+      "id": "right-of-way-encroachment-permit-check",
+      "version": 1,
+      "name": "Right-of-Way Encroachment Permit Check",
+      "description": "Checks issued right-of-way/encroachment permits (utility cuts, driveway aprons, sidewalk obstructions) against their required restoration inspection date and flags any coming due or overdue. Use this if a street cut or sidewalk obstruction has ever gone unrestored past its permit condition because the permit was tracked as issued but nobody followed up on the required post-work inspection.",
+      "category": "government",
+      "tags": [
+        "government",
+        "right-of-way",
+        "encroachment",
+        "permits",
+        "public-works"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/government/right-of-way-encroachment-permit-check.yaml"
+    },
+    {
       "id": "rights-license-expiry-check",
       "version": 1,
       "name": "Rights and License Expiry Check",
@@ -58823,6 +58877,32 @@
       ],
       "verified": true,
       "path": "jobs/events/volunteer-shift-confirmation-reminder.yaml"
+    },
+    {
+      "id": "voter-registration-deadline-check",
+      "version": 1,
+      "name": "Voter Registration Deadline Check",
+      "description": "Checks the upcoming election's voter registration cutoff date and flags when it's approaching, so outreach and processing capacity can be planned before the deadline hits. Use this if a registration deadline has ever arrived without the elections office having pushed a public reminder ahead of it, distinct from `election-filing-deadline-reminder` which tracks candidate and petition filing windows, not voter registration.",
+      "category": "government",
+      "tags": [
+        "government",
+        "elections",
+        "voter-registration",
+        "deadline"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/government/voter-registration-deadline-check.yaml"
     },
     {
       "id": "vpn-access-recertification-check",

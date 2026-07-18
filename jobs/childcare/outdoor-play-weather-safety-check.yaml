@@ -1,0 +1,41 @@
+id: outdoor-play-weather-safety-check
+version: 1
+name: Outdoor Play Weather Safety Check
+description: >
+  Checks today's forecast heat index and wind chill against your
+  facility's outdoor-play safety thresholds and flags any day outdoor
+  play should be limited or moved indoors. Use this if outdoor play has
+  ever gone ahead as scheduled on a day the heat index or wind chill was
+  actually past the center's own safety policy because nobody checked
+  the forecast against it that morning.
+category: childcare
+tags: [childcare, weather, safety, outdoor-play]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl -s "{{weather_forecast_url}}" | awk -F',' -v max_heat="{{max_heat_index_f}}" -v min_chill="{{min_wind_chill_f}}" '
+    NR==1 {next}
+    {
+      heat_index = $1 + 0;
+      wind_chill = $2 + 0;
+      if (heat_index >= max_heat) {
+        printf "HEAT ADVISORY: forecast heat index %.0f°F meets/exceeds outdoor-play limit %s°F\n", heat_index, max_heat;
+      }
+      if (wind_chill <= min_chill) {
+        printf "COLD ADVISORY: forecast wind chill %.0f°F meets/falls below outdoor-play limit %s°F\n", wind_chill, min_chill;
+      }
+    }
+  '
+variables:
+  weather_forecast_url:
+    default: "https://example.com/local-weather-forecast.csv"
+    description: "URL or local path returning a CSV with columns: heat_index_f,wind_chill_f, for today's forecast."
+  max_heat_index_f:
+    default: 90
+    description: Heat index (°F) at or above which outdoor play should be limited per your facility's policy.
+  min_wind_chill_f:
+    default: 15
+    description: Wind chill (°F) at or below which outdoor play should be limited per your facility's policy.
+compatible_agents: [generic, claude, codex]
+notes: Thresholds vary by state licensing rules and facility policy — confirm your jurisdiction's actual heat index/wind chill cutoffs rather than relying on the defaults here. Swap `weather_forecast_url` for your local weather API/feed.

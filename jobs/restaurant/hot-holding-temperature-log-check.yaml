@@ -1,0 +1,33 @@
+id: hot-holding-temperature-log-check
+version: 1
+name: Hot-Holding Temperature Log Check
+description: >
+  Scans today's logged hot-holding line temperatures (steam table, hot
+  box, heat lamp station) and flags any reading that's dropped into the
+  food-danger-zone range. Use this if food has ever sat on the line below
+  safe holding temperature for a stretch because the cold-storage logs
+  were being checked but the hot side wasn't tracked the same way.
+category: restaurant
+tags: [restaurant, food-safety, temperature, hot-holding, compliance]
+schedule: "0 11,15,19,23 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_temp="{{minimum_safe_temp_f}}" '
+    NR==1 {next}
+    {
+      temp = $2 + 0;
+      if (temp < min_temp) {
+        printf "HOT-HOLDING OUT OF RANGE: %s — %.1f°F logged (minimum %s°F)\n", $1, temp, min_temp;
+      }
+    }
+  ' "{{hot_holding_log_csv_path}}"
+variables:
+  hot_holding_log_csv_path:
+    default: "./hot-holding-temp-log.csv"
+    description: "Path to a CSV with columns: station_name,logged_temp_f."
+  minimum_safe_temp_f:
+    default: 135
+    description: "Minimum safe hot-holding temperature in °F per your local food code (US default is 135°F/57°C)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `walk-in-cooler-temp-log-check` (cold storage only) — hot-holding line temps need their own log and their own out-of-range direction (too low, not too high).

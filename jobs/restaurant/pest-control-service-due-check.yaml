@@ -1,0 +1,37 @@
+id: pest-control-service-due-check
+version: 1
+name: Pest Control Service Due Check
+description: >
+  Checks the facility's pest control service schedule and flags any
+  location coming due or overdue for its next scheduled visit. Use this
+  if a pest control visit has ever slipped past its scheduled interval
+  because it wasn't tracked the same way food-safety and equipment
+  inspections are, and a health inspector found evidence of activity
+  first.
+category: restaurant
+tags: [restaurant, pest-control, facilities, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "PEST CONTROL SERVICE DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{pest_control_schedule_csv_path}}"
+variables:
+  pest_control_schedule_csv_path:
+    default: "./pest-control-schedule.csv"
+    description: "Path to a CSV with columns: location_name,next_service_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 5
+    description: How many days before the next scheduled service to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `health-inspection-prep-reminder` (general inspection readiness across all categories) — this tracks the pest control vendor's own recurring service contract specifically, which most health codes require documented evidence of on a regular cadence.

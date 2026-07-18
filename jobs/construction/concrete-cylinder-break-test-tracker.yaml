@@ -1,0 +1,41 @@
+id: concrete-cylinder-break-test-tracker
+version: 1
+name: Concrete Cylinder Break Test Tracker
+description: >
+  Checks logged concrete cylinder break tests (typically 7-day and
+  28-day strength breaks per pour) against their scheduled test dates
+  and flags any test coming due, overdue, or a recorded strength result
+  below the mix design's required PSI. Use this if a pour has ever
+  proceeded to the next construction phase before its 28-day strength
+  result actually confirmed the slab met design strength.
+category: construction
+tags: [construction, concrete, quality, testing, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      result_psi = $4 + 0;
+      required_psi = $5 + 0;
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if ($4 == "" && diff_days <= days) {
+        printf "BREAK TEST DUE: pour %s — %s break due %s (%d days)\n", $1, $2, $3, diff_days;
+      } else if (result_psi > 0 && result_psi < required_psi) {
+        printf "STRENGTH BELOW DESIGN: pour %s — %s break result %d PSI (required %d PSI)\n", $1, $2, result_psi, required_psi;
+      }
+    }
+  ' "{{cylinder_test_log_csv_path}}"
+variables:
+  cylinder_test_log_csv_path:
+    default: "./concrete-cylinder-test-log.csv"
+    description: "Path to a CSV with columns: pour_id,break_interval (7-day/28-day),test_due_date (YYYY-MM-DD),result_psi (blank if not yet tested),required_psi."
+  warn_days_before:
+    default: 2
+    description: How many days before an untested break's due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: A below-design result needs immediate escalation to the structural engineer of record, not just a flag here — this job surfaces the gap, it doesn't make the engineering call on whether the slab is acceptable. Distinct from `concrete-pour-weather-window-check` (conditions at time of pour, not post-pour strength verification).

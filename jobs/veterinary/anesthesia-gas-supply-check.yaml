@@ -1,0 +1,33 @@
+id: anesthesia-gas-supply-check
+version: 1
+name: Anesthesia Gas/Oxygen Supply Check
+description: >
+  Checks oxygen and inhalant anesthetic tank/cylinder levels against a
+  minimum threshold and flags anything running low. Use this if a
+  surgery has ever had to stop mid-procedure because an oxygen or
+  isoflurane supply ran out and nobody checked the tank level against
+  the day's scheduled caseload beforehand.
+category: veterinary
+tags: [veterinary, anesthesia, oxygen, supply, surgery]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{minimum_level_percent}}" '
+    NR==1 {next}
+    {
+      level = $2 + 0;
+      if (level <= min_pct) {
+        printf "LOW SUPPLY: %s — %d%% remaining (minimum %s%%)\n", $1, level, min_pct;
+      }
+    }
+  ' "{{gas_supply_csv_path}}"
+variables:
+  gas_supply_csv_path:
+    default: "./anesthesia-gas-supply.csv"
+    description: "Path to a CSV with columns: tank_or_cylinder_id (e.g. O2-main, isoflurane-vaporizer-1),level_percent."
+  minimum_level_percent:
+    default: 25
+    description: Percent remaining at or below which this flags the tank/cylinder as low, in time to reorder or swap before it runs out mid-procedure.
+compatible_agents: [generic, claude, codex]
+notes: Assumes gas_supply_csv_path is updated from a manual gauge check or tank-monitoring hardware — this job only evaluates the logged level against the threshold. Distinct from `anesthesia-monitoring-log-completeness-check` (patient vitals recordkeeping during a procedure, not supply levels).

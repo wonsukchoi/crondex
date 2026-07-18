@@ -1,0 +1,31 @@
+id: break-time-ratio-coverage-check
+version: 1
+name: Break-Time Ratio Coverage Check
+description: >
+  Checks each classroom's scheduled staff meal/rest breaks against who's
+  assigned to cover the required child-staff ratio during that break
+  window and flags any break with no coverage assigned. Use this if a
+  classroom has ever quietly dropped under ratio during a lead teacher's
+  lunch break because the day's shift schedule looked fully staffed
+  overall but nobody was actually assigned to cover that specific window.
+category: childcare
+tags: [childcare, staff, ratio, breaks, compliance]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      coverage_assigned = tolower($4);
+      if (coverage_assigned != "yes" && coverage_assigned != "true") {
+        printf "NO BREAK COVERAGE ASSIGNED: classroom %s — %s break %s-%s\n", $1, $2, $3, $2;
+      }
+    }
+  ' "{{break_schedule_csv_path}}"
+variables:
+  break_schedule_csv_path:
+    default: "./staff-break-schedule.csv"
+    description: "Path to a CSV with columns: classroom,staff_name,break_time,coverage_assigned (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `staff-shift-schedule-coverage-check` (whether the day's overall roster meets ratio) and `staff-child-ratio-compliance-check` (today's actual real-time headcount) — this checks the narrower, easy-to-miss gap of who covers ratio during another staff member's break specifically.

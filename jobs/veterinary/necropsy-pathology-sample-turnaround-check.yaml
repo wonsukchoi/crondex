@@ -1,0 +1,39 @@
+id: necropsy-pathology-sample-turnaround-check
+version: 1
+name: Necropsy/Pathology Sample Turnaround Check
+description: >
+  Checks submitted necropsy and histopathology samples against their
+  expected turnaround time and flags any still outstanding. Use this if
+  a pathology sample has ever sat unresolved for weeks — delaying a
+  cause-of-death answer for a grieving client or a herd-health decision
+  for a producer client — because nobody was tracking send-out samples
+  separately from routine bloodwork/lab orders.
+category: veterinary
+tags: [veterinary, pathology, necropsy, lab-results, turnaround]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{overdue_grace_days}}" '
+    NR==1 {next}
+    {
+      resulted = tolower($4);
+      if (resulted == "yes" || resulted == "true") { next }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expected_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      overdue_days = (now_epoch - expected_epoch) / 86400;
+      if (overdue_days >= days) {
+        printf "PATHOLOGY SAMPLE OVERDUE: %s (%s) — expected %s (%d days overdue)\n", $1, $2, $3, overdue_days;
+      }
+    }
+  ' "{{pathology_samples_csv_path}}"
+variables:
+  pathology_samples_csv_path:
+    default: "./pathology-sample-log.csv"
+    description: "Path to a CSV with columns: patient_id,sample_type (necropsy/histopathology/biopsy),expected_result_date (YYYY-MM-DD),resulted (yes/no)."
+  overdue_grace_days:
+    default: 3
+    description: How many days past the expected result date to allow before flagging as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `lab-result-turnaround-check` (routine in-house/reference-lab bloodwork and diagnostics) — necropsy and histopathology send-outs typically go to a separate specialty lab with longer, more variable turnaround and higher stakes for follow-up.

@@ -1,0 +1,36 @@
+id: dish-sanitizer-concentration-check
+version: 1
+name: Dish Sanitizer Concentration Check
+description: >
+  Checks today's logged dish-sink/dish-machine sanitizer concentration
+  test-strip readings against the required range and flags any reading
+  outside it. Use this if dishes have ever gone back into service
+  under-sanitized because the sink was refilled but nobody test-stripped
+  the actual sanitizer concentration before service resumed.
+category: restaurant
+tags: [restaurant, food-safety, sanitizer, dishwashing, compliance]
+schedule: "0 11,17,23 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_ppm="{{minimum_ppm}}" -v max_ppm="{{maximum_ppm}}" '
+    NR==1 {next}
+    {
+      ppm = $2 + 0;
+      if (ppm < min_ppm || ppm > max_ppm) {
+        printf "SANITIZER OUT OF RANGE: %s — %d ppm logged (required %s-%s ppm)\n", $1, ppm, min_ppm, max_ppm;
+      }
+    }
+  ' "{{sanitizer_log_csv_path}}"
+variables:
+  sanitizer_log_csv_path:
+    default: "./dish-sanitizer-log.csv"
+    description: "Path to a CSV with columns: station_name (e.g. 3-comp-sink, dish-machine),ppm_reading."
+  minimum_ppm:
+    default: 50
+    description: "Minimum acceptable sanitizer concentration in ppm — varies by sanitizer type (chlorine, quat, iodine); confirm your product's required range."
+  maximum_ppm:
+    default: 200
+    description: Maximum acceptable sanitizer concentration in ppm before it's considered too strong per your product's label.
+compatible_agents: [generic, claude, codex]
+notes: Required concentration range depends on the specific sanitizer chemical in use — check the product label/SDS rather than assuming the defaults here apply. Distinct from `walk-in-cooler-temp-log-check` and `hot-holding-temperature-log-check` (temperature-based food safety, not chemical sanitizer concentration).

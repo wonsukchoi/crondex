@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2255 jobs across 66 categories (1897 smoke-tested clean):
+2271 jobs across 66 categories (1913 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -198,9 +198,9 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `agriculture` | 32 | 25 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 32 | 26 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `banking` | 32 | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
-| `childcare` | 32 | 28 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `childcare` | 36 | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 32 | 27 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
-| `construction` | 32 | 26 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
+| `construction` | 35 | 29 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 32 | 15 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 32 | 28 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 32 | 21 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
@@ -243,12 +243,12 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `productivity` | 32 | 22 | Work habits — inbox, standups, focus, meetings, reports. |
 | `publishing` | 32 | 29 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
 | `realestate` | 32 | 32 | Property management — leases, rent, vacancy, inspections, tax. |
-| `restaurant` | 32 | 22 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
+| `restaurant` | 35 | 25 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 32 | 26 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 32 | 27 | Pipeline ops — leads, deals, quota, CRM sync. |
 | `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
-| `senior-living` | 32 | 31 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
+| `senior-living` | 35 | 34 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
 | `spa` | 32 | 30 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 32 | 27 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
@@ -257,7 +257,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `telecom` | 32 | 28 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 32 | 28 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 32 | 29 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
-| `veterinary` | 32 | 24 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
+| `veterinary` | 35 | 27 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 32 | 25 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 | `waste-management` | 32 | 28 | Waste hauling, recycling, and landfill/transfer-station ops — routes, contamination, tonnage, permits, billing. |
 <!-- END JOB SUMMARY -->

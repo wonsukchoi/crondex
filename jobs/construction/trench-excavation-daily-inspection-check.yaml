@@ -1,0 +1,31 @@
+id: trench-excavation-daily-inspection-check
+version: 1
+name: Trench/Excavation Daily Inspection Check
+description: >
+  Checks each open trench/excavation against today's required
+  competent-person inspection log entry and flags any that's missing
+  one. Use this if a crew has ever entered a trench on a day the
+  required daily competent-person inspection (soil conditions, water
+  accumulation, protective system integrity) wasn't actually logged —
+  one of OSHA's most cited, highest-fatality-risk gaps on a jobsite.
+category: construction
+tags: [construction, trench, excavation, osha, safety, compliance]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      inspected_today = tolower($3)
+      if (inspected_today != "yes" && inspected_today != "true") {
+        printf "TRENCH NOT INSPECTED TODAY: %s (site %s) — no competent-person inspection logged\n", $1, $2;
+      }
+    }
+  ' "{{trench_inspection_log_csv_path}}"
+variables:
+  trench_inspection_log_csv_path:
+    default: "./trench-inspection-log.csv"
+    description: "Path to a CSV with columns: trench_id,site_name,inspected_today (yes/no) — only include trenches/excavations currently open and requiring entry."
+compatible_agents: [generic, claude, codex]
+notes: A daily inspection is required before each shift and after any hazard-increasing event (rain, vibration, etc.) — this only checks the once-a-day log entry, it doesn't replace the requirement to re-inspect after conditions change. Distinct from `heavy-equipment-inspection-compliance-check` (periodic equipment safety inspections, not daily trench conditions) and `jobsite-safety-incident-near-miss-tracker` (after-the-fact incident tracking, not a pre-entry gate).

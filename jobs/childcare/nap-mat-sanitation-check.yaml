@@ -1,0 +1,30 @@
+id: nap-mat-sanitation-check
+version: 1
+name: Nap Mat Sanitation Check
+description: >
+  Checks each classroom's nap mat disinfecting log against the required
+  daily sanitation and flags any classroom that missed it. Use this if
+  nap mats have ever gone unsanitized between uses because the general
+  surface-cleaning log looked complete while mats — tracked separately
+  under most licensing rules — were overlooked.
+category: childcare
+tags: [childcare, nap-mats, sanitation, health, compliance]
+schedule: "0 15 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      sanitized = tolower($2);
+      if (sanitized != "yes" && sanitized != "true") {
+        printf "NAP MATS NOT SANITIZED TODAY: classroom %s\n", $1;
+      }
+    }
+  ' "{{nap_mat_log_csv_path}}"
+variables:
+  nap_mat_log_csv_path:
+    default: "./nap-mat-sanitation-log.csv"
+    description: "Path to a CSV with columns: classroom,sanitized_today (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `classroom-sanitation-log-compliance-check` (toys/tables/high-touch surfaces) — many licensing rules require nap mats be individually assigned and disinfected between uses as their own item, not folded into general surface cleaning.

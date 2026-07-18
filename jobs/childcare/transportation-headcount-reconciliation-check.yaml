@@ -1,0 +1,32 @@
+id: transportation-headcount-reconciliation-check
+version: 1
+name: Transportation Headcount Reconciliation Check
+description: >
+  Checks each van/bus run's boarding count against its drop-off count and
+  flags any mismatch. Use this for routine daily transportation runs (not
+  field trips) where a child left in a vehicle has been one of the most
+  serious, life-threatening gaps in childcare operations — this exists
+  specifically to catch a headcount that was never actually reconciled
+  after a run.
+category: childcare
+tags: [childcare, transportation, safety, headcount]
+schedule: "*/15 6-18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      boarded = $2 + 0;
+      dropped_off = $3 + 0;
+      if (boarded != dropped_off) {
+        printf "HEADCOUNT MISMATCH: run %s — %d boarded, %d confirmed dropped off\n", $1, boarded, dropped_off;
+      }
+    }
+  ' "{{transportation_log_csv_path}}"
+variables:
+  transportation_log_csv_path:
+    default: "./transportation-run-log.csv"
+    description: "Path to a CSV with columns: run_id,children_boarded_count,children_dropped_off_confirmed_count."
+compatible_agents: [generic, claude, codex]
+notes: This is a records check, not a physical vehicle sweep — it only catches a mismatch if the drop-off count was actually logged, so pair with (never replace) a mandatory physical walk-through of every vehicle at the end of each run. Distinct from `field-trip-headcount-reconciliation-check` (occasional off-site outings, not routine daily transportation).

@@ -1,0 +1,32 @@
+id: sterilization-autoclave-log-check
+version: 1
+name: Sterilization/Autoclave Log Check
+description: >
+  Checks yesterday's autoclave/sterilization cycle log for missing
+  biological indicator test results or incomplete load records and flags
+  any gap. Use this if a sterilization failure has ever gone unnoticed
+  for days because the biological indicator spore test wasn't actually
+  read and logged after each cycle, not just the cycle itself run.
+category: veterinary
+tags: [veterinary, sterilization, autoclave, compliance, infection-control]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      bi_result = tolower($3);
+      if (bi_result == "" || bi_result == "pending") {
+        printf "STERILIZATION LOG GAP: cycle %s (%s) — biological indicator result not recorded\n", $1, $2;
+      } else if (bi_result == "fail") {
+        printf "STERILIZATION FAILURE: cycle %s (%s) — biological indicator test FAILED, quarantine load\n", $1, $2;
+      }
+    }
+  ' "{{sterilization_log_csv_path}}"
+variables:
+  sterilization_log_csv_path:
+    default: "./sterilization-cycle-log.csv"
+    description: "Path to a CSV with columns: cycle_id,cycle_date,biological_indicator_result (pass/fail/pending)."
+compatible_agents: [generic, claude, codex]
+notes: A failed or missing biological indicator result means instruments from that load can't be assumed sterile — this only flags the log gap, it doesn't itself re-quarantine instruments already in use. Distinct from `surgery-prep-check` (pre-op consent/bloodwork readiness, not instrument sterility) and `diagnostic-equipment-calibration-check` (imaging/lab equipment calibration, not sterilization).

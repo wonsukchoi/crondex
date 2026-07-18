@@ -1,0 +1,40 @@
+id: scaffold-inspection-tag-check
+version: 1
+name: Scaffold Inspection Tag Check
+description: >
+  Checks each erected scaffold against its required inspection-tag
+  status (green/yellow/red, per your jobsite's tagging system) and flags
+  any scaffold overdue for re-inspection or still tagged for restricted/
+  no-use. Use this if a crew has ever worked off a scaffold whose tag had
+  quietly gone stale because the last inspection wasn't tracked past the
+  day it was erected.
+category: construction
+tags: [construction, scaffold, osha, safety, compliance]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{reinspection_interval_days}}" '
+    NR==1 {next}
+    {
+      tag_status = tolower($3);
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_inspected_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - last_inspected_epoch) / 86400;
+      if (tag_status == "red" || tag_status == "no-use") {
+        printf "SCAFFOLD TAGGED NO-USE: %s (site %s) — do not use until re-tagged\n", $1, $4;
+      } else if (age_days >= days) {
+        printf "SCAFFOLD RE-INSPECTION OVERDUE: %s (site %s) — last inspected %s (%d days ago)\n", $1, $4, $2, age_days;
+      }
+    }
+  ' "{{scaffold_tag_log_csv_path}}"
+variables:
+  scaffold_tag_log_csv_path:
+    default: "./scaffold-tag-log.csv"
+    description: "Path to a CSV with columns: scaffold_id,last_inspected_date (YYYY-MM-DD),tag_status (green/yellow/red or no-use),site_name."
+  reinspection_interval_days:
+    default: 7
+    description: How many days a scaffold can go without re-inspection before this flags it as overdue, even if its tag is still green.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `heavy-equipment-inspection-compliance-check` (owned mechanical equipment on its own periodic schedule) — scaffolding requires inspection by a competent person at the start of each shift and after any event that could affect structural integrity, in addition to its baseline tag interval.

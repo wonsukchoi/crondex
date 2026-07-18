@@ -1,0 +1,32 @@
+id: resident-hydration-monitoring-check
+version: 1
+name: Resident Hydration Monitoring Check
+description: >
+  Checks logged daily fluid intake against each at-risk resident's
+  minimum target and flags anyone falling short. Use this if dehydration
+  has ever landed a resident in the hospital because intake was being
+  logged on a chart but nobody was actually checking the running total
+  against their target — a distinct and easy-to-miss risk from unintended
+  weight loss, since it can develop in days rather than weeks.
+category: senior-living
+tags: [senior-living, hydration, resident-care, clinical-warning]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      intake = $2 + 0;
+      target = $3 + 0;
+      if (intake < target) {
+        printf "HYDRATION SHORTFALL: resident %s — %d mL logged today (target %d mL)\n", $1, intake, target;
+      }
+    }
+  ' "{{hydration_log_csv_path}}"
+variables:
+  hydration_log_csv_path:
+    default: "./resident-hydration-log.csv"
+    description: "Path to a CSV with columns: resident_id,fluid_intake_ml_today,daily_target_ml — typically only populated for residents on a hydration-monitoring care plan."
+compatible_agents: [generic, claude, codex]
+notes: Only meaningful for residents actually flagged for fluid-intake tracking on their care plan — don't run this against the full census, since most residents aren't logged this closely. Distinct from `resident-weight-loss-trend-check` (a slower-developing nutritional trend, not same-day fluid shortfall).

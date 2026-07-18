@@ -1,0 +1,39 @@
+id: physician-visit-interval-compliance-check
+version: 1
+name: Physician Visit Interval Compliance Check
+description: >
+  Checks each resident's last completed physician visit date against the
+  required visit interval (e.g. every 30/60/90 days per regulation and
+  the resident's own care level) and flags anyone coming due or overdue.
+  Use this if a required physician visit has ever been missed because
+  physician orders were being verified as they came in, but nobody was
+  tracking the standing visit-frequency requirement itself.
+category: senior-living
+tags: [senior-living, physician-visits, compliance, clinical]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      interval_days = $3 + 0;
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_visit_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      next_due_epoch = last_visit_epoch + (interval_days * 86400);
+      diff_days = (next_due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "PHYSICIAN VISIT DUE: resident %s — last visit %s, %d-day interval (%d days until/past due)\n", $1, $2, interval_days, diff_days;
+      }
+    }
+  ' "{{physician_visit_csv_path}}"
+variables:
+  physician_visit_csv_path:
+    default: "./resident-physician-visits.csv"
+    description: "Path to a CSV with columns: resident_id,last_visit_date (YYYY-MM-DD),required_interval_days (per regulation and the resident's care level)."
+  warn_days_before:
+    default: 7
+    description: How many days before the next required visit is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Required interval varies by regulation (e.g. US SNF federal visit schedule) and resident acuity — confirm your jurisdiction's actual requirement per resident rather than assuming one interval fleet-wide. Distinct from `physician-order-verification-lag-check` (whether an issued order got signed off, not the standing visit-frequency requirement).

@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-07-19
+
+### Added
+
+- 46 new jobs deepening 13 more categories past their 32-job baseline,
+  each checked against its category's existing jobs for real
+  distinctness before writing:
+  - `hospitality` (+3): pool/spa water chemistry log, elevator
+    inspection/certification compliance, parking garage camera outage.
+  - `law-firm` (+3): service of process deadline, expert witness
+    disclosure deadline, subpoena response deadline.
+  - `government` (+3): legal hold vs retention-purge conflict check
+    (pre-purge safety gate), voter registration deadline, right-of-way
+    encroachment permit restoration inspection.
+  - `agriculture` (+3): pesticide applicator license renewal, grain bin
+    confined-space entry permit, irrigation well water quality testing.
+  - `warehousing` (+3): emergency eyewash/shower weekly activation test,
+    dock leveler mechanical inspection, returnable container/pallet
+    asset tracking.
+  - `staffing` (+3): predictive scheduling/fair-workweek advance-notice
+    compliance, multi-state payroll tax withholding registration,
+    client site orientation completion.
+  - `crypto` (+3): oracle price feed staleness, dApp frontend DNS/SSL
+    hijack detection, token contract ownership renouncement watch.
+  - `landscaping` (+3): irrigation winterization scheduling, green waste
+    disposal manifest tracking, chemical spill kit inventory.
+
+  All shell/hybrid jobs smoke-tested clean; pass schema validation,
+  shellcheck, and duplicate detection; 228/228 tests green throughout.
+
 ## [0.75.0] - 2026-07-19
 
 ### Added

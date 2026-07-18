@@ -1,0 +1,30 @@
+id: emergency-eyewash-shower-test-check
+version: 1
+name: Emergency Eyewash/Shower Station Test Check
+description: >
+  Checks each emergency eyewash/shower station's weekly activation test
+  log and flags any station missing this week's test. Use this if an
+  eyewash station has ever failed when actually needed (clogged line,
+  corroded valve) because the required weekly flow test wasn't
+  happening, only an annual full inspection.
+category: warehousing
+tags: [warehousing, safety, eyewash, hazmat, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      tested_this_week = tolower($2);
+      if (tested_this_week != "yes" && tested_this_week != "true") {
+        printf "EYEWASH/SHOWER NOT TESTED THIS WEEK: %s\n", $1;
+      }
+    }
+  ' "{{eyewash_test_log_csv_path}}"
+variables:
+  eyewash_test_log_csv_path:
+    default: "./eyewash-shower-test-log.csv"
+    description: "Path to a CSV with columns: station_id,tested_this_week (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: ANSI Z358.1 requires weekly activation flow tests plus an annual full inspection — this only tracks the weekly test, not the annual one. Distinct from `hazmat-storage-segregation-compliance-check` (storage segregation rules, not emergency response equipment readiness).

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2286 jobs across 66 categories (1928 smoke-tested clean):
+2289 jobs across 66 categories (1931 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -258,7 +258,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `travel` | 32 | 28 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 32 | 29 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 35 | 27 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
-| `warehousing` | 32 | 25 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
+| `warehousing` | 35 | 28 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
 | `waste-management` | 32 | 28 | Waste hauling, recycling, and landfill/transfer-station ops — routes, contamination, tonnage, permits, billing. |
 <!-- END JOB SUMMARY -->
 

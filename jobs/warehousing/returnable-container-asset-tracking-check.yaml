@@ -1,0 +1,36 @@
+id: returnable-container-asset-tracking-check
+version: 1
+name: Returnable Container/Pallet Asset Tracking Check
+description: >
+  Checks returnable pallet/container pool balances against each
+  customer or partner's expected return schedule and flags any account
+  running a shortfall past a threshold. Use this if returnable pallets
+  or totes have ever quietly leaked out of the pool — never scrapped,
+  never invoiced, just gone — because nobody was reconciling shipped
+  quantity against actual returns per account.
+category: warehousing
+tags: [warehousing, returnable-containers, pallets, asset-tracking]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{shortfall_alert_count}}" '
+    NR==1 {next}
+    {
+      shipped = $2 + 0;
+      returned = $3 + 0;
+      outstanding = shipped - returned;
+      if (outstanding >= threshold) {
+        printf "RETURNABLE SHORTFALL: %s — %d shipped, %d returned (%d outstanding, threshold %s)\n", $1, shipped, returned, outstanding, threshold;
+      }
+    }
+  ' "{{returnable_container_csv_path}}"
+variables:
+  returnable_container_csv_path:
+    default: "./returnable-container-ledger.csv"
+    description: "Path to a CSV with columns: account_name,total_shipped,total_returned."
+  shortfall_alert_count:
+    default: 50
+    description: Number of outstanding (shipped but not returned) units before this flags the account as a shortfall risk.
+compatible_agents: [generic, claude, codex]
+notes: A running shortfall doesn't always mean loss — some accounts legitimately hold containers in active use — but a threshold breach is worth a reconciliation call before writing off the units as unrecoverable. Distinct from `warehouse-damage-writeoff-review` (already-identified damage, not pool-balance drift).

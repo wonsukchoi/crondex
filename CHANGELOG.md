@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-07-19
+
+### Added
+
+- 22 new jobs deepening 6 existing categories past their 32-job
+  baseline, each checked against its category's existing jobs for real
+  distinctness before writing (several early drafts were dropped as
+  duplicates of existing coverage):
+  - `fleet` (+9): recall notice resolution tracking, toll transponder
+    prepaid balance, EV charging station uptime, accident repair shop
+    turnaround, rental-vehicle return deadlines, spare key/fob counts,
+    DOT gross-weight compliance, reefer unit temperature, parking
+    citations.
+  - `childcare` (+4): transportation headcount reconciliation (daily
+    van/bus runs, distinct from field-trip headcount), outdoor play
+    weather safety, nap mat sanitation, break-time ratio coverage.
+  - `construction` (+3): trench/excavation daily competent-person
+    inspection, scaffold inspection tag check, concrete cylinder break
+    test tracker.
+  - `restaurant` (+3): hot-holding temperature log (distinct from
+    cold-storage check), dish sanitizer concentration, pest control
+    service due.
+  - `senior-living` (+3): resident hydration monitoring, physician visit
+    interval compliance, backup generator test.
+  - `veterinary` (+3): sterilization/autoclave log, anesthesia gas/oxygen
+    supply, necropsy/pathology sample turnaround.
+  - `manufacturing` (+3): lockout/tagout periodic audit compliance,
+    forklift daily pre-shift inspection compliance, hazardous waste
+    manifest deadline tracking.
+
+  All shell/hybrid jobs smoke-tested clean; pass schema validation,
+  shellcheck, and duplicate detection.
+
 ## [0.74.0] - 2026-07-17
 
 ### Added

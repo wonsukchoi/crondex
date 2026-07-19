@@ -204,6 +204,47 @@ general-purpose agents — each owns a small set of categories, writes
 YAML only, no npm scripts — then validating/building/committing myself
 in one pass has worked well and scales better than one job at a time.
 
+**2026-07-19 push toward a much larger catalog:** user asked to push
+toward 10,000 jobs, evenly spread, adding categories if needed, with
+agents stopping a category once genuinely out of narrow ideas — not a
+committed target, an exploratory push run this session via `/loop`.
+Six batches, 341 new jobs (2298 -> 2639), covering every one of the 66
+existing categories at least once (every category that started at the
+uniform-32 baseline got a full pass; the previously-deepened tiers
+35/36/41/44/45/48/50 each got one deepening pass too). Real signal from
+this run: even with 6-8 genuinely-narrow ideas requested per category,
+several of the deepest categories (logistics, finance) came back
+short — 5 instead of 6 — because the agent found a candidate idea but
+correctly judged it too close to an existing job and dropped it rather
+than pad. That's the natural-ceiling signal CONTRIBUTING.md's quality
+bar is designed to surface: categories don't have infinite room, and
+the honest per-category yield shrinks as depth increases (many
+categories) even before reaching this project's earlier per-category
+job counts (44-50).
+
+Two real bugs surfaced and fixed by the existing quality gates, not
+new ones: (1) an awk variable literally named `close` collides with
+awk's `close()` built-in — hit twice independently (inventory 0.79.0,
+hr 0.81.0) by different agents with no context of each other, so this
+is a real recurring failure mode, not a fluke — `npm run smoke-test`
+caught both since it's a runtime error, not a `validate`/`lint-shell`
+static one. (2) An apostrophe inside a possessive word (`%s's`,
+`today's`) breaks out of a single-quoted awk script inside the YAML's
+`command:` block — hit twice as well (hiring 0.77.0, healthcare
+0.82.0), caught by `npm run lint-shell`. Given the recurrence, worth
+naming as a standing gotcha for future batches: avoid `close`/`index`/
+`length`/`substr` etc. as awk variable names, and avoid English
+possessives in printf strings embedded in single-quoted awk.
+
+At 2639 jobs, the "10,000 evenly spread" framing from the ask is not
+close to reached and would need either much deeper per-category
+passes past what CONTRIBUTING.md's quality bar can honestly support,
+or genuinely new categories — neither was pursued this session (no
+new category folders were added; the push was depth-only on the
+existing 66). Revisit only if a future session picks this back up
+explicitly; it's not the default §5 fallback like ordinary catalog
+growth.
+
 ## 5. Maintenance backlog (reach for when higher priorities stall or surface a need)
 
 - **Version-bump discipline**: `version` field is manually maintained per

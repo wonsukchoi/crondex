@@ -1,0 +1,40 @@
+id: podcast-feed-migration-redirect-check
+version: 1
+name: Podcast Feed Migration Redirect Check
+description: >
+  After moving your podcast to a new hosting provider, checks that the old
+  RSS feed URL still returns a proper redirect to the new feed instead of a
+  404 or a dead page. Use this if you've ever migrated podcast hosts and
+  later found out some listener apps (or directories that never re-crawled)
+  were still pointed at the old feed URL, quietly missing new episodes.
+category: podcast
+tags: [podcast, rss, migration, distribution]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  response=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" -L --max-redirs 0 "{{old_feed_url}}");
+  http_code=$(echo "$response" | awk '{print $1}');
+  redirect_url=$(echo "$response" | awk '{print $2}');
+  if [ "$http_code" != "301" ] && [ "$http_code" != "302" ]; then
+    echo "WARNING: old feed URL {{old_feed_url}} returned HTTP $http_code instead of a redirect — listeners still on the old URL may get errors or stale episodes";
+    exit 1;
+  fi;
+  if [ "$redirect_url" != "{{new_feed_url}}" ]; then
+    echo "WARNING: old feed redirects to $redirect_url, not the expected new feed {{new_feed_url}}";
+    exit 1;
+  fi;
+  echo "OK: old feed URL correctly redirects to the new feed"
+variables:
+  old_feed_url:
+    default: "https://old-host.example.com/podcast/feed.xml"
+    description: The retired RSS feed URL from the previous hosting provider.
+  new_feed_url:
+    default: "https://new-host.example.com/podcast/feed.xml"
+    description: The current RSS feed URL on the new hosting provider that the old one should redirect to.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only relevant during and after a hosting migration — retire this job once
+  the old feed has been decommissioned or enough time has passed that
+  directories have re-crawled. Distinct from `rss-feed-health-check`, which
+  validates the current live feed's own XML rather than a legacy redirect.

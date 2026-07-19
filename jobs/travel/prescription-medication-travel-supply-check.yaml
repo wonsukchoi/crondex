@@ -1,0 +1,52 @@
+id: prescription-medication-travel-supply-check
+version: 1
+name: Prescription Medication Travel Supply Check
+description: >
+  Compares your remaining medication supply against your trip length
+  plus a safety buffer, and flags if you'll run out before you're back
+  or need extra documentation to travel with it. Use this if you've
+  ever landed on a two-week trip with nine days of pills left and no
+  easy way to refill at your destination.
+category: travel
+tags: [travel, health, medication, packing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  trip_start_epoch=$(date -d "{{trip_start_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_start_date}}" +%s);
+  trip_end_epoch=$(date -d "{{trip_end_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{trip_end_date}}" +%s);
+  trip_days=$(( (trip_end_epoch-trip_start_epoch)/86400 ));
+  needed_days=$(( trip_days + {{buffer_days}} ));
+  if [ "{{days_of_supply_on_hand}}" -lt "$needed_days" ]; then
+    echo "SHORTFALL: {{medication_name}} — you have {{days_of_supply_on_hand}} day(s) on hand but need at least $needed_days for a $trip_days-day trip plus buffer. Request a refill or vacation override before departure.";
+  else
+    echo "OK: {{medication_name}} — {{days_of_supply_on_hand}} day(s) on hand covers the $trip_days-day trip plus buffer.";
+  fi;
+  if [ "{{requires_travel_letter}}" = "true" ]; then
+    echo "REMINDER: pack a doctor's letter / prescription copy for {{medication_name}} for customs or TSA if traveling with controlled substances or needles.";
+  fi
+variables:
+  medication_name:
+    default: "your medication"
+    description: Name of the prescription being tracked.
+  trip_start_date:
+    default: "2026-12-31"
+    description: Trip start date (YYYY-MM-DD).
+  trip_end_date:
+    default: "2027-01-07"
+    description: Trip end/return date (YYYY-MM-DD).
+  days_of_supply_on_hand:
+    default: 30
+    description: Days of medication you currently have on hand — update this after each refill.
+  buffer_days:
+    default: 5
+    description: Extra days of buffer to require beyond the trip length, in case of delays or missed doses.
+  requires_travel_letter:
+    default: "false"
+    description: Set to "true" if this medication needs a doctor's letter or original prescription for customs/TSA/controlled-substance rules.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Update days_of_supply_on_hand yourself after each refill —
+  this doesn't connect to a pharmacy system. Distinct from
+  pre-trip-packing-list-reminder, which is a general checklist, not a
+  supply-vs-trip-length calculation.

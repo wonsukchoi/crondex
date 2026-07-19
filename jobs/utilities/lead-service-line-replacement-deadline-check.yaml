@@ -1,0 +1,27 @@
+id: lead-service-line-replacement-deadline-check
+version: 1
+name: Lead Service Line Replacement Deadline Check
+description: >
+  Queries the service line inventory for lead or galvanized-requiring-
+  replacement lines whose scheduled replacement date falls within a lookahead
+  window, and lists them ordered by how soon they're due. Use this if your
+  water utility is managing a lead service line replacement program under
+  the Lead and Copper Rule Revisions and needs to keep replacement crews
+  ahead of the regulatory deadline instead of finding out a batch is overdue
+  when the annual compliance report is assembled.
+category: utilities
+tags: [utilities, water, lead-service-line, lcrr, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select service_line_id, service_address, material_classification, scheduled_replacement_date, (scheduled_replacement_date - current_date) as days_until_due from service_lines where material_classification in ('lead', 'galvanized_requiring_replacement') and replacement_completed_date is null and scheduled_replacement_date <= current_date + interval '{{lookahead_days}} days' order by scheduled_replacement_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the service line inventory/replacement-program database.
+  lookahead_days:
+    default: "60"
+    description: How many days ahead to scan for service lines with a scheduled replacement date coming due.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `service_lines` table with `service_line_id`, `service_address`, `material_classification`, `scheduled_replacement_date`, and `replacement_completed_date` columns built from your LCRR service line inventory — adjust classification values and column names to your inventory system. Read-only reminder job; it does not update the inventory, dispatch replacement crews, or file the compliance report itself.

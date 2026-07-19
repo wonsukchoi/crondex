@@ -1,0 +1,40 @@
+id: lost-and-found-item-retention-tracker
+version: 1
+name: Lost and Found Item Retention Tracker
+description: >
+  Checks logged lost-and-found items against your store's retention
+  policy and flags any unclaimed item that has passed its hold period.
+  Use this if unclaimed customer items have ever piled up in a
+  back-office drawer for months because nobody was tracking when the
+  hold period expired and it became safe to donate or dispose of them.
+category: retail
+tags: [retail, lost-and-found, customer-service, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v hold_days="{{retention_hold_days}}" '
+    NR==1 {next}
+    $4 != "claimed" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline logged_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - logged_epoch) / 86400;
+      if (age_days >= hold_days) {
+        printf "PAST HOLD: item %s at store %s logged %s (%d days old) — eligible for donation/disposal\n", $1, $2, $3, age_days;
+      }
+    }
+  ' "{{lost_and_found_csv_path}}"
+variables:
+  lost_and_found_csv_path:
+    default: "./lost-and-found-log.csv"
+    description: "CSV with header row, columns: item_id,store_id,logged_date (YYYY-MM-DD),status (claimed/unclaimed)."
+  retention_hold_days:
+    default: 90
+    description: Number of days an unclaimed item must be held before it is eligible for donation or disposal per policy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Produces a read-only eligibility list, not an automated disposal —
+  check local law and your own policy (some jurisdictions require
+  longer holds for ID, cash, or valuables) before donating or
+  discarding anything on this list.

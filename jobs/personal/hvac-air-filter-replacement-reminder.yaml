@@ -1,0 +1,40 @@
+id: hvac-air-filter-replacement-reminder
+version: 1
+name: HVAC Air Filter Replacement Reminder
+description: >
+  Calculates the days remaining before your furnace or HVAC air filter is
+  due for replacement based on the last swap date and your filter's rated
+  lifespan, then flags it once you're inside the lead-time window. Use this
+  if you've ever run a filter for six months past its rated life and only
+  noticed because airflow or air quality got noticeably worse.
+category: personal
+tags: [personal, home, hvac, maintenance, reminder]
+schedule: "0 8 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  last_change=$(date -d "{{last_replaced_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_replaced_date}}" +%s);
+  due=$(( last_change + ({{filter_lifespan_days}} * 86400) ));
+  days_left=$(( (due - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ]; then
+    echo "{{filter_name}} is due for replacement (days remaining: $days_left, last changed {{last_replaced_date}}) — pick up a replacement filter.";
+  fi
+variables:
+  filter_name:
+    default: "1-inch pleated HVAC filter"
+    description: Description of the filter being tracked (size/type helps when reordering).
+  last_replaced_date:
+    default: "2026-06-01"
+    description: Date the filter was last replaced (YYYY-MM-DD).
+  filter_lifespan_days:
+    default: "90"
+    description: Manufacturer-rated lifespan of the filter in days.
+  lead_time_days:
+    default: "10"
+    description: How many days before (or after) the due date to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely date-arithmetic; last_replaced_date must be updated manually each
+  time the filter is swapped. Does not connect to any smart-home or HVAC
+  monitoring system.

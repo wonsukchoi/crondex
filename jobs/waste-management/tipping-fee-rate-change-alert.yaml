@@ -1,0 +1,56 @@
+id: tipping-fee-rate-change-alert
+version: 1
+name: Tipping Fee Rate Change Alert
+description: >
+  Compares the latest per-ton tipping/disposal fee quoted by each landfill
+  or transfer station destination against the last recorded rate on file
+  and flags any destination whose fee moved by more than a set percentage.
+  Use this if a disposal site has ever quietly raised its gate rate and the
+  extra cost only showed up weeks later buried in a hauling invoice.
+category: waste-management
+tags: [waste-management, tipping-fees, disposal-costs, landfill, transfer-station]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol_pct="{{change_tolerance_pct}}" '
+    FNR==NR {
+      if (FNR==1) { next }
+      prior_rate[$1]=$2; next
+    }
+    FNR==1 { next }
+    {
+      site=$1; new_rate=$2;
+      if (!(site in prior_rate)) {
+        printf "NEW DESTINATION: %s has no prior rate on file, latest quote is $%s/ton\n", site, new_rate;
+        next;
+      }
+      old_rate = prior_rate[site]+0;
+      if (old_rate == 0) { continue; }
+      diff_pct = ((new_rate+0) - old_rate) / old_rate * 100;
+      abs_diff = (diff_pct < 0) ? -diff_pct : diff_pct;
+      if (abs_diff > tol_pct+0) {
+        direction = (diff_pct > 0) ? "INCREASE" : "DECREASE";
+        printf "RATE %s: %s tipping fee moved from $%s/ton to $%s/ton (%.1f%% change, tolerance %s%%)\n", direction, site, prior_rate[site], new_rate, diff_pct, tol_pct;
+      }
+    }
+  ' "{{prior_rates_csv_path}}" "{{latest_rates_csv_path}}"
+variables:
+  prior_rates_csv_path:
+    default: "./prior-tipping-rates.csv"
+    description: "CSV with header row, columns: site_name,rate_per_ton — the last recorded per-ton tipping/disposal rate for each landfill or transfer station destination."
+  latest_rates_csv_path:
+    default: "./latest-tipping-rates.csv"
+    description: "CSV with header row, columns: site_name,rate_per_ton — the current rate quoted by or invoiced from each disposal destination."
+  change_tolerance_pct:
+    default: 4
+    description: Maximum acceptable percentage change in tipping fee before flagging a destination.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this watches disposal-side gate/tipping costs paid out per
+  ton, the mirror opposite of the catalog's recycling commodity price
+  watch, which tracks revenue-side recyclable material prices — the two
+  should not be merged, since one is a cost input and the other a revenue
+  input to the same hauling economics. Does not renegotiate or dispute the
+  new rate itself, only surfaces the change for someone to review against
+  the disposal contract terms.

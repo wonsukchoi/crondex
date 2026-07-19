@@ -1,0 +1,49 @@
+id: guest-name-spelling-consistency-check
+version: 1
+name: Podcast Guest Name Spelling Consistency Check
+description: >
+  Compares a guest's canonical name and title against how it's written in
+  the episode title, show notes, and social caption drafts for that
+  episode. Use this if a guest's name has ever been spelled a different
+  way (or their title/credential dropped) between the episode title, the
+  show notes, and the promo tweet, which reads as sloppy or disrespectful
+  to the guest.
+category: podcast
+tags: [podcast, guests, metadata, quality]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  The canonical guest name and title is: "{{guest_name}}".
+  Check how this guest is referred to in each of these files:
+  1. Episode title file: {{episode_title_file}}
+  2. Show notes file: {{show_notes_file}}
+  3. Social caption file: {{social_caption_file}}
+
+  For each file:
+  - Flag any misspelling of the guest's name.
+  - Flag if the guest's title/credential is present in one file but
+    missing in another, when the canonical name includes one.
+  - Note minor acceptable variations (e.g. dropping a middle name) versus
+    genuine inconsistencies (wrong spelling, wrong title).
+
+  Report per file: "consistent" or the specific mismatch found.
+variables:
+  guest_name:
+    default: "Jane Doe, PhD"
+    description: The guest's canonical name and title, exactly as agreed with the guest.
+  episode_title_file:
+    default: "episode-title.txt"
+    description: Path to the draft or published episode title text.
+  show_notes_file:
+    default: "show-notes.txt"
+    description: Path to the episode's show notes draft.
+  social_caption_file:
+    default: "social-caption.txt"
+    description: Path to the draft social media caption promoting the episode.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Judging what counts as an acceptable variation versus a real error is
+  inherently fuzzy, which is why this runs as an agent prompt rather than
+  a plain string match. Separate from `guest-social-share-fulfillment-check`
+  (which tracks whether promised social posts went out at all).

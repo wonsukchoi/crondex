@@ -1,0 +1,35 @@
+id: onix-feed-rejection-check
+version: 1
+name: ONIX Metadata Feed Rejection Check
+description: >
+  Scans the latest ONIX feed submission log from a retailer or
+  distributor for rejected or errored title records and lists which
+  titles need a metadata fix and resubmission. Use this if a title has
+  ever silently failed to appear on a retailer's site because its ONIX
+  record was bounced by their ingest pipeline and nobody was watching the
+  feed's error log.
+category: publishing
+tags: [publishing, onix, metadata, distribution]
+schedule: "30 10 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  grep -E "{{rejection_pattern}}" "{{onix_feed_log}}" | tail -n {{max_lines}}
+variables:
+  onix_feed_log:
+    default: "./onix-feed-submission.log"
+    description: Path to the retailer/distributor's ONIX feed ingest log or acknowledgment (ONIX message 3.0 ACK) export, refreshed after each feed submission.
+  rejection_pattern:
+    default: "REJECTED|ERROR|INVALID"
+    description: Regex of status keywords in the log that indicate a record was not accepted.
+  max_lines:
+    default: 50
+    description: Maximum number of matching log lines to show per run, to avoid flooding output on a bad feed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from title-metadata-completeness-check, which catches missing
+  fields before a feed is ever sent — this catches records the retailer's
+  own ingest actually bounced after submission, including reasons only
+  visible in their acknowledgment log (e.g. malformed BISAC, duplicate
+  ISBN). Export or tail the retailer's ACK/log file into onix_feed_log
+  before each run.

@@ -1,0 +1,35 @@
+id: podcast-ad-tag-expiration-check
+version: 1
+name: Podcast Dynamic Ad Tag Expiration Check
+description: >
+  Scans a log of dynamic ad insertion campaigns and flags any whose flight
+  end date has already passed but is still marked active in the ad server.
+  Use this if a sponsor's campaign has ever run past its contracted end date
+  because nobody pulled the ad tag, quietly serving an expired (or wrong)
+  sponsor into episodes long after the deal ended.
+category: podcast
+tags: [podcast, advertising, dynamic-insertion, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" '
+    NR>1 && $3 == "active" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline end_ts; close(cmd);
+      if (end_ts < today) print "WARNING: ad campaign " $1 " ended " $2 " but is still marked active in the ad server";
+    }
+  ' {{ad_campaigns_csv}}
+variables:
+  ad_campaigns_csv:
+    default: "ad-campaigns.csv"
+    description: "CSV with header row, columns: campaign_name,end_date(YYYY-MM-DD),status(active/ended)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `programmatic-ad-fill-rate-check` (which measures unsold
+  inventory percentage) and `sponsor-ad-read-compliance-check` (which
+  checks the aired read's wording) — this only checks whether a campaign's
+  contracted flight window has lapsed while the tag is still live in the
+  dynamic insertion platform. Requires the ad server's campaign export to
+  be kept current in `ad_campaigns_csv`.

@@ -1,0 +1,25 @@
+id: occupancy-headcount-overage-check
+version: 1
+name: Occupancy Headcount Overage Check
+description: >
+  Flags upcoming bookings where the guest-reported occupant count exceeds
+  the property's listed maximum occupancy. Use this if a booking has ever
+  shown up with more people than the listing allows, creating an
+  insurance/liability exposure and an "unauthorized guest" dispute with
+  the platform after the fact.
+category: short-term-rental
+tags: [short-term-rental, occupancy, safety, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select b.property_id, b.guest_name, b.checkin_date, b.guest_count, p.max_occupancy from bookings b join properties p on p.property_id = b.property_id where b.checkin_date >= current_date and b.checkin_date <= current_date + interval '{{lookahead_days}} days' and b.guest_count > p.max_occupancy;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  lookahead_days:
+    default: 7
+    description: Days ahead to check upcoming check-ins for an occupancy overage.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `bookings` table with `guest_count` and a `properties` table with `max_occupancy` — adjust to your PMS's schema. Distinct from minimum-stay-rule-compliance-check (stay length, not headcount) and instant-book-guest-risk-review (screens new/thin-history guests, not occupancy counts on any booking).

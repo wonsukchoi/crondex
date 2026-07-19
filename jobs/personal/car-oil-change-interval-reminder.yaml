@@ -1,0 +1,49 @@
+id: car-oil-change-interval-reminder
+version: 1
+name: Car Oil Change Interval Reminder
+description: >
+  Flags when your car is approaching its next oil change based on whichever
+  comes first: estimated mileage since the last change, or elapsed months.
+  Use this if you've ever gone well past the recommended interval because
+  you were tracking the date but forgot the mileage side, or vice versa.
+category: personal
+tags: [personal, car, maintenance, reminder]
+schedule: "0 8 * * 1"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  last_change=$(date -d "{{last_oil_change_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{last_oil_change_date}}" +%s);
+  months_elapsed=$(( (today - last_change) / 86400 / 30 ));
+  miles_since=$(( {{current_odometer_miles}} - {{last_oil_change_odometer_miles}} ));
+  if [ "$months_elapsed" -ge "{{max_interval_months}}" ] || [ "$miles_since" -ge "{{max_interval_miles}}" ]; then
+    echo "{{vehicle_name}} is due for an oil change: $months_elapsed month(s) and $miles_since mile(s) since the last change (limits: {{max_interval_months}} months / {{max_interval_miles}} miles).";
+  else
+    echo "{{vehicle_name}} oil change not yet due: $months_elapsed month(s), $miles_since mile(s) since last change.";
+  fi
+variables:
+  vehicle_name:
+    default: "Family Car"
+    description: Name or description of the vehicle being tracked.
+  last_oil_change_date:
+    default: "2026-04-01"
+    description: Date of the most recent oil change (YYYY-MM-DD).
+  last_oil_change_odometer_miles:
+    default: "42000"
+    description: Odometer reading at the time of the last oil change, in miles.
+  current_odometer_miles:
+    default: "44500"
+    description: Current odometer reading; update manually before each run for an accurate mileage check.
+  max_interval_months:
+    default: "6"
+    description: Maximum months allowed between oil changes before it's considered due.
+  max_interval_miles:
+    default: "5000"
+    description: Maximum miles allowed between oil changes before it's considered due.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Purely arithmetic; current_odometer_miles must be updated manually before
+  each run and does not read from any vehicle telematics system. Distinct
+  from vehicle-registration-renewal-reminder (registration deadline) and
+  car-insurance-renewal-reminder (policy renewal), which track unrelated
+  dates on the same vehicle.

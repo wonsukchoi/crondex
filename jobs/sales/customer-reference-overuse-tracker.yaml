@@ -1,0 +1,51 @@
+id: customer-reference-overuse-tracker
+version: 1
+name: Customer Reference Overuse Tracker
+description: >
+  Counts how many times each named reference customer has been used on
+  prospect calls or in case studies over a rolling window, and flags any
+  reference approaching your fatigue limit. Use this if a favorite
+  reference customer has ever fielded so many rep requests for reference
+  calls that they started declining or grew visibly annoyed, putting the
+  relationship at risk.
+category: sales
+tags: [sales, customer-references, relationship-risk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select reference_customer, count(*) as uses_last_period from reference_requests where requested_at > now() - interval '{{lookback_days}} days' group by reference_customer having count(*) >= {{overuse_threshold}} order by uses_last_period desc;"
+prompt: |
+  Using the reference usage counts above (or from {{reference_log_source}}
+  if no database is available), identify any reference customer used
+  {{overuse_threshold}} or more times in the last {{lookback_days}} days.
+  1. List each overused reference with its use count and the reps who
+     requested them.
+  2. Suggest 1-2 alternate reference customers of a similar profile or
+     industry that could be rotated in instead.
+  3. Draft a short note to the account owner of the overused reference
+     customer, suggesting a check-in on their comfort level with continued
+     reference requests.
+script_note: >
+  `command` counts recent reference requests from Postgres with zero
+  tokens. `prompt` works from any reference log and also drafts the
+  rotation suggestion and check-in note.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database tracking reference requests.
+  lookback_days:
+    default: 90
+    description: Rolling window, in days, over which reference usage is counted.
+  overuse_threshold:
+    default: 5
+    description: Number of reference requests within the lookback window before a customer is flagged as overused.
+  reference_log_source:
+    default: "your reference-request tracker, or a references.csv with columns: reference_customer,requested_by,requested_at"
+    description: Where reference requests are logged, for agent-prompt mode when no database is available.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — the rotation suggestion and check-in note are for review,
+  never sent automatically. Distinct from `referral-followup-tracker`,
+  which is about customers referring new leads, not customers serving as
+  sales reference calls for prospects.

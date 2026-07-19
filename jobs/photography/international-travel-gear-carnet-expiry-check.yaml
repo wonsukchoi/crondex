@@ -1,0 +1,45 @@
+id: international-travel-gear-carnet-expiry-check
+version: 1
+name: International Travel Gear Carnet Expiry Check
+description: >
+  Checks ATA Carnet or other customs documentation covering camera gear
+  carried on international shoots against its validity window and
+  flags any expiring before or during a scheduled trip. Use this if
+  you've ever landed abroad for a destination shoot only to realize
+  your carnet had expired, risking your gear being seized or hit with
+  import duties at customs.
+category: photography
+tags: [photography, travel, customs, compliance, international]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      trip=$1; destination=$2; trip_date=$3; carnet_expiry=$4;
+      cmd = "date -d \"" carnet_expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" carnet_expiry "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      cmd2 = "date -d \"" trip_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" trip_date "\" +%s 2>/dev/null";
+      cmd2 | getline trip_epoch; close(cmd2);
+      days_to_expiry = int((expiry_epoch - today) / 86400);
+      if (days_to_expiry <= warn || expiry_epoch <= trip_epoch) {
+        printf "CARNET EXPIRING: %s — trip to %s on %s, carnet expires %s (%d day(s) away)\n", trip, destination, trip_date, carnet_expiry, days_to_expiry;
+      }
+    }
+  ' "{{gear_carnets_csv_path}}"
+variables:
+  gear_carnets_csv_path:
+    default: "./gear-carnets.csv"
+    description: "Path to a CSV with columns: trip_name,destination,trip_date (YYYY-MM-DD),carnet_expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before a carnet's expiry date to start flagging it, so a renewal can be requested before an international trip.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags carnets expiring soon or before a planned
+  trip, it doesn't renew the document or file paperwork with customs
+  authorities itself. Distinct from travel-fee-quote-follow-up (client
+  quote conversion) and venue-shoot-permit-expiry-check (local shoot
+  location permits rather than cross-border gear customs documents).

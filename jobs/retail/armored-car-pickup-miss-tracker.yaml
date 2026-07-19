@@ -1,0 +1,34 @@
+id: armored-car-pickup-miss-tracker
+version: 1
+name: Armored Car Pickup Miss Tracker
+description: >
+  Checks today's scheduled armored-car cash pickups against pickup
+  confirmations and flags any store where a scheduled pickup was never
+  confirmed. Use this if a missed cash pickup has ever left a store
+  sitting on several days of cash in the safe before anyone noticed the
+  truck never came.
+category: retail
+tags: [retail, cash, security, armored-car]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v today="$(date +%Y-%m-%d)" '
+    NR==1 {next}
+    {
+      store=$1; date=$2; scheduled=$3; confirmed=$4;
+      if (date == today && scheduled == "yes" && confirmed != "yes") {
+        printf "MISSED PICKUP: store %s scheduled armored-car pickup on %s not confirmed\n", store, date;
+      }
+    }
+  ' "{{pickup_log_csv_path}}"
+variables:
+  pickup_log_csv_path:
+    default: "./armored-car-pickup-log.csv"
+    description: "CSV with header row, columns: store_id,pickup_date (YYYY-MM-DD),scheduled (yes/no),confirmed (yes/no) — one row per store per scheduled pickup day."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `cash-office-deposit-variance-check` (which compares
+  deposit dollar amounts once a deposit has happened) — this catches
+  the pickup simply not occurring at all, so cash isn't left exposed
+  in the safe overnight without anyone flagging it.

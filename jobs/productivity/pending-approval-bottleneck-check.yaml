@@ -1,0 +1,36 @@
+id: pending-approval-bottleneck-check
+version: 1
+name: Pending Approval Bottleneck Check
+description: >
+  Checks a task export for items sitting in a "pending approval" status
+  and flags the ones that have waited past an SLA, grouped by approver.
+  Use this if work keeps stalling not because anyone's ignoring the
+  task, but because it's stuck waiting on someone else's sign-off and
+  nobody's tracking that separately from ordinary delegated work.
+category: productivity
+tags: [tasks, approvals, bottleneck]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg today "$(date -u +%Y-%m-%d)" --argjson sla_days {{sla_days}} '
+    .tasks[]
+    | select(.status == "pending_approval")
+    | . as $t
+    | (($today | strptime("%Y-%m-%d") | mktime) - ($t.approval_requested_date | strptime("%Y-%m-%d") | mktime)) / 86400 | floor as $age
+    | select($age >= $sla_days)
+    | "\($age)d waiting\t\($t.approver // "unassigned")\t\($t.id)\t\($t.title)"
+  ' "{{task_export_path}}" | sort -rn
+variables:
+  sla_days:
+    default: "3"
+    description: Number of days an approval request can wait before it's flagged as a bottleneck.
+  task_export_path:
+    default: "/data/tasks-export.json"
+    description: Path to a JSON export of the task tracker containing a `tasks` array with `id`, `title`, `status`, `approver`, and `approval_requested_date` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a task tracker export snapshot; does not
+  approve, reject, or nudge anyone automatically. Distinct from
+  delegated-task-followup-check: that flags handed-off work gone quiet,
+  this flags work blocked specifically on someone else's approval step.

@@ -1,0 +1,46 @@
+id: rental-car-cross-border-permission-check
+version: 1
+name: Rental Car Cross-Border Permission Check
+description: >
+  Reminds you to confirm your rental agreement actually permits driving
+  the car into the country or region you're planning to cross into,
+  since many rental contracts restrict or surcharge cross-border travel
+  even when the route looks routine on a map. Use this if you've ever
+  planned a road trip that crosses a border and only found out at the
+  return desk that your contract banned it and voided your insurance.
+category: travel
+tags: [travel, rental-car, border, road-trip]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  if [ "{{crosses_border}}" != "true" ]; then
+    echo "OK: no border crossing planned with this rental.";
+  elif [ "{{cross_border_permission_confirmed}}" = "true" ]; then
+    echo "OK: cross-border travel into {{destination_country_or_region}} confirmed with {{rental_company}} (reference: {{confirmation_reference}}).";
+  else
+    echo "ACTION NEEDED: rental from {{rental_company}} — confirm in writing that driving into {{destination_country_or_region}} is permitted, ask about any cross-border fee or extra insurance, and get it noted on the rental agreement before departure.";
+  fi
+variables:
+  rental_company:
+    default: "your rental car company"
+    description: Rental company the vehicle is booked through.
+  destination_country_or_region:
+    default: "the country/region you plan to cross into"
+    description: Country, state, or region the road trip will cross into.
+  crosses_border:
+    default: "true"
+    description: Set to "false" if the trip doesn't actually cross a border, to silence this check.
+  cross_border_permission_confirmed:
+    default: "false"
+    description: Set to "true" once the rental company has confirmed cross-border travel is allowed.
+  confirmation_reference:
+    default: "none"
+    description: Reference number or note from the confirmation call/email, once obtained.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Doesn't contact the rental company for you — most don't
+  expose this via API — it's a nudge to get written confirmation before
+  the trip. Distinct from international-driving-permit-expiry-check,
+  which tracks your own permit's validity, not the rental contract's
+  border restrictions.

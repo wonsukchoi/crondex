@@ -1,0 +1,36 @@
+id: move-in-esignature-completion-check
+version: 1
+name: Move-In E-Signature Completion Check
+description: >
+  Cross-references units that already have gate access issued against the
+  rental agreement e-signature records and flags any tenant who has been
+  moving items in for more than a set number of days without a completed,
+  signed agreement on file. Use this if your facility ever grants gate
+  access at move-in before the paperwork is fully signed (a common
+  convenience for same-day rentals) and you want to catch anyone who slips
+  through without a valid, enforceable contract — which matters a lot if
+  you ever need to invoke lien rights or evict.
+category: self-storage
+tags: [self-storage, move-in, compliance, e-signature]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select u.unit_number, t.tenant_name, t.gate_access_granted_date, a.signature_status from tenants t join units u on u.id = t.unit_id left join rental_agreements a on a.tenant_id = t.id where t.gate_access_granted_date <= current_date - interval '{{grace_days}} days' and (a.signature_status is null or a.signature_status <> 'signed') order by t.gate_access_granted_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  grace_days:
+    default: "2"
+    description: How many days a tenant is allowed to have gate access before the signed agreement is required to be on file.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `tenants` table with `gate_access_granted_date`, a `units`
+  table, and a `rental_agreements` table with `signature_status` (e.g.
+  `signed`, `pending`, `sent`) — adjust the joins to your actual property
+  management or e-signature vendor schema. Read-only: it only lists
+  tenants missing a completed signature, it does not revoke gate access,
+  send reminders, or void anyone's occupancy itself. Distinct from
+  tenant-lease-agreement-renewal-reminder, which tracks upcoming renewal
+  of an already-signed lease, not the initial signing at move-in.

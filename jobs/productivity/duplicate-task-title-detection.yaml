@@ -1,0 +1,33 @@
+id: duplicate-task-title-detection
+version: 1
+name: Duplicate Task Title Detection
+description: >
+  Checks a task export for open tasks whose titles normalize to the same
+  text (case/whitespace-insensitive) and lists each duplicate group. Use
+  this if the same to-do keeps getting re-added under a slightly
+  different capitalization or extra space because nobody noticed it was
+  already tracked, and now two people are quietly working the same item.
+category: productivity
+tags: [tasks, duplicates, tracker-hygiene]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r '
+    [.tasks[] | select(.status != "done")]
+    | group_by(.title | ascii_downcase | gsub("\\s+"; " ") | ltrimstr(" ") | rtrimstr(" "))
+    | map(select(length > 1))
+    | .[]
+    | "DUPLICATE GROUP: \(.[0].title)\n" + (map("  - \(.id)\t\(.assignee // "unassigned")\t\(.status)") | join("\n"))
+  ' "{{task_export_path}}"
+variables:
+  task_export_path:
+    default: "/data/tasks-export.json"
+    description: Path to a JSON export of the task tracker containing a `tasks` array with `id`, `title`, `status`, and `assignee` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a task tracker export snapshot; does not merge
+  or close any task itself. Catches only near-identical titles
+  (case/whitespace differences), not tasks describing the same work in
+  different words — see wip-limit-violation-check for a count-based view
+  of tracker overload instead.

@@ -1,0 +1,33 @@
+id: hoa-special-assessment-collection-check
+version: 1
+name: HOA Special Assessment Collection Check
+description: >
+  Checks a CSV of owner payments against a one-time special assessment
+  (e.g. roof replacement, repaving) and flags owners who are past due
+  and haven't paid or set up a payment plan. Use this if a special
+  assessment has ever come up short because a handful of owners quietly
+  never paid it and nobody chased them down separately from regular dues.
+category: realestate
+tags: [realestate, hoa, special-assessment, collections]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $5 == "no" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_overdue = int((today - due_ts) / 86400);
+      if (days_overdue >= 0) {
+        printf "SPECIAL ASSESSMENT UNPAID: %s (unit %s) owes $%s, %d day(s) past due (%s)\n", $1, $2, $3, days_overdue, $4;
+      }
+    }
+  ' "{{assessments_csv}}"
+variables:
+  assessments_csv:
+    default: "./hoa-special-assessment-status.csv"
+    description: "CSV with header row, columns: owner_name,unit,assessment_amount,due_date(YYYY-MM-DD),paid(yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from hoa-fee-collection-check (recurring monthly dues) and capital-reserve-fund-threshold-check (aggregate reserve balance vs. target) — this tracks individual owner payment status against one specific, one-time special assessment levy.

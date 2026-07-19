@@ -1,0 +1,40 @@
+id: calendar-placeholder-hold-expiration-check
+version: 1
+name: Calendar Placeholder Hold Expiration Check
+description: >
+  Scans your calendar export for placeholder "hold" events (titles
+  matching a hold keyword like "HOLD:" or "TBD") that still have no
+  other attendees, and flags the ones sitting further out than your
+  normal booking horizon without ever being turned into a real invite.
+  Use this if you block time for a maybe-meeting "just in case" and
+  then forget to release it or confirm it, leaving your calendar
+  looking busier than it really is.
+category: productivity
+tags: [calendar, meeting-hygiene, placeholder-holds]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg pattern "{{hold_title_pattern}}" --argjson horizon_days {{stale_horizon_days}} --arg now "$(date -u +%Y-%m-%dT%H:%M:%S)" '
+    .events[]
+    | select(.title | test($pattern; "i"))
+    | select((.attendees | length) <= 1)
+    | select((((.start | fromdateiso8601) - ($now | fromdateiso8601)) / 86400) > $horizon_days)
+    | "\(.start)\t\(.title)\tattendees: \(.attendees | length)"
+  ' "{{calendar_export_path}}" | sort
+variables:
+  hold_title_pattern:
+    default: "hold|tbd|placeholder"
+    description: Case-insensitive regex used to identify placeholder hold events by title.
+  stale_horizon_days:
+    default: "14"
+    description: Number of days out beyond which an unconfirmed solo hold is flagged as stale.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `start`, `title`, and `attendees` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot; does not delete or
+  modify any events. Distinct from no-agenda-meeting-flag, which targets
+  real meetings missing an agenda — this targets speculative holds that
+  were never confirmed into an actual meeting at all.

@@ -1,0 +1,40 @@
+id: one-on-one-cancellation-streak-check
+version: 1
+name: One-on-One Cancellation Streak Check
+description: >
+  Checks your calendar export for recurring 1:1 meetings that have been
+  cancelled several times in a row without being rescheduled, and flags
+  the streak. Use this if a standing 1:1 with a direct report or manager
+  keeps getting cancelled "just this once" and nobody notices it's been
+  weeks since you actually talked.
+category: productivity
+tags: [calendar, one-on-ones, meeting-hygiene]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --argjson streak_limit {{cancellation_streak_limit}} '
+    .events[]
+    | select(.title | test("{{one_on_one_title_pattern}}"; "i"))
+    | select(.recurring == true)
+    | select((.consecutive_cancellations // 0) >= $streak_limit)
+    | "\(.title)\t\(.consecutive_cancellations) cancellations in a row\twith: \(.attendees | join(", "))"
+  ' "{{calendar_export_path}}" | sort -rn
+variables:
+  cancellation_streak_limit:
+    default: "2"
+    description: Number of consecutive cancellations before the 1:1 is flagged as a broken streak.
+  one_on_one_title_pattern:
+    default: "1:1|1-1|one on one"
+    description: Case-insensitive regex used to identify 1:1 meetings by title.
+  calendar_export_path:
+    default: "/data/calendar-export.json"
+    description: Path to a JSON calendar export containing an `events` array with `title`, `recurring`, `attendees`, and `consecutive_cancellations` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a calendar export snapshot; requires the
+  export to track `consecutive_cancellations` per event, which not every
+  calendar system exposes directly. Distinct from
+  recurring-meeting-relevance-review, which judges whether a recurring
+  meeting still earns its slot overall — this narrowly watches for a
+  specific relationship-health signal: a 1:1 quietly stopping happening.

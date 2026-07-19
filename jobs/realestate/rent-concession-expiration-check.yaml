@@ -1,0 +1,34 @@
+id: rent-concession-expiration-check
+version: 1
+name: Rent Concession Expiration Check
+description: >
+  Flags units with a move-in concession (free month, reduced rent
+  promo) that is about to end, so billing resumes full rent on time.
+  Use this if a tenant has ever kept paying a discounted "specials"
+  rate for months after the promotion expired because nobody reset the
+  charge back to full rent.
+category: realestate
+tags: [realestate, rent-concession, billing, leasing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline end_ts; close(cmd);
+      days_left = int((end_ts - today) / 86400);
+      if (days_left <= warn) printf "CONCESSION ENDING: unit %s (%s) \"%s\" concession ends in %d day(s) (%s), confirm rent reverts to full rate\n", $1, $2, $4, days_left, $3;
+    }
+  ' "{{concessions_csv}}"
+variables:
+  concessions_csv:
+    default: "./rent-concession-status.csv"
+    description: "CSV with header row, columns: unit,tenant_name,concession_end_date(YYYY-MM-DD),concession_type."
+  warn_days:
+    default: 14
+    description: Days before concession end date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from rent-increase-notice-deadline-check (statutory notice before raising an existing tenant's rent) and lease-renewal-offer-window-check — this is about a temporary promotional discount lapsing mid-lease, not the lease term itself.

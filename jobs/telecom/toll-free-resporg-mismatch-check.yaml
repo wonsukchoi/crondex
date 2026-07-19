@@ -1,0 +1,55 @@
+id: toll-free-resporg-mismatch-check
+version: 1
+name: Toll-Free Number RespOrg Mismatch Check
+description: >
+  Compares your internal list of toll-free numbers and their expected
+  Responsible Organization (RespOrg) against a current SMS/800 database
+  export and flags numbers where the RespOrg of record doesn't match
+  what you believe you control. Use this if a toll-free number has ever
+  silently stopped routing, or been at risk of being switched away by a
+  reseller, because the RespOrg of record in the SMS/800 registry
+  quietly drifted from what your own records showed.
+category: telecom
+tags: [telecom, toll-free, resporg, numbering]
+schedule: "0 7 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR==1) {next}
+      expected[$1] = $2;
+      next
+    }
+    FNR==1 {next}
+    {
+      tfn=$1; actual_resporg=$2;
+      if (tfn in expected) {
+        if (expected[tfn] != actual_resporg) {
+          printf "RESPORG MISMATCH: %s expected %s but SMS/800 shows %s\n", tfn, expected[tfn], actual_resporg;
+        }
+        delete expected[tfn];
+      } else {
+        printf "UNEXPECTED TOLL-FREE NUMBER: %s found in SMS/800 export under %s, not in our internal list\n", tfn, actual_resporg;
+      }
+    }
+    END {
+      for (tfn in expected) {
+        printf "MISSING FROM SMS/800: %s expected under %s but not found in export\n", tfn, expected[tfn];
+      }
+    }
+  ' "{{internal_tfn_registry_csv_path}}" "{{sms800_export_csv_path}}"
+variables:
+  internal_tfn_registry_csv_path:
+    default: "./internal-tfn-registry.csv"
+    description: "Path to a CSV with columns: toll_free_number,expected_resporg_id, from your own numbering records."
+  sms800_export_csv_path:
+    default: "./sms800-export.csv"
+    description: "Path to a CSV export from the SMS/800 toll-free registry with columns: toll_free_number,current_resporg_id."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only comparison — does not submit any RespOrg change to the
+  SMS/800 registry. Distinct from number-porting-request-aging-check
+  (in-flight LNP port requests) and did-inventory-low-stock-check
+  (unassigned DID pool); this catches drift in the registry-of-record
+  for numbers you already believe you control.

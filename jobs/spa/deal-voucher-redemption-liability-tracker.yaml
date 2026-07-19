@@ -1,0 +1,53 @@
+id: deal-voucher-redemption-liability-tracker
+version: 1
+name: Third-Party Deal Voucher Redemption & Liability Tracker
+description: >
+  Scans your Groupon/LivingSocial-style deal voucher log for unredeemed
+  vouchers nearing expiry and totals the outstanding service liability
+  still owed against vouchers already paid out by the platform. Use
+  this if a spa has ever run a deal-site promotion, spent the discounted
+  cash the platform sent, and then got blindsided by a wave of vouchers
+  redeemed right before expiry that it hadn't budgeted rooms or staff for.
+category: spa
+tags: [spa, deal-voucher, groupon, liability, front-desk]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{expiry_warn_days}}" -v liability_threshold="{{liability_alert_threshold}}" '
+    NR==1 {next}
+    {
+      if ($5 == "no") {
+        cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+        cmd | getline exp_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        diff_days = (exp_epoch - now_epoch) / 86400;
+        outstanding += $6;
+        if (diff_days <= days && diff_days >= 0) {
+          printf "VOUCHER EXPIRING UNREDEEMED: %s (%s) — expires %s in %d day(s), service value $%.2f\n", $1, $2, $4, diff_days, $6;
+        }
+      }
+    }
+    END {
+      if (outstanding > liability_threshold) {
+        printf "TOTAL OUTSTANDING LIABILITY: $%.2f across unredeemed vouchers (alert threshold: $%.2f)\n", outstanding, liability_threshold;
+      }
+    }
+  ' "{{vouchers_csv_path}}"
+variables:
+  vouchers_csv_path:
+    default: "./deal-vouchers.csv"
+    description: "Path to a CSV with columns: voucher_code,platform,purchase_date (YYYY-MM-DD),expiry_date (YYYY-MM-DD),redeemed (yes/no),service_value."
+  expiry_warn_days:
+    default: 14
+    description: How many days before expiry to flag an unredeemed voucher so staffing/inventory can be planned for a possible rush.
+  liability_alert_threshold:
+    default: 2000
+    description: Dollar amount of total outstanding (unredeemed) voucher service value that triggers a liability warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Voucher cash from the deal platform is usually spent long before
+  redemption, so a spike in outstanding liability is a cash-flow and
+  scheduling risk, not just a marketing metric. Distinct from
+  gift-card-expiry-check (internally sold gift cards) and
+  membership-unused-session-expiry-check (recurring membership credits).

@@ -1,0 +1,32 @@
+id: smoke-co-detector-battery-test-reminder
+version: 1
+name: Smoke & CO Detector Battery Test Reminder
+description: >
+  Reminds you on a fixed interval to physically test your smoke and carbon
+  monoxide detectors and replace their batteries, since these devices fail
+  silently and are easy to forget between move-ins and yearly clock changes.
+  Use this if you can't remember the last time you actually pressed the test
+  button on your detectors rather than just glancing at the blinking light.
+category: personal
+tags: [personal, home, safety, reminder]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  echo "Time to test all smoke and CO detectors in {{home_location}} and replace batteries if the test fails or it has been more than {{battery_replacement_months}} months since the last swap. Detector count on file: {{detector_count}}.";
+variables:
+  home_location:
+    default: "Main Residence"
+    description: Label for which home or unit this reminder covers, useful if you track multiple properties.
+  detector_count:
+    default: "5"
+    description: Number of smoke/CO detectors installed, as a checklist reference.
+  battery_replacement_months:
+    default: "12"
+    description: How many months a battery is expected to last before a routine swap regardless of test result.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A prompt-only safety reminder; it cannot detect low battery or device
+  failure itself, since that requires physically pressing the test button.
+  Distinct from hvac-air-filter-replacement-reminder, which tracks a
+  different maintenance item on its own lifespan schedule.

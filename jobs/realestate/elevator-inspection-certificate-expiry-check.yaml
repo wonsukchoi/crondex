@@ -1,0 +1,33 @@
+id: elevator-inspection-certificate-expiry-check
+version: 1
+name: Elevator Inspection Certificate Expiry Check
+description: >
+  Scans a CSV of building elevators and flags any whose state or local
+  inspection certificate has expired or is about to expire. Use this if
+  an elevator has ever kept running past its certificate date because
+  the inspection paperwork lived in a filing cabinet nobody checked.
+category: realestate
+tags: [realestate, life-safety, compliance, inspections]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "ELEVATOR CERT EXPIRING: " $1 " elevator " $2 " certificate expires in " days_left " day(s) (" $3 ")";
+    }
+  ' "{{elevators_csv}}"
+variables:
+  elevators_csv:
+    default: "./elevator-inspection-certificates.csv"
+    description: "CSV with header row, columns: building_name,elevator_id,certificate_expiration_date(YYYY-MM-DD)."
+  warn_days:
+    default: 30
+    description: Days before certificate expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from life-safety-system-inspection-check (fire alarm/sprinkler systems) and smoke-co-detector-compliance-check (in-unit detectors) — elevator certificates are a separate statutory requirement, usually must be posted in the cab, and operating past expiry can trigger fines or a forced shutdown order.

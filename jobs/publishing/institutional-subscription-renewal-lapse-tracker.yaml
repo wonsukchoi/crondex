@@ -1,0 +1,36 @@
+id: institutional-subscription-renewal-lapse-tracker
+version: 1
+name: Institutional Subscription Renewal Lapse Tracker
+description: >
+  Flags library, university, or corporate institutional subscriptions to
+  a journal or magazine whose renewal date has passed without a recorded
+  renewal, so lapsed institutional access gets caught before the next
+  issue mailing or access cycle. Use this if an institutional subscriber
+  has ever kept receiving issues or database access for months past their
+  actual lapse because renewal was assumed rather than confirmed.
+category: publishing
+tags: [publishing, subscriptions, institutional, circulation]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR>1 && $3 != "renewed" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline renew_ts; close(cmd);
+      if (today > renew_ts) print "LAPSED: " $1 " renewal was due " $2 ", status=" $3;
+    }
+  ' "{{institutional_subscriptions_csv}}"
+variables:
+  institutional_subscriptions_csv:
+    default: "./institutional-subscriptions.csv"
+    description: "CSV with header row, columns: account_name,renewal_due_date(YYYY-MM-DD),status(renewed|pending|cancelled)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from subscriber-churn-spike-check (aggregate consumer
+  unsubscribe volume) and library-institutional-sales-lead-followup-tracker
+  (new prospective leads, not existing subscribers) — this tracks
+  individual named institutional accounts past their own renewal date.
+  Mark a row "cancelled" once confirmed lost so it stops recurring in
+  the report.

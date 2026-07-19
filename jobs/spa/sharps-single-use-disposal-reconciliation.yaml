@@ -1,0 +1,46 @@
+id: sharps-single-use-disposal-reconciliation
+version: 1
+name: Single-Use Sharps & Disposable Tool Reconciliation
+description: >
+  Compares the count of single-use disposable items (lancets, needles,
+  wax applicators, microneedling tips) logged as used per procedure
+  against the count logged as disposed the same day, flagging any
+  shortfall. Use this if a medspa or waxing studio has ever had a state
+  board or OSHA inspector ask to prove single-use tools weren't
+  reprocessed, and the disposal log didn't clearly match the procedure log.
+category: spa
+tags: [spa, medspa, safety, compliance, single-use, sharps]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{allowed_variance}}" '
+    NR==1 {next}
+    {
+      used[$1] += $3;
+      disposed[$1] += $4;
+      proc[$1] = proc[$1] $2 "; ";
+    }
+    END {
+      for (d in used) {
+        gap = used[d] - disposed[d];
+        if (gap > tolerance) {
+          printf "DISPOSAL SHORTFALL: %s — %d item(s) used, %d disposed (gap: %d) — procedures: %s\n", d, used[d], disposed[d], gap, proc[d];
+        }
+      }
+    }
+  ' "{{sharps_log_csv_path}}"
+variables:
+  sharps_log_csv_path:
+    default: "./sharps-disposal-log.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),procedure_type,single_use_items_used,single_use_items_disposed. One row per procedure logged that day."
+  allowed_variance:
+    default: 0
+    description: How many more used-than-disposed items to tolerate before flagging (0 means any shortfall is flagged).
+compatible_agents: [generic, claude, codex]
+notes: >
+  A shortfall doesn't prove reuse — it can also mean a disposal entry
+  was simply forgotten — but any gap needs same-day sign-off from the
+  safety officer before the next shift starts. Distinct from
+  autoclave-spore-test-log-check, which covers sterilization validation
+  for reusable tools, not single-use item disposal counts.

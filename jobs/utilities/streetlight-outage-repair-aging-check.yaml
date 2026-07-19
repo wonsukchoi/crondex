@@ -1,0 +1,26 @@
+id: streetlight-outage-repair-aging-check
+version: 1
+name: Streetlight Outage Repair Aging Check
+description: >
+  Looks through open streetlight outage tickets (reported by patrol, 311
+  calls, or photocell monitoring) and flags the ones that have sat unrepaired
+  longer than a set number of days, oldest first. Use this if a dark
+  streetlight has ever stayed out for weeks because individual outage
+  reports never got aggregated into a single aging view for the crew that
+  schedules repairs.
+category: utilities
+tags: [utilities, electric, streetlight, outage, maintenance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select ticket_id, pole_id, location_description, reported_at, (current_date - reported_at::date) as days_open from streetlight_outages where status = 'open' and (current_date - reported_at::date) >= {{aging_threshold_days}}::integer order by reported_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the streetlight outage/work-order database.
+  aging_threshold_days:
+    default: "7"
+    description: Days a streetlight outage ticket can stay open before it's flagged as aging.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `streetlight_outages` table with `ticket_id`, `pole_id`, `location_description`, `reported_at`, and `status` columns — adjust to your work-order or GIS-based streetlight tracking system's schema. Read-only reporting job; it does not close tickets or dispatch repair crews. Distinct from outage-restoration-sla-check, which tracks SLA commitments on power/water/gas service outages rather than individual streetlight fixtures.

@@ -1,0 +1,44 @@
+id: checked-baggage-allowance-conflict-check
+version: 1
+name: Checked Baggage Allowance Conflict Check
+description: >
+  Compares the checked-bag weight and count limits across every leg of a
+  multi-airline itinerary and flags if your packing plan exceeds the
+  strictest carrier's allowance anywhere on the trip. Use this if you've
+  ever packed for the generous limit on your outbound airline only to get
+  hit with an overweight fee on a budget carrier operating the connecting
+  leg.
+category: travel
+tags: [travel, baggage, flights, fees]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v planned_bags="{{planned_checked_bags}}" -v planned_weight="{{planned_bag_weight_kg}}" '
+    NR==1 {next}
+    {
+      airline=$1; max_bags=$2; max_weight=$3;
+      if (planned_bags > max_bags) {
+        printf "BAG COUNT CONFLICT: %s allows %d checked bag(s), you are planning %d.\n", airline, max_bags, planned_bags;
+      }
+      if (planned_weight > max_weight) {
+        printf "WEIGHT CONFLICT: %s allows %.1fkg per bag, you are planning %.1fkg.\n", airline, max_weight, planned_weight;
+      }
+    }
+  ' "{{airline_allowance_csv_path}}"
+variables:
+  airline_allowance_csv_path:
+    default: "./airline-baggage-allowances.csv"
+    description: "Path to a CSV with columns: airline,max_checked_bags,max_weight_kg — one row per airline operating a leg of the trip."
+  planned_checked_bags:
+    default: 1
+    description: Number of checked bags you're planning to bring.
+  planned_bag_weight_kg:
+    default: 20
+    description: Expected weight per checked bag in kilograms.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain the allowance CSV yourself by checking each
+  operating carrier's baggage page — this doesn't query airline systems.
+  Distinct from flight-layover-buffer-check, which is about connection
+  timing, not baggage rules.

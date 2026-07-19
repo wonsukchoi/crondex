@@ -1,0 +1,30 @@
+id: lead-duplicate-account-collision-check
+version: 1
+name: Lead/Deal Duplicate Account Collision Check
+description: >
+  Finds accounts where more than one rep currently owns an open lead or
+  deal at the same time, a sign of a CRM routing collision. Use this if
+  two reps have ever shown up to the same prospect account without
+  realizing it, creating an awkward "who's actually my rep" moment for the
+  customer.
+category: sales
+tags: [sales, lead-routing, crm-hygiene, account-collision]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select account_name, count(distinct owner) as distinct_owners, string_agg(distinct owner, ', ') as owners from (select account_name, owner from leads where status = 'open' union all select account_name, owner from deals where stage not in ('closed_won','closed_lost')) x group by account_name having count(distinct owner) > {{max_owners}};"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database.
+  max_owners:
+    default: 1
+    description: Maximum number of distinct owners an account can have across open leads/deals before it's flagged as a collision.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes both `leads` and `deals` tables carry an `account_name` and
+  `owner` column — adjust the union query to match your CRM's object
+  model. Distinct from `territory-coverage-gap-check` (accounts with no
+  owner) and `form-lead-crm-sync-check` (sync lag): this flags accounts
+  with too many simultaneous owners, not too few or delayed.

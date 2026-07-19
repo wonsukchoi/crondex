@@ -1,0 +1,55 @@
+id: cart-repair-turnaround-backlog-check
+version: 1
+name: Cart Repair Turnaround Backlog Check
+description: >
+  Reviews the internal cart-repair-shop work order queue (broken wheels,
+  cracked lids, snapped axles) and flags any work order that has sat open
+  past a configurable turnaround target, grouped by cart type so parts
+  shortages for one cart model stand out. Use this if a resident has ever
+  been stuck with a broken cart for weeks after a repair ticket was
+  already triaged and handed to the shop.
+category: waste-management
+tags: [waste-management, carts, repair, maintenance, backlog]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target_days="{{turnaround_target_days}}" -v today_epoch="$(date -u +%s)" '
+    NR==1 { next }
+    {
+      order_id=$1; cart_type=$2; opened_date=$3; status=$4;
+      if (status == "closed") { next }
+      cmd="date -u -d \"" opened_date "\" +%s 2>/dev/null || date -u -j -f \"%Y-%m-%d\" \"" opened_date "\" +%s 2>/dev/null";
+      cmd | getline opened_epoch;
+      close(cmd);
+      if (opened_epoch > 0) {
+        age_days = (today_epoch - opened_epoch) / 86400;
+        if (age_days > target_days+0) {
+          printf "OVER TARGET: work order %s (cart type %s) open %.0f days, opened %s, status=%s\n", order_id, cart_type, age_days, opened_date, status;
+          type_count[cart_type]++;
+        }
+      }
+    }
+    END {
+      for (t in type_count) {
+        printf "TYPE SUMMARY: cart type %s has %d work order(s) over the %s-day turnaround target\n", t, type_count[t], target_days;
+      }
+    }
+  ' "{{repair_work_orders_csv_path}}"
+variables:
+  repair_work_orders_csv_path:
+    default: "./cart-repair-work-orders.csv"
+    description: "CSV with header row, columns: work_order_id,cart_type,opened_date (YYYY-MM-DD),status — status is one of open,in_progress,waiting_on_parts,closed. Rows should already be triaged repair/replacement work orders handed to the repair shop, not raw customer-facing tickets."
+  turnaround_target_days:
+    default: 7
+    description: Maximum number of days a cart repair work order should stay open before it is flagged as over target.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this watches the internal repair-shop work order queue after
+  a ticket has been triaged and assigned, distinct from the catalog's
+  customer service request backlog check (which watches raw ticket
+  response-time SLA before triage) and its cart inventory reconciliation
+  check (which compares issuance counts against inventory totals, not
+  repair turnaround). A recurring TYPE SUMMARY spike for one cart type
+  usually points to a parts shortage rather than a labor problem — check
+  parts stock before escalating staffing.

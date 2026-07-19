@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2402 jobs across 66 categories (2037 smoke-tested clean):
+2482 jobs across 66 categories (2109 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -235,31 +235,31 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `moving-relocation` | 37 | 34 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
 | `nonprofit` | 37 | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `payments` | 32 | 29 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
-| `personal` | 32 | 28 | Daily life reminders — bills, habits, meals, screen time. |
-| `petcare` | 32 | 28 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
+| `personal` | 37 | 33 | Daily life reminders — bills, habits, meals, screen time. |
+| `petcare` | 37 | 33 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
 | `pharmacy` | 44 | 36 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
-| `photography` | 32 | 30 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
-| `podcast` | 32 | 23 | Show ops — publish cadence, guests, sponsors, ratings. |
-| `productivity` | 32 | 22 | Work habits — inbox, standups, focus, meetings, reports. |
-| `publishing` | 32 | 29 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
-| `realestate` | 32 | 32 | Property management — leases, rent, vacancy, inspections, tax. |
+| `photography` | 37 | 35 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
+| `podcast` | 37 | 27 | Show ops — publish cadence, guests, sponsors, ratings. |
+| `productivity` | 37 | 27 | Work habits — inbox, standups, focus, meetings, reports. |
+| `publishing` | 37 | 34 | Book/print ops — manuscript deadlines, royalties, print runs, rights. |
+| `realestate` | 37 | 37 | Property management — leases, rent, vacancy, inspections, tax. |
 | `restaurant` | 35 | 25 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
-| `retail` | 32 | 26 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
-| `sales` | 32 | 27 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
-| `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
+| `retail` | 37 | 31 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
+| `sales` | 37 | 31 | Pipeline ops — leads, deals, quota, CRM sync. |
+| `security` | 45 | 38 | Security posture — keys, certs, access, scans, firewalls. |
+| `self-storage` | 37 | 36 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 35 | 34 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
-| `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
-| `spa` | 32 | 30 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
+| `short-term-rental` | 37 | 29 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
+| `spa` | 37 | 35 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 35 | 30 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 44 | 43 | Team ops — 1:1s, on-call, PTO, anniversaries. |
-| `telecom` | 32 | 28 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
-| `travel` | 32 | 28 | Trip logistics — flights, passports, visas, insurance, miles. |
-| `utilities` | 32 | 29 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
+| `telecom` | 37 | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
+| `travel` | 37 | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
+| `utilities` | 37 | 33 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |
 | `veterinary` | 35 | 27 | Clinic ops for animals — vaccines, controlled substances, boarding, surgery scheduling, records, billing, licensing. |
 | `warehousing` | 35 | 28 | Warehouse facility ops — dock scheduling, pick/pack, slotting, labor, maintenance, safety. |
-| `waste-management` | 32 | 28 | Waste hauling, recycling, and landfill/transfer-station ops — routes, contamination, tonnage, permits, billing. |
+| `waste-management` | 37 | 32 | Waste hauling, recycling, and landfill/transfer-station ops — routes, contamination, tonnage, permits, billing. |
 <!-- END JOB SUMMARY -->
 
 ---

@@ -1,0 +1,53 @@
+id: franchise-sla-penalty-threshold-tracker
+version: 1
+name: Franchise SLA Penalty Threshold Tracker
+description: >
+  Counts logged service-level violations (missed pickups, late responses,
+  etc.) against an active municipal franchise contract for the current
+  billing period and flags whenever the count crosses the contract's
+  liquidated-damages or penalty trigger threshold. Use this if a franchise
+  agreement has ever accrued enough SLA violations in a month to trigger a
+  financial penalty clause before anyone added them up.
+category: waste-management
+tags: [waste-management, franchise-agreement, sla, penalties, municipal-contracts]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{penalty_trigger_count}}" -v period="{{billing_period}}" '
+    NR==1 { next }
+    {
+      contract_id=$1; violation_period=$2; violation_type=$3;
+      if (violation_period == period) {
+        count[contract_id]++;
+        detail[contract_id] = detail[contract_id] violation_type ";"
+      }
+    }
+    END {
+      for (c in count) {
+        if (count[c] >= threshold+0) {
+          printf "PENALTY THRESHOLD HIT: contract %s logged %d SLA violations in %s (threshold %s) — types: %s\n", c, count[c], period, threshold, detail[c];
+        }
+      }
+    }
+  ' "{{sla_violations_csv_path}}"
+variables:
+  sla_violations_csv_path:
+    default: "./sla-violations.csv"
+    description: "CSV with header row, columns: contract_id,billing_period (e.g. 2026-07),violation_type — one row per logged franchise SLA violation (missed pickup, late complaint response, etc.), already scoped to a specific municipal contract."
+  billing_period:
+    default: "2026-07"
+    description: "Which billing period (matching the CSV's billing_period format) to total violations for, typically the current or just-closed period."
+  penalty_trigger_count:
+    default: 10
+    description: Number of SLA violations within one billing period at or above which the contract's liquidated-damages/penalty clause is considered triggered.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this rolls up violation counts against a contract's
+  financial penalty clause for a billing period, distinct from the
+  catalog's municipal contract renewal tracker (which only watches renewal
+  and rebid deadlines) and its missed-pickup complaint tracker (which
+  handles individual complaints, not contract-level penalty exposure). Do
+  not use this job's output to auto-issue a penalty notice — it only flags
+  that a threshold was crossed for a human to verify against the actual
+  contract language before any penalty is invoked.

@@ -1,0 +1,37 @@
+id: utility-easement-encroachment-check
+version: 1
+name: Utility Easement Encroachment Check
+description: >
+  Reads the latest field survey or GIS encroachment report for utility
+  easements and identifies segments where a structure, fence, shed, pool, or
+  planting has been newly reported as blocking or restricting access within
+  the easement corridor. Use this if a crew has ever shown up for emergency
+  repair or a scheduled inspection only to find a customer-built structure
+  sitting on top of the buried line or overhead corridor they needed to
+  reach.
+category: utilities
+tags: [utilities, easement, encroachment, right-of-way, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the utility easement encroachment survey/report at
+  {{encroachment_report_source}}. Identify every easement segment reported
+  with a new or unresolved encroachment (structure, fence, shed, pool,
+  dense planting, pavement, etc.) that restricts utility access. For each,
+  list the segment ID or address, encroachment type, date first reported,
+  and whether it appears to fully block equipment access versus partially
+  restrict it. Flag any encroachment reported more than
+  {{stale_encroachment_days}} days ago with no resolution noted as needing
+  follow-up with the property owner or legal/right-of-way team. If the
+  report shows no open encroachments, say so plainly — do not invent
+  segments or addresses.
+variables:
+  encroachment_report_source:
+    default: "https://example.com/gis/easement-encroachment-report"
+    description: URL or path to the current easement encroachment survey export (GIS system, field-inspection tracker, or right-of-way database).
+  stale_encroachment_days:
+    default: "45"
+    description: Days an encroachment can sit unresolved before it's flagged as needing right-of-way or legal follow-up.
+compatible_agents: [generic, claude, codex]
+notes: Read-only summarization job — it does not contact property owners, file legal notices, or authorize removal of any encroachment. Encroachment reports vary widely in format across GIS platforms and field-inspection tools, which is why this is agent-prompt rather than a scripted query; point `encroachment_report_source` at whatever export your right-of-way team actually maintains. Distinct from vegetation-management-clearance-check, which tracks tree/brush clearance along power line rights-of-way rather than built structures or fixed encroachments across all utility easement types.

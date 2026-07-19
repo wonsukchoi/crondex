@@ -1,0 +1,45 @@
+id: pre-session-client-questionnaire-missing-check
+version: 1
+name: Pre-Session Client Questionnaire Missing Check
+description: >
+  Flags upcoming portrait, family, or newborn sessions where the client
+  hasn't submitted the pre-session style and planning questionnaire
+  (location preference, wardrobe, family members, must-have shots)
+  within your lead-time window. Use this if you've ever arrived at a
+  family session with no idea who's attending, what they're wearing, or
+  which shots the family actually wanted, because the intake form was
+  never sent back.
+category: photography
+tags: [photography, portraits, intake, client-communication, planning]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lead_time_days}}" '
+    NR==1 {next}
+    {
+      client=$1; session_date=$2; session_type=$3; questionnaire_received=tolower($4);
+      cmd = "date -d \"" session_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" session_date "\" +%s 2>/dev/null";
+      cmd | getline session_epoch; close(cmd);
+      days_out = int((session_epoch - today) / 86400);
+      if (days_out >= 0 && days_out <= lead && questionnaire_received != "yes") {
+        printf "QUESTIONNAIRE MISSING: %s — %s session on %s, %d day(s) out, pre-session questionnaire not received\n", client, session_type, session_date, days_out;
+      }
+    }
+  ' "{{sessions_csv_path}}"
+variables:
+  sessions_csv_path:
+    default: "./portrait-sessions.csv"
+    description: "Path to a CSV with columns: client_name,session_date (YYYY-MM-DD),session_type (e.g. family, newborn, senior, headshot),questionnaire_received (yes/no)."
+  lead_time_days:
+    default: 7
+    description: How many days before the session date a missing pre-session questionnaire should start getting flagged.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only check; it only flags sessions missing a completed intake
+  form, it doesn't send or chase the questionnaire itself — follow up
+  with the client directly once flagged. Distinct from
+  wedding-timeline-confirmation-check (wedding-specific shot-list
+  timelines) and contract-signature-missing-check (legal paperwork
+  rather than planning preferences).

@@ -1,0 +1,43 @@
+id: backstock-overflow-capacity-check
+version: 1
+name: Backstock Overflow Capacity Check
+description: >
+  Compares logged stockroom fill levels against a safe capacity
+  threshold and flags stores whose backstock is overflowing. Use this
+  if a stockroom has ever gotten packed tight enough to become a
+  safety hazard (blocked exits, freight stacked too high) or associates
+  simply stopped putting deliveries away and left them staged on the
+  floor because there was nowhere left to shelve them.
+category: retail
+tags: [retail, stockroom, inventory, safety]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v thresh_pct="{{overflow_threshold_pct}}" '
+    NR==1 {next}
+    {
+      store=$1; capacity=$2; current=$3;
+      if (capacity+0 <= 0) next;
+      pct = (current / capacity) * 100;
+      if (pct >= thresh_pct) {
+        printf "STOCKROOM OVERFLOW: store %s — %.0f%% of backstock capacity used (%s of %s units)\n", store, pct, current, capacity;
+      }
+    }
+  ' "{{backstock_capacity_csv_path}}"
+variables:
+  backstock_capacity_csv_path:
+    default: "./backstock-capacity-log.csv"
+    description: "CSV with header row, columns: store_id,stockroom_capacity_units,current_backstock_units — one row per store per count."
+  overflow_threshold_pct:
+    default: 85
+    description: Percentage of rated stockroom capacity in use before a store is flagged as at risk of overflow.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A capacity signal for the district/ops team to schedule extra
+  freight-processing hours or a markdown push, not an automated
+  reorder or transfer action. Distinct from
+  `receiving-dock-discrepancy-check` (quantity accuracy of a single
+  shipment) and `damaged-merchandise-writeoff-tracker` (already-damaged
+  goods) — this tracks overall stockroom fullness before it becomes a
+  safety or workflow problem.

@@ -1,0 +1,39 @@
+id: tip-pool-distribution-audit
+version: 1
+name: Pooled Tip Distribution Audit
+description: >
+  Compares the tip amount each staff member was actually paid out from
+  the shared tip pool against what they were owed based on hours
+  worked or points earned that pay period, flagging discrepancies. Use
+  this if a spa pools client tips and splits them among staff, and a
+  therapist has ever quietly suspected their payout didn't match the
+  hours they logged but nobody had a number to check it against.
+category: spa
+tags: [spa, tips, payroll, staffing, front-desk]
+schedule: "0 9 1,16 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{allowed_variance_dollars}}" '
+    NR==1 {next}
+    {
+      diff = $5 - $6;
+      abs_diff = (diff < 0) ? -diff : diff;
+      if (abs_diff > tolerance) {
+        printf "TIP PAYOUT MISMATCH: %s (%s) — owed $%.2f, paid $%.2f, diff $%.2f\n", $2, $1, $5, $6, diff;
+      }
+    }
+  ' "{{tip_pool_log_csv_path}}"
+variables:
+  tip_pool_log_csv_path:
+    default: "./tip-pool-log.csv"
+    description: "Path to a CSV with columns: pay_period,staff_name,hours_worked,total_pool_tips,tips_owed,tips_paid. tips_owed is the amount the pool formula calculated for that staff member."
+  allowed_variance_dollars:
+    default: 1.00
+    description: Dollar variance between tips_owed and tips_paid to tolerate before flagging (accounts for rounding).
+compatible_agents: [generic, claude, codex]
+notes: >
+  This checks arithmetic consistency only — it doesn't validate whether
+  the pool split formula itself is fair. Distinct from
+  staff-commission-payout-reconciliation.yaml, which covers per-service
+  commission payouts, not pooled client tips.

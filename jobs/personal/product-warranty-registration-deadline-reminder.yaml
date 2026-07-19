@@ -1,0 +1,44 @@
+id: product-warranty-registration-deadline-reminder
+version: 1
+name: Product Warranty Registration Deadline Reminder
+description: >
+  Warns you before the manufacturer's registration window closes on a newly
+  purchased appliance or electronic device, since many warranties only
+  activate if you register within a set number of days of purchase. Use
+  this if you've ever bought a big-ticket item, meant to register it later,
+  and then found out months on that the warranty never activated.
+category: personal
+tags: [personal, warranty, purchases, reminder]
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  purchase=$(date -d "{{purchase_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{purchase_date}}" +%s);
+  deadline=$(( purchase + ({{registration_window_days}} * 86400) ));
+  days_left=$(( (deadline - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "{{product_name}} warranty registration window closes in $days_left day(s) — register it at {{registration_url}} before the deadline.";
+  fi
+variables:
+  product_name:
+    default: "New Washing Machine"
+    description: Name or description of the purchased product.
+  purchase_date:
+    default: "2026-07-01"
+    description: Date the product was purchased (YYYY-MM-DD).
+  registration_window_days:
+    default: "30"
+    description: Number of days after purchase the manufacturer allows for warranty registration.
+  registration_url:
+    default: "https://example.com/register"
+    description: URL or reference for where to complete warranty registration.
+  lead_time_days:
+    default: "7"
+    description: How many days before the registration deadline to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder only; does not submit any registration form or contact
+  the manufacturer automatically. Distinct from home-warranty-claim-window-check,
+  which tracks the claim window on an existing home warranty plan rather than
+  a one-time post-purchase registration deadline for a new product.

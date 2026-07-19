@@ -1,0 +1,37 @@
+id: royalty-statement-dispute-resolution-sla-tracker
+version: 1
+name: Royalty Statement Dispute Resolution SLA Tracker
+description: >
+  Flags author or agent queries disputing a royalty statement's figures
+  that have been open longer than the agreed resolution window. Use this
+  if an author has ever escalated to their agent or lawyer over a royalty
+  discrepancy that sat unanswered for weeks because the dispute was only
+  tracked in an inbox thread instead of a shared log.
+category: publishing
+tags: [publishing, royalties, disputes, authors]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla={{sla_days}} '
+    NR>1 && $4 == "open" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline opened_ts; close(cmd);
+      days_open = int((today - opened_ts) / 86400);
+      if (days_open >= sla) print "SLA BREACH: " $1 " statement dispute open " days_open " days (raised " $2 "), issue: " $3;
+    }
+  ' "{{royalty_disputes_csv}}"
+variables:
+  royalty_disputes_csv:
+    default: "./royalty-statement-disputes.csv"
+    description: "CSV with header row, columns: author_or_title,date_raised(YYYY-MM-DD),issue_summary,status(open|resolved)."
+  sla_days:
+    default: 15
+    description: Days a dispute may stay open before it's flagged as past the agreed resolution SLA.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from royalty-statement-due-check, which reminds you a
+  statement itself is due to go out — this tracks disputes raised after a
+  statement was already sent. Mark status "resolved" once the author or
+  agent confirms the correction, so it drops off the report.

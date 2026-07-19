@@ -1,0 +1,29 @@
+id: fire-hydrant-flow-test-overdue-check
+version: 1
+name: Fire Hydrant Flow Test Overdue Check
+description: >
+  Scans the hydrant asset registry for public fire hydrants whose required
+  periodic flow/flush test is coming due or already overdue, based on each
+  hydrant's last test date and testing interval, and lists them soonest-due
+  first. Use this if your water utility is responsible for keeping hydrants
+  fire-ready and a lapsed flow test has ever only been discovered when a fire
+  department tried to charge a hydrant that wouldn't flow.
+category: utilities
+tags: [utilities, water, fire-hydrant, flow-test, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select hydrant_id, location_address, last_flow_test_date, (last_flow_test_date + interval '1 month' * {{test_cycle_months}}) as next_test_due from hydrants where (last_flow_test_date + interval '1 month' * {{test_cycle_months}}) <= current_date + interval '{{lead_time_days}} days' order by next_test_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the hydrant asset/maintenance registry database.
+  test_cycle_months:
+    default: "12"
+    description: How often (in months) a hydrant must be flow/flush tested, per your utility's maintenance program or local fire code (commonly annual).
+  lead_time_days:
+    default: "30"
+    description: How many days before (or past) the test anniversary to start flagging a hydrant as due, giving crews time to schedule the flush.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `hydrants` table with `hydrant_id`, `location_address`, and `last_flow_test_date` columns in the hydrant asset/GIS system — adjust to your registry's schema. Read-only reminder feed; it does not perform the flow test, update flow-rate data, or notify the fire department itself. Distinct from backflow-prevention-test-due-reminder, which tracks customer-side backflow-prevention devices rather than utility-owned public hydrants.

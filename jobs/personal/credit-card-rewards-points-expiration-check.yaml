@@ -1,0 +1,41 @@
+id: credit-card-rewards-points-expiration-check
+version: 1
+name: Credit Card Rewards Points Expiration Check
+description: >
+  Warns you before a batch of earned credit card rewards or cashback points
+  expires unused, based on the expiration date you recorded from your card
+  issuer's statement. Use this if you've ever opened your card app to find
+  a chunk of points had already expired because the program's use-it-or-lose-it
+  clock ran out quietly in the background.
+category: personal
+tags: [personal, finance, rewards, reminder]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry=$(date -d "{{points_expiration_date}}" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "{{points_expiration_date}}" +%s);
+  days_left=$(( (expiry - today) / 86400 ));
+  if [ "$days_left" -le "{{lead_time_days}}" ] && [ "$days_left" -ge 0 ]; then
+    echo "{{card_name}} has {{points_balance}} points expiring in $days_left day(s) on {{points_expiration_date}} — redeem before they lapse.";
+  fi
+variables:
+  card_name:
+    default: "Rewards Visa Card"
+    description: Name of the credit card whose rewards balance is being tracked.
+  points_balance:
+    default: "18000"
+    description: Current rewards/cashback points balance as of your last statement.
+  points_expiration_date:
+    default: "2026-08-15"
+    description: The date the current points batch expires, from your issuer's statement or portal (YYYY-MM-DD).
+  lead_time_days:
+    default: "14"
+    description: How many days before expiration to start reminding.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder only; points_balance and points_expiration_date must be
+  updated manually from your card issuer's statement or app, since this job
+  has no API access to any bank or card account. Distinct from
+  credit-card-annual-fee-review, which evaluates whether an annual fee is
+  worth paying rather than tracking a rewards-points expiration clock.

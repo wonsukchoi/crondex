@@ -1,0 +1,34 @@
+id: liability-waiver-signature-missing-check
+version: 1
+name: Boarding/Daycare Liability Waiver Signature Missing Check
+description: >
+  Scans upcoming boarding and daycare reservations for any pet whose owner
+  hasn't yet signed the facility's liability waiver on file, and lists them
+  so the front desk can collect a signature before drop-off. Use this if a
+  pet has ever been dropped off and admitted for a stay before anyone
+  noticed the owner's liability waiver was never actually signed.
+category: petcare
+tags: [petcare, boarding, daycare, waiver, intake, compliance]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  lookahead=$(date -d "+{{lookahead_days}} days" +%Y-%m-%d 2>/dev/null || date -j -v+"{{lookahead_days}}"d +%Y-%m-%d);
+  awk -F',' -v today="$today" -v ahead="$lookahead" '
+    NR==1 {next}
+    {
+      if ($3 >= today && $3 <= ahead && $4 == "") {
+        print "WAIVER MISSING: " $1 " (" $2 ") — check-in " $3 " has no signed waiver on file";
+      }
+    }
+  ' "{{reservations_csv_path}}"
+variables:
+  reservations_csv_path:
+    default: "./boarding-reservations-waivers.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,checkin_date (YYYY-MM-DD),waiver_signed_date (YYYY-MM-DD, blank if not yet signed)."
+  lookahead_days:
+    default: 5
+    description: How many days ahead to look for upcoming check-ins missing a signed liability waiver.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from pet-profile-field-completeness-check.yaml, which checks pet-care data fields like allergies and medications — this checks only for a signed liability waiver on file, a legal/administrative document, not a medical or behavioral record. Purely a records check; it does not verify the signature is legally valid or collect one itself.

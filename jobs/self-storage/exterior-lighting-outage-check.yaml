@@ -1,0 +1,35 @@
+id: exterior-lighting-outage-check
+version: 1
+name: Exterior Lighting Outage Check
+description: >
+  Polls the facility's exterior/perimeter lighting controller (photocell
+  or smart-lighting panel) for zones reporting a fault or offline status
+  and flags any zone that has been out for longer than an acceptable
+  window. Use this if your facility relies on well-lit driveways, gates,
+  and unit rows for tenant safety and after-hours access, and you want to
+  catch a burnt-out or tripped-breaker light zone before it turns into a
+  dark corner that invites break-ins or a slip-and-fall claim.
+category: self-storage
+tags: [self-storage, maintenance, safety, lighting]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  curl --max-time 15 -s "{{lighting_controller_endpoint}}/zones" | jq -r --argjson max_hours "{{max_outage_hours}}" '.zones[] | select(.status == "fault" or .status == "offline") | select(((now - (.last_ok_timestamp | fromdateiso8601)) / 3600) > $max_hours) | "\(.zone_name)\t\(.status)\t\(.last_ok_timestamp)"'
+variables:
+  lighting_controller_endpoint:
+    default: "https://example.com/api/lighting"
+    description: Base API endpoint for the facility's exterior lighting controller or smart-lighting panel.
+  max_outage_hours:
+    default: "12"
+    description: How many hours a zone can report fault/offline before it is flagged as an outage worth a truck roll.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the lighting controller's API returns a `zones` array with
+  `zone_name`, `status`, and `last_ok_timestamp` fields — adjust the jq
+  filter to match your actual vendor's response shape (e.g. Lutron, an
+  IoT relay panel, or a manually maintained status feed). Read-only: it
+  only reports outages, it does not reset breakers or dispatch an
+  electrician. Distinct from security-camera-outage-check, which polls
+  camera health rather than perimeter lighting — a facility can have
+  working cameras pointed at a completely dark lot.

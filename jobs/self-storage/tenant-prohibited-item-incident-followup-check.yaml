@@ -1,0 +1,37 @@
+id: tenant-prohibited-item-incident-followup-check
+version: 1
+name: Tenant Prohibited-Item Incident Follow-Up Check
+description: >
+  Looks at logged incidents where staff flagged a unit for a suspected
+  lease-prohibited item (hazardous materials, firearms, perishables, live
+  animals, illegal goods, etc.) and flags any incident that has gone past
+  its required follow-up window without a resolution recorded. Use this if
+  staff log prohibited-item sightings or complaints in an incident table
+  and you want to make sure none of those reports get quietly forgotten,
+  since an unresolved hazmat or illegal-storage report is a real safety
+  and liability exposure.
+category: self-storage
+tags: [self-storage, compliance, prohibited-items, incident-tracking]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, incident_type, reported_date, resolution_status from prohibited_item_incidents where resolution_status <> 'resolved' and reported_date <= current_date - interval '{{followup_days}} days' order by reported_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  followup_days:
+    default: "3"
+    description: How many days an open prohibited-item incident can sit without a recorded resolution before it is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `prohibited_item_incidents` table with `unit_number`,
+  `tenant_name`, `incident_type`, `reported_date`, and `resolution_status`
+  columns populated by staff when they log a report — adjust the query to
+  your schema. Read-only: it only surfaces incidents missing a documented
+  resolution, it does not open a unit, contact a tenant, or notify
+  authorities itself; any actual hazmat, weapons, or illegal-goods
+  situation should be handled per your facility's safety policy, not
+  automated. Distinct from overlock-notice-followup-check, which tracks
+  overlock notices for delinquent payment, not prohibited-item reports.

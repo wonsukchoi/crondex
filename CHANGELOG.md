@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-07-19
+
+### Added
+
+- 80 new jobs deepening the last 16 categories still at the original
+  32-job baseline (personal, petcare, photography, podcast,
+  productivity, publishing, realestate, retail, sales, self-storage,
+  short-term-rental, spa, telecom, travel, utilities,
+  waste-management), 5 per category, each checked against every
+  existing filename in its category for real distinctness. This clears
+  the last of the original uniform-32 set — every category is now
+  above baseline. Third batch toward a much larger, evenly-spread
+  catalog (see ROADMAP.md §4).
+
+### Fixed
+
+- Fixed a real awk syntax error in a new petcare job
+  (`after-hours-dropoff-pickup-surcharge-check`): the awk script used
+  `-v close=...` and referenced `close` as a variable, but `close` is
+  awk's built-in function for closing files/pipes — the name collision
+  broke parsing. Renamed the variable to `close_t` (and `open` to
+  `open_t` for symmetry). Caught by `npm run smoke-test`.
+
 ## [0.78.0] - 2026-07-19
 
 ### Added

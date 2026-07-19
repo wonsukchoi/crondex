@@ -1,0 +1,56 @@
+id: wholesale-voice-settlement-invoice-discrepancy-check
+version: 1
+name: Wholesale Voice Settlement Invoice Discrepancy Check
+description: >
+  Compares a wholesale interconnect carrier's billed minutes-of-use
+  against your own internal CDR (call detail record) summary for the
+  same billing period and flags routes where the discrepancy exceeds a
+  tolerance. Use this if a wholesale voice carrier has ever over-billed
+  you for termination minutes and it only got caught months later during
+  a manual invoice audit, after several billing cycles had already been
+  paid at the inflated total.
+category: telecom
+tags: [telecom, wholesale, settlement, billing]
+schedule: "0 8 5 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol_pct="{{tolerance_pct}}" '
+    NR==FNR {
+      if (FNR==1) {next}
+      internal[$1] = $2+0;
+      next
+    }
+    FNR==1 {next}
+    {
+      route=$1; billed=$2+0;
+      our_minutes = internal[route];
+      if (our_minutes == 0 && billed == 0) next;
+      if (our_minutes == 0) {
+        printf "NO INTERNAL RECORD: carrier billed %s %d minutes with no matching internal CDR total\n", route, billed;
+        next;
+      }
+      diff_pct = ((billed - our_minutes) / our_minutes) * 100;
+      abs_diff = diff_pct < 0 ? -diff_pct : diff_pct;
+      if (abs_diff > tol_pct) {
+        printf "SETTLEMENT DISCREPANCY: %s billed %d min vs internal %d min (%.1f%% diff)\n", route, billed, our_minutes, diff_pct;
+      }
+    }
+  ' "{{internal_cdr_summary_csv_path}}" "{{carrier_invoice_csv_path}}"
+variables:
+  internal_cdr_summary_csv_path:
+    default: "./internal-cdr-summary.csv"
+    description: "Path to a CSV with columns: route_or_trunk_id,internal_minutes_of_use, one row per interconnect route for the billing period."
+  carrier_invoice_csv_path:
+    default: "./carrier-invoice-minutes.csv"
+    description: "Path to a CSV with columns: route_or_trunk_id,billed_minutes_of_use, from the wholesale carrier's invoice for the same period."
+  tolerance_pct:
+    default: 3
+    description: Percentage difference between billed and internal minutes allowed before a route is flagged as a settlement discrepancy.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only comparison — does not dispute the invoice or contact the
+  carrier. Distinct from transit-cost-per-mbps-drift-check (IP transit
+  pricing) and customer-bandwidth-overage-billing-accuracy-check
+  (billing customers), this checks what a wholesale voice carrier bills
+  you against your own switch/CDR records.

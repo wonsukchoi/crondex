@@ -1,0 +1,35 @@
+id: vacant-unit-lock-verification-check
+version: 1
+name: Vacant Unit Lock Verification Check
+description: >
+  Compares units marked vacant/unrented in the management system against
+  the facility's lock or lock-code assignment records and flags any vacant
+  unit that has no lock currently recorded on the door. Use this if a
+  crew occasionally forgets to re-lock a unit after a move-out or cleaning
+  pass, since an unlocked vacant unit is an open invitation for someone to
+  dump belongings, squat, or steal fixtures before it's re-rented.
+category: self-storage
+tags: [self-storage, security, unit-turnover, theft-prevention]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select u.unit_number, u.vacated_date from units u left join unit_locks l on l.unit_id = u.id and l.lock_status = 'installed' where u.occupancy_status = 'vacant' and l.id is null and u.vacated_date <= current_date - interval '{{max_unlocked_days}} days' order by u.vacated_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  max_unlocked_days:
+    default: "1"
+    description: How many days a vacant unit is allowed to go without a recorded lock before it is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `units` table with `occupancy_status` and `vacated_date`, and
+  a `unit_locks` table keyed by `unit_id` with `lock_status` — adjust the
+  join to your actual facility management or IoT lock schema. Read-only:
+  it only reports units missing a recorded lock, it does not dispatch
+  staff or install anything. Distinct from unit-turnover-cleaning-backlog-check,
+  which tracks whether a vacated unit has been cleaned, and from
+  vacant-unit-marketing-listing-check, which tracks whether a vacant unit
+  is listed for rent — neither of those checks whether the unit is
+  physically secured in the meantime.

@@ -1,0 +1,39 @@
+id: multi-pet-sibling-discount-billing-check
+version: 1
+name: Multi-Pet Sibling Discount Billing Check
+description: >
+  Groups boarding bookings by owner and stay dates to find households
+  boarding two or more pets for the exact same stay, then flags any of
+  those bookings that weren't billed with the sibling/multi-pet discount
+  rate. Use this if a family has ever boarded three dogs for the same week
+  and gotten billed full price on all three because the discount only gets
+  applied when someone remembers to check for it manually.
+category: petcare
+tags: [petcare, boarding, billing, discounts, multi-pet]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      key = $1 "," $3 "," $4;
+      count[key]++;
+      owner[key] = $1; checkin[key] = $3; checkout[key] = $4;
+      pets[key] = pets[key] " " $2;
+      if ($6 != "yes") no_discount[key] = no_discount[key] " " $2;
+    }
+    END {
+      for (k in count) {
+        if (count[k] >= 2 && no_discount[k] != "") {
+          print "MISSING SIBLING DISCOUNT: " owner[k] " — pets" pets[k] " boarding " checkin[k] " to " checkout[k] ", not discounted:" no_discount[k];
+        }
+      }
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./boarding-bookings.csv"
+    description: "Path to a CSV with columns: owner_name,pet_name,checkin_date (YYYY-MM-DD),checkout_date (YYYY-MM-DD),rate_charged,sibling_discount_applied (yes/no), one row per pet per booking."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from service-package-credit-expiry-check.yaml (prepaid package balances) and boarding-deposit-collection-check.yaml (deposit status) — this only checks whether a same-household, same-dates multi-pet discount was applied, based on whatever rate and discount flag your billing export last recorded. Confirm your discount policy actually applies to the specific pets flagged before issuing any refund or credit.

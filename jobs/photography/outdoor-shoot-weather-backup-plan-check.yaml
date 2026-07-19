@@ -1,0 +1,45 @@
+id: outdoor-shoot-weather-backup-plan-check
+version: 1
+name: Outdoor Shoot Weather Backup Plan Check
+description: >
+  Flags upcoming outdoor or on-location shoots that don't yet have a
+  confirmed rain-date or indoor backup plan logged, within your warning
+  window before the shoot. Use this if an outdoor session has ever been
+  rained out with no fallback location or reschedule date agreed on,
+  leaving you scrambling to renegotiate with the client the morning of.
+category: photography
+tags: [photography, outdoor, weather, contingency, scheduling]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      shoot_id=$1; client=$2; shoot_date=$3; location_type=$4; backup_plan_confirmed=tolower($5);
+      if (tolower(location_type) != "outdoor" && tolower(location_type) != "on-location") { next; }
+      cmd = "date -d \"" shoot_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" shoot_date "\" +%s 2>/dev/null";
+      cmd | getline shoot_epoch; close(cmd);
+      days_out = int((shoot_epoch - today) / 86400);
+      if (days_out >= 0 && days_out <= warn && backup_plan_confirmed != "yes") {
+        printf "NO WEATHER BACKUP: %s — %s outdoor shoot on %s, %d day(s) out, no rain-date/indoor plan confirmed\n", shoot_id, client, shoot_date, days_out;
+      }
+    }
+  ' "{{shoots_csv_path}}"
+variables:
+  shoots_csv_path:
+    default: "./outdoor-shoots.csv"
+    description: "Path to a CSV with columns: shoot_id,client_name,shoot_date (YYYY-MM-DD),location_type (outdoor/on-location/studio),backup_plan_confirmed (yes/no)."
+  warn_days_before:
+    default: 4
+    description: How many days before an outdoor or on-location shoot to start flagging it if no weather backup plan has been confirmed with the client.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only check; it doesn't check an actual weather forecast or book a
+  backup venue, it only flags shoots missing a logged contingency plan
+  so you can nail one down with the client in time. Distinct from
+  wedding-timeline-confirmation-check, which tracks the shot-list
+  schedule rather than a weather fallback, and from
+  photography-shoot-day-reminder-drafts, which reminds clients the day
+  before rather than checking for a backup plan days out.

@@ -1,0 +1,42 @@
+id: backlist-title-public-domain-transition-check
+version: 1
+name: Backlist Title Public Domain Transition Check
+description: >
+  Flags backlist titles approaching the calendar year in which their
+  copyright term expires and the work enters the public domain, so a
+  decision on reissues, new editions, or licensing strategy can be made
+  ahead of time. Use this if a backlist title has ever lost you exclusive
+  publishing rights by surprise because nobody was tracking how close it
+  was to its copyright term's expiration year.
+category: publishing
+tags: [publishing, backlist, copyright, rights]
+schedule: "0 9 1 1,7 *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v current_year={{current_year}} -v warn_years={{warn_years}} '
+    NR>1 {
+      years_left = $2 - current_year;
+      if (years_left <= warn_years) print "PUBLIC DOMAIN APPROACHING: \"" $1 "\" enters public domain in " $2 " (" years_left " years left)";
+    }
+  ' "{{backlist_copyright_csv}}"
+variables:
+  backlist_copyright_csv:
+    default: "./backlist-copyright-terms.csv"
+    description: "CSV with header row, columns: title,public_domain_year(the calendar year the work's copyright term expires, per your jurisdiction's rule e.g. life-of-author-plus-70)."
+  current_year:
+    default: "2026"
+    description: Current calendar year, used to compute years remaining until public domain entry.
+  warn_years:
+    default: 3
+    description: Years remaining before public domain entry to start flagging a title for rights-strategy review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Copyright term rules vary by jurisdiction and by whether the work is
+  corporate-authored, co-authored, or has a renewed pre-1978 US
+  registration — populate public_domain_year from a rights-clearance
+  review, not a naive publication-date-plus-70 formula. This is about the
+  far-off expiration of the copyright term itself, distinct from
+  rights-license-expiry-check (a specific licensing deal's contractual
+  end date) and subsidiary-rights-option-window-tracker (an option
+  holder's decision window).

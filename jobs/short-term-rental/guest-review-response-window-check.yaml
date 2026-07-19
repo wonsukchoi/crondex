@@ -1,0 +1,25 @@
+id: guest-review-response-window-check
+version: 1
+name: Guest Review Response Window Check
+description: >
+  Flags guest reviews that still have no host reply as the platform's
+  public-response window nears its close (e.g. Airbnb gives hosts 14 days
+  to respond publicly). Use this if a critical or unfair-sounding review
+  has ever gone unanswered simply because the response deadline wasn't
+  tracked separately from the review notification itself.
+category: short-term-rental
+tags: [short-term-rental, reviews, reputation, deadlines]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, posted_at, response_deadline from guest_reviews where host_responded = false and response_deadline <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the reviews/reputation database.
+  warning_days:
+    default: 3
+    description: Days before the public-response window closes to start flagging an unanswered review.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `guest_reviews` table with `host_responded` and `response_deadline` columns populated from your platform's review-response policy — adjust to your integration's schema. Distinct from host-response-rate-metric-watch, which tracks message/acceptance/cancellation rate metrics, not public review replies.

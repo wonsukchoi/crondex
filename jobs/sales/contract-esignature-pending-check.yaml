@@ -1,0 +1,30 @@
+id: contract-esignature-pending-check
+version: 1
+name: Contract E-Signature Pending Check
+description: >
+  Flags contracts sent out for e-signature (DocuSign, PandaDoc, or similar)
+  that have been sitting unsigned longer than expected, after the
+  redline/legal review stage is already done. Use this if a deal has ever
+  slipped a quarter because the final contract went out for signature and
+  then just sat in someone's inbox with nobody chasing it down.
+category: sales
+tags: [sales, esignature, contracts, deal-desk]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select d.name, e.recipient_email, e.owner, e.sent_at from signature_envelopes e join deals d on d.id = e.deal_id where e.status = 'sent' and e.sent_at < now() - interval '{{pending_days}} days' order by e.sent_at;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database, including a synced e-signature envelopes table.
+  pending_days:
+    default: 5
+    description: Days an envelope can sit in 'sent' status before it's flagged as overdue for signature.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `signature_envelopes` table (synced from your e-signature tool)
+  with `deal_id`, `recipient_email`, `owner`, `sent_at`, and `status`
+  columns — adjust to match your integration's schema. Distinct from
+  `contract-redline-legal-queue-aging-check`, which tracks the earlier
+  legal-review stage before the contract ever goes out for signature.

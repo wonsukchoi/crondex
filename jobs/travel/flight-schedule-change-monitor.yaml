@@ -1,0 +1,54 @@
+id: flight-schedule-change-monitor
+version: 1
+name: Airline-Initiated Flight Schedule Change Monitor
+description: >
+  Reminds you to check your booking for airline-initiated schedule or
+  equipment changes as departure approaches, since carriers routinely
+  shift flight times or swap aircraft weeks after booking without
+  making the notice obvious. Use this if you've ever shown up expecting
+  your original departure time only to discover the airline quietly
+  moved it forty minutes earlier and emailed a notice you never saw.
+category: travel
+tags: [travel, flights, airline, schedule]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  The user is booked on {{route}} departing {{flight_date}} under
+  confirmation code {{confirmation_code}} with {{airline}}, last checked
+  on {{last_checked_date}}. If the flight is within
+  {{check_window_days}} days, summarize what to verify: whether the
+  scheduled departure/arrival times still match what was booked, whether
+  the aircraft type or operating carrier changed (common on codeshares),
+  and whether any schedule change is large enough to break a connection
+  or hotel/car pickup plan. Recommend re-checking directly on the
+  airline's own site or app rather than assuming the original
+  confirmation email is still accurate. Keep output to a short
+  checklist, not a live schedule lookup you can't actually perform.
+variables:
+  route:
+    default: "your route (e.g. ORD-LHR)"
+    description: Flight route being monitored for schedule changes.
+  flight_date:
+    default: "2026-12-31"
+    description: Originally booked departure date (YYYY-MM-DD).
+  airline:
+    default: "your airline"
+    description: Airline or codeshare partner the ticket was booked under.
+  confirmation_code:
+    default: "your confirmation code"
+    description: Booking reference to look up when checking for changes.
+  last_checked_date:
+    default: "not yet checked"
+    description: Manually-updated date you last confirmed the schedule was unchanged.
+  check_window_days:
+    default: 21
+    description: Start prompting checks this many days before departure, when airlines commonly finalize schedule changes.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Agent-prompt because airline schedule-change data isn't reliably exposed
+  via a public API — this produces a reminder checklist, not a live
+  lookup. Update last_checked_date yourself after each check. Distinct
+  from flight-price-drop-watch (price, not timing) and
+  flight-layover-buffer-check (connection duration, not whether the
+  original schedule itself moved).

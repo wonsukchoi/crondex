@@ -1,0 +1,39 @@
+id: lease-guarantor-agreement-expiration-check
+version: 1
+name: Lease Guarantor Agreement Expiration Check
+description: >
+  Compares each lease's guarantor (co-signer) agreement end date
+  against the lease end date and flags cases where the guarantor
+  coverage lapses before the lease does. Use this if a tenant with a
+  student or first-time-renter guarantor has ever gone unsecured mid
+  lease because the guarantor agreement was only signed for the
+  original term and nobody renewed or replaced it.
+category: realestate
+tags: [realestate, guarantor, lease-compliance, risk]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd_g="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd_g | getline guar_ts; close(cmd_g);
+      cmd_l="date -d \"" $5 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $5 "\" +%s";
+      cmd_l | getline lease_ts; close(cmd_l);
+      days_left = int((guar_ts - today) / 86400);
+      if (guar_ts < lease_ts && days_left <= warn) {
+        printf "GUARANTOR GAP: %s (unit %s) guarantor %s expires in %d day(s) (%s), before lease ends (%s)\n", $1, $2, $3, days_left, $4, $5;
+      }
+    }
+  ' "{{guarantors_csv}}"
+variables:
+  guarantors_csv:
+    default: "./lease-guarantor-status.csv"
+    description: "CSV with header row, columns: tenant_name,unit,guarantor_name,guarantor_agreement_end_date(YYYY-MM-DD),lease_end_date(YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before the guarantor agreement's own end date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from tenant-renters-insurance-compliance-check and tenant-background-check-turnaround-sla — this tracks a guarantor contract's own expiration clock, which can be shorter than the lease term itself and leave a property effectively unsecured.

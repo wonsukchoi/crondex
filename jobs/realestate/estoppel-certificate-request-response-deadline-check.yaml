@@ -1,0 +1,36 @@
+id: estoppel-certificate-request-response-deadline-check
+version: 1
+name: Estoppel Certificate Request Response Deadline Check
+description: >
+  Flags incoming estoppel certificate requests (typically from a
+  buyer's lender or title company during a property sale or refinance)
+  that haven't been responded to as their contractual deadline
+  approaches. Use this if an estoppel request has ever gone
+  unanswered long enough that a lease's terms were deemed
+  automatically accepted, or a sale closing got delayed, because
+  nobody was tracking the reply clock.
+category: realestate
+tags: [realestate, estoppel, transactions, legal-deadlines]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    $5 == "no" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline dl_ts; close(cmd);
+      days_left = int((dl_ts - today) / 86400);
+      if (days_left <= warn) printf "ESTOPPEL RESPONSE DUE: %s request from %s due in %d day(s) (%s), not yet responded\n", $1, $2, days_left, $4;
+    }
+  ' "{{estoppel_requests_csv}}"
+variables:
+  estoppel_requests_csv:
+    default: "./estoppel-certificate-requests.csv"
+    description: "CSV with header row, columns: property_name,requester,request_date(YYYY-MM-DD),response_deadline_date(YYYY-MM-DD),responded(yes/no)."
+  warn_days:
+    default: 5
+    description: Days before the response deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from fair-housing-complaint-response-deadline-check (a compliance complaint, not a transaction document) and lease-violation-notice-to-cure-tracker — estoppel requests are tied to a pending sale or refinance and often carry a short, contractually binding response window.

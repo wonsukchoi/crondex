@@ -1,0 +1,48 @@
+id: camera-gear-warranty-expiry-check
+version: 1
+name: Camera Gear Warranty Expiry Check
+description: >
+  Checks manufacturer or extended-protection-plan warranty coverage on
+  cameras, lenses, and other gear against their expiry date and flags
+  anything lapsing soon. Use this if a camera body or lens has ever
+  broken right after its warranty quietly ran out, turning what would
+  have been a free repair into an out-of-pocket one.
+category: photography
+tags: [photography, equipment, warranty, gear, cost-control]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      item=$1; serial=$2; purchase_date=$3; warranty_expiry=$4;
+      if (warranty_expiry == "" || tolower(warranty_expiry) == "none") { next; }
+      cmd = "date -d \"" warranty_expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" warranty_expiry "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = int((expiry_epoch - today) / 86400);
+      if (days_left <= warn) {
+        if (days_left < 0) {
+          printf "WARRANTY EXPIRED: %s (S/N %s) warranty lapsed %d day(s) ago (expired %s)\n", item, serial, -days_left, warranty_expiry;
+        } else {
+          printf "WARRANTY EXPIRING: %s (S/N %s) warranty expires in %d day(s) (%s)\n", item, serial, days_left, warranty_expiry;
+        }
+      }
+    }
+  ' "{{gear_warranties_csv_path}}"
+variables:
+  gear_warranties_csv_path:
+    default: "./gear-warranties.csv"
+    description: "Path to a CSV with columns: item_name,serial_number,purchase_date (YYYY-MM-DD),warranty_expiry_date (YYYY-MM-DD, or none for out-of-warranty items)."
+  warn_days_before:
+    default: 30
+    description: How many days before a warranty's expiry date to start flagging it, so an extended plan can be purchased or a known issue can be repaired while still covered.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags gear whose warranty is expiring or already
+  lapsed, it doesn't file a claim or purchase an extension itself. This
+  is distinct from equipment-calibration-maintenance-check, which tracks
+  your own recurring service schedule rather than manufacturer coverage
+  windows, and from photography-liability-insurance-expiry-check, which
+  covers business insurance policies rather than product warranties.

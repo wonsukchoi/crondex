@@ -1,0 +1,43 @@
+id: late-fee-cap-compliance-check
+version: 1
+name: Late Fee Cap Compliance Check
+description: >
+  Scans recently assessed late fees against each unit's monthly rent and
+  flags any fee that exceeds the facility's configured maximum late-fee
+  percentage or flat cap. Use this if your state's self-storage facilities
+  act (or your own lease terms) caps how much you can charge a delinquent
+  tenant in late fees, and you want to catch an overcharge from a manual
+  billing entry or a misconfigured fee schedule before it becomes a
+  dispute or a compliance violation.
+category: self-storage
+tags: [self-storage, billing, compliance, late-fees]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select unit_number, tenant_name, monthly_rent, late_fee_charged, assessed_date from late_fee_charges where assessed_date >= current_date - interval '{{lookback_days}} days' and (late_fee_charged > monthly_rent * {{max_fee_percent}} / 100.0 or late_fee_charged > {{max_flat_fee}}) order by assessed_date desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the facility management database.
+  lookback_days:
+    default: "7"
+    description: How many days of recently assessed late fees to review.
+  max_fee_percent:
+    default: "20"
+    description: Maximum late fee allowed as a percentage of monthly rent, per your state law or lease terms.
+  max_flat_fee:
+    default: "50"
+    description: Maximum flat-dollar late fee allowed regardless of rent amount, used as an alternate cap alongside the percentage cap.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `late_fee_charges` table with `unit_number`, `tenant_name`,
+  `monthly_rent`, `late_fee_charged`, and `assessed_date` columns — adjust
+  the query to your billing schema. Late fee caps vary significantly by
+  state and lease language, so confirm your actual legal cap before
+  treating a flag as a violation. Read-only: it only reports fees that
+  exceed the configured cap, it does not reverse, waive, or re-bill
+  anything. Distinct from autopay-failed-payment-check, which tracks
+  failed payment attempts rather than the size of the late fee itself,
+  and from delinquent-account-lien-timeline-check, which tracks lien
+  process deadlines rather than fee amounts.

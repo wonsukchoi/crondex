@@ -1,0 +1,41 @@
+id: checkout-lane-queue-length-check
+version: 1
+name: Checkout Lane Queue Length Check
+description: >
+  Compares customers waiting in staffed checkout lines against how many
+  lanes are currently open, using periodic queue counts from a
+  people-counter or POS queue module, and flags stores where the ratio
+  has gotten too high. Use this if customers have ever stood in a long
+  line while extra registers sat closed because nobody was watching
+  queue length in real time.
+category: retail
+tags: [retail, checkout, queue, customer-experience]
+schedule: "*/15 9-21 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v thresh="{{customers_per_lane_threshold}}" '
+    NR==1 {next}
+    {
+      store=$1; lanes_open=$3; waiting=$4;
+      if (lanes_open+0 <= 0) next;
+      ratio = waiting / lanes_open;
+      if (ratio > thresh) {
+        printf "QUEUE BACKUP: store %s — %d waiting across %d open lanes (%.1f per lane)\n", store, waiting, lanes_open, ratio;
+      }
+    }
+  ' "{{queue_log_csv_path}}"
+variables:
+  queue_log_csv_path:
+    default: "./checkout-queue-log.csv"
+    description: "CSV with header row, columns: store_id,timestamp,lanes_open,customers_waiting — one row per periodic queue count snapshot."
+  customers_per_lane_threshold:
+    default: 4
+    description: Customers waiting per open lane before a store is flagged as needing another register opened.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only signal for a manager to open another lane or call for
+  backup — pair with your queue-counting hardware or POS export.
+  Distinct from `self-checkout-error-rate-check` (kiosk error rates,
+  not line length) and `curbside-pickup-wait-time-check` (curbside
+  orders, not in-store checkout lanes).

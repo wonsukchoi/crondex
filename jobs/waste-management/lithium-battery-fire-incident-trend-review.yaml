@@ -1,0 +1,53 @@
+id: lithium-battery-fire-incident-trend-review
+version: 1
+name: Lithium Battery Fire Incident Trend Review
+description: >
+  Reviews the log of truck, container, and MRF fire/smoking-load incidents
+  tied to improperly discarded lithium-ion batteries and reasons about
+  whether recent incidents cluster by route, collection day, or facility
+  in a way that points to a specific source needing an outreach or
+  interlock response. Use this if a battery-caused truck or tip-floor fire
+  has ever happened more than once on the same route without anyone
+  connecting the pattern until after a third incident.
+category: waste-management
+tags: [waste-management, safety, lithium-battery, fire-incidents, mrf]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the lithium-battery-related fire and smoking-load incident log
+  for {{facility_or_operation_name}} covering {{review_period}}, from
+  {{incident_log_data_hint}}.
+  1. List each incident with its date, location (route ID, transfer
+     station, or MRF processing line), and severity (smoking load caught
+     before spreading, small fire, load-loss/equipment-damage fire).
+  2. Check whether {{lookback_periods}} prior periods' incidents cluster on
+     the same route(s), same collection day of week, or same facility
+     line, which would suggest a specific commercial or residential
+     source repeatedly discarding batteries rather than random chance.
+  3. Note any incident where a specific customer or business complex was
+     later identified as the source, if that's recorded in the log.
+  4. Summarize as a triage list: which routes or accounts warrant a
+     targeted battery-disposal outreach letter (draft only, do not send),
+     and which incidents look isolated and not yet worth escalating.
+variables:
+  facility_or_operation_name:
+    default: "your hauling operation or MRF"
+    description: Name of the collection operation, transfer station, or MRF whose fire incident log is being reviewed.
+  review_period:
+    default: "the most recent calendar month"
+    description: Which time period of incidents to review.
+  incident_log_data_hint:
+    default: "your safety/incident tracking system export or EHS log"
+    description: Where the fire and smoking-load incident records can be found.
+  lookback_periods:
+    default: 3
+    description: How many prior review periods to compare against when checking for a recurring cluster pattern.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this is specific to lithium-battery-caused fire and
+  smoking-load safety incidents, distinct from the catalog's general odor
+  complaint log review and illegal dumping follow-up check, which cover
+  different complaint categories entirely. This job only drafts an
+  outreach-letter recommendation for a human to review and send — it does
+  not file any safety report or contact any customer itself.

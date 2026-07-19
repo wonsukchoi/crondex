@@ -1,0 +1,54 @@
+id: customer-change-freeze-window-conflict-check
+version: 1
+name: Customer Change-Freeze Window Conflict Check
+description: >
+  Checks upcoming planned network maintenance windows against each
+  affected customer's declared change-freeze or blackout period (e.g.
+  a retail customer's no-changes rule around a holiday sales peak) and
+  flags any maintenance scheduled inside a freeze. Use this if a carrier
+  has ever pushed a "routine" maintenance change during a customer's
+  declared blackout window and caused an outage during the one period
+  the customer explicitly said not to touch anything.
+category: telecom
+tags: [telecom, maintenance, change-management, customer-risk]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR==1) {next}
+      cust=$1;
+      cmd1 = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd1 | getline fs; close(cmd1);
+      cmd2 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd2 | getline fe; close(cmd2);
+      freeze_start[cust] = fs; freeze_end[cust] = fe;
+      next
+    }
+    FNR==1 {next}
+    {
+      window_id=$1; cust=$2;
+      cmd3 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd3 | getline ws; close(cmd3);
+      if (cust in freeze_start) {
+        if (ws >= freeze_start[cust] && ws <= freeze_end[cust]) {
+          printf "FREEZE CONFLICT: maintenance %s for customer %s starts %s, inside declared change-freeze window\n", window_id, cust, $3;
+        }
+      }
+    }
+  ' "{{customer_freeze_windows_csv_path}}" "{{maintenance_windows_csv_path}}"
+variables:
+  customer_freeze_windows_csv_path:
+    default: "./customer-freeze-windows.csv"
+    description: "Path to a CSV with columns: customer_name,freeze_start_date (YYYY-MM-DD),freeze_end_date (YYYY-MM-DD), one row per declared blackout period."
+  maintenance_windows_csv_path:
+    default: "./maintenance-windows.csv"
+    description: "Path to a CSV with columns: window_id,customer_name,start_datetime (YYYY-MM-DDTHH:MM), for planned maintenance affecting that customer."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only conflict check — does not reschedule or cancel any
+  maintenance. Distinct from maintenance-window-notice-lag-check, which
+  only checks whether customers were notified with enough lead time;
+  this checks whether the window falls inside a customer's own declared
+  no-changes period regardless of notice given.

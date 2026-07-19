@@ -1,0 +1,25 @@
+id: fire-safety-detector-compliance-check
+version: 1
+name: Fire Safety Detector Compliance Check
+description: >
+  Flags properties whose smoke or carbon-monoxide detector test/battery
+  log hasn't been updated within the required interval. Use this if a
+  detector has ever gone silently dead between guest stays because no
+  one logged a recurring test — a life-safety risk and, in many
+  jurisdictions, a licensing violation on its own.
+category: short-term-rental
+tags: [short-term-rental, safety, fire-safety, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, device_type, last_tested_at from safety_device_checks where device_type in ('smoke_detector','co_detector') and last_tested_at < current_date - interval '{{test_interval_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property maintenance/compliance database.
+  test_interval_days:
+    default: 180
+    description: Maximum days allowed since the last logged test before a detector is flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `safety_device_checks` table with `property_id`, `device_type`, and `last_tested_at` columns — adjust to your maintenance system's schema and your jurisdiction's actual required interval. Distinct from smart-lock-battery-level-check (access hardware) and hot-tub-pool-chemical-log-check (pool chemical safety) — this covers smoke/CO detectors specifically.

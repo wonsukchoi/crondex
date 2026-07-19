@@ -1,0 +1,49 @@
+id: episode-audio-dropout-check
+version: 1
+name: Podcast Episode Mid-Recording Audio Dropout Check
+description: >
+  Scans a finished episode's audio file for unexpected silence gaps
+  anywhere after the intro, using ffmpeg's silence detector. Use this if a
+  remote guest's connection has ever cut out mid-recording, or a mic
+  briefly disconnected, and the resulting dead-air gap made it into a
+  published episode because nobody listened all the way through before
+  release.
+category: podcast
+tags: [podcast, audio, quality, recording]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  gaps=$(ffmpeg -i "{{episode_audio_file}}" -af silencedetect=noise={{silence_threshold_db}}dB:d={{min_gap_seconds}} -f null - 2>&1 | grep "silence_start" | awk -F': ' '{print $2}');
+  flagged="";
+  for t in $gaps; do
+    past_intro=$(echo "$t > {{intro_skip_seconds}}" | bc -l);
+    if [ "$past_intro" = "1" ]; then flagged="$flagged $t"; fi
+  done;
+  if [ -n "$flagged" ]; then
+    echo "WARNING: unexpected silence gap(s) of {{min_gap_seconds}}+ seconds detected at (seconds into episode):$flagged";
+    exit 1;
+  else
+    echo "OK: no unexpected mid-episode silence gaps detected after the intro";
+  fi
+variables:
+  episode_audio_file:
+    default: "episode-final.wav"
+    description: Path to the finished/mixed episode audio file to scan.
+  silence_threshold_db:
+    default: -50
+    description: Noise floor (in dB) below which audio counts as silence.
+  min_gap_seconds:
+    default: 4
+    description: Minimum length of a silent gap, in seconds, before it's flagged as a likely dropout.
+  intro_skip_seconds:
+    default: 60
+    description: Skip flagging silence within this many seconds of the start, since intro music beds often have brief legitimate pauses.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires ffmpeg on the runner. Distinct from `episode-leading-dead-air-check`
+  (which only checks the very start of the file before playback) and
+  `audio-loudness-spot-check` (which measures overall loudness/LUFS, not
+  silence gaps) — this looks for dropout-style gaps anywhere in the body of
+  the episode. A flagged gap could also be an intentional dramatic pause;
+  spot-check before re-editing.

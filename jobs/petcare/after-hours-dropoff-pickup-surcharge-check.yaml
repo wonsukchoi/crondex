@@ -1,0 +1,39 @@
+id: after-hours-dropoff-pickup-surcharge-check
+version: 1
+name: After-Hours Drop-Off/Pickup Surcharge Check
+description: >
+  Scans yesterday's logged drop-off and pickup times against the facility's
+  standard operating hours and flags any entry that happened outside those
+  hours but wasn't billed the after-hours surcharge. Use this if a client
+  has ever gotten a special late pickup or early drop-off outside normal
+  hours and the front desk simply forgot to add the surcharge to the bill.
+category: petcare
+tags: [petcare, boarding, daycare, billing, after-hours, front-desk]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v open_t="{{open_time}}" -v close_t="{{close_time}}" '
+    function to_min(t,   n) { n = split(t, p, ":"); return p[1]*60 + p[2]; }
+    NR==1 {next}
+    {
+      event_min = to_min($3);
+      open_min = to_min(open_t);
+      close_min = to_min(close_t);
+      if ((event_min < open_min || event_min > close_min) && $5 != "yes") {
+        print "SURCHARGE NOT BILLED: " $1 " (" $2 ") — " $4 " at " $3 " on " $6 " is outside " open_t "-" close_t;
+      }
+    }
+  ' "{{dropoff_pickup_log_csv_path}}"
+variables:
+  dropoff_pickup_log_csv_path:
+    default: "./dropoff-pickup-log.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,event_time (HH:MM, 24h),event_type (dropoff/pickup),surcharge_applied (yes/no),event_date (YYYY-MM-DD)."
+  open_time:
+    default: "07:00"
+    description: Facility's standard opening time (HH:MM, 24h) before which a drop-off or pickup counts as after-hours.
+  close_time:
+    default: "19:00"
+    description: Facility's standard closing time (HH:MM, 24h) after which a drop-off or pickup counts as after-hours.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from walker-sitter-route-conflict-check.yaml, which checks scheduling conflicts for walking/sitting visits, not facility drop-off/pickup billing — this only checks whether an after-hours surcharge was billed for an event that fell outside standard operating hours, based on whatever the front desk logged. Confirm your own policy actually charges a surcharge in the flagged cases before adjusting anyone's bill.

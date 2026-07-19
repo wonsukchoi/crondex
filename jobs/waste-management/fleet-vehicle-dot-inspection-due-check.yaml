@@ -1,0 +1,47 @@
+id: fleet-vehicle-dot-inspection-due-check
+version: 1
+name: Fleet Vehicle DOT Inspection Due Check
+description: >
+  Scans your collection-truck fleet roster for DOT/state annual vehicle
+  safety inspection dates and flags any truck whose inspection has expired
+  or falls within a configurable warning window. Use this if a collection
+  truck has ever been dispatched on a route with a lapsed annual safety
+  inspection because nobody was tracking due dates truck-by-truck.
+category: waste-management
+tags: [waste-management, fleet, dot-inspection, compliance, vehicle-maintenance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warning_window_days}}" -v today_epoch="$(date -u +%s)" '
+    NR==1 { next }
+    {
+      truck_id=$1; plate=$2; due_date=$3;
+      cmd="date -u -d \"" due_date "\" +%s 2>/dev/null || date -u -j -f \"%Y-%m-%d\" \"" due_date "\" +%s 2>/dev/null";
+      cmd | getline due_epoch;
+      close(cmd);
+      if (due_epoch > 0) {
+        days_left = (due_epoch - today_epoch) / 86400;
+        if (days_left < 0) {
+          printf "EXPIRED: truck %s (plate %s) DOT inspection expired %s (%.0f days ago) — do not dispatch until re-inspected\n", truck_id, plate, due_date, -days_left;
+        } else if (days_left <= warn_days) {
+          printf "DUE SOON: truck %s (plate %s) DOT inspection due %s (%.0f days left)\n", truck_id, plate, due_date, days_left;
+        }
+      }
+    }
+  ' "{{fleet_inspection_csv_path}}"
+variables:
+  fleet_inspection_csv_path:
+    default: "./fleet-dot-inspections.csv"
+    description: "CSV with header row, columns: truck_id,plate_number,inspection_due_date (YYYY-MM-DD) — the next required annual DOT/state safety inspection date per collection vehicle."
+  warning_window_days:
+    default: 21
+    description: How many days before the inspection due date to start flagging a truck as due soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scope note: this tracks per-vehicle DOT/state safety inspection due
+  dates, distinct from the catalog's weighbridge calibration check (scale
+  equipment) and hazmat certification check (personnel credentials) — a
+  truck can pass all three and still fail any one of them independently.
+  Treat an EXPIRED line as a hard out-of-service flag until re-inspected,
+  not just a reminder.

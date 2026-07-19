@@ -1,0 +1,37 @@
+id: episode-shownotes-affiliate-link-rot-check
+version: 1
+name: Podcast Show Notes Affiliate Link Rot Check
+description: >
+  Checks each affiliate or tracking link listed across published episodes'
+  show notes and flags any that now return a broken or error response. Use
+  this if an affiliate link in older show notes has ever quietly stopped
+  working after the merchant changed their URL structure or discontinued
+  the product, so you kept promoting a dead link and losing commission
+  without knowing it.
+category: podcast
+tags: [podcast, monetization, affiliate, show-notes]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  while IFS=, read -r episode url; do
+    if [ "$episode" = "episode" ]; then continue; fi;
+    code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time {{request_timeout_seconds}} "$url");
+    if [ "$code" -ge 400 ] || [ "$code" = "000" ]; then
+      echo "WARNING: affiliate link broken (HTTP $code) in episode $episode: $url";
+    fi;
+  done < {{affiliate_links_csv}}
+variables:
+  affiliate_links_csv:
+    default: "affiliate-links.csv"
+    description: "CSV with header row, columns: episode,url — every affiliate/tracking link currently live in published show notes."
+  request_timeout_seconds:
+    default: 10
+    description: Max seconds to wait for each link before treating it as unreachable.
+compatible_agents: [generic, claude, codex]
+notes: >
+  A 200 response doesn't guarantee the destination still sells the product
+  or that the affiliate tag is still credited — spot-check a sample
+  manually every so often. Distinct from `show-notes-publish-lag-check`
+  (timing of publishing show notes) and `episode-seo-metadata-completeness-check`
+  (whether metadata fields are present, not whether links still resolve).

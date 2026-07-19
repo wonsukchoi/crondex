@@ -1,0 +1,38 @@
+id: hoa-str-restriction-vote-monitor
+version: 1
+name: HOA STR Restriction Vote Monitor
+description: >
+  Reviews an HOA or condo association's posted meeting agenda/minutes for
+  any item that could restrict or ban short-term rentals at a property.
+  Use this if a property has ever had its STR use restricted overnight by
+  an association vote nobody was tracking, leaving active bookings on
+  the calendar with nowhere to go.
+category: short-term-rental
+tags: [short-term-rental, hoa, compliance, zoning]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{hoa_portal_url}} (or the most recently posted agenda/minutes
+  you have access to) for {{property_id}}'s HOA/condo association,
+  looking for agenda items within the next {{lookahead_days}} days that
+  mention short-term rental, vacation rental, lease restrictions, or
+  minimum lease terms.
+  1. List each relevant agenda item with its meeting date and whether
+     it's a scheduled vote or just a discussion item.
+  2. Flag any scheduled vote on an STR restriction as high priority.
+  3. If a restriction looks likely to pass, recommend pausing new
+     bookings that would check in after the vote date until the outcome
+     is confirmed — do not cancel any existing booking automatically.
+variables:
+  property_id:
+    default: "prop-001"
+    description: Identifier for the property whose HOA/condo association to check.
+  hoa_portal_url:
+    default: "https://example-hoa-portal.com/documents"
+    description: URL or reference to the association's posted meeting agendas/minutes.
+  lookahead_days:
+    default: 30
+    description: How many days ahead to check for scheduled HOA meetings or votes.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Requires access to the HOA's posted documents or minutes; this job reads and flags, it doesn't have a structured feed to query. Distinct from str-zoning-classification-renewal-check and host-permit-registration-renewal-check, which track your own municipal permit/certification renewal dates — an HOA restriction follows no fixed renewal calendar and can change STR legality with a single vote.

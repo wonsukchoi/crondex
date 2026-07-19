@@ -1,0 +1,42 @@
+id: airline-companion-certificate-expiry-check
+version: 1
+name: Airline Companion Certificate Expiry Check
+description: >
+  Tracks the expiry date of a co-branded credit card's annual companion
+  fare certificate and warns while there's still enough runway to book
+  and complete travel before it voids. Use this if you've ever let a
+  "free companion ticket" from your airline credit card expire unused
+  because you forgot it wasn't miles and doesn't roll over.
+category: travel
+tags: [travel, loyalty, credit-card, companion-fare]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  expiry_epoch=$(date -d "{{certificate_expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{certificate_expiry_date}}" +%s);
+  today_epoch=$(date +%s);
+  days_left=$(( (expiry_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le 0 ]; then
+    echo "EXPIRED: {{card_name}} companion certificate expired on {{certificate_expiry_date}} — check if your card's next renewal issues a new one.";
+  elif [ "$days_left" -le "{{book_by_warn_days}}" ]; then
+    echo "BOOK NOW: {{card_name}} companion certificate expires in $days_left day(s) ({{certificate_expiry_date}}) — travel must be completed by then, so book soon to leave room for the trip itself.";
+  else
+    echo "OK: {{card_name}} companion certificate valid for $days_left more day(s), expires {{certificate_expiry_date}}.";
+  fi
+variables:
+  card_name:
+    default: "your co-branded airline credit card"
+    description: Name of the credit card issuing the companion certificate.
+  certificate_expiry_date:
+    default: "2026-12-31"
+    description: Date the companion certificate expires or must be used by (YYYY-MM-DD).
+  book_by_warn_days:
+    default: 60
+    description: Start warning this many days before expiry, leaving enough lead time to book and actually travel before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain certificate_expiry_date yourself after each
+  card renewal — this doesn't read your card account. Distinct from
+  frequent-flyer-miles-expiry and travel-rewards-points-expiry-watch,
+  which track mileage/point balances, not a one-time annual certificate
+  that requires completed travel, not just booking, before its deadline.

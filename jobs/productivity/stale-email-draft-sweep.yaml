@@ -1,0 +1,34 @@
+id: stale-email-draft-sweep
+version: 1
+name: Stale Email Draft Sweep
+description: >
+  Checks a mail draft export for unsent messages that have sat untouched
+  past a threshold, and lists them so you can decide to finish, send, or
+  discard each one. Use this if your Drafts folder has quietly become a
+  graveyard of half-written emails you meant to get back to.
+category: productivity
+tags: [email, drafts, cleanup]
+schedule: "0 9 * * 3"
+timezone: "UTC"
+runner: shell
+command: >
+  jq -r --arg today "$(date -u +%Y-%m-%d)" --argjson stale_days {{stale_days}} '
+    .drafts[]
+    | . as $d
+    | (($today | strptime("%Y-%m-%d") | mktime) - ($d.last_edited_date | strptime("%Y-%m-%d") | mktime)) / 86400 | floor as $age
+    | select($age >= $stale_days)
+    | "\($age)d untouched\t\($d.subject // "(no subject)")\tto: \($d.recipients // "unset" | if type == "array" then join(", ") else . end)"
+  ' "{{draft_export_path}}" | sort -rn
+variables:
+  stale_days:
+    default: "10"
+    description: Number of days a draft can go unedited before it's flagged as stale.
+  draft_export_path:
+    default: "/data/draft-export.json"
+    description: Path to a JSON export of the mail Drafts folder containing a `drafts` array with `subject`, `recipients`, and `last_edited_date` fields.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a draft export snapshot; never sends, edits,
+  or deletes a draft. Distinct from email-response-time-check, which
+  watches incoming threads awaiting your reply, not outgoing drafts you
+  started and abandoned.

@@ -1,0 +1,35 @@
+id: boarding-medication-dose-log-check
+version: 1
+name: Boarding Medication Dose Log Completeness Check
+description: >
+  Compares today's list of boarded pets who are on a medication schedule
+  against the dose administration log and flags any pet with no dose entry
+  recorded for today. Use this if a boarded pet on daily medication has ever
+  had a dose quietly skipped during a busy shift because nobody cross-checked
+  the dosing log against who actually still needed a dose that day.
+category: petcare
+tags: [petcare, boarding, medication, dose-log, safety]
+schedule: "0 21 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==FNR { if (FNR>1) dosed[$1","today]=1; next }
+    FNR==1 { next }
+    {
+      if ($3 <= today && $4 >= today) {
+        key = $1","today;
+        if (!(key in dosed)) print "DOSE NOT LOGGED: " $1 " (" $2 ") — no medication dose entry for " today;
+      }
+    }
+  ' "{{dose_log_csv_path}}" "{{active_medication_orders_csv_path}}"
+variables:
+  dose_log_csv_path:
+    default: "./medication-dose-log.csv"
+    description: "Path to a CSV with columns: pet_name,date (YYYY-MM-DD),administered_by, one row per logged dose given."
+  active_medication_orders_csv_path:
+    default: "./active-medication-orders.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,med_start_date (YYYY-MM-DD),med_end_date (YYYY-MM-DD), one row per pet currently on a medication schedule during their stay."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from pet-care-instructions-staleness-check.yaml (checks whether written medication instructions are current) and boarding-feeding-log-completeness-check.yaml (checks feeding only) — this checks whether today's actual medication dose was logged as given for every pet on an active medication order. A missing entry means missing paperwork, not necessarily a missed dose, so confirm with staff in person before assuming the worst; this never determines dosage or administers anything itself.

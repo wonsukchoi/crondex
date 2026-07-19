@@ -1,0 +1,38 @@
+id: employee-meal-break-compliance-check
+version: 1
+name: Employee Meal Break Compliance Check
+description: >
+  Checks clocked shifts against logged meal/rest breaks and flags any
+  shift that ran past the required break interval without a break
+  punched. Use this if a store has ever risked a wage-and-hour labor
+  complaint or fine because someone worked a long shift with no
+  recorded break and it wasn't caught until a payroll audit.
+category: retail
+tags: [retail, labor-compliance, breaks, payroll]
+schedule: "0 6 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v max_hours="{{max_hours_without_break}}" '
+    NR==1 {next}
+    {
+      emp=$1; date=$2; hours=$3; break_taken=$4;
+      if (hours+0 > max_hours && break_taken != "yes") {
+        printf "MISSING BREAK: %s worked %.1f hrs on %s with no break logged\n", emp, hours, date;
+      }
+    }
+  ' "{{timeclock_csv_path}}"
+variables:
+  timeclock_csv_path:
+    default: "./daily-timeclock-export.csv"
+    description: "CSV with header row, columns: employee_id,shift_date (YYYY-MM-DD),shift_hours,break_taken (yes/no) — one row per employee per shift."
+  max_hours_without_break:
+    default: 5
+    description: Shift length in hours beyond which a logged break is required by policy or law before the shift is flagged as missing one.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Adjust the threshold to your state/local labor law, since meal-break
+  rules vary; this flags shifts for payroll/HR review. Distinct from
+  `employee-shift-gap-check` (unfilled shifts) and
+  `seasonal-staffing-coverage-check` (aggregate scheduled hours vs a
+  seasonal plan) — this looks at individual break compliance per shift.

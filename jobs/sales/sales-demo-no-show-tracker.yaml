@@ -1,0 +1,31 @@
+id: sales-demo-no-show-tracker
+version: 1
+name: Sales Demo No-Show Tracker
+description: >
+  Finds scheduled sales demo or discovery call meetings that were marked as
+  a no-show in the last day, so the rep doesn't let a missed meeting go
+  unaddressed. Use this if a prospect has ever ghosted a scheduled demo and
+  the deal quietly went cold because nobody proactively reached out to
+  reschedule.
+category: sales
+tags: [sales, meetings, no-show, followup]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select d.name, m.owner, m.contact_email, m.scheduled_at from meetings m join deals d on d.id = m.deal_id where m.meeting_type = 'demo' and m.status = 'no_show' and m.scheduled_at >= now() - interval '{{lookback_hours}} hours';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the CRM/deals database, including a synced meetings table.
+  lookback_hours:
+    default: 24
+    description: How many hours back to look for meetings marked as no-show.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `meetings` table populated from your calendar/scheduling tool
+  (Chili Piper, Calendly, or similar) with a `status` field marking
+  no-shows — adjust field names to your integration. Distinct from
+  `lead-response-time-check` (initial inbound response SLA) and
+  `proposal-followup-nudge` (post-proposal silence): this is specifically
+  about a booked meeting that never happened.

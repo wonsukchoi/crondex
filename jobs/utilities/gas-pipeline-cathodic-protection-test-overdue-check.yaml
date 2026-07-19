@@ -1,0 +1,29 @@
+id: gas-pipeline-cathodic-protection-test-overdue-check
+version: 1
+name: Gas Pipeline Cathodic Protection Test Overdue Check
+description: >
+  Checks the pipeline corrosion-control database for cathodic protection
+  test stations whose annual rectifier or pipe-to-soil potential reading is
+  coming due or already overdue, and lists them soonest-due first. Use this
+  if your gas utility is required to keep cathodic protection surveys on an
+  annual cycle and a missed reading has ever surfaced as a corrosion-control
+  compliance gap during a PHMSA inspection.
+category: utilities
+tags: [utilities, gas, cathodic-protection, pipeline-safety, regulatory-compliance]
+schedule: "0 6 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select test_point_id, segment_id, last_test_date, (last_test_date + interval '1 month' * {{test_cycle_months}}) as next_test_due from cathodic_protection_test_points where (last_test_date + interval '1 month' * {{test_cycle_months}}) <= current_date + interval '{{lead_time_days}} days' order by next_test_due asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the pipeline corrosion-control/cathodic-protection database.
+  test_cycle_months:
+    default: "12"
+    description: How often (in months) each cathodic protection test station must be read, per your PHMSA-required corrosion-control interval (commonly annual, i.e. 12 months, not to exceed 15).
+  lead_time_days:
+    default: "21"
+    description: How many days before (or past) the test anniversary to start flagging a test point as due.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `cathodic_protection_test_points` table with `test_point_id`, `segment_id`, and `last_test_date` columns per rectifier/test station — adjust to your pipeline integrity management system's schema. Read-only reminder job; it does not take the pipe-to-soil reading or file the corrosion-control report itself. Distinct from gas-pipeline-odorization-test-due-reminder, which tracks odorant-level testing rather than corrosion-control readings.

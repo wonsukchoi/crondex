@@ -1,0 +1,43 @@
+id: referral-partner-commission-payout-check
+version: 1
+name: Referral Partner Commission Payout Check
+description: >
+  Tracks commission owed to business referral partners — wedding
+  planners, venues, agencies — for bookings they sent your way, and
+  flags any still unpaid past your agreed payout terms. Use this if a
+  planner or venue has ever quietly stopped referring clients because
+  their referral commission from a past booking never got paid out.
+category: photography
+tags: [photography, referrals, partners, payments, business-development]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v terms="{{payout_terms_days}}" '
+    NR==1 {next}
+    tolower($6) == "unpaid" {
+      partner=$1; booking_id=$2; booking_date=$3; amount=$4; percent=$5;
+      cmd = "date -d \"" booking_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" booking_date "\" +%s 2>/dev/null";
+      cmd | getline booking_epoch; close(cmd);
+      days_since = int((today - booking_epoch) / 86400);
+      if (days_since >= terms) {
+        printf "COMMISSION UNPAID: %s — booking %s on %s, $%s owed (%s), %d day(s) since booking\n", partner, booking_id, booking_date, amount, percent, days_since;
+      }
+    }
+  ' "{{referral_commissions_csv_path}}"
+variables:
+  referral_commissions_csv_path:
+    default: "./referral-commissions.csv"
+    description: "Path to a CSV with columns: partner_name,booking_id,booking_date (YYYY-MM-DD),commission_amount,commission_percent,status (unpaid/paid)."
+  payout_terms_days:
+    default: 30
+    description: How many days after the booking date a referral partner's commission should be paid before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >-
+  Read-only: it only flags overdue partner commissions, it doesn't issue
+  the payout itself — pay it once flagged. Distinct from
+  second-shooter-payment-tracker (contractor labor pay for shoots
+  worked) and photography-referral-follow-up-drafts (a thank-you
+  message to past clients who referred someone, not a business
+  partner's paid commission).

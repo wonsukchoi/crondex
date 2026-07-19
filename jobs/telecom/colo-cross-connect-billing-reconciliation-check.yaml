@@ -1,0 +1,54 @@
+id: colo-cross-connect-billing-reconciliation-check
+version: 1
+name: Colo Cross-Connect Billing Reconciliation Check
+description: >
+  Uses an agent to compare the list of cross-connects a colocation
+  provider is currently billing you for against your own patch panel /
+  interconnect inventory records and flags mismatches in both
+  directions. Use this if you've ever kept paying for a cross-connect
+  that was decommissioned months ago, or discovered a live cross-connect
+  in the cage that was never on an invoice and could vanish without
+  notice.
+category: telecom
+tags: [telecom, colocation, cross-connect, billing]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Here is the colo provider's current cross-connect billing export:
+  {{provider_billing_csv_path}} (columns: cross_connect_id,site,
+  a_side_cage_or_rack,z_side_cage_or_rack,monthly_charge_usd,status).
+  Here is our own patch panel / interconnect inventory:
+  {{internal_patch_panel_csv_path}} (columns: cross_connect_id,site,
+  a_side_cage_or_rack,z_side_cage_or_rack,in_service).
+
+  1. Flag any cross_connect_id billed by the provider as active where
+     our internal inventory shows in_service = no or the record is
+     missing entirely — this is money being paid for something
+     decommissioned or never confirmed as ours.
+  2. Flag any cross_connect_id in our internal inventory marked
+     in_service = yes that does not appear on the provider's billing
+     export at all — this is a live physical connection with no
+     billing record, which could be cut without warning during an
+     audit.
+  3. For matched records, flag any mismatch in a_side/z_side cage or
+     rack labeling between the two sources, since that usually signals
+     a stale documentation problem worth cleaning up before it causes a
+     mistaken disconnect.
+  4. Produce a short reconciliation list grouped by site, ranked by
+     dollar impact for billing mismatches first, then unbilled live
+     connections.
+variables:
+  provider_billing_csv_path:
+    default: "./colo-cross-connect-billing.csv"
+    description: "Path to the colocation provider's current cross-connect billing export."
+  internal_patch_panel_csv_path:
+    default: "./internal-patch-panel-inventory.csv"
+    description: "Path to your own patch panel / cross-connect inventory records."
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  Read-only reconciliation — does not cancel or order any cross-connect.
+  Distinct from dark-fiber-lease-utilization-check (strand utilization on
+  leased fiber routes) and colo-power-redundancy-test-compliance-check
+  (backup power testing); this is specifically about matching billed
+  cross-connects to physical patch records.

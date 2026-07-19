@@ -1,0 +1,38 @@
+id: textbook-exam-copy-fulfillment-lag-check
+version: 1
+name: Textbook Exam Copy Fulfillment Lag Check
+description: >
+  Flags instructor requests for free exam/desk copies of textbooks that
+  haven't shipped within the target turnaround window. Use this if a
+  professor has ever adopted a competitor's textbook for the next
+  semester because your exam copy arrived too late to be evaluated in
+  time for the syllabus deadline.
+category: publishing
+tags: [publishing, textbooks, academic, exam-copies]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days={{max_fulfillment_days}} '
+    NR>1 && $5 == "unshipped" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline req_ts; close(cmd);
+      days_open = int((today - req_ts) / 86400);
+      if (days_open >= max_days) print "OVERDUE EXAM COPY: " $1 " requested \"" $2 "\" " days_open " days ago (course start " $4 "), still unshipped";
+    }
+  ' "{{exam_copy_requests_csv}}"
+variables:
+  exam_copy_requests_csv:
+    default: "./exam-copy-requests.csv"
+    description: "CSV with header row, columns: instructor_name,title,request_date(YYYY-MM-DD),course_start_date(YYYY-MM-DD),status(unshipped|shipped|denied)."
+  max_fulfillment_days:
+    default: 5
+    description: Business days after a request before an unshipped exam copy is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to academic/textbook adoption workflows specifically, not general
+  ARC or review-copy distribution (see arc-review-copy-followup, which
+  tracks post-send reviewer follow-up rather than pre-send fulfillment
+  speed). Update status to "shipped" or "denied" as requests are processed
+  so cleared rows stop appearing.

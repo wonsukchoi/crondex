@@ -1,0 +1,46 @@
+id: rep-product-certification-lapse-check
+version: 1
+name: Rep Product Certification Lapse Check
+description: >
+  Checks which reps' product certification (required to quote or sell
+  certain regulated or complex SKUs) has expired or is about to, based on
+  your LMS or certification tracker. Use this if a rep has ever quoted a
+  certification-gated product after their certification lapsed, creating a
+  compliance or accuracy risk that only surfaces once a deal is already in
+  motion.
+category: sales
+tags: [sales, certification, enablement, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the rep product-certification records in {{certification_source}}.
+  1. For each rep certified to sell {{gated_product_line}}, check the
+     certification expiration date against today.
+  2. List any rep whose certification has already expired or expires
+     within {{warn_days}} days, along with the products they're no longer
+     (or soon won't be) cleared to quote.
+  3. Cross-reference {{crm_hint}} for any open deals owned by a lapsed rep
+     that include a gated product, and flag those deals specifically as
+     needing a certified co-owner or manager review.
+  4. Draft a short reminder message per lapsed rep prompting them to
+     recertify, for review only.
+variables:
+  certification_source:
+    default: "your LMS export or a certifications.csv with columns: rep_name,product_line,certified_at,expires_at"
+    description: Where rep product-certification records and their expiration dates are tracked.
+  gated_product_line:
+    default: "your certification-gated product line(s)"
+    description: The product line(s) that require an active certification to quote or sell.
+  warn_days:
+    default: 30
+    description: Days before expiration to start flagging an upcoming certification lapse.
+  crm_hint:
+    default: "your CRM (Salesforce, HubSpot, Pipedrive)"
+    description: Name of the CRM in use, for cross-referencing open deals owned by lapsed reps.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — the recertification reminder is never sent automatically.
+  Distinct from `sales-kickoff-training-attendance-tracker`, which checks
+  one-time onboarding attendance rather than an ongoing, recurring product
+  certification requirement.

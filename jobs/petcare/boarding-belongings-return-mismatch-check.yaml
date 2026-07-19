@@ -1,0 +1,30 @@
+id: boarding-belongings-return-mismatch-check
+version: 1
+name: Boarding Belongings Return Mismatch Check
+description: >
+  Scans today's checkout list for pets whose personal items (bed, leash,
+  toys, medication bottles) logged at drop-off haven't all been marked
+  returned at pickup, and flags the specific missing items. Use this if a
+  client has ever driven home before noticing their dog's favorite blanket
+  or a half-full medication bottle never made it back into the car.
+category: petcare
+tags: [petcare, boarding, belongings, checkout, client-experience]
+schedule: "0 17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      if ($4 == today && $5 != "returned") {
+        print "ITEM NOT RETURNED: " $1 " (" $2 ") — " $3 " marked \"" $5 "\" at checkout " $4;
+      }
+    }
+  ' "{{belongings_log_csv_path}}"
+variables:
+  belongings_log_csv_path:
+    default: "./boarding-belongings-log.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,item,checkout_date (YYYY-MM-DD),return_status (returned/missing/pending), one row per item checked in at drop-off."
+compatible_agents: [generic, claude, codex]
+notes: Purely a paperwork check against your own belongings log — mark an item's return_status "returned" as soon as it's handed back so this doesn't keep flagging it; distinct from facility-repair-ticket-aging-check.yaml, which tracks facility maintenance tickets rather than client-owned items.

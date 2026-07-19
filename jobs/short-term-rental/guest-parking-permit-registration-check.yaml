@@ -1,0 +1,25 @@
+id: guest-parking-permit-registration-check
+version: 1
+name: Guest Parking Permit Registration Check
+description: >
+  Flags upcoming bookings where a required guest parking permit or
+  vehicle registration hasn't been completed yet. Use this if a guest
+  has ever gotten towed or ticketed during their stay because a
+  building, HOA, or city guest-parking registration was never finished
+  before check-in.
+category: short-term-rental
+tags: [short-term-rental, parking, guest-services, compliance]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select property_id, guest_name, checkin_date from bookings where parking_permit_required = true and parking_permit_registered = false and checkin_date <= current_date + interval '{{warning_days}} days';"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the property management database.
+  warning_days:
+    default: 2
+    description: Days before check-in to start flagging an unregistered required parking permit.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a `bookings` table with `parking_permit_required` and `parking_permit_registered` columns, set per property based on your building/HOA/city rules — adjust to your PMS's schema. Distinct from guest-id-verification-pending-check (identity verification, not vehicle/parking registration) and hoa-str-restriction-vote-monitor (association-level STR legality, not per-guest parking logistics).

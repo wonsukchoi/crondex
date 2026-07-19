@@ -1,0 +1,47 @@
+id: room-turnover-buffer-violation-check
+version: 1
+name: Treatment Room Turnover Buffer Violation Check
+description: >
+  Scans tomorrow's room-level booking schedule for back-to-back
+  appointments that leave less than the required cleaning/reset buffer
+  between them, even when the bookings themselves don't technically
+  overlap. Use this if a therapist has ever had to rush a room reset (or
+  skip it) because the schedule packed two bookings back-to-back with
+  zero minutes to sanitize the table, restock linens, and reset for the
+  next client.
+category: spa
+tags: [spa, scheduling, room-turnover, operations]
+schedule: "0 17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  sort -t',' -k1,1 -k2,2 "{{bookings_csv_path}}" | awk -F',' -v buffer="{{required_buffer_minutes}}" '
+    NR==1 {next}
+    {
+      room = $1;
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      cmd2 = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $2 "\" +%s 2>/dev/null";
+      cmd2 | getline start_epoch; close(cmd2);
+      if (room == prev_room) {
+        gap_minutes = (start_epoch - prev_end_epoch) / 60;
+        if (gap_minutes >= 0 && gap_minutes < buffer) {
+          printf "TURNOVER BUFFER VIOLATION: %s — %s ends, next booking starts %s (%d min gap, need %d)\n", room, prev_end, $2, gap_minutes, buffer;
+        }
+      }
+      prev_room = room; prev_end_epoch = end_epoch; prev_end = $3;
+    }
+  ' "{{bookings_csv_path}}"
+variables:
+  bookings_csv_path:
+    default: "./tomorrow-room-bookings.csv"
+    description: "Path to a CSV with columns: room_name,start_time (YYYY-MM-DD HH:MM),end_time (YYYY-MM-DD HH:MM), one row per booked treatment, sorted or unsorted."
+  required_buffer_minutes:
+    default: 10
+    description: Minimum minutes required between the end of one booking and the start of the next in the same room for cleaning and reset.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This only flags tight-but-non-overlapping bookings; true double-bookings
+  (overlapping times in the same room) are covered separately by
+  treatment-room-double-booking-check.yaml — this job catches the
+  "technically fits, practically doesn't" scheduling problem.

@@ -1,0 +1,44 @@
+id: comeback-repeat-repair-tracker
+version: 1
+name: Comeback / Repeat Repair Tracker
+description: >
+  Scans repair order history for the same vehicle coming back with the same
+  complaint code within a short window and flags it as a possible comeback.
+  Use this if a vehicle has ever returned for the identical issue within a
+  few weeks and nobody connected the two ROs until the customer was already
+  angry on the phone.
+category: automotive
+tags: [automotive, quality, comeback, repeat-repair]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v window="{{comeback_window_days}}" '
+    NR==1 {next}
+    {
+      key = $2 SUBSEP $3;
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline cur_ts; close(cmd);
+      if (key in last_ts) {
+        days = (cur_ts - last_ts[key]) / 86400;
+        if (days >= 0 && days <= window) {
+          printf "COMEBACK: VIN %s — complaint \"%s\" repeated after %d days (prior RO %s -> RO %s)\n", $2, $3, days, last_ro[key], $1;
+        }
+      }
+      last_ts[key] = cur_ts;
+      last_ro[key] = $1;
+    }
+  ' "{{repair_orders_csv_path}}"
+variables:
+  repair_orders_csv_path:
+    default: "./repair-orders-history.csv"
+    description: "Path to a CSV with columns: ro_number,vehicle_vin,complaint_code,completed_date (YYYY-MM-DD). Must be sorted oldest-to-newest per vehicle for the comparison to work."
+  comeback_window_days:
+    default: 30
+    description: How many days apart two ROs for the same VIN and complaint code count as a comeback rather than an unrelated later visit.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Complaint codes need to be consistent (same code/text) across visits for a
+  match — free-text complaint fields will under-report. This is about quality
+  control on repeat work, distinct from `csi-score-monitor` (customer survey
+  sentiment) and `repair-order-aging-check` (how long a single RO sits open).

@@ -1,0 +1,49 @@
+id: outdated-stat-year-reference-check
+version: 1
+name: Outdated Stat/Year Reference Check
+description: >
+  Scans published content for phrases that pin a claim to a specific
+  calendar year (like "in 2019" or "data from 2020") and flags any that
+  are older than an acceptable age, even on pages that otherwise look
+  fresh. Use this if an evergreen guide has ever quoted a years-old
+  statistic as if it were current because only the page's last-modified
+  date gets checked, not the claims actually made inside it.
+category: content
+tags: [content, editorial-accuracy, freshness]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  dir={{content_dir}};
+  [ -d "$dir" ] || { echo "ERROR: $dir not found"; exit 1; };
+  current_year=$(date +%Y);
+  cutoff=$(( current_year - {{max_age_years}} ));
+  hits=$(grep -rnoE "(in|since|as of|data from|published in) (19|20)[0-9]{2}" "$dir" --include="*.{{file_ext}}");
+  if [ -z "$hits" ]; then echo "OK: no year-anchored stat phrases found"; exit 0; fi;
+  flagged=0;
+  echo "$hits" | while IFS=: read -r path line match; do
+    year=$(echo "$match" | grep -oE "(19|20)[0-9]{2}");
+    if [ "$year" -le "$cutoff" ]; then
+      echo "STALE REFERENCE ($path:$line): \"$match\" — $year is more than {{max_age_years}} year(s) old, verify the stat still holds";
+      flagged=1;
+    fi;
+  done;
+  echo "Scan complete for $dir (cutoff year: $cutoff or older flagged above)"
+variables:
+  content_dir:
+    default: "content/posts"
+    description: Directory of published content source files to scan for year-anchored phrases.
+  file_ext:
+    default: "md"
+    description: File extension of your content source files (e.g. md, mdx, html).
+  max_age_years:
+    default: 2
+    description: How many years old a referenced year can be before it's flagged as potentially stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a text-pattern heuristic, not a fact-checker — it flags
+  candidates for a human to re-verify (the stat may still be accurate,
+  or may be a historical reference that's meant to stay fixed, like "the
+  2008 financial crisis"). Different in scope from stale-post-audit,
+  which looks at page last-modified dates rather than the claims inside
+  otherwise-current pages.

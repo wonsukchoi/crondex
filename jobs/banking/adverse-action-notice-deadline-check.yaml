@@ -1,0 +1,59 @@
+id: adverse-action-notice-deadline-check
+version: 1
+name: Adverse Action Notice Deadline Check
+description: >
+  Checks denied or counteroffer-declined loan applications against the
+  Regulation B / ECOA requirement to send a written adverse action notice
+  within a set number of days of the credit decision, and flags
+  applications where the notice is missing, at risk, or went out late.
+  Use this if a denial has ever sat without its required notice going out
+  in time, which is a standalone compliance violation separate from how
+  fast the lending decision itself was made.
+category: banking
+tags: [banking, regulation-b, ecoa, adverse-action, fair-lending, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn="{{warn_days_before_deadline}}" -v deadline_days="{{notice_deadline_days}}" '
+    NR==1 { next }
+    ($3=="DENIED" || $3=="COUNTEROFFER_DECLINED") {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline decision_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      deadline_epoch = decision_epoch + (deadline_days * 86400);
+      if ($4 != "") {
+        cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+        cmd2 | getline sent_epoch; close(cmd2);
+        if (sent_epoch > deadline_epoch) {
+          printf "NOTICE SENT LATE: application %s decided %s (%s) — notice sent %s, past the %d-day deadline\n", $1, $2, $3, $4, deadline_days;
+          n++;
+        }
+        next;
+      }
+      remaining_days = int((deadline_epoch - now_epoch) / 86400);
+      if (remaining_days <= warn) {
+        status = (remaining_days < 0) ? "PAST DEADLINE, NO NOTICE SENT" : "NOTICE NOT YET SENT, AT RISK";
+        printf "%s: application %s decided %s (%s) — %d day(s) remaining to send adverse action notice\n", status, $1, $2, $3, remaining_days;
+        n++;
+      }
+    }
+    END { printf "%d application(s) with an adverse action notice missing, at risk, or sent late.\n", n+0; }
+  ' "{{loan_decisions_csv_path}}"
+variables:
+  loan_decisions_csv_path:
+    default: "./loan_decisions.csv"
+    description: "Path to a CSV with header row, columns: application_id,decision_date (YYYY-MM-DD),decision (DENIED, COUNTEROFFER_DECLINED, or APPROVED — other values ignored),notice_sent_date (blank if not yet sent)."
+  notice_deadline_days:
+    default: 30
+    description: Days from the credit decision within which Regulation B requires the adverse action notice to be sent.
+  warn_days_before_deadline:
+    default: 5
+    description: How many days of remaining allowance triggers an at-risk flag for a notice that hasn't gone out yet.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance tracker — it does not draft or send the notice
+  itself, only surfaces which denials need one. Distinct from
+  loan-application-turnaround-time-check.yaml, which tracks how long a
+  decision itself takes; this job starts its clock only after a denial or
+  declined counteroffer has already been decided.

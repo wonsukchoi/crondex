@@ -1,0 +1,38 @@
+id: lost-found-item-claim-tracker
+version: 1
+name: Lost & Found Item Claim Tracker
+description: >
+  Checks the lost-and-found log kept by crews against how many days each
+  item has sat unclaimed and drafts a short notice to the client or
+  property contact for anything past the claim window. Use this if an
+  item has ever been found on a job site (keys, jewelry, a phone charger,
+  a kid's toy) and then just sat in a bin at the office for weeks because
+  nobody followed up with the client about it.
+category: cleaning-services
+tags: [cleaning-services, lost-and-found, client-communication, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the lost-and-found log at {{lost_found_csv_path}} (columns:
+  item_id, description, date_found, property_name, client_contact_email,
+  claimed_status). For every row where claimed_status is "unclaimed" and
+  date_found is more than {{claim_window_days}} days ago, draft a short,
+  friendly notice to client_contact_email describing the item and asking
+  whether they'd like it returned, or if it can be donated or discarded
+  after {{disposal_grace_days}} more days if nobody claims it. Group the
+  drafts under a summary listing how many items are past the claim
+  window, sorted oldest first, so the office can work through the
+  backlog in order.
+variables:
+  lost_found_csv_path:
+    default: "./lost-found-log.csv"
+    description: "CSV with header row, columns: item_id,description,date_found,property_name,client_contact_email,claimed_status (claimed_status is one of unclaimed, claimed, disposed)."
+  claim_window_days:
+    default: 14
+    description: Number of days an item can sit unclaimed before a notice draft is generated for it.
+  disposal_grace_days:
+    default: 30
+    description: Additional days mentioned in the notice before the item may be donated or discarded if still unclaimed.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — notices should be reviewed before sending, and no item should actually be donated or discarded automatically by this job; it only flags timing and drafts the outreach.

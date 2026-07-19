@@ -1,0 +1,39 @@
+id: chemical-dilution-log-compliance-check
+version: 1
+name: Chemical Dilution Log Compliance Check
+description: >
+  Compares the dilution ratio crews actually logged for each cleaning
+  chemical against the manufacturer-specified ratio and flags any job
+  where the mix was too strong, too weak, or missing entirely. Use this
+  if a chemical has ever been over-diluted and failed to disinfect
+  properly, or under-diluted and damaged a client's flooring or
+  upholstery, because a crew eyeballed the mix instead of following the
+  label ratio.
+category: cleaning-services
+tags: [cleaning-services, chemical-safety, quality-control, compliance]
+schedule: "0 19 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tol="{{tolerance_percent}}" '
+    NR==1 {next}
+    {
+      job=$1; chem=$2; used=$3+0; mfg=$4+0; crew=$5;
+      if (used == 0) {
+        printf "MISSING: job %s — no dilution ratio logged for %s (crew %s)\n", job, chem, crew;
+        next;
+      }
+      diff = (used - mfg) / mfg * 100;
+      if (diff < 0) diff = -diff;
+      if (diff > tol) printf "OUT-OF-RANGE: job %s — %s logged at 1:%d, manufacturer spec is 1:%d (crew %s, %.0f%% off)\n", job, chem, used, mfg, crew, diff;
+    }
+  ' "{{dilution_log_csv_path}}"
+variables:
+  dilution_log_csv_path:
+    default: "./chemical-dilution-log.csv"
+    description: "CSV with header row, columns: job_id,chemical_name,logged_ratio_parts_water,manufacturer_ratio_parts_water,crew_name (ratios expressed as the water side of a 1:N dilution, e.g. 32 for 1:32)."
+  tolerance_percent:
+    default: 15
+    description: Percent deviation from the manufacturer ratio allowed before a mix is flagged as out-of-range.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only check; assumes crews log the actual mix ratio per job (e.g. via a checklist or dispensing system readout), not just that "chemical X was used." Distinct from sds-chemical-safety-compliance-check, which tracks safety data sheet documentation rather than actual mix ratios used on the job.

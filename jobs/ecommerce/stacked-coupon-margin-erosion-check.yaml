@@ -1,0 +1,46 @@
+id: stacked-coupon-margin-erosion-check
+version: 1
+name: Stacked Coupon Margin Erosion Check
+description: >
+  Reviews recent line items where multiple stackable discount codes were
+  applied to the same order and flags any that sold below your minimum
+  margin floor over cost. Use this if two coupons that were each fine on
+  their own have ever combined on checkout to sell an item at a loss,
+  because nothing was checking the stacked total against unit cost.
+category: ecommerce
+tags: [ecommerce, coupons, discounts, margin, pricing]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v minmargin="{{min_margin_pct}}" -v mincoupons="{{stacked_coupon_threshold}}" '
+    NR==1 {next}
+    {
+      order_id=$1; sku=$2; unit_cost=$3; final_price=$4; num_coupons=$5;
+      if (num_coupons+0 < mincoupons) next;
+      if (unit_cost+0 <= 0) next;
+      floor_price = unit_cost * (1 + minmargin/100);
+      if (final_price+0 < floor_price) {
+        margin_pct = ((final_price - unit_cost) / unit_cost) * 100;
+        printf "MARGIN EROSION: order %s, sku %s — %d coupons stacked, sold at $%.2f (cost $%.2f), margin %.1f%%\n", order_id, sku, num_coupons, final_price, unit_cost, margin_pct;
+      }
+    }
+  ' "{{orders_csv_path}}"
+variables:
+  orders_csv_path:
+    default: "./orders-with-discounts.csv"
+    description: "Path to a CSV with columns: order_id,sku,unit_cost,final_price,num_coupons_applied — one row per line item, with the count of simultaneously-applied stackable discount codes for that item."
+  min_margin_pct:
+    default: 10
+    description: Minimum gross margin percentage required above unit cost; a sale price below this floor gets flagged.
+  stacked_coupon_threshold:
+    default: 2
+    description: Minimum number of coupon codes stacked on a single line item before a low-margin sale is worth flagging — filters out ordinary single-code discounts working as intended.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `bundle-margin-erosion-check` (which looks at bundle
+  component pricing) and `coupon-code-expiry-check` (which only checks
+  whether codes are still valid, not their combined effect) — this
+  targets orders where multiple independently-reasonable discounts
+  compounded past your cost floor. Requires an export that already
+  resolves the final stacked price and coupon count per line item.

@@ -1,0 +1,40 @@
+id: contractor-engagement-duration-risk-check
+version: 1
+name: Contractor Engagement Duration Risk Check
+description: >
+  Looks through freelancer and contractor engagement records for people
+  who have been working continuously for the agency past a duration
+  threshold at a high average weekly hour load, and flags them for a
+  worker-classification review. Use this if your agency leans heavily on
+  1099/freelance talent and has ever realized — usually during an audit
+  or a contractor dispute — that someone had effectively been working
+  full-time hours for over a year with no one flagging the misclassification
+  risk earlier.
+category: agency
+tags: [agency, contractor, misclassification-risk, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select contractor_name, client_or_internal, engagement_start_date, (current_date - engagement_start_date) as continuous_days, avg_weekly_hours from contractor_engagements where (current_date - engagement_start_date) >= {{continuous_engagement_days_threshold}} and avg_weekly_hours >= {{weekly_hours_threshold}} order by continuous_days desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or contractor-management system holding engagement and timesheet-derived hours records.
+  continuous_engagement_days_threshold:
+    default: "365"
+    description: Minimum continuous engagement length (in days) before a contractor is flagged for review.
+  weekly_hours_threshold:
+    default: "30"
+    description: Minimum average weekly hours over the engagement before it's flagged as looking employee-like.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `contractor_engagements` table with `contractor_name`,
+  `client_or_internal`, `engagement_start_date`, and an `avg_weekly_hours`
+  figure derived from timesheets or invoiced hours — adjust to your
+  contractor-management or timesheet tool's schema. This job does not
+  make a legal determination; it only surfaces engagements worth a
+  worker-classification review by legal/HR counsel, and does not modify
+  contracts or contractor status. Distinct from
+  `freelancer-contractor-payment-reminder`, which is about paying
+  contractors on time, not the classification risk of how they're engaged.

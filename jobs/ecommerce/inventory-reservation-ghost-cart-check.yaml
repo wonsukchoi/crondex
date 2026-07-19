@@ -1,0 +1,45 @@
+id: inventory-reservation-ghost-cart-check
+version: 1
+name: Inventory Reservation Ghost Cart Check
+description: >
+  Scans active cart-level stock reservations and flags any that have been
+  held far longer than your checkout window without releasing, which
+  silently locks real inventory behind carts nobody will ever finish. Use
+  this if a customer has ever been told an item was "out of stock" while
+  the actual units were sitting reserved in someone else's abandoned cart
+  because the release job never fired.
+category: ecommerce
+tags: [ecommerce, inventory, cart, reservations, stockouts]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v ttl="{{reservation_ttl_minutes}}" '
+    NR==1 {next}
+    {
+      cart_id=$1; sku=$2; qty=$3; reserved_at=$4; status=$5;
+      if (status != "active") next;
+      cmd = "date -d \"" reserved_at "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M:%S\" \"" reserved_at "\" +%s 2>/dev/null";
+      cmd | getline reserved_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_minutes = int((now_epoch - reserved_epoch) / 60);
+      if (age_minutes > ttl) {
+        printf "STUCK RESERVATION: cart %s holds %d unit(s) of %s reserved %d min ago (status still active)\n", cart_id, qty, sku, age_minutes;
+      }
+    }
+  ' "{{cart_reservations_csv_path}}"
+variables:
+  cart_reservations_csv_path:
+    default: "./cart-reservations.csv"
+    description: "Path to a CSV with columns: cart_id,sku,qty_reserved,reserved_at(YYYY-MM-DD HH:MM:SS),cart_status(active/abandoned/completed/released) — an export of current stock-reservation locks from your cart/inventory system."
+  reservation_ttl_minutes:
+    default: 60
+    description: Minutes a cart is expected to hold a stock reservation before checkout should complete or the hold should auto-release; reservations older than this and still marked active are flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `low-stock-reorder-alert` (which reasons about real
+  depletion via sales velocity) and `preorder-allocation-oversell-check`
+  (preorder-specific allocation math) — this catches a release-job bug
+  that phantom-locks otherwise-available stock behind dead carts. Requires
+  your platform to expose per-cart reservation state and timestamps; not
+  every cart/inventory system tracks this explicitly.

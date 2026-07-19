@@ -1,0 +1,44 @@
+id: handle-domain-renewal-check
+version: 1
+name: Creator Domain and Handle Renewal Check
+description: >
+  Checks your registered domains and reserved/paid social handles against
+  their renewal or expiry dates and flags anything coming due soon. Use
+  this if a personal or brand domain has ever silently expired and gotten
+  scooped up by a squatter, or a paid handle reservation lapsed, before
+  anyone noticed the auto-renew had failed or was never set up.
+category: creator
+tags: [creator, branding, domains, handles]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days}}" '
+    NR==1 {next}
+    {
+      asset=$1; type=$2; expiry=$3; autorenew=$4;
+      cmd = "date -d \"" expiry "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" expiry "\" +%s 2>/dev/null";
+      cmd | getline exp_ts; close(cmd);
+      days_left = (exp_ts - today) / 86400;
+      if (days_left <= warn) {
+        note = (autorenew == "yes") ? "auto-renew on, but verify the payment method is still valid" : "auto-renew OFF — manual action required";
+        printf "EXPIRING: %s (%s) — expires in %d days (%s) — %s\n", asset, type, days_left, expiry, note;
+      }
+    }
+  ' "{{domains_and_handles_csv_path}}"
+variables:
+  domains_and_handles_csv_path:
+    default: "./domains-and-handles.csv"
+    description: "Path to a CSV with columns: asset_name (e.g. mysite.com or @handle),asset_type (domain/handle/trademark),expiry_date (YYYY-MM-DD),autorenew (yes/no)."
+  warn_days:
+    default: 30
+    description: Days before an expiry date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers domains, reserved-but-unused social handles, and trademark
+  renewals — not the day-to-day social accounts you actively post from.
+  This job only reads a CSV you maintain; it does not query registrars
+  or platforms directly, since credentials/APIs vary. Re-verify
+  auto-renew status with the actual registrar periodically, since a
+  flagged "auto-renew on" here can still fail if a card expired.

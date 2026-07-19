@@ -1,0 +1,38 @@
+id: sublet-vendor-repair-turnaround-tracker
+version: 1
+name: Sublet Vendor Repair Turnaround Tracker
+description: >
+  Checks repair orders sent out to a sublet vendor (body shop, transmission
+  rebuilder, alignment specialist, machine shop) against that job's expected
+  turnaround and flags any still out past it. Use this if a vehicle has ever
+  sat waiting on a sublet job for days longer than quoted because nobody was
+  chasing the outside shop for a status update.
+category: automotive
+tags: [automotive, sublet, vendor, turnaround]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $5 == "out" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_ts; close(cmd);
+      days_out = (today - sent_ts) / 86400;
+      expected = $4 + 0;
+      if (days_out > expected) {
+        printf "OVERDUE SUBLET: RO %s at %s — out %d days (expected %d days)\n", $1, $2, days_out, expected;
+      }
+    }
+  ' "{{sublet_jobs_csv_path}}"
+variables:
+  sublet_jobs_csv_path:
+    default: "./sublet-jobs.csv"
+    description: "Path to a CSV with columns: ro_number,vendor_name,sent_date (YYYY-MM-DD),expected_turnaround_days,status (out/returned)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers work physically sent to an outside vendor, not in-house repair time
+  — see `repair-order-aging-check` for overall RO age and
+  `repair-cycle-time-trend-monitor` for in-house cycle-time trends. Follow up
+  with the vendor by phone once flagged; this job only surfaces the gap.

@@ -1,0 +1,38 @@
+id: phone-booth-monopolization-check
+version: 1
+name: Phone Booth Monopolization Check
+description: >
+  Tallies phone-booth and focus-pod reservation hours per member over a
+  recent window and flags anyone whose bookings account for an outsized
+  share of total available slots. Use this if members keep complaining
+  they can never get a booth because the same one or two people always
+  have it locked up for hours at a time, even though no individual
+  booking technically breaks any rule.
+category: coworking
+tags: [coworking, phone-booth, amenities, fairness, booking]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "with totals as (select sum(extract(epoch from (reservation_end - reservation_start)) / 3600.0) as total_hours from booth_reservations where reservation_start >= now() - interval '{{lookback_days}} days') select r.member_id, r.member_name, sum(extract(epoch from (r.reservation_end - r.reservation_start)) / 3600.0) as member_hours, round((sum(extract(epoch from (r.reservation_end - r.reservation_start)) / 3600.0) / t.total_hours) * 100, 1) as pct_of_total from booth_reservations r cross join totals t where r.reservation_start >= now() - interval '{{lookback_days}} days' group by r.member_id, r.member_name, t.total_hours having (sum(extract(epoch from (r.reservation_end - r.reservation_start)) / 3600.0) / t.total_hours) * 100 >= {{monopolization_threshold_pct}} order by pct_of_total desc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's amenity-booking database.
+  lookback_days:
+    default: "14"
+    description: How many days back to total up phone-booth/focus-pod booking hours per member.
+  monopolization_threshold_pct:
+    default: "20"
+    description: Percentage of total booked booth hours in the window a single member must exceed to be flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `booth_reservations` table with `member_id`, `member_name`,
+  `reservation_start`, and `reservation_end` columns covering phone booths
+  or single-occupancy focus pods specifically (not general meeting rooms)
+  — adjust the query if booths and rooms share one bookings table.
+  Distinct from amenity-reservation-noshow-check (that flags no-shows, not
+  fair-share hogging) and meeting-room-double-booking-check (overlap
+  conflicts, not usage share). Read-only: it only flags a fairness pattern
+  for staff to consider a per-member daily booking cap, it does not cancel
+  or limit any booking itself.

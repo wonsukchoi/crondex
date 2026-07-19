@@ -1,0 +1,46 @@
+id: positive-pay-exception-item-aging-check
+version: 1
+name: Positive Pay Exception Item Aging Check
+description: >
+  Flags positive-pay check exceptions (checks presented that don't match
+  the issued-check file on number, amount, or payee) that are still
+  awaiting a pay/return decision past a configurable same-day cutoff
+  window. Use this if a positive-pay exception has ever sat undecided
+  until it hit your bank's default disposition — often auto-pay — instead
+  of getting a deliberate human call, which defeats the point of having
+  positive pay as a check-fraud control.
+category: banking
+tags: [banking, positive-pay, check-fraud, exception-item, operations]
+schedule: "0 */2 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff_hours="{{decision_window_hours}}" '
+    NR==1 { next }
+    ($6=="" || $6=="PENDING") {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline presented_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      hours_open = (now_epoch - presented_epoch) / 3600;
+      if (hours_open >= cutoff_hours) {
+        printf "PENDING PAY/RETURN DECISION: exception %s — check #%s on account %s for $%.2f, presented %s (%.1f hrs ago)\n", $1, $2, $3, $4, $5, hours_open;
+        n++;
+      }
+    }
+    END { printf "%d positive-pay exception item(s) awaiting a pay/return decision past the %s-hour window.\n", n+0, cutoff_hours; }
+  ' "{{positive_pay_exceptions_csv_path}}"
+variables:
+  positive_pay_exceptions_csv_path:
+    default: "./positive_pay_exceptions.csv"
+    description: "Path to a CSV with header row, columns: exception_id,check_number,account_number,amount,presented_date (YYYY-MM-DD),decision (blank/PENDING, PAY, or RETURN)."
+  decision_window_hours:
+    default: 6
+    description: Hours after an exception is presented before it's flagged as approaching your bank's same-business-day pay/return cutoff.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only — it does not submit a pay or return decision itself, only
+  surfaces items still undecided so a human calls it before the default
+  disposition your bank has on file with the customer kicks in. Distinct
+  from check-kiting-pattern-flag.yaml (deposit/withdrawal cycling between
+  accounts) and stale-uncashed-cashiers-check-tracker.yaml (long-dormant
+  issued instruments, not same-day presented exceptions).

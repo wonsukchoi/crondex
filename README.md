@@ -190,30 +190,30 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2298 jobs across 66 categories (1940 smoke-tested clean):
+2322 jobs across 66 categories (1962 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
-| `agency` | 32 | 29 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
+| `agency` | 35 | 32 | Marketing/creative agency client-services ops — retainers, scopes, billing, review cycles, new business. |
 | `agriculture` | 35 | 28 | Farm operations — weather risk, irrigation, equipment, market prices. |
-| `automotive` | 32 | 26 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
-| `banking` | 32 | 32 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
+| `automotive` | 35 | 29 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
+| `banking` | 35 | 35 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
 | `childcare` | 36 | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
-| `cleaning-services` | 32 | 27 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
+| `cleaning-services` | 35 | 28 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 35 | 29 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
-| `content` | 32 | 15 | Site/content health — SEO, broken links, freshness, repurposing. |
-| `coworking` | 32 | 28 | Shared-workspace membership ops — desks, room booking, community, amenities. |
-| `creator` | 32 | 21 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
+| `content` | 35 | 18 | Site/content health — SEO, broken links, freshness, repurposing. |
+| `coworking` | 35 | 31 | Shared-workspace membership ops — desks, room booking, community, amenities. |
+| `creator` | 35 | 24 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 35 | 17 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `dental` | 44 | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
 | `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
-| `ecommerce` | 32 | 24 | Storefront ops — carts, stock, returns, reviews. |
+| `ecommerce` | 35 | 27 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 32 | 23 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 32 | 28 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 32 | 30 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 32 | 28 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 41 | 32 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `fleet` | 41 | 33 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 32 | 23 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 35 | 32 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 32 | 25 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
@@ -246,7 +246,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `restaurant` | 35 | 25 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 32 | 26 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 32 | 27 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
+| `security` | 45 | 38 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 35 | 34 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |

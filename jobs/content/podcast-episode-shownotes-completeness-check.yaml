@@ -1,0 +1,41 @@
+id: podcast-episode-shownotes-completeness-check
+version: 1
+name: Podcast Episode Show Notes Completeness Check
+description: >
+  Fetches your podcast RSS feed and checks recent episodes for missing
+  show notes (empty description) or a missing duration tag. Use this if
+  an episode has ever gone out with a blank description because the
+  show notes were written in a doc somewhere and never actually pasted
+  into the publishing tool.
+category: content
+tags: [content, podcast, rss, editorial-qa]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  feed={{podcast_feed_url}};
+  tmp=$(mktemp);
+  curl -sL --max-time 15 "$feed" -o "$tmp" || { echo "ERROR: could not fetch $feed"; rm -f "$tmp"; exit 1; };
+  total_items=$(grep -c "<item>" "$tmp");
+  if [ "$total_items" -eq 0 ]; then echo "ERROR: no <item> episodes found in feed"; rm -f "$tmp"; exit 1; fi;
+  empty_desc=$(grep -c "<description></description>\|<description><!\[CDATA\[[[:space:]]*\]\]></description>" "$tmp");
+  duration_tags=$(grep -c "itunes:duration" "$tmp");
+  missing_duration=$(( total_items - duration_tags ));
+  [ "$missing_duration" -lt 0 ] && missing_duration=0;
+  echo "Podcast feed check: $total_items episode(s) found in feed.";
+  if [ "$empty_desc" -gt 0 ]; then echo "MISSING SHOW NOTES: $empty_desc episode(s) have an empty <description>."; fi;
+  if [ "$missing_duration" -gt 0 ]; then echo "MISSING DURATION TAG: approximately $missing_duration episode(s) lack an itunes:duration tag."; fi;
+  if [ "$empty_desc" -eq 0 ] && [ "$missing_duration" -eq 0 ]; then echo "OK: all episodes have show notes and a duration tag."; fi;
+  rm -f "$tmp"
+variables:
+  podcast_feed_url:
+    default: "https://example.com/podcast/feed.xml"
+    description: URL of the podcast RSS/Atom feed to check.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Uses simple tag-presence checks rather than a full XML parser, so it
+  can't judge whether show notes are actually good — only whether the
+  description field is non-empty. Different from rss-feed-validate
+  (feed-level XML/schema validity) and video-transcript-missing-check
+  (video transcripts specifically); this one is about podcast episode
+  metadata quality.

@@ -1,0 +1,38 @@
+id: client-ad-platform-access-expiration-check
+version: 1
+name: Client Ad Platform Access Expiration Check
+description: >
+  Checks the agency's recorded access grants to client ad accounts,
+  analytics properties, and business manager tools for entries that are
+  expiring soon or are still marked active under an employee who has
+  already left or rolled off the account. Use this if your agency has
+  ever lost the ability to launch or pause a client's ad campaigns
+  because the access grant expired unnoticed, or discovered — usually
+  during a security review — that a former employee still had live
+  access to a client's Google Ads or Meta Business Manager account.
+category: agency
+tags: [agency, client-access, ad-platforms, offboarding]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select client_name, platform_name, granted_to_email, employee_status, access_expires_at from platform_access_grants where access_revoked = false and (access_expires_at <= now() + interval '{{lead_days}} days' or employee_status = 'offboarded') order by access_expires_at asc nulls first;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or access-tracking sheet recording client platform access grants.
+  lead_days:
+    default: "7"
+    description: How many days before an access grant's recorded expiration to start flagging it for renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `platform_access_grants` table with `client_name`,
+  `platform_name` (e.g. Google Ads, Meta Business Manager, GA4, TikTok
+  Ads), `granted_to_email`, `employee_status` (e.g. 'active' or
+  'offboarded', kept in sync with your HR/IT offboarding process), and
+  `access_expires_at` (nullable if the platform doesn't expire access on
+  its own) — adjust to your agency's access-tracking system. Read-only;
+  it flags access to review or revoke, it does not revoke platform
+  access or modify grant records itself. Distinct from
+  `vendor-certificate-of-insurance-expiration-check`, which tracks
+  vendor COI paperwork, not platform account access.

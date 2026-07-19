@@ -1,0 +1,45 @@
+id: sponsored-content-disclosure-compliance-check
+version: 1
+name: Sponsored Content Disclosure Compliance Check
+description: >
+  Checks your log of sponsored/paid posts against the caption or
+  description text actually published and flags any post missing a
+  required disclosure phrase (like "#ad" or "paid partnership"). Use
+  this if you've ever run a sponsored post live for days before someone
+  pointed out the disclosure tag never made it into the caption,
+  putting the deal and your account at regulatory risk.
+category: creator
+tags: [creator, sponsorship, disclosure, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v required="{{required_phrases}}" '
+    BEGIN { n = split(required, phrases, "|") }
+    NR==1 {next}
+    {
+      post_id=$1; platform=$2; caption=$3; found=0;
+      for (i=1; i<=n; i++) {
+        if (index(tolower(caption), tolower(phrases[i])) > 0) { found=1; break; }
+      }
+      if (found == 0) printf "MISSING DISCLOSURE: post %s on %s has no required phrase in caption: \"%s\"\n", post_id, platform, caption;
+    }
+  ' "{{sponsored_posts_csv_path}}"
+variables:
+  sponsored_posts_csv_path:
+    default: "./sponsored-posts.csv"
+    description: "Path to a CSV with columns: post_id,platform,caption_text (the full published caption/description, quoted if it contains commas)."
+  required_phrases:
+    default: "#ad|paid partnership|sponsored"
+    description: "Pipe-separated list of phrases where at least one must appear (case-insensitive) in the caption for it to count as disclosed."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This only checks text you log locally after publishing — it does not
+  scrape live posts from any platform. Populate sponsored-posts.csv from
+  your own publishing workflow (e.g. export captions right after you
+  post). Different from brand-deal-payment-followup-check (invoice
+  status) and creator-sponsor-exclusivity-conflict-check (competing
+  sponsors) — this is specifically about whether the disclosure text
+  itself is present, which is a regulatory/FTC-style requirement in many
+  regions. Do not use this as legal advice; verify your region's actual
+  disclosure wording requirements separately.

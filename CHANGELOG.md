@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-07-19
+
+### Added
+
+- 24 new jobs deepening 8 more categories past their 32-job baseline,
+  each checked against its category's existing jobs for real
+  distinctness before writing:
+  - `agency` (+3): influencer/creator posting deadline check,
+    contractor engagement duration risk (misclassification), client
+    ad-platform access expiration after offboarding.
+  - `automotive` (+3): comeback/repeat-repair tracker, core-charge
+    return deadline tracker, sublet vendor repair turnaround tracker.
+  - `banking` (+3): structuring-pattern cash transaction flag (AML
+    aggregation gap), adverse-action notice deadline (Reg B/ECOA),
+    positive-pay exception item aging.
+  - `cleaning-services` (+3): lost & found item claim tracker, chemical
+    dilution log compliance check, price-escalation notice drafts.
+  - `content` (+3): freelance contributor payment overdue tracker,
+    outdated stat-year reference check, podcast episode shownotes
+    completeness check.
+  - `coworking` (+3): badge/shared-credential anomaly check, membership
+    contract renewal notice check, phone-booth monopolization check.
+  - `creator` (+3): sponsored content disclosure compliance check,
+    estimated tax set-aside check, handle/domain renewal check.
+  - `ecommerce` (+3): inventory reservation ghost-cart check, stacked
+    coupon margin erosion check, customs duty threshold check.
+- Started a push toward a much larger, evenly-spread catalog across all
+  categories (see ROADMAP.md §4) — this release is the first batch.
+
 ## [0.76.0] - 2026-07-19
 
 ### Added

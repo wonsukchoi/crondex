@@ -1,0 +1,37 @@
+id: price-escalation-notice-drafts
+version: 1
+name: Contract Price Escalation Notice Drafts
+description: >
+  Checks each client contract for a scheduled annual (or other periodic)
+  price escalation date and drafts an advance notice letter for any
+  client approaching their increase, showing the current rate, the new
+  rate, and the effective date. Use this if a contract has ever had a
+  built-in price escalation clause that quietly kicked in on invoices
+  with no advance notice, leaving a client confused or upset by a
+  surprise increase on their next bill.
+category: cleaning-services
+tags: [cleaning-services, contracts, pricing, client-communication]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the contract pricing list at {{contracts_csv_path}} (columns:
+  client_name, contact_email, current_rate, escalation_percent,
+  escalation_date, billing_frequency). For every contract where
+  escalation_date falls within the next {{notice_window_days}} days,
+  calculate the new_rate as current_rate increased by escalation_percent,
+  and draft a short, professional advance-notice letter to contact_email
+  stating the current rate, the new rate, the effective date, and a
+  brief thank-you for their continued business. Group the drafts under a
+  summary listing which clients are due for an increase and the total
+  additional monthly revenue it represents, so the office can review
+  before anything goes out.
+variables:
+  contracts_csv_path:
+    default: "./contract-pricing.csv"
+    description: "CSV with header row, columns: client_name,contact_email,current_rate,escalation_percent,escalation_date,billing_frequency (escalation_date as YYYY-MM-DD, escalation_percent as a plain number like 3 for 3%)."
+  notice_window_days:
+    default: 30
+    description: How many days ahead of escalation_date to start drafting the advance notice.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — notice letters should be reviewed for accuracy and tone before sending, never sent automatically. Distinct from commercial-contract-renewal-check, which flags contracts nearing their renewal/expiry date rather than a mid-term scheduled price increase.

@@ -1,0 +1,54 @@
+id: structuring-pattern-cash-transaction-flag
+version: 1
+name: Structuring Pattern Cash Transaction Flag
+description: >
+  Groups same-day cash transactions by customer and flags any customer
+  whose individually sub-threshold deposits or withdrawals add up to at
+  or above the CTR reporting threshold — the classic "structuring" or
+  "smurfing" evasion pattern. Use this if a customer has ever split cash
+  activity into several smaller transactions specifically to stay under
+  the $10,000 reporting line; this is the cross-transaction aggregation
+  check that ctr-filing-threshold-tracker.yaml explicitly does not do,
+  since that job only compares single rows against the threshold.
+category: banking
+tags: [banking, structuring, aml, bsa, cash-transactions, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{ctr_threshold_amount}}" '
+    NR==1 { next }
+    $3+0 < threshold {
+      key = $2 SUBSEP $4;
+      sum[key] += $3;
+      count[key]++;
+      ids[key] = ids[key] "," $1;
+    }
+    END {
+      for (k in sum) {
+        if (sum[k] >= threshold) {
+          split(k, parts, SUBSEP);
+          printf "POSSIBLE STRUCTURING: customer %s on %s — %d sub-threshold cash transaction(s) totaling $%.2f (ids: %s)\n", parts[1], parts[2], count[k], sum[k], substr(ids[k], 2);
+          n++;
+        }
+      }
+      printf "%d customer/day combination(s) with sub-threshold cash transactions aggregating at/above $%.2f.\n", n+0, threshold;
+    }
+  ' "{{cash_transactions_csv_path}}"
+variables:
+  cash_transactions_csv_path:
+    default: "./cash_transactions.csv"
+    description: "Path to a CSV with header row, columns: transaction_id,customer_id,amount,transaction_date (YYYY-MM-DD). Same file shape as ctr-filing-threshold-tracker.yaml's input."
+  ctr_threshold_amount:
+    default: 10000
+    description: "Dollar amount used two ways: individual transactions strictly below it are candidates, and a customer/day sum at or above it gets flagged. Matches the CTR reporting threshold."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only pattern detector, not an accusation — flagged customer/day
+  groups need manual BSA/AML review before any filing or account action.
+  Legitimate reasons exist for multiple same-day cash transactions (e.g.
+  business deposits from several registers), so treat matches as leads,
+  not conclusions. Distinct from ctr-filing-threshold-tracker.yaml (single
+  transaction vs. filed-CTR reconciliation) and check-kiting-pattern-flag.yaml
+  (deposit/withdrawal cycling between accounts, not same-customer cash
+  aggregation).

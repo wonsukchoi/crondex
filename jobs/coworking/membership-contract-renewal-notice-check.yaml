@@ -1,0 +1,48 @@
+id: membership-contract-renewal-notice-check
+version: 1
+name: Membership Contract Renewal Notice Check
+description: >
+  Checks fixed-term membership contracts (e.g. annual or 6-month plans)
+  for ones approaching their auto-renewal date with no opt-out or renewal
+  decision logged, and drafts a heads-up notice for staff to review and
+  send. Use this if a member has ever been blindsided by a lump-sum
+  auto-renewal charge because nobody reminded them the term was ending
+  until after the card was already billed.
+category: coworking
+tags: [coworking, membership, contracts, renewals, billing]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  psql "{{database_url}}" -t -c "select member_id, member_name, contract_id, term_end_date, auto_renew, renewal_decision_at from membership_contracts where auto_renew = true and renewal_decision_at is null and term_end_date <= now() + interval '{{notice_window_days}} days' order by term_end_date asc;"
+prompt: >
+  For each contract returned by the query above, draft a short, friendly
+  renewal-notice email reminding the member that their {{contract_term_label}}
+  membership contract is set to auto-renew on its term_end_date, stating
+  the plan name and price if available, and explaining how to opt out or
+  switch plans before that date. Save all drafts to {{draft_output_path}}
+  for a staff member to review and send manually — do not send any email
+  yourself.
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the coworking space's membership/contracts database.
+  notice_window_days:
+    default: "30"
+    description: How many days before a contract's term_end_date to start flagging it for a renewal notice.
+  contract_term_label:
+    default: "annual"
+    description: Human-readable label for the contract term length, used in the drafted notice text.
+  draft_output_path:
+    default: "./renewal-notice-drafts/"
+    description: Local folder where drafted renewal-notice emails are saved for staff review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `membership_contracts` table with `member_id`, `member_name`,
+  `contract_id`, `term_end_date`, `auto_renew`, and `renewal_decision_at`
+  columns — adjust to your billing/CRM schema. Distinct from
+  membership-plan-downgrade-risk-check (usage-based churn signal, no fixed
+  end date involved) and member-churn-notice-followup-check (member has
+  already given notice; this job runs before that, while the member hasn't
+  decided anything yet). Drafts only, never sends automatically — a human
+  must review and send each notice.

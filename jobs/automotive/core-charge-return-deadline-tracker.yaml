@@ -1,0 +1,40 @@
+id: core-charge-return-deadline-tracker
+version: 1
+name: Core Charge Return Deadline Tracker
+description: >
+  Checks pending core returns (old alternators, starters, engines, etc. owed
+  back to the parts vendor for a credit) against their return deadline and
+  flags any about to expire. Use this if a shop has ever eaten a core charge
+  because the old part sat on a shelf past the vendor's return window instead
+  of going back for credit.
+category: automotive
+tags: [automotive, parts, core-charge, vendor-credit]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left <= warn) {
+        printf "CORE RETURN DUE: RO %s — %s ($%s core credit) due %s (%d days left)\n", $1, $2, $5, $3, days_left;
+      }
+    }
+  ' "{{core_charges_csv_path}}"
+variables:
+  core_charges_csv_path:
+    default: "./core-charges.csv"
+    description: "Path to a CSV with columns: ro_number,part_description,core_deadline (YYYY-MM-DD),status (pending/returned),core_value."
+  warn_days_before:
+    default: 7
+    description: Days before the vendor's core-return deadline to start warning, giving time to box up and ship the old part.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `parts-backorder-check` and `parts-reorder-point-check`,
+  which track getting new parts in — this tracks sending the old part back
+  out to reclaim a deposit before the vendor's window closes and the credit
+  is forfeited.

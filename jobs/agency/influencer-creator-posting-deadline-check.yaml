@@ -1,0 +1,37 @@
+id: influencer-creator-posting-deadline-check
+version: 1
+name: Influencer/Creator Posting Deadline Check
+description: >
+  Scans influencer and creator marketing engagements for contracted post
+  dates that have arrived (or are about to) with no confirmed post logged
+  yet, and lists them so an account or influencer manager can chase it
+  down. Use this if your agency runs influencer campaigns and has ever
+  found out a sponsored post never went live — or went live late, putting
+  the client's campaign flight dates and FTC disclosure timing at risk —
+  only when the client asked why engagement numbers looked thin.
+category: agency
+tags: [agency, influencer-marketing, creator, deliverables]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select campaign_name, client_name, creator_name, platform, contracted_post_date, influencer_manager_email from creator_engagements where posted_at is null and contracted_post_date <= now() + interval '{{lead_days}} days' order by contracted_post_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or influencer-platform export holding creator engagement records.
+  lead_days:
+    default: "1"
+    description: How many days before (or past) the contracted post date to start flagging an unconfirmed post; a negative-feeling large value surfaces posts already overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `creator_engagements` table with `campaign_name`,
+  `client_name`, `creator_name`, `platform`, `contracted_post_date`,
+  `posted_at` (null until someone confirms the post is live), and
+  `influencer_manager_email` — adjust to match your influencer
+  marketing platform's export (e.g. GRIN, Aspire, CreatorIQ) or however
+  you track creator contracts today. Read-only and informational; it
+  does not post, message creators, or update contract records itself.
+  Distinct from `usage-rights-license-expiration-check`, which tracks
+  the license window for using creator content after it's posted, not
+  whether the post happened on time.

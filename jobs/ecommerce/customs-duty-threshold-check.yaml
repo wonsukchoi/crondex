@@ -1,0 +1,39 @@
+id: customs-duty-threshold-check
+version: 1
+name: Customs Duty Threshold Check
+description: >
+  Scans recent international orders and flags any shipment whose declared
+  value crosses the destination country's duty-free (de minimis) import
+  threshold without duty already prepaid at checkout. Use this if an
+  international customer has ever refused delivery or filed a chargeback
+  after being hit with a surprise customs bill your checkout never warned
+  them about.
+category: ecommerce
+tags: [ecommerce, international, customs, duty, cross-border]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{de_minimis_threshold_usd}}" '
+    NR==1 {next}
+    {
+      order_id=$1; country=$2; value=$3; prepaid=$4;
+      if (value+0 > threshold && tolower(prepaid) != "yes") {
+        printf "DUTY RISK: order %s to %s — declared value $%.2f exceeds de minimis threshold ($%.2f), duty NOT prepaid\n", order_id, country, value, threshold;
+      }
+    }
+  ' "{{international_orders_csv_path}}"
+variables:
+  international_orders_csv_path:
+    default: "./international-orders.csv"
+    description: "Path to a CSV with columns: order_id,destination_country,declared_value_usd,duty_prepaid(yes/no) — an export of cross-border orders for the period being reviewed."
+  de_minimis_threshold_usd:
+    default: 800
+    description: Declared order value in USD above which the destination country's duty-free import allowance is likely exceeded. This varies significantly by country — run this job per-country batch with the correct threshold rather than one global value if you ship broadly.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `economic-nexus-threshold-check` (US domestic sales tax
+  nexus by state) — this is import duty exposure on outbound
+  international shipments. De minimis values change by country and trade
+  agreement; treat the default as a rough US-outbound placeholder and
+  replace it with accurate per-destination figures before relying on this.

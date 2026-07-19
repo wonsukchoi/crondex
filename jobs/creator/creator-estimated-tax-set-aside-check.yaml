@@ -1,0 +1,61 @@
+id: creator-estimated-tax-set-aside-check
+version: 1
+name: Creator Estimated Tax Set-Aside Check
+description: >
+  Compares how much you've actually set aside for taxes against a target
+  percentage of your logged income, and flags upcoming quarterly
+  estimated-payment due dates. Use this if you've ever had a great month
+  of brand deals and ad revenue, spent like it was all yours, and then
+  faced a quarterly tax bill you hadn't saved enough to cover.
+category: creator
+tags: [creator, finance, taxes, income]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v target_pct="{{tax_set_aside_pct}}" '
+    NR==1 {next}
+    { income += $2; saved += $3 }
+    END {
+      target = income * (target_pct / 100);
+      shortfall = target - saved;
+      printf "Total logged income: %.2f\n", income;
+      printf "Target set-aside (%s%%): %.2f\n", target_pct, target;
+      printf "Actually set aside: %.2f\n", saved;
+      if (shortfall > 0) printf "WARNING: set-aside is short by %.2f\n", shortfall;
+      else printf "OK: set-aside meets or exceeds target.\n";
+    }
+  ' "{{income_log_csv_path}}";
+  today_md=$(date +%m-%d);
+  awk -F',' -v today="$today_md" -v warn="{{due_date_warn_days}}" -v today_epoch="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline due_ts; close(cmd);
+      days_left = (due_ts - today_epoch) / 86400;
+      if (days_left >= 0 && days_left <= warn) printf "UPCOMING DUE DATE: estimated tax payment due %s (in %d days)\n", $1, days_left;
+    }
+  ' "{{quarterly_due_dates_csv_path}}"
+variables:
+  income_log_csv_path:
+    default: "./creator-income-log.csv"
+    description: "CSV with a header row, columns: date (YYYY-MM-DD),income_amount,amount_set_aside — one row per income event logged so far this tax year."
+  quarterly_due_dates_csv_path:
+    default: "./estimated-tax-due-dates.csv"
+    description: "CSV with a header row, single column: due_date (YYYY-MM-DD) — your jurisdiction's quarterly/periodic estimated tax due dates."
+  tax_set_aside_pct:
+    default: 30
+    description: "Target percentage of gross income to hold back for self-employment/income tax. Adjust to your own tax bracket and local rules."
+  due_date_warn_days:
+    default: 14
+    description: Days before an estimated tax due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Not tax advice — the target percentage and due dates are whatever you
+  configure, and vary by country, state/province, and individual
+  circumstances; confirm real numbers with a tax professional. Distinct
+  from creator-payout-reconciliation-check (verifying platform payouts
+  arrived correctly) and brand-deal-payment-followup-check (chasing
+  overdue sponsor invoices) — this job is purely about whether you're
+  saving enough of the income you've already received.

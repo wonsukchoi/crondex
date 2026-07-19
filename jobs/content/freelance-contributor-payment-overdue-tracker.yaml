@@ -1,0 +1,47 @@
+id: freelance-contributor-payment-overdue-tracker
+version: 1
+name: Freelance Contributor Payment Overdue Tracker
+description: >
+  Reads a CSV export of freelance writer/contributor invoices and flags
+  any that are past their due date and still marked unpaid. Use this if
+  a freelancer has ever had to email and ask where their payment is
+  because an invoice quietly slipped past accounting.
+category: content
+tags: [content, freelance, invoicing, vendor-management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{invoices_csv}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  overdue=0;
+  while IFS=',' read -r contributor due_date status amount; do
+    [ "$contributor" = "contributor" ] && continue;
+    [ -z "$contributor" ] && continue;
+    status_lc=$(echo "$status" | tr '[:upper:]' '[:lower:]');
+    [ "$status_lc" = "paid" ] && continue;
+    due_epoch=$(date -d "$due_date" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$due_date" +%s 2>/dev/null);
+    [ -z "$due_epoch" ] && { echo "WARN: could not parse due_date '$due_date' for $contributor"; continue; };
+    days_over=$(( (today - due_epoch) / 86400 ));
+    if [ "$days_over" -gt {{grace_days}} ]; then
+      echo "OVERDUE ($days_over days past due): $contributor owed \$$amount, due $due_date, status=$status";
+      overdue=1;
+    fi;
+  done < "$file";
+  [ "$overdue" -eq 0 ] && echo "OK: no freelance invoices overdue beyond the grace period";
+  exit 0
+variables:
+  invoices_csv:
+    default: "./freelance-invoices.csv"
+    description: "CSV with header row, columns: contributor,due_date,status,amount — due_date in YYYY-MM-DD, status is 'paid' or anything else for unpaid."
+  grace_days:
+    default: 3
+    description: How many days past the due date to allow before flagging an invoice as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This only reports on invoices already logged in the CSV — it does not
+  reconcile against your actual accounting/payments system, so keep the
+  export current (e.g. a scheduled pull from your invoicing tool). Purely
+  informational and read-only; it never marks anything as paid or sends
+  reminders itself.

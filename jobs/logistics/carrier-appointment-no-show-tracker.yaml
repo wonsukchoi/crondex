@@ -1,0 +1,41 @@
+id: carrier-appointment-no-show-tracker
+version: 1
+name: Carrier Appointment No-Show Tracker
+description: >
+  Checks scheduled pickup and delivery appointments against carrier
+  check-in records and flags appointments the carrier neither showed up
+  for nor cancelled ahead of time. Use this if a carrier has ever simply
+  not shown up for a booked dock appointment with no warning, leaving a
+  dock slot empty and a load without a ride.
+category: logistics
+tags: [logistics, carrier, appointment, no-show, reliability]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{appointment_system_hint}} for pickup/delivery appointments
+  scheduled to have started in the last {{grace_period_minutes}} minutes.
+
+  1. For each appointment, determine whether the carrier checked in at
+     the facility (gate/dock check-in record) around the scheduled time.
+  2. Flag any appointment with no check-in and no prior cancellation or
+     reschedule notice from the carrier.
+  3. For each flagged no-show, note the load/reference number, carrier,
+     scheduled time, and how many minutes past the grace period it is.
+  4. Suggest the next action — call the carrier's dispatch, re-tender the
+     load to a backup carrier, or release the dock slot to the next
+     appointment — based on how time-sensitive the load is.
+variables:
+  appointment_system_hint:
+    default: "your dock scheduling system or yard management system"
+    description: Where scheduled appointments and carrier check-in records can be compared.
+  grace_period_minutes:
+    default: 30
+    description: Minutes past the scheduled appointment time to allow before a missing check-in counts as a no-show.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from carrier-load-tender-acceptance-check (which flags a
+  tender still unacknowledged before an appointment is even booked) and
+  from warehousing's dock-schedule-conflict-check (which catches two
+  appointments booked into the same slot) — this catches a carrier who
+  accepted the load and booked the appointment, then simply didn't show.

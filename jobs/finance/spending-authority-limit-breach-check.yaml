@@ -1,0 +1,50 @@
+id: spending-authority-limit-breach-check
+version: 1
+name: Spending Authority Limit Breach Check
+description: >
+  Joins recorded payment approvals against a delegation-of-authority
+  matrix listing each approver's maximum dollar signing limit, and flags
+  any approval where the amount exceeds that specific approver's own
+  limit tier. Use this if a payment has ever gone out with a valid
+  approver's name attached, but that approver was never actually
+  authorized to sign off on an amount that large.
+category: finance
+tags: [finance, controls, delegation-of-authority, approval, audit]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) limit_t[$1]=$2; next }
+    FNR==1 { next }
+    {
+      approver = $3; amt = $2+0;
+      if (approver in limit_t) {
+        if (amt > limit_t[approver]+0) {
+          printf "AUTHORITY BREACH: payment %s for $%s approved by %s, whose signing limit is $%s\n", $1, $2, approver, limit_t[approver];
+          n++;
+        }
+      } else {
+        printf "UNKNOWN APPROVER: payment %s for $%s approved by %s, who is not on the authority matrix\n", $1, $2, approver;
+        n++;
+      }
+    }
+    END { printf "%d payment(s) breaching or missing a spending authority limit.\n", n+0; }
+  ' "{{authority_matrix_csv_path}}" "{{payment_approvals_csv_path}}"
+variables:
+  authority_matrix_csv_path:
+    default: "./authority_matrix.csv"
+    description: "Path to a CSV with columns: approver_name,max_approval_limit. Your delegation-of-authority (DOA) matrix, one row per approver tier."
+  payment_approvals_csv_path:
+    default: "./payment_approvals.csv"
+    description: "Path to a CSV with columns: payment_id,amount,approver_name. One row per payment that has recorded an approver."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token join. Distinct from budget-transfer-approval-audit.yaml,
+  which only checks whether a transfer above a flat threshold has any
+  recorded approver at all, and from audit-trail-segregation-of-duties-check.yaml,
+  which flags the same person creating and approving an entry — this job
+  instead checks whether a named, legitimate approver still exceeded
+  their own personal signing-limit tier. Keep authority_matrix_csv_path
+  in sync whenever signing limits change (e.g. after a promotion or a
+  board-approved DOA update).

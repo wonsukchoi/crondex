@@ -1,0 +1,46 @@
+id: container-image-mutable-tag-deploy-check
+version: 1
+name: Container Image Mutable Tag Deploy Check
+description: >
+  Checks running Kubernetes deployments in a namespace for containers
+  using a mutable image tag (like :latest, :main, or :dev) instead of a
+  pinned version or digest, and flags them. Use this if a rollback or a
+  "just redeploy the same thing" has ever pulled a different image than
+  what was actually running, because the tag in the manifest could
+  silently point at new content at any time.
+category: devops
+tags: [kubernetes, containers, immutability, deployments, reproducibility]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  kubectl get deployments -n "{{namespace}}" -o jsonpath='{range .items[*]}{.metadata.name}{"="}{range .spec.template.spec.containers[*]}{.image}{" "}{end}{"\n"}{end}' |
+  awk -F'=' -v pattern="{{mutable_tag_pattern}}" '
+    {
+      name = $1; images = $2;
+      split_n = split(images, image_arr, " ");
+      for (i = 1; i <= split_n; i++) {
+        if (image_arr[i] != "" && image_arr[i] ~ pattern) {
+          printf "MUTABLE TAG: deployment %s uses %s\n", name, image_arr[i];
+          flagged_n++;
+        }
+      }
+    }
+    END { if (flagged_n+0 == 0) print "OK: no deployments found using a mutable tag pattern"; }
+  '
+variables:
+  namespace:
+    default: "production"
+    description: Kubernetes namespace whose deployments should be checked.
+  mutable_tag_pattern:
+    default: ":latest$|:main$|:master$|:dev$"
+    description: Extended-regex alternation of tag suffixes considered mutable/unpinned.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `kubectl` configured with read access to the namespace.
+  Read-only: only inspects deployment specs, never edits or restarts a
+  deployment. Distinct from container-image-scan-staleness-check.yaml,
+  which tracks whether an image's vulnerability scan is stale, and from
+  docker-image-prune.yaml, which cleans up local disk space — this
+  checks reproducibility risk from mutable tags in what's actually
+  deployed, not scan cadence or disk usage.

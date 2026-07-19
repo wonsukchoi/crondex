@@ -1,0 +1,48 @@
+id: github-actions-workflow-permissions-audit
+version: 1
+name: GitHub Actions Workflow Permissions Audit
+description: >
+  Scans a repo's GitHub Actions workflow files for one missing or
+  overly broad piece of config: a top-level `permissions:` block. Flags
+  any workflow file that has none at all (meaning it inherits the
+  repo/org default GITHUB_TOKEN scope, which many orgs still leave at
+  read-write) or that explicitly grants `write-all`. Use this if a
+  workflow has ever had far more GITHUB_TOKEN access than the job
+  actually needed simply because nobody set an explicit least-privilege
+  permissions block when it was written.
+category: devops
+tags: [github-actions, ci, security, permissions, least-privilege]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  cd {{repo_path}} &&
+  dir="{{workflows_dir}}";
+  [ -d "$dir" ] || { echo "no $dir directory found"; exit 0; };
+  found_any=0;
+  for f in "$dir"/*.yml "$dir"/*.yaml; do
+    [ -e "$f" ] || continue;
+    found_any=1;
+    if ! grep -qE '^permissions:' "$f"; then
+      echo "NO PERMISSIONS BLOCK: $f (inherits the repo/org default token scope)";
+    elif grep -qE 'write-all' "$f"; then
+      echo "OVERLY BROAD: $f grants write-all permissions";
+    fi
+  done;
+  [ "$found_any" -eq 0 ] && echo "no workflow files found in $dir"; true
+variables:
+  repo_path:
+    default: "."
+    description: Path to the repo to audit.
+  workflows_dir:
+    default: ".github/workflows"
+    description: Path (relative to repo_path) to the directory containing workflow YAML files.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only text scan of workflow files — flags the absence of a
+  `permissions:` block or a `write-all` grant, it does not attempt to
+  infer the minimum permissions a workflow actually needs, and it never
+  edits a workflow file. Distinct from repo-health-check.yaml, which
+  covers branch/PR hygiene, and from license-compliance-check.yaml /
+  dependency-audit.yaml, which assess dependency risk rather than CI
+  token scope.

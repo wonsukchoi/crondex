@@ -1,0 +1,38 @@
+id: sensitive-data-classification-label-coverage-check
+version: 1
+name: Sensitive Data Classification Label Coverage Check
+description: >
+  Scans your data asset inventory and flags any asset marked sensitive that
+  is missing a classification label or still tagged "unclassified". Use
+  this if a database or file share holding customer PII has ever gone
+  unlabeled long enough that DLP rules and access policies tied to
+  classification tags never actually applied to it.
+category: security
+tags: [security, data-classification, data-governance, dlp]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F, -v unclassified_tags="{{unclassified_tags}}" '
+    BEGIN { n=split(unclassified_tags, bad_tags, "|") }
+    NR>1 && tolower($4) == "yes" {
+      label = $3; is_bad = (label == "");
+      for (i=1; i<=n; i++) if (tolower(label) == tolower(bad_tags[i])) is_bad = 1;
+      if (is_bad) print "MISSING LABEL: asset \"" $1 "\" at " $2 " is marked sensitive but classification is \"" (label == "" ? "(blank)" : label) "\"";
+    }
+  ' {{assets_csv}}
+variables:
+  assets_csv:
+    default: "data-assets-inventory.csv"
+    description: "CSV with header row, columns: asset_name,location,classification_label,sensitive(yes|no). Export from your data catalog or maintain by hand."
+  unclassified_tags:
+    default: "unclassified|unknown|tbd"
+    description: "Pipe-separated list of classification label values that count as effectively unlabeled, besides a blank field."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from dlp-policy-violation-review (real-time DLP
+  policy violations on data in motion) — this checks whether the upstream
+  classification metadata a DLP or access policy would key off of actually
+  exists on each sensitive asset in the first place. This job only reports
+  labeling gaps for a human to fix; it does not apply or change any
+  classification label itself.

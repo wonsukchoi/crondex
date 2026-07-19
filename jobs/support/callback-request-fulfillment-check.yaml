@@ -1,0 +1,42 @@
+id: callback-request-fulfillment-check
+version: 1
+name: Callback Request Fulfillment Check
+description: >
+  Checks phone/voice callback requests that were promised for a specific
+  window and flags any that passed their promised time without the
+  callback being logged as completed. Use this if a customer has ever
+  been told "we'll call you back within the hour" and then just not
+  gotten a call, with nothing catching the missed promise — distinct
+  from chat-abandonment-rate-check, which tracks customers giving up on
+  live chat, not broken callback commitments on the phone channel.
+category: support
+tags: [support, phone, callback, voice, sla]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{callback_log_csv}}" ] || { echo "ERROR: callback log CSV not found at {{callback_log_csv}}"; exit 1; };
+  awk -F',' '
+    NR==1 {next}
+    $3 == "pending" {
+      cmd_p = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $2 "\" +%s 2>/dev/null";
+      cmd_p | getline promised_epoch; close(cmd_p);
+      "date +%s" | getline now_epoch_c; close("date +%s");
+      if (now_epoch_c > promised_epoch) {
+        overdue_min = int((now_epoch_c - promised_epoch) / 60);
+        printf "MISSED CALLBACK: request %s promised at %s is %d minute(s) overdue\n", $1, $2, overdue_min;
+        n_miss++;
+      }
+    }
+    END { printf "%d callback(s) overdue and still pending.\n", n_miss+0; }
+  ' "{{callback_log_csv}}"
+variables:
+  callback_log_csv:
+    default: "./callback_requests.csv"
+    description: "Path to a CSV with columns: request_id,promised_at (ISO timestamp),status (pending/completed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires your phone system or helpdesk to log promised callback times
+  and completion status. Read-only; does not place or schedule any calls
+  itself.

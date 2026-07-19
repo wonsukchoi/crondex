@@ -1,0 +1,42 @@
+id: break-glass-account-usage-check
+version: 1
+name: Break-Glass Account Usage Check
+description: >
+  Scans a break-glass/emergency-access account checkout log and flags every
+  use within the lookback window, since these credentials are meant to sit
+  unused except in a true emergency. Use this if a break-glass account has
+  ever been checked out quietly for routine work and nobody found out until
+  an audit months later.
+category: security
+tags: [security, break-glass, privileged-access, emergency-access]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F, -v now="$now" -v lookback={{lookback_hours}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d %H:%M:%S\" \"" $2 "\" +%s";
+      cmd | getline event_ts; close(cmd);
+      hours_ago = (now - event_ts) / 3600;
+      if (hours_ago >= 0 && hours_ago <= lookback) {
+        reason_note = ($4 == "" ? " — NO REASON LOGGED" : " — reason: " $4);
+        print "BREAK-GLASS USED: account \"" $1 "\" checked out by " $3 " at " $2 reason_note;
+      }
+    }
+  ' {{usage_log_csv}}
+variables:
+  usage_log_csv:
+    default: "break-glass-usage.csv"
+    description: "CSV with header row, columns: account,checkout_timestamp(YYYY-MM-DD HH:MM:SS),checked_out_by,reason. Export from your PAM/vault tool's audit log."
+  lookback_hours:
+    default: 24
+    description: How many hours back to scan for break-glass checkouts.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from privileged-account-inactivity-check (which flags
+  accounts NOT being used) and failed-login-watch (failed auth attempts) —
+  this flags every successful use of a designated emergency-only account,
+  because any use at all is the signal worth a human glance. Requires your
+  PAM/vault or IAM tool to log break-glass checkouts to a CSV; this job does
+  not revoke or lock the account itself.

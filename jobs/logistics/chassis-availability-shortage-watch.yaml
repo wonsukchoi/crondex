@@ -1,0 +1,43 @@
+id: chassis-availability-shortage-watch
+version: 1
+name: Intermodal Chassis Availability Shortage Watch
+description: >
+  Polls a chassis pool provider's availability feed for a drayage
+  location and flags it when available chassis count drops below a
+  usable threshold. Use this if a driver has ever shown up to pull a
+  container only to find no chassis available at the pool, turning a
+  scheduled pickup into a wasted trip and a missed appointment.
+category: logistics
+tags: [logistics, drayage, chassis, intermodal, container]
+schedule: "0 5,11,17 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  available=$(curl -s -H "Authorization: Bearer {{chassis_pool_api_token}}" "{{chassis_pool_api_url}}" | grep -o '"available_count":[0-9]*' | head -n1 | cut -d':' -f2);
+  if [ -z "$available" ]; then echo "ERROR: could not fetch chassis availability from {{chassis_pool_api_url}}"; exit 1; fi;
+  if [ "$available" -lt "{{min_available_threshold}}" ]; then
+    echo "CHASSIS SHORTAGE: {{pool_location_name}} has ${available} chassis available (below threshold {{min_available_threshold}})";
+    exit 1;
+  else echo "OK: {{pool_location_name}} has ${available} chassis available"; fi
+variables:
+  pool_location_name:
+    default: "your-drayage-location"
+    description: Name/code of the chassis pool location, for labeling output.
+  chassis_pool_api_url:
+    default: "https://api.example-chassis-pool.com/locations/your-location/availability"
+    description: Chassis pool provider's availability endpoint returning available_count (e.g. from a pool operator like TRAC, DCLI, or a port community system).
+  chassis_pool_api_token:
+    default: "your-api-token"
+    description: Bearer token for the chassis pool provider's API.
+  min_available_threshold:
+    default: 10
+    description: Available chassis count below which a shortage warning is raised — set based on your typical daily pickup volume at that location.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point chassis_pool_api_url at your pool
+  provider's or port community system's availability endpoint and adjust
+  field names to match its response shape. Distinct from
+  container-demurrage-fee-watch and intermodal-ramp-dwell-time-watch,
+  which track a container you already have sitting somewhere — this
+  watches whether equipment is available to move a container you're
+  about to go get.

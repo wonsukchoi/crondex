@@ -1,0 +1,48 @@
+id: ticket-attachment-upload-failure-check
+version: 1
+name: Ticket Attachment Upload Failure Check
+description: >
+  Scans a log of attempted ticket attachment uploads and flags recent
+  failures, grouped by why the upload was rejected (size limit, file
+  type, virus-scan block). Use this if a customer has ever tried to
+  attach a screenshot or log file to a ticket, had the upload silently
+  fail, and never heard back because nothing flagged that the
+  attachment never actually arrived.
+category: support
+tags: [support, attachments, tickets, uploads]
+schedule: "0 */2 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{upload_log_csv}}" ] || { echo "ERROR: upload log CSV not found at {{upload_log_csv}}"; exit 1; };
+  awk -F',' -v cutoff="{{lookback_hours}}" '
+    NR==1 {next}
+    $2 == "failed" {
+      cmd_ts = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%dT%H:%M:%S \"" $4 "\" +%s 2>/dev/null";
+      cmd_ts | getline attempt_epoch; close(cmd_ts);
+      "date +%s" | getline now_epoch_t; close("date +%s");
+      age_hr = (now_epoch_t - attempt_epoch) / 3600;
+      if (age_hr >= 0 && age_hr <= cutoff) {
+        reason_ct[$3]++;
+        total_fail++;
+      }
+    }
+    END {
+      if (total_fail+0 == 0) { print "OK: no attachment upload failures in the last " cutoff " hour(s)"; exit 0; }
+      printf "ALERT: %d attachment upload failure(s) in the last %s hour(s):\n", total_fail, cutoff;
+      for (r in reason_ct) printf "  - %s: %d\n", r, reason_ct[r];
+    }
+  ' "{{upload_log_csv}}"
+variables:
+  upload_log_csv:
+    default: "./ticket_attachment_upload_log.csv"
+    description: "Path to a CSV with columns: ticket_id,status (failed/success),reason,attempted_at (ISO timestamp)."
+  lookback_hours:
+    default: 6
+    description: How many trailing hours of upload attempts to scan for failures.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires your helpdesk or upload widget to log failed attempts, not
+  just successful ones — most only log what made it through. Read-only;
+  does not retry uploads or notify the customer itself.

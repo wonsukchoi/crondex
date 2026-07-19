@@ -1,0 +1,48 @@
+id: physical-restraint-order-renewal-check
+version: 1
+name: Physical Restraint Order Renewal Check
+description: >
+  Checks active physical restraint orders against their regulatory renewal
+  window (commonly every 4 hours for adult behavioral-health restraint,
+  longer for medical/surgical restraint) and flags any order about to lapse
+  or already expired while the patient is still restrained. Use this if a
+  restraint has ever remained in place past its authorized order window
+  because the renewal step got missed during a busy shift — distinct from
+  fall-risk-reassessment-overdue-check.yaml, which tracks fall-risk
+  scoring cadence, not restraint order authorization.
+category: healthcare
+tags: [healthcare, restraint, behavioral-health, nursing, compliance]
+schedule: "0 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now_epoch=$(date +%s);
+  awk -F',' -v now_epoch="$now_epoch" -v default_hours="{{default_renewal_hours}}" '
+    NR==1 {next}
+    $5 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline order_epoch; close(cmd);
+      renew_hours = ($4 != "" ? $4+0 : default_hours+0);
+      hours_elapsed = (now_epoch - order_epoch) / 3600;
+      hours_left = renew_hours - hours_elapsed;
+      if (hours_left <= 1) {
+        if (hours_left < 0) printf "ORDER EXPIRED: %s — %s restraint ordered %s, expired %.1f hour(s) ago, patient still restrained\n", $1, $2, $3, -hours_left;
+        else printf "RENEWAL DUE SOON: %s — %s restraint ordered %s, renewal due in %.1f hour(s)\n", $1, $2, $3, hours_left;
+        n++;
+      }
+    }
+    END { printf "%d active restraint order(s) needing renewal attention.\n", n+0; }
+  ' "{{restraint_log_csv_path}}"
+variables:
+  restraint_log_csv_path:
+    default: "./restraint_orders.csv"
+    description: "Path to a CSV with columns: patient_id,restraint_type,order_datetime (YYYY-MM-DDTHH:MM),renewal_interval_hours (blank to use the default),status (active/discontinued)."
+  default_renewal_hours:
+    default: 4
+    description: Default renewal window in hours used when a row doesn't specify its own renewal_interval_hours.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token authorization-window tracker — it does not assess whether the
+  restraint itself is still clinically appropriate, only whether the order
+  authorizing it is about to lapse; a nurse or provider must still perform
+  the actual renewal assessment and re-order.

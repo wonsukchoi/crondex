@@ -1,0 +1,48 @@
+id: cron-job-overlap-concurrency-check
+version: 1
+name: Cron Job Overlap Concurrency Check
+description: >
+  Checks a scheduled job's lock file and flags it if the lock is older
+  than the job's expected max runtime, meaning either the previous run
+  is still executing when the next one would fire, or a prior run
+  crashed without releasing its lock. Use this if a cron job has ever
+  double-processed a batch or corrupted data because two runs
+  overlapped and stepped on each other's work, or has ever silently
+  stopped running at all because a stale lock from a crashed run
+  never got cleaned up.
+category: devops
+tags: [devops, cron, concurrency, locking, scheduling, reliability]
+schedule: "*/5 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  f="{{lock_file_path}}";
+  if [ -e "$f" ]; then
+    age_min=$(( ( $(date +%s) - $(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f") ) / 60 ));
+    if [ "$age_min" -gt {{max_expected_runtime_minutes}} ]; then
+      echo "OVERLAP OR STUCK: lock file for {{job_name}} is $age_min minute(s) old (expected under {{max_expected_runtime_minutes}}m) — the previous run may still be executing, or it crashed without releasing the lock";
+      exit 1;
+    else
+      echo "IN PROGRESS: lock file for {{job_name}} is $age_min minute(s) old, within expected runtime";
+    fi
+  else
+    echo "OK: no lock file present for {{job_name}}, last run completed and released it";
+  fi
+variables:
+  lock_file_path:
+    default: "/tmp/my-job.lock"
+    description: Path to the lock file the job creates/touches at start and removes on successful completion.
+  job_name:
+    default: "nightly-batch-job"
+    description: Human-readable name of the scheduled job being watched, used only in output messages.
+  max_expected_runtime_minutes:
+    default: 30
+    description: Minutes the job normally takes to finish; a lock older than this is treated as overlap or a stuck run.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes the job under watch already writes a lock file (e.g. via
+  `flock`, or a simple `touch`-on-start/`rm`-on-exit convention) — this
+  job only reads that lock's existence and age, it never creates,
+  removes, or holds a lock itself. Distinct from backup-reminder.yaml,
+  which checks whether an output artifact's timestamp is fresh, not
+  whether a run is still in flight or overlapping with the next one.

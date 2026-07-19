@@ -1,0 +1,43 @@
+id: bloodborne-pathogen-exposure-followup-check
+version: 1
+name: Bloodborne Pathogen Exposure Follow-Up Check
+description: >
+  Tracks staff needlestick/sharps and other bloodborne-pathogen exposure
+  incidents against the required post-exposure testing schedule (e.g.
+  baseline, 6-week, 12-week, and 6-month follow-up draws) and flags any
+  step that's due or overdue. Use this if a staff member's post-exposure
+  follow-up testing has ever quietly lapsed weeks after the incident once
+  the initial urgency wore off — distinct from
+  patient-safety-incident-report-followup-check.yaml, which tracks
+  administrative follow-up on patient safety incidents, not the clinical
+  occupational-health testing timeline for an exposed staff member.
+category: healthcare
+tags: [healthcare, occupational-health, bloodborne-pathogen, compliance, staff-safety]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    $6 == "no" {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      days_over = (today - due_epoch) / 86400;
+      if (days_over >= 0) {
+        printf "OVERDUE FOLLOW-UP: staff %s — %s exposure on %s, %s draw was due %s (%d day(s) overdue)\n", $1, $2, $3, $4, $5, days_over;
+        n++;
+      }
+    }
+    END { printf "%d post-exposure follow-up step(s) overdue.\n", n+0; }
+  ' "{{exposure_log_csv_path}}"
+variables:
+  exposure_log_csv_path:
+    default: "./bloodborne_exposure_log.csv"
+    description: "Path to a CSV with columns: staff_id,exposure_type,exposure_date (YYYY-MM-DD),followup_step (baseline/6wk/12wk/6mo),followup_due_date (YYYY-MM-DD),followup_completed (yes/no). One row per required follow-up step per exposure."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token occupational-health tracker over an already-logged exposure
+  record — it does not draw labs, contact the exposed staff member, or make
+  post-exposure prophylaxis decisions itself; overdue steps should route to
+  your occupational health/employee health department per its own protocol.

@@ -1,0 +1,46 @@
+id: in-bond-transportation-entry-deadline-check
+version: 1
+name: In-Bond Transportation Entry Deadline Check
+description: >
+  Checks in-bond (immediate transportation/IT) cargo movements against
+  the days remaining before their customs transportation deadline and
+  warns before the bond is at risk. Use this if an in-bond container has
+  ever sat past its allowed transit window between the port of arrival
+  and the interior port of entry, putting the customs bond and the cargo
+  at risk of being treated as abandoned.
+category: logistics
+tags: [logistics, customs, in-bond, compliance, cross-border]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      entry=$1; port_of_arrival=$2; deadline=$3; status=$4;
+      if (status == "closed" || status == "entered") next;
+      cmd = "date -d \"" deadline "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" deadline "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (deadline_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "IN-BOND DEADLINE RISK: entry %s from %s — deadline %s (%d days), status %s\n", entry, port_of_arrival, deadline, diff_days, status;
+      }
+    }
+  ' "{{inbond_entries_csv_path}}"
+variables:
+  inbond_entries_csv_path:
+    default: "./in-bond-transportation-entries.csv"
+    description: "Path to a CSV with columns: entry_number,port_of_arrival,transportation_deadline_date (YYYY-MM-DD),status (in-transit/entered/closed) — export from your customs broker or bonded carrier's tracking system."
+  warn_days_before:
+    default: 5
+    description: Days before the in-bond transportation deadline to start warning, to leave time to complete entry or file for an extension.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Scoped to the customs transportation-deadline clock on an in-bond
+  movement between ports (e.g. a US CBP IT entry), not general "stuck in
+  customs" status — distinct from customs-clearance-check, which flags a
+  shipment already sitting in a customs hold rather than one still moving
+  under bond with a ticking transit deadline. Verify the applicable
+  deadline for your bond type and jurisdiction; this is a backstop, not
+  legal advice.

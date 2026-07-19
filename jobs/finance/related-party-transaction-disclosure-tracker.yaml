@@ -1,0 +1,49 @@
+id: related-party-transaction-disclosure-tracker
+version: 1
+name: Related-Party Transaction Disclosure Tracker
+description: >
+  Cross-references transactions against a maintained list of related
+  parties (owners, officers, family members, affiliated entities) and
+  flags any transaction with a related party above a disclosure
+  threshold that hasn't yet been logged to the related-party disclosure
+  register. Use this if a deal with an owner's other company, a board
+  member's vendor, or a family member has ever slipped through undocumented
+  until an auditor or regulator asked for the related-party footnote.
+category: finance
+tags: [finance, related-party, disclosure, audit, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{disclosure_threshold}}" '
+    FNR==NR { if (FNR>1) related_t[tolower($1)]=$2; next }
+    FNR==1 { next }
+    {
+      counterparty = tolower($2); amt = $3+0; disclosed = $5;
+      if ((counterparty in related_t) && amt > threshold+0 && disclosed != "yes") {
+        printf "UNDISCLOSED: transaction %s with %s (%s, $%s) not yet logged to the related-party register\n", $1, $2, related_t[counterparty], $3;
+        n++;
+      }
+    }
+    END { printf "%d related-party transaction(s) awaiting disclosure logging.\n", n+0; }
+  ' "{{related_parties_csv_path}}" "{{transactions_csv_path}}"
+variables:
+  related_parties_csv_path:
+    default: "./related_parties.csv"
+    description: "Path to a CSV with columns: party_name,relationship (e.g. owner, officer, board-member, affiliate). Your maintained list of known related parties."
+  transactions_csv_path:
+    default: "./transactions.csv"
+    description: "Path to a CSV with columns: transaction_id,counterparty,amount,date,disclosed (yes/no)."
+  disclosure_threshold:
+    default: 5000
+    description: Minimum transaction amount with a related party worth flagging for disclosure review.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, exact-name-match join (normalize related_parties.csv and
+  counterparty names to match, e.g. consistent casing) — this is a
+  candidate list, not a legal determination of related-party status.
+  Distinct from intercompany-balance-reconciliation-check.yaml, which
+  ties out bilateral balances between a company's own legal entities;
+  this job instead watches for undisclosed dealings with related
+  individuals or outside affiliated entities that need a footnote, not
+  intercompany elimination.

@@ -1,0 +1,57 @@
+id: source-code-repo-visibility-drift-check
+version: 1
+name: Source Code Repo Visibility Drift Check
+description: >
+  Compares your current source code repo visibility snapshot (public vs.
+  private) against the last one taken and flags any repo that newly shows
+  as public. Use this if a private repo has ever been flipped to public by
+  accident during a permissions cleanup or a new-repo default setting, and
+  nobody noticed until the code — and any secrets in its history — had
+  already been indexed by the internet.
+category: security
+tags: [security, source-code, repo-visibility, supply-chain]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  manifest={{manifest_path}}; state={{state_file}};
+  if command -v gh >/dev/null 2>&1 && [ "{{auto_refresh}}" = "true" ]; then
+    gh repo list {{org_name}} --limit 1000 --json name,visibility -q '.[] | "\(.name),\(.visibility)"' > "$manifest" 2>/dev/null || true;
+  fi;
+  [ -f "$manifest" ] || { echo "ERROR: $manifest not found"; exit 1; };
+  sorted_current=$(sort "$manifest");
+  if [ ! -f "$state" ]; then
+    echo "$sorted_current" > "$state";
+    echo "no baseline found — saved current manifest as the baseline ($(wc -l < "$manifest" | tr -d ' ') repos)";
+    exit 0;
+  fi;
+  newly_public=$(comm -13 <(grep -i ',public$' "$state" | sort) <(echo "$sorted_current" | grep -i ',public$' | sort));
+  if [ -n "$newly_public" ]; then
+    echo "ALERT: repos now public that were not public in the last snapshot:";
+    echo "$newly_public";
+  else
+    echo "OK: no repos newly flipped to public since last snapshot";
+  fi;
+  echo "$sorted_current" > "$state"
+variables:
+  manifest_path:
+    default: "repo-visibility.csv"
+    description: "Plain-text/CSV file, one 'repo_name,visibility' line per repo. Auto-generated if auto_refresh is true and gh is installed, otherwise export it yourself."
+  state_file:
+    default: "./.repo-visibility-drift-state"
+    description: File this job uses to remember the last snapshot it saw, so it only reports what changed.
+  org_name:
+    default: "your-org"
+    description: GitHub org/owner to list repos for when auto-refreshing via gh.
+  auto_refresh:
+    default: "true"
+    description: Whether to regenerate manifest_path via `gh repo list` before diffing (requires gh CLI authenticated); set to "false" to only diff a manually maintained file.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Diff-based, same pattern as sbom-dependency-drift-check but for repo
+  visibility instead of dependencies. Distinct from s3-public-bucket-check
+  (cloud storage buckets, not source code repos). The one-shot `gh repo
+  list` call is a single fast API request, not a slow multi-source lookup —
+  if gh isn't installed or auto_refresh is "false", point manifest_path at
+  a file you export yourself. This job only reports drift; it does not
+  change any repo's visibility itself.

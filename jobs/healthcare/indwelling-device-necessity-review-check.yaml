@@ -1,0 +1,48 @@
+id: indwelling-device-necessity-review-check
+version: 1
+name: Indwelling Device Necessity Review Check
+description: >
+  Checks inpatients with a central line, Foley catheter, or other tracked
+  indwelling device against how many days it's been in place and whether a
+  continued-necessity review is documented, flagging devices left in
+  without a recent justification. Use this if a central line or catheter
+  has ever stayed in days longer than actually needed simply because
+  nobody re-asked "does this patient still need it" — distinct from
+  hospital-acquired-infection-surveillance-gap-check.yaml, which checks
+  that line-day/catheter-day surveillance data is being logged at all, not
+  whether any individual device is still clinically justified.
+category: healthcare
+tags: [healthcare, infection-control, nursing, device-utilization, patient-safety]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v review_hours="{{review_interval_hours}}" '
+    NR==1 {next}
+    $5 != "removed" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline review_epoch; close(cmd);
+      hours_since_review = (today - review_epoch) / 3600;
+      icmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%dT%H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      icmd | getline insert_epoch; close(icmd);
+      days_in_place = (today - insert_epoch) / 86400;
+      if (hours_since_review > review_hours+0) {
+        printf "NECESSITY REVIEW OVERDUE: %s — %s in place %d day(s), last necessity review %.1f hour(s) ago\n", $1, $2, days_in_place, hours_since_review;
+        n++;
+      }
+    }
+    END { printf "%d indwelling device(s) overdue for a continued-necessity review.\n", n+0; }
+  ' "{{device_log_csv_path}}"
+variables:
+  device_log_csv_path:
+    default: "./indwelling_device_log.csv"
+    description: "Path to a CSV with columns: patient_id,device_type (central_line/foley_catheter/etc.),insertion_datetime (YYYY-MM-DDTHH:MM),last_necessity_review_datetime (YYYY-MM-DDTHH:MM),status (in_place/removed)."
+  review_interval_hours:
+    default: 24
+    description: Maximum hours between documented continued-necessity reviews before a device is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token utilization check — a flag here means the review is
+  undocumented, not that the device is medically unnecessary; the actual
+  remove-or-keep decision still requires a clinician's bedside assessment.

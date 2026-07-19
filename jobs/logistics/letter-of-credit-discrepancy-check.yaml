@@ -1,0 +1,61 @@
+id: letter-of-credit-discrepancy-check
+version: 1
+name: Letter of Credit Discrepancy Check
+description: >
+  Reviews the export document set assembled for a shipment against the
+  terms stated in its documentary letter of credit and flags mismatches
+  that would cause the issuing bank to reject payment. Use this if an
+  export shipment has ever gone out under an LC only for the bank to
+  refuse payment weeks later over a document discrepancy nobody caught
+  before presentation.
+category: logistics
+tags: [logistics, trade-finance, letter-of-credit, international, documentation]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the letter of credit terms at {{lc_terms_source}} against the
+  document set assembled for shipment {{shipment_reference}} (commercial
+  invoice, bill of lading, packing list, certificate of origin, insurance
+  certificate, and any inspection/beneficiary certificates called for).
+
+  1. Check that names, addresses, and amounts on each document match the
+     LC exactly (or within {{amount_tolerance_pct}}% for quantity/amount
+     tolerance clauses).
+  2. Check that shipment dates, port of loading/discharge, and partial
+     shipment/transshipment terms on the documents match what the LC
+     permits.
+  3. Check that every document the LC calls for is actually present, and
+     that presentation is happening within {{presentation_deadline_days}}
+     days of shipment as UCP 600 rules typically require.
+  4. Report each discrepancy found: which document, what the LC requires,
+     what the document actually shows, and whether it's a material
+     discrepancy likely to trigger bank refusal or a minor one worth a
+     waiver request.
+
+  Do not amend or reissue any document — flag discrepancies for the
+  shipper/trade finance team to correct or seek a waiver from the
+  applicant before presentation.
+variables:
+  lc_terms_source:
+    default: "the letter of credit PDF or SWIFT MT700 export from your bank portal"
+    description: Where the issued letter of credit's terms and required document list can be read.
+  shipment_reference:
+    default: "your-shipment-id"
+    description: Shipment or order reference the document set belongs to.
+  amount_tolerance_pct:
+    default: 5
+    description: "Percent tolerance the LC allows on quantity/amount (many LCs state \"about\" allowing +/-5%) — set to 0 if the LC states an exact amount."
+  presentation_deadline_days:
+    default: 21
+    description: Days after shipment date allowed to present documents to the bank, per the LC terms or default UCP 600 rule.
+compatible_agents: [claude, codex, hermes, generic]
+notes: >
+  A pre-presentation discrepancy screen, not a substitute for your bank's
+  or a trade finance specialist's formal document check — distinct from
+  incoterms-documentation-compliance-check (which checks Incoterm
+  obligations, not bank payment terms) and
+  freight-forwarder-document-packet-completeness-check (which checks a
+  fixed set is present, not whether the content matches an LC's specific
+  terms). Discrepancies caught here still need a human decision on
+  correcting the document or requesting an LC amendment/waiver.

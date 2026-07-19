@@ -1,0 +1,46 @@
+id: duplicate-freight-invoice-payment-check
+version: 1
+name: Duplicate Freight Invoice Payment Check
+description: >
+  Scans paid freight invoices for the same carrier and load/BOL number
+  billed and paid more than once, whether under the same invoice number
+  or a re-submitted duplicate. Use this if a carrier invoice has ever
+  been paid twice because it was re-sent under a slightly different
+  invoice number and nobody cross-checked it against the load it billed.
+category: logistics
+tags: [logistics, freight, invoice, duplicate-payment, audit]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      carrier=$1; load_ref=$2; invoice_num=$3; amount=$4;
+      pay_key = carrier "|" load_ref;
+      pay_count[pay_key]++;
+      invoice_list[pay_key] = invoice_list[pay_key] " " invoice_num;
+      total_amt[pay_key] += amount;
+    }
+    END {
+      for (k in pay_count) {
+        if (pay_count[k] > 1) {
+          split(k, parts, "|");
+          printf "DUPLICATE PAYMENT: carrier %s, load %s — paid %d times (invoices:%s), total $%.2f\n", parts[1], parts[2], pay_count[k], invoice_list[k], total_amt[k];
+        }
+      }
+    }
+  ' "{{paid_invoices_csv_path}}"
+variables:
+  paid_invoices_csv_path:
+    default: "./paid-freight-invoices.csv"
+    description: "Path to a CSV with columns: carrier_name,load_or_bol_reference,invoice_number,amount_paid — export of paid freight invoices from your AP system, covering the audit period."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Flags the same carrier/load combination paid more than once regardless
+  of invoice number, which catches resubmitted duplicates that a simple
+  invoice-number dedupe would miss — distinct from freight-invoice-rate-audit,
+  which checks a single invoice's rate against contract rather than
+  looking for repeat payment on the same load. Confirm each flagged pair
+  is a true duplicate (not a legitimate split-billed accessorial) before
+  requesting a carrier refund.

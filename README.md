@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2605 jobs across 66 categories (2221 smoke-tested clean):
+2639 jobs across 66 categories (2251 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -206,18 +206,18 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `creator` | 35 | 24 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
 | `crypto` | 42 | 21 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
 | `dental` | 51 | 51 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
-| `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
+| `devops` | 56 | 52 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 35 | 27 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 37 | 28 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
 | `events` | 37 | 32 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
 | `fieldservice` | 37 | 35 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
-| `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
+| `finance` | 53 | 53 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 37 | 33 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 48 | 39 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 37 | 27 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 43 | 40 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 37 | 30 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
-| `healthcare` | 45 | 39 | Clinic ops — appointments, recalls, licenses, lab results. |
+| `healthcare` | 51 | 45 | Clinic ops — appointments, recalls, licenses, lab results. |
 | `hiring` | 37 | 25 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 37 | 34 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 42 | 35 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
@@ -229,7 +229,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `law-firm` | 41 | 40 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
 | `learning` | 37 | 35 | Personal learning — certs, courses, flashcards, reading. |
 | `legal` | 37 | 35 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
-| `logistics` | 45 | 32 | Shipping ops — customs, freight, delays, fees. |
+| `logistics` | 50 | 35 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 41 | 38 | Production ops — downtime, defects, maintenance, suppliers, materials. |
 | `marketing` | 37 | 27 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
 | `moving-relocation` | 37 | 34 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
@@ -246,13 +246,13 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `restaurant` | 41 | 30 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 37 | 31 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 37 | 31 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
+| `security` | 51 | 44 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 37 | 36 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 41 | 40 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `short-term-rental` | 37 | 29 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |
 | `spa` | 37 | 35 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 41 | 35 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
-| `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
+| `support` | 51 | 38 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
 | `team` | 51 | 50 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 37 | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 37 | 32 | Trip logistics — flights, passports, visas, insurance, miles. |

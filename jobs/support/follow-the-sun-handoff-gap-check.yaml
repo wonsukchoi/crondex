@@ -1,0 +1,50 @@
+id: follow-the-sun-handoff-gap-check
+version: 1
+name: Follow-the-Sun Handoff Gap Check
+description: >
+  Checks tickets active at the boundary between one regional support
+  team's shift ending and the next region's shift starting, and flags
+  any that show no handoff note or ownership transfer around that
+  window. Use this if a ticket has ever sat untouched for hours because
+  it fell into the gap between one region's team logging off and the
+  next region's team logging on, with neither side realizing it was
+  theirs to pick up — distinct from support-shift-coverage-gap-check,
+  which looks at overall staffing thinness, not the specific handoff
+  moment between regional teams on a single ticket.
+category: support
+tags: [support, handoff, timezone, global-coverage, tickets]
+schedule: "0 0,8,16 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check {{helpdesk_platform}} for tickets that were still open at the
+  end of the {{outgoing_region}} shift and remained open into the start
+  of the {{incoming_region}} shift today.
+  1. For each such ticket, check whether a handoff note, internal
+     comment, or ownership reassignment happened within
+     {{handoff_grace_minutes}} minutes of the shift boundary.
+  2. Flag any ticket that crossed the shift boundary with no handoff
+     note and no reassignment — these are candidates for having been
+     dropped between regions.
+  3. Ignore tickets already reassigned or waiting on the customer.
+  4. If every boundary-crossing ticket had a clean handoff, say so in
+     one line.
+variables:
+  helpdesk_platform:
+    default: "your helpdesk (e.g. Zendesk, Intercom, Freshdesk)"
+    description: Where ticket ownership, comments, and shift/region assignment are tracked.
+  outgoing_region:
+    default: "US"
+    description: The region whose shift is ending at this run's scheduled boundary.
+  incoming_region:
+    default: "APAC"
+    description: The region whose shift is starting at this run's scheduled boundary.
+  handoff_grace_minutes:
+    default: 30
+    description: Minutes around the shift boundary within which a handoff note or reassignment should appear.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Assumes a follow-the-sun support model with distinct regional shifts —
+  not applicable to single-timezone teams. Run at each team's actual
+  shift-change times by adjusting the schedule and region variables per
+  boundary. Read-only; leaves handoff notes to agents.

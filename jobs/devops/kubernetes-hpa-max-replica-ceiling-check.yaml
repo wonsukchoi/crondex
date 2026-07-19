@@ -1,0 +1,43 @@
+id: kubernetes-hpa-max-replica-ceiling-check
+version: 1
+name: Kubernetes HPA Max Replica Ceiling Check
+description: >
+  Checks each HorizontalPodAutoscaler in a namespace and flags one that's
+  currently running at (or within a small buffer of) its configured
+  maxReplicas ceiling. Use this if a service has ever been quietly
+  capacity-constrained under load because its autoscaler had already
+  maxed out and simply had no more headroom to scale into, which looks
+  fine on a dashboard showing "autoscaling is working" but really means
+  the ceiling itself is now too low.
+category: devops
+tags: [kubernetes, autoscaling, hpa, capacity, scaling]
+schedule: "*/30 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  kubectl get hpa -n "{{namespace}}" -o json | jq -r --argjson buffer "{{ceiling_buffer}}" '
+    .items[] | . as $h
+    | ($h.spec.maxReplicas) as $max
+    | ($h.status.currentReplicas // 0) as $cur
+    | if $max > 0 and ($cur >= ($max - $buffer)) then
+        "AT CEILING: \($h.metadata.name) running \($cur)/\($max) replicas — little or no autoscaling headroom left"
+      else empty end
+  '
+variables:
+  namespace:
+    default: "production"
+    description: Kubernetes namespace whose HorizontalPodAutoscalers should be checked.
+  ceiling_buffer:
+    default: 0
+    description: How many replicas below maxReplicas still counts as "at ceiling" (0 means only an exact match triggers).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Requires `kubectl` configured with read access to the namespace and
+  `jq` for parsing. Read-only: only reads HPA status, makes no scaling
+  changes. A single snapshot at ceiling can be a brief traffic spike;
+  repeated flags across scheduled runs is the real signal that
+  maxReplicas needs raising. Distinct from
+  kubernetes-resource-quota-check.yaml, which watches namespace-wide
+  CPU/memory usage against a ResourceQuota, not a specific HPA's own
+  scaling ceiling, and from k8s-pod-restart-watch.yaml, which watches
+  crash-looping, not scaling headroom.

@@ -1,0 +1,61 @@
+id: newborn-screening-result-followup-check
+version: 1
+name: Newborn Screening Result Follow-Up Check
+description: >
+  Reviews newborn metabolic/hearing screening results against the state-
+  mandated follow-up window and has an agent triage which pending,
+  abnormal, or "repeat needed" results still need action. Use this if a
+  newborn screening result has ever sat unresolved past the statutory
+  window because it's a separate tracking pathway from the infant's
+  regular chart — distinct from lab-result-followup-check.yaml, which
+  covers general lab turnaround, not the specific statutory newborn
+  screening panel and its mandated retest/referral timelines.
+category: healthcare
+tags: [healthcare, newborn-screening, pediatrics, compliance, patient-safety]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_pending_days}}" '
+    NR==1 {next}
+    $4 != "normal" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline collected_epoch; close(cmd);
+      age_days = (today - collected_epoch) / 86400;
+      printf "NEEDS REVIEW: infant %s — %s screen collected %s (%d day(s) ago), status: %s\n", $1, $2, $3, age_days, $4;
+      if (age_days > max_days+0) { overdue_n++; }
+    }
+    END { printf "%d screening result(s) past the %s-day mandated follow-up window.\n", overdue_n+0, max_days; }
+  ' "{{screening_log_csv_path}}"
+prompt: |
+  Using the flagged newborn screening results above, triage each one:
+  1. Group by status (pending, abnormal, repeat_needed) and days since
+     collection.
+  2. Rank "abnormal" results with no documented specialist referral as
+     highest priority, then "repeat_needed" past the mandated window, then
+     plain "pending" results still within the window.
+  3. For each high-priority item, state what the next administrative step
+     should be (schedule repeat draw, confirm specialist referral was sent,
+     confirm family was notified per your program's protocol) — do not
+     contact the family yourself or interpret the clinical meaning of a
+     result.
+  4. If every result is normal or already actioned, say so in one line.
+variables:
+  screening_log_csv_path:
+    default: "./newborn_screening_log.csv"
+    description: "Path to a CSV with columns: infant_id,screening_type (metabolic/hearing),collected_date (YYYY-MM-DD),result_status (normal/pending/abnormal/repeat_needed)."
+  max_pending_days:
+    default: 7
+    description: Days after collection before a non-normal result counts as overdue for the mandated follow-up window.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The command pass does the cheap date-math filtering for free; the prompt
+  pass adds the judgment call of which non-normal results are most urgent
+  and what administrative step is missing, which plain filtering can't do.
+notes: >
+  Administrative triage only over an already-exported, de-identified-where-
+  possible screening log — it never contacts a family, orders a repeat
+  test, or makes a clinical diagnosis; a flagged result routes to your
+  newborn screening coordinator or the infant's pediatrician per your
+  program's actual protocol.

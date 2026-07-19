@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-07-19
+
+### Added
+
+- 34 new jobs deepening the catalog's 6 most-saturated categories
+  (healthcare, logistics, security, support, finance, devops — all
+  already at 44-50 jobs), 5-6 per category. Several agents deliberately
+  stopped short of the target (logistics 5, finance 5) rather than pad
+  with a weak or overlapping idea, confirming these categories are
+  genuinely approaching their natural ceiling. Sixth and final batch of
+  this session's push toward a much larger, evenly-spread catalog (see
+  ROADMAP.md §4) — session total: 341 new jobs across all 66
+  categories, 2298 -> 2639.
+
+### Fixed
+
+- Fixed an apostrophe-breaking-single-quoted-awk-string bug (same class
+  as 0.77.0's hiring fix) in a new healthcare job
+  (`sterile-processing-biological-indicator-failure-check`) — reworded
+  "today's test" to avoid the literal apostrophe. Caught by `npm run
+  lint-shell`.
+
 ## [0.81.0] - 2026-07-19
 
 ### Added

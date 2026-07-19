@@ -1,0 +1,50 @@
+id: sterile-processing-biological-indicator-failure-check
+version: 1
+name: Sterile Processing Biological Indicator Failure Check
+description: >
+  Scans the sterile processing department's daily biological indicator
+  (spore test) log for any failed or missing test on an autoclave/sterilizer
+  cycle, since a single failed BI result means every instrument set run
+  since the last passing test needs to be recalled and re-sterilized. Use
+  this if a failed spore test has ever sat unnoticed in a logbook for even
+  a day — distinct from medical-equipment-calibration-check.yaml, which
+  tracks scheduled calibration due dates, not sterilization biological
+  monitoring results.
+category: healthcare
+tags: [healthcare, sterile-processing, infection-control, patient-safety, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  awk -F',' -v today="$today" '
+    NR==1 {next}
+    {
+      sterilizers[$2]=1;
+      if ($1==today) { seen_today[$2]=1; }
+      if ($3 == "fail") {
+        printf "BI TEST FAILED: sterilizer %s on %s — recall all loads processed since the last passing test\n", $2, $1;
+        fail_n++;
+      }
+    }
+    END {
+      for (s in sterilizers) {
+        if (!(s in seen_today)) {
+          printf "NO BI TEST LOGGED TODAY: sterilizer %s\n", s;
+          missing_n++;
+        }
+      }
+      printf "SUMMARY: %d failed test(s), %d sterilizer(s) missing a test for today.\n", fail_n+0, missing_n+0;
+    }
+  ' "{{bi_test_log_csv_path}}"
+variables:
+  bi_test_log_csv_path:
+    default: "./sterilizer_bi_test_log.csv"
+    description: "Path to a CSV with columns: test_date (YYYY-MM-DD),sterilizer_id,result (pass/fail). Historical rows establish which sterilizers are expected to report daily."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token safety-net check over an already-logged BI test result — it
+  does not perform, interpret, or re-run the biological indicator test
+  itself, and a failed result must still go through your facility's actual
+  recall and re-sterilization protocol immediately, not wait for the next
+  scheduled run of this job.

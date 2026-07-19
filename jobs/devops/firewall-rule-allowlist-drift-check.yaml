@@ -1,0 +1,48 @@
+id: firewall-rule-allowlist-drift-check
+version: 1
+name: Firewall Rule Allowlist Drift Check
+description: >
+  Compares a current export of firewall/security-group rules against an
+  approved baseline allowlist and flags any rule present in the current
+  export that isn't in the approved list, calling out ones open to a
+  wide-open source range especially loudly. Use this if a security
+  group has ever quietly grown an extra inbound rule — someone testing
+  something and forgetting to remove it, or a port opened to
+  0.0.0.0/0 — that nobody signed off on and nobody noticed until an
+  audit or an incident.
+category: devops
+tags: [devops, firewall, security-groups, network, drift, security]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' 'NR>1{print $2","$3","$4}' "{{current_rules_csv_path}}" | sort -u > /tmp/current-rules.txt;
+  awk -F',' 'NR>1{print $2","$3","$4}' "{{approved_baseline_csv_path}}" | sort -u > /tmp/approved-rules.txt;
+  comm -23 /tmp/current-rules.txt /tmp/approved-rules.txt | awk -F',' -v wide="{{wide_open_cidr}}" '
+    {
+      if ($3 == wide) printf "UNAPPROVED + WIDE-OPEN: protocol=%s port=%s source=%s\n", $1, $2, $3;
+      else printf "UNAPPROVED: protocol=%s port=%s source=%s\n", $1, $2, $3;
+      n++;
+    }
+    END { if (n+0 == 0) print "OK: no current rules found outside the approved baseline"; }
+  '
+variables:
+  current_rules_csv_path:
+    default: "./current_firewall_rules.csv"
+    description: "Path to a CSV export of the live rules with columns: rule_id,protocol,port,source_cidr."
+  approved_baseline_csv_path:
+    default: "./approved_firewall_baseline.csv"
+    description: "Path to a CSV of the approved baseline with the same columns: rule_id,protocol,port,source_cidr."
+  wide_open_cidr:
+    default: "0.0.0.0/0"
+    description: Source CIDR treated as wide-open and called out with extra severity when found unapproved.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only diff — only compares two CSV exports, never modifies a
+  security group or firewall rule itself. Compares protocol/port/source
+  combinations, not rule IDs, so a rule re-created under a new ID still
+  matches if its shape is unchanged. Distinct from terraform-drift-check.yaml,
+  which checks Terraform state against actual infrastructure broadly;
+  this checks network ingress rules specifically against a
+  security-reviewed allowlist, independent of whether Terraform manages
+  them.

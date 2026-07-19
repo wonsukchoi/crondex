@@ -1,0 +1,52 @@
+id: help-center-deprecated-feature-reference-check
+version: 1
+name: Help Center Deprecated Feature Reference Check
+description: >
+  Scans published help center articles for mentions of feature names
+  that have been sunset or deprecated, and flags articles that still
+  reference them. Use this if a customer has ever followed a help
+  article's instructions for a button or setting that was removed
+  months ago, because the article's staleness date looked fine even
+  though its content was actively wrong — distinct from
+  knowledge-base-article-staleness-check, which flags articles by age
+  alone, not by whether they mention a specific feature known to be
+  gone.
+category: support
+tags: [support, knowledge-base, deprecated, help-center, self-service]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v curl >/dev/null 2>&1 || { echo "ERROR: curl not installed"; exit 1; };
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  curl -s -H "Authorization: Bearer {{api_token}}" "{{kb_articles_api_url}}" -o /tmp/kb_articles_export.json;
+  awk -v terms="{{deprecated_feature_terms}}" '
+    BEGIN { n_terms = split(terms, term_arr, "|") }
+    {
+      body = tolower($0);
+      for (t=1; t<=n_terms; t++) {
+        needle = tolower(term_arr[t]);
+        if (index(body, needle) > 0) {
+          printf "DEPRECATED REFERENCE FOUND: line mentions \"%s\"\n", term_arr[t];
+          n_hit++;
+        }
+      }
+    }
+    END { printf "%d line(s) across exported articles mention a deprecated feature.\n", n_hit+0; }
+  ' /tmp/kb_articles_export.json
+variables:
+  kb_articles_api_url:
+    default: "https://api.example-helpdesk.com/help_center/articles?status=published&format=text"
+    description: Help center API endpoint returning published article text content.
+  api_token:
+    default: "your-api-token"
+    description: Bearer token for the help center API.
+  deprecated_feature_terms:
+    default: "Classic Dashboard|Legacy Export|old billing portal"
+    description: Pipe-separated list of deprecated/sunset feature names to search article text for.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Keyword scan on raw exported text — doesn't parse article structure,
+  so tune deprecated_feature_terms to your product's actual retired
+  feature names and expect some noise from articles that discuss
+  history intentionally. Read-only; edits no articles itself.

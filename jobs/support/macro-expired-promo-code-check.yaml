@@ -1,0 +1,59 @@
+id: macro-expired-promo-code-check
+version: 1
+name: Macro Expired Promo Code Check
+description: >
+  Scans canned response/macro content for promo or coupon codes and
+  checks each one against a list of codes that have already expired.
+  Use this if a canned response has ever gone out with a discount code
+  that no longer works, sending a customer straight to a "this code is
+  invalid" dead end — distinct from canned-response-content-quality-check,
+  which reviews macros for tone/grammar/clarity, not whether an embedded
+  promo code is still valid.
+category: support
+tags: [support, macros, promo-codes, canned-responses]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  command -v awk >/dev/null 2>&1 || { echo "ERROR: awk not installed"; exit 1; };
+  [ -f "{{macro_export_csv}}" ] || { echo "ERROR: macro export CSV not found at {{macro_export_csv}}"; exit 1; };
+  [ -f "{{expired_codes_csv}}" ] || { echo "ERROR: expired codes CSV not found at {{expired_codes_csv}}"; exit 1; };
+  awk -F',' -v prefixes_str="{{promo_code_prefixes}}" '
+    FNR==NR { if (FNR>1) expired[$1]=1; next }
+    FNR==1 { next }
+    {
+      macro_name=$1; body=$2;
+      n_pref = split(prefixes_str, prefix_arr, "|");
+      for (p=1; p<=n_pref; p++) {
+        prefix = prefix_arr[p];
+        start_pos = index(body, prefix);
+        if (start_pos > 0) {
+          rest = substr(body, start_pos);
+          split(rest, tok, /[^A-Za-z0-9_-]/);
+          code = tok[1];
+          if (code in expired) {
+            printf "EXPIRED CODE IN MACRO: \"%s\" references expired code %s\n", macro_name, code;
+            n_flag++;
+          }
+        }
+      }
+    }
+    END { printf "%d macro(s) flagged with expired promo codes.\n", n_flag+0; }
+  ' "{{expired_codes_csv}}" "{{macro_export_csv}}"
+variables:
+  macro_export_csv:
+    default: "./macro_export.csv"
+    description: "Path to a CSV with columns: macro_name,body_text — export of all canned response/macro content."
+  expired_codes_csv:
+    default: "./expired_promo_codes.csv"
+    description: "Path to a CSV with a single column: promo_code — codes that have already expired or been deactivated."
+  promo_code_prefixes:
+    default: "SAVE|WELCOME|PROMO|DISC"
+    description: Pipe-separated list of promo code prefixes to search for inside macro body text.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Simple prefix-match scan, not a full parser — tune promo_code_prefixes
+  to your actual coupon naming convention. Distinct from
+  `macro-usage-staleness-check` (flags macros nobody has used recently)
+  and `canned-response-content-quality-check` (reviews wording quality,
+  not promo code validity).

@@ -1,0 +1,47 @@
+id: audit-confirmation-response-tracker
+version: 1
+name: Audit Confirmation Response Tracker
+description: >
+  Tracks third-party confirmation letters (bank balance confirmations, AR
+  and AP balance confirmations) sent out for an external audit and flags
+  ones with no recorded response as the audit fieldwork deadline
+  approaches. Use this if year-end audit fieldwork has ever stalled
+  because a bank or a customer never returned a signed confirmation and
+  nobody followed up until the auditor asked where it was.
+category: finance
+tags: [finance, audit, confirmation, external-audit, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $5 != "yes" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (deadline_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days+0) {
+        if (days_left < 0) printf "OVERDUE: %s confirmation to %s (%s) not received, fieldwork deadline %s was %d day(s) ago\n", $3, $2, $1, $4, -days_left;
+        else printf "FOLLOW UP: %s confirmation to %s (%s) not yet received, %d day(s) until fieldwork deadline %s\n", $3, $2, $1, days_left, $4;
+        n++;
+      }
+    }
+    END { printf "%d audit confirmation(s) awaiting response.\n", n+0; }
+  ' "{{audit_confirmations_csv_path}}"
+variables:
+  audit_confirmations_csv_path:
+    default: "./audit_confirmations.csv"
+    description: "Path to a CSV with columns: confirmation_id,recipient,type (bank/ar/ap),fieldwork_deadline (YYYY-MM-DD),response_received (yes/no)."
+  warn_days_before_deadline:
+    default: 10
+    description: Start flagging an unreturned confirmation this many days before the audit fieldwork deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token reminder — you (or the auditor) still has to send the
+  original confirmation request and record the response yourself; this
+  job only watches the clock. Distinct from
+  chargeback-dispute-deadline-tracker.yaml, which tracks payment-processor
+  dispute response windows, not year-end external-audit confirmation
+  letters, and from month-end-close-checklist-tracker.yaml, which covers
+  the monthly close process rather than annual audit fieldwork logistics.

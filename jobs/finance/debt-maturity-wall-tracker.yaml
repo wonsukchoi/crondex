@@ -1,0 +1,46 @@
+id: debt-maturity-wall-tracker
+version: 1
+name: Debt Maturity Wall Tracker
+description: >
+  Scans a register of outstanding loans, notes, and bonds and flags any
+  instrument maturing within a configurable lookahead window, so treasury
+  has time to line up a refinancing, renewal, or payoff plan. Use this if
+  a loan or note has ever come due sooner than expected because nobody
+  had a single forward-looking view of when each piece of debt actually
+  matures.
+category: finance
+tags: [finance, treasury, debt, maturity, refinancing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_days="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline maturity_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      days_left = (maturity_epoch - now_epoch) / 86400;
+      if (days_left <= warn_days+0) {
+        if (days_left < 0) printf "MATURED: %s ($%s %s) matured %s (%d day(s) ago) — confirm payoff or rollover\n", $1, $2, $4, $3, -days_left;
+        else printf "APPROACHING MATURITY: %s ($%s %s) matures %s (%d day(s) left)\n", $1, $2, $4, $3, days_left;
+        flagged++;
+      }
+    }
+    END { printf "%d debt instrument(s) within the maturity lookahead window.\n", flagged+0; }
+  ' "{{debt_register_csv_path}}"
+variables:
+  debt_register_csv_path:
+    default: "./debt_register.csv"
+    description: "Path to a CSV with columns: instrument_name,principal_amount,maturity_date (YYYY-MM-DD),instrument_type (e.g. term-loan, revolver, bond, note)."
+  lookahead_days:
+    default: 180
+    description: Flag an instrument if its maturity date falls within this many days, giving treasury lead time to negotiate refinancing.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token, deterministic date check. Distinct from
+  loan-covenant-compliance-check.yaml, which watches financial ratios
+  required by an existing agreement, not when the debt itself comes due —
+  a loan can be fully covenant-compliant right up until it matures and
+  still needs a refinancing plan. Flags for planning purposes only; does
+  not initiate any refinancing or contact a lender.

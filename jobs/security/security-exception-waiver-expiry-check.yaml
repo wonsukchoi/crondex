@@ -1,0 +1,40 @@
+id: security-exception-waiver-expiry-check
+version: 1
+name: Security Exception Waiver Expiry Check
+description: >
+  Scans your register of approved security policy exceptions (risk
+  acceptances, control waivers) and flags any that are expired or expiring
+  soon. Use this if a "temporary" exception — like a server exempted from
+  the patch policy or an app allowed to skip MFA — has ever quietly become
+  permanent because its expiry date was never revisited.
+category: security
+tags: [security, risk-acceptance, exceptions, governance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline expiry_ts; close(cmd);
+      days_left = int((expiry_ts - today) / 86400);
+      if (days_left < 0) print "EXPIRED: exception \"" $1 "\" (" $3 " risk, owner " $5 ") expired " (-days_left) " days ago";
+      else if (days_left <= warn) print "EXPIRING SOON: exception \"" $1 "\" (" $3 " risk, owner " $5 ") expires in " days_left " days";
+    }
+  ' {{exceptions_csv}}
+variables:
+  exceptions_csv:
+    default: "security-exceptions.csv"
+    description: "CSV with header row, columns: exception_id,description,risk_level,expiry_date(YYYY-MM-DD),owner. Export from your GRC tool or maintain by hand."
+  warn_days:
+    default: 14
+    description: Days before expiry to start warning that a review is coming up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from vendor-security-review-recertification-check
+  (third-party vendor reviews) and pentest-finding-remediation-tracker
+  (unfixed findings) — this tracks deliberately-approved, time-boxed risk
+  acceptances against internal policy. This job only flags expired or
+  soon-to-expire waivers for a human to re-approve or close; it does not
+  revoke the underlying exception or change any control itself.

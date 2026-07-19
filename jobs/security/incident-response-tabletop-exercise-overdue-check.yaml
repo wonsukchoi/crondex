@@ -1,0 +1,39 @@
+id: incident-response-tabletop-exercise-overdue-check
+version: 1
+name: Incident Response Tabletop Exercise Overdue Check
+description: >
+  Checks how long it's been since each incident response tabletop scenario
+  was last run and flags any past your required cadence. Use this if your
+  team has ever realized, only after a real incident went sideways, that
+  the last tabletop exercise was over a year ago and the runbook it was
+  supposed to validate had gone stale.
+category: security
+tags: [security, incident-response, tabletop-exercise, preparedness]
+schedule: "0 9 1 1,4,7,10 *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F, -v today="$today" -v cadence={{cadence_days}} '
+    NR>1 {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline last_run_ts; close(cmd);
+      days_since = int((today - last_run_ts) / 86400);
+      if (days_since >= cadence) print "OVERDUE: tabletop scenario \"" $1 "\" last run " days_since " days ago (" $2 "), required every " cadence " days";
+    }
+  ' {{scenarios_csv}}
+variables:
+  scenarios_csv:
+    default: "tabletop-scenarios.csv"
+    description: "CSV with header row, columns: scenario_name,last_run_date(YYYY-MM-DD). Maintain by hand or export from your IR planning tool."
+  cadence_days:
+    default: 180
+    description: Maximum number of days allowed between runs of a given tabletop scenario before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Runs quarterly by default since tabletop cadence is typically
+  reviewed on that rhythm. Distinct from incident-response-escalation-contact-check
+  (keeps contact info current) and security-incident-postmortem-overdue-check
+  (postmortems after real incidents already happened) — this tracks planned,
+  proactive readiness drills. This job only flags overdue scenarios for a
+  human to schedule; it does not run or facilitate the exercise itself.

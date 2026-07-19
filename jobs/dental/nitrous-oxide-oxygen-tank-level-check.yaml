@@ -1,0 +1,38 @@
+id: nitrous-oxide-oxygen-tank-level-check
+version: 1
+name: Nitrous Oxide / Oxygen Tank Level Check
+description: >
+  Checks logged tank pressure readings for nitrous oxide and backup
+  oxygen cylinders against a reorder threshold and flags any tank
+  running low. Use this if a sedation case has ever been at risk of
+  losing gas supply mid-procedure because nobody was watching the
+  pressure gauge between supplier deliveries — a safety event, not
+  just a restocking one.
+category: dental
+tags: [dental, sedation, nitrous-oxide, oxygen, safety, inventory]
+schedule: "0 7 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{reorder_threshold_psi}}" '
+    NR==1 {next}
+    {
+      psi = $3 + 0;
+      if (psi <= threshold+0) {
+        printf "LOW TANK: %s (%s, operatory %s) at %d psi, reorder threshold %s psi\n", $1, $2, $4, psi, threshold;
+      }
+    }
+  ' "{{gas_tank_log_csv_path}}"
+variables:
+  gas_tank_log_csv_path:
+    default: "./gas_tank_log.csv"
+    description: "Path to a CSV with columns: tank_id,gas_type (nitrous-oxide/oxygen),current_psi,operatory."
+  reorder_threshold_psi:
+    default: 500
+    description: Tank pressure in psi at or below which a nitrous oxide or oxygen tank is flagged for immediate swap/reorder.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only safety check on manually logged gauge readings — distinct from
+  dental-supply-reorder-threshold-check.yaml, which tracks consumable
+  quantities like gloves and anesthetic cartridges, not pressurized sedation
+  gas supply. Does not swap the tank or contact the gas supplier itself.

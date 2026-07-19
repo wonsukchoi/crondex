@@ -1,0 +1,45 @@
+id: sedation-anesthesia-permit-renewal-tracker
+version: 1
+name: Sedation/Anesthesia Permit Renewal Tracker
+description: >
+  Checks each provider's state-issued moderate-sedation, deep-sedation, or
+  general-anesthesia permit expiration date and flags anyone lapsed or
+  expiring soon. Use this if a sedation case has ever been scheduled
+  without anyone double-checking the treating doctor's state anesthesia
+  permit was still active, which is a practice-halting compliance problem
+  the day of the appointment, not just a billing one.
+category: dental
+tags: [dental, sedation, anesthesia, permit, compliance, credentialing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      diff_days = (expiry_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "LAPSED PERMIT: %s — %s permit %s expired %d day(s) ago\n", $1, $2, $3, -diff_days;
+      } else if (diff_days <= warn+0) {
+        printf "EXPIRING SOON: %s — %s permit %s expires in %d day(s)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{sedation_permits_csv_path}}"
+variables:
+  sedation_permits_csv_path:
+    default: "./sedation_permits.csv"
+    description: "Path to a CSV with columns: provider_name,permit_type (moderate-sedation/deep-sedation/general-anesthesia),permit_number,expiry_date (YYYY-MM-DD)."
+  warn_days_before_expiry:
+    default: 60
+    description: Days before permit expiry to start flagging, in addition to already-lapsed permits.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder — distinct from license-cde-credit-expiry-tracker.yaml
+  (general dental license/CE credits) and
+  sedation-consent-form-completeness-check.yaml (per-patient consent
+  paperwork tied to a specific appointment). This tracks the state permit
+  that authorizes the practice to sedate patients at all. Does not renew
+  the permit or reschedule sedation cases itself.

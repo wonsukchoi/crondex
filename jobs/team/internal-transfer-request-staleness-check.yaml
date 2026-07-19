@@ -1,0 +1,42 @@
+id: internal-transfer-request-staleness-check
+version: 1
+name: Internal Transfer Request Staleness Check
+description: >
+  Warns you when an employee's internal transfer or mobility request has
+  sat open too long without a decision or next step. Use this if
+  someone has ever quietly asked to move teams, heard nothing back for
+  two months, and started interviewing externally instead because the
+  request fell through the cracks.
+category: team
+tags: [team, internal-mobility, hiring, retention]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  requested_epoch=$(date -j -f %Y-%m-%d "{{request_date}}" +%s 2>/dev/null || date -d "{{request_date}}" +%s);
+  days_open=$(( (today_epoch-requested_epoch)/86400 ));
+  if [ "$days_open" -ge {{stale_after_days}} ]; then
+    echo "STALE: {{person_name}}'s transfer request to '{{target_team}}' has been open $days_open day(s) (threshold {{stale_after_days}}) — needs a decision or status update.";
+  else
+    echo "OK: {{person_name}}'s transfer request open $days_open day(s).";
+  fi
+variables:
+  person_name:
+    default: ""
+    description: Name of the employee who requested the internal transfer/mobility move.
+  target_team:
+    default: ""
+    description: Team or role the employee requested to move into.
+  request_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the transfer request was made.
+  stale_after_days:
+    default: 30
+    description: Flag the request as stale after this many days without resolution.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from hiring-req-staleness-check (external/open
+  headcount reqs) — this tracks an individual employee's request to move
+  internally, which typically has retention stakes if it's ignored. Run
+  one instance per open transfer request.

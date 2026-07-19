@@ -1,0 +1,62 @@
+id: mac-reimbursement-below-cost-alert
+version: 1
+name: MAC Reimbursement Below-Cost Alert
+description: >
+  Compares a drug's PBM Maximum Allowable Cost (MAC) reimbursement rate
+  plus dispensing fee against your actual wholesaler acquisition cost and
+  flags any NDC where you're now being paid less than what you paid to buy
+  it. Use this if you've ever kept dispensing a generic for weeks before
+  realizing the MAC rate had quietly dropped below your cost on every
+  single fill.
+category: pharmacy
+tags: [pharmacy, pbm, mac, reimbursement, billing]
+schedule: "0 9 * * 3"
+timezone: "America/New_York"
+runner: hybrid
+command: >
+  awk -F',' -v min_margin="{{min_margin_dollars}}" '
+    NR==1 {next}
+    {
+      ndc=$1; drug=$2; mac_rate=$3; fee=$4; cost=$5;
+      margin = (mac_rate + fee) - cost;
+      if (margin < min_margin+0) {
+        printf "BELOW COST: %s (NDC %s) — MAC $%.4f + fee $%.2f vs. cost $%.4f (margin $%.4f)\n", drug, ndc, mac_rate, fee, cost, margin;
+      }
+    }
+  ' "{{mac_cost_csv_path}}"
+prompt: |
+  Run the below-cost check using {{mac_cost_csv_path}} (columns: ndc,
+  drug_name, mac_rate, dispensing_fee, acquisition_cost) with a minimum
+  acceptable margin of {{min_margin_dollars}}.
+
+  For NDCs flagged as below cost:
+  1. Group them by wholesaler or manufacturer if that data is present, to
+     see whether the problem is concentrated on a few suppliers/products.
+  2. If a fill-volume column is present, estimate the total weekly dollar
+     loss across flagged NDCs; otherwise note that volume data wasn't
+     available.
+  3. Draft a short summary suitable for a MAC appeal to the PBM, citing the
+     specific NDCs, current MAC rate, and your acquisition cost — do not
+     submit or send anything, just prepare the draft for review.
+script_note: >
+  The shell command gives you the instant below-cost NDC list with zero
+  tokens; the prompt version additionally groups the pattern and drafts the
+  MAC-appeal summary, which needs judgment the script can't provide.
+variables:
+  mac_cost_csv_path:
+    default: "./mac-vs-cost.csv"
+    description: "Path to a CSV merging your current MAC rate list with wholesaler acquisition cost, columns: ndc,drug_name,mac_rate,dispensing_fee,acquisition_cost."
+  min_margin_dollars:
+    default: 0.00
+    description: Minimum acceptable margin per unit after the dispensing fee before an NDC is flagged as underwater.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only margin check on an already-merged cost export; it does not file
+  a MAC appeal or contact the PBM automatically. Distinct from
+  jobs/pharmacy/pbm-reimbursement-rate-audit.yaml (checks whether the PBM
+  paid the rate it contractually owes you — a contract-compliance
+  question) and jobs/pharmacy/wholesaler-invoice-price-variance-check.yaml
+  (invoice price vs. your negotiated wholesaler contract); this compares
+  the MAC rate itself against your actual cost, which can be paid exactly
+  as contracted and still leave you underwater — a MAC-list appeal
+  candidate rather than a billing dispute.

@@ -1,0 +1,49 @@
+id: safety-sensitive-recurring-background-recheck-tracker
+version: 1
+name: Safety-Sensitive Role Recurring Background Recheck Tracker
+description: >
+  Checks current employees in safety-sensitive or compliance-flagged
+  roles (drivers, cash handlers, anyone with fiduciary or vulnerable-
+  population access) against your policy's periodic re-screening
+  interval and flags anyone whose last background check has aged past
+  it. Use this if a role requiring recurring re-screening has ever gone
+  years without a recheck because the original pre-hire check was
+  treated as a one-time, permanent clearance.
+category: hr
+tags: [hr, background-check, compliance, safety-sensitive]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_check_epoch; close(cmd);
+      interval_days = ($4+0) * 30;
+      due_epoch = last_check_epoch + (interval_days * 86400);
+      days_left = (due_epoch - today) / 86400;
+      if (days_left < 0) {
+        printf "RECHECK OVERDUE: %s (%s) — last checked %s, %d day(s) past the %d-month recheck interval\n", $1, $2, $3, -days_left, $4;
+      } else if (days_left <= warn) {
+        printf "RECHECK DUE SOON: %s (%s) — last checked %s, %d day(s) until recheck is due\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{safety_sensitive_roster_csv_path}}"
+variables:
+  safety_sensitive_roster_csv_path:
+    default: "./safety-sensitive-roster.csv"
+    description: "Path to a CSV with columns: employee_name,role,last_background_check_date (YYYY-MM-DD),recheck_interval_months (per your policy for that role)."
+  warn_days_before:
+    default: 30
+    description: Days before a recheck comes due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from pre-employment-background-check-tracker, which tracks a
+  one-time pre-hire check against a candidate's start date; this tracks
+  ongoing, recurring re-screening obligations for current employees in
+  roles your policy (or applicable regulation, e.g. commercial driving)
+  requires periodic rechecks for. Confirm which roles actually require
+  recurring checks and at what interval with legal/compliance before
+  relying on the defaults.

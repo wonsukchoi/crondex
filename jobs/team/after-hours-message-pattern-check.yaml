@@ -1,0 +1,49 @@
+id: after-hours-message-pattern-check
+version: 1
+name: After-Hours Message Pattern Check
+description: >
+  Scans an exported message timestamp log for a manager or team and
+  flags a pattern of non-urgent messages sent well outside agreed
+  working hours. Use this if a manager has ever gotten feedback that
+  people feel obligated to answer late-night Slack messages, even when
+  the manager didn't mean to create that pressure.
+category: team
+tags: [team, boundaries, chat, wellbeing]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v start="{{working_hours_start}}" -v end="{{working_hours_end}}" -v max_count="{{max_after_hours_per_week}}" '
+    NR==1 {next}
+    {
+      split($2, t, ":"); hour = t[1] + 0;
+      if (hour < start || hour >= end) { count[$1]++ }
+    }
+    END {
+      for (person in count) {
+        if (count[person] >= max_count) {
+          printf "PATTERN: %s sent %d message(s) outside %s:00-%s:00 this week (threshold %s)\n", person, count[person], start, end, max_count;
+        }
+      }
+    }
+  ' "{{message_timestamp_log_csv_path}}"
+variables:
+  message_timestamp_log_csv_path:
+    default: "./manager-message-log.csv"
+    description: "Path to a CSV with columns: sender_name,send_time (HH:MM, 24h) — one row per message sent in the lookback window."
+  working_hours_start:
+    default: 9
+    description: Start of agreed working hours (24h, e.g. 9 for 9am).
+  working_hours_end:
+    default: 18
+    description: End of agreed working hours (24h, e.g. 18 for 6pm).
+  max_after_hours_per_week:
+    default: 5
+    description: Flag a sender once their after-hours message count reaches this in the log window.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from chat-channel-sprawl-audit (channel count,
+  not message timing) — this is about respecting off-hours boundaries,
+  not urgency-based incident chat. Most chat tools can export message
+  metadata for this; this job doesn't read message content, only
+  timestamps.

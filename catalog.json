@@ -1,7 +1,7 @@
 {
   "generated_by": "scripts/build-catalog.js",
   "schema": "schema/job.schema.json",
-  "count": 2564,
+  "count": 2605,
   "jobs": [
     {
       "id": "1on1-prep-reminder",
@@ -1268,6 +1268,32 @@
       "path": "jobs/veterinary/after-hours-emergency-triage-callback-check.yaml"
     },
     {
+      "id": "after-hours-message-pattern-check",
+      "version": 1,
+      "name": "After-Hours Message Pattern Check",
+      "description": "Scans an exported message timestamp log for a manager or team and flags a pattern of non-urgent messages sent well outside agreed working hours. Use this if a manager has ever gotten feedback that people feel obligated to answer late-night Slack messages, even when the manager didn't mean to create that pressure.",
+      "category": "team",
+      "tags": [
+        "team",
+        "boundaries",
+        "chat",
+        "wellbeing"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/after-hours-message-pattern-check.yaml"
+    },
+    {
       "id": "after-hours-surcharge-billing-accuracy-check",
       "version": 1,
       "name": "Emergency/After-Hours Call Surcharge Billing Accuracy Check",
@@ -1787,6 +1813,34 @@
       ],
       "verified": true,
       "path": "jobs/childcare/allergy-action-plan-expiry-check.yaml"
+    },
+    {
+      "id": "amalgam-separator-waste-manifest-check",
+      "version": 1,
+      "name": "Amalgam Separator & Waste Manifest Check",
+      "description": "Checks each installed amalgam separator's replacement/inspection due date and each operatory's last mercury/amalgam waste pickup manifest date, flagging anything overdue. Use this if an amalgam separator has ever run past its rated capacity unnoticed, or a waste hauler pickup has lapsed long enough that the practice can't produce a current manifest if an EPA or state environmental inspector asks for one.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "amalgam",
+        "epa",
+        "hazardous-waste",
+        "compliance",
+        "environmental"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/amalgam-separator-waste-manifest-check.yaml"
     },
     {
       "id": "amenity-reservation-noshow-check",
@@ -8621,6 +8675,34 @@
       "path": "jobs/telecom/circuit-provisioning-order-aging.yaml"
     },
     {
+      "id": "claim-appeal-filing-deadline-tracker",
+      "version": 1,
+      "name": "Insurance Claim Appeal Filing Deadline Tracker",
+      "description": "Checks denied dental insurance claims against each payer's appeal filing deadline and flags any unfiled appeal that's due soon or already past the window. Use this if a denied claim has ever gone unappealed until the payer's timely-appeal window closed, turning a winnable denial into a permanently written-off balance.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "insurance",
+        "claims",
+        "appeals",
+        "billing",
+        "deadlines"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/claim-appeal-filing-deadline-tracker.yaml"
+    },
+    {
       "id": "claim-attachment-missing-check",
       "version": 1,
       "name": "Insurance Claim Missing Attachment Check",
@@ -8999,6 +9081,34 @@
       ],
       "verified": true,
       "path": "jobs/childcare/classroom-sanitation-log-compliance-check.yaml"
+    },
+    {
+      "id": "classroom-substitute-orientation-completion-check",
+      "version": 1,
+      "name": "Substitute Teacher Orientation Completion Check",
+      "description": "Reviews today's substitute or temporary staff assignments against the substitute orientation log (allergy list reviewed, evacuation route walked, emergency procedures briefed) for that specific classroom and flags any substitute placed without a completed orientation on file. Use this if a substitute has ever been left alone with a classroom of children without ever being walked through that room's allergy list or evacuation route, because new-hire onboarding checks only cover permanent staff.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "substitute",
+        "orientation",
+        "safety"
+      ],
+      "schedule": "0 6 * * 1-5",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/childcare/classroom-substitute-orientation-completion-check.yaml"
     },
     {
       "id": "classroom-supply-low-stock-check",
@@ -16663,7 +16773,7 @@
         "claude",
         "codex"
       ],
-      "verified": false,
+      "verified": true,
       "path": "jobs/crypto/defi-tvl-drop-alert.yaml"
     },
     {
@@ -17098,6 +17208,33 @@
       "path": "jobs/dental/dental-supply-reorder-threshold-check.yaml"
     },
     {
+      "id": "dental-unit-waterline-test-tracker",
+      "version": 1,
+      "name": "Dental Unit Waterline Test Tracker",
+      "description": "Checks logged dental unit waterline bacteria test results (heterotrophic plate counts from in-office test strips/kits) against a testing interval and CFU/mL safety threshold, flagging overdue tests and failed results with no recorded shock-treatment follow-up. Use this if waterline testing is done by whoever remembers on a slow afternoon and a failed result has ever gone untreated because nobody circled back to confirm the shock disinfection was done and re-tested.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "waterline",
+        "infection-control",
+        "water-quality",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/dental-unit-waterline-test-tracker.yaml"
+    },
+    {
       "id": "dentist-appointment-due-reminder",
       "version": 1,
       "name": "Dentist Appointment Due Reminder",
@@ -17257,6 +17394,33 @@
       ],
       "verified": true,
       "path": "jobs/devops/dependency-audit.yaml"
+    },
+    {
+      "id": "dependent-eligibility-age-out-check",
+      "version": 1,
+      "name": "Benefits Dependent Eligibility Age-Out Check",
+      "description": "Scans enrolled health-plan dependents for adult children approaching or past the plan's age-off limit, and separately flags dependents with a logged life event (e.g. divorce finalized) that should already have ended their eligibility. Use this if a dependent has ever stayed on the health plan past their eligibility date because nobody cross-checked dependent birthdates and life events against the plan rules.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "benefits",
+        "dependents",
+        "eligibility",
+        "compliance"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/dependent-eligibility-age-out-check.yaml"
     },
     {
       "id": "deployment-rollback-frequency-watch",
@@ -17632,6 +17796,32 @@
       ],
       "verified": true,
       "path": "jobs/telecom/did-inventory-low-stock-check.yaml"
+    },
+    {
+      "id": "diesel-exhaust-fluid-level-check",
+      "version": 1,
+      "name": "Diesel Exhaust Fluid (DEF) Level Check",
+      "description": "Checks logged diesel exhaust fluid tank levels for diesel fleet vehicles and flags any running low. Use this if a truck has ever gone into engine-derate (forced reduced power, or a total no-start) mid-route because its DEF tank ran dry and nobody was watching the level between fuel stops.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "diesel",
+        "def",
+        "maintenance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/diesel-exhaust-fluid-level-check.yaml"
     },
     {
       "id": "dietary-restriction-menu-compliance-check",
@@ -18865,6 +19055,32 @@
       "path": "jobs/content/draft-review-queue-aging-check.yaml"
     },
     {
+      "id": "drinking-water-lead-test-compliance-check",
+      "version": 1,
+      "name": "Drinking Water Lead Test Compliance Check",
+      "description": "Checks your facility's required drinking-water lead testing schedule and flags any outlet overdue for retesting or any result above the actionable threshold. Use this if a required lead retest has ever lapsed past its due date, or a result above the limit sat unnoticed because nobody was cross-checking test dates and results against the schedule.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "water-safety",
+        "facility",
+        "compliance"
+      ],
+      "schedule": "0 8 1 1,4,7,10 *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/drinking-water-lead-test-compliance-check.yaml"
+    },
+    {
       "id": "drip-enrollment-audit",
       "version": 1,
       "name": "DRIP Enrollment Audit",
@@ -19025,6 +19241,33 @@
       ],
       "verified": true,
       "path": "jobs/fleet/driver-license-cdl-expiry-check.yaml"
+    },
+    {
+      "id": "driver-medical-certificate-expiry-check",
+      "version": 1,
+      "name": "Driver DOT Medical Certificate Expiry Check",
+      "description": "Checks each safety-sensitive driver's DOT medical examiner's certificate expiry date and warns before it lapses. Use this if a driver has ever kept driving past the point their medical card expired because the certificate is renewed on its own 1-2 year cycle, separate from license, CDL, or drug-testing renewals, and nobody was tracking it on its own timeline.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "drivers",
+        "medical-certificate",
+        "compliance",
+        "safety"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/driver-medical-certificate-expiry-check.yaml"
     },
     {
       "id": "driver-mileage-log-compliance-check",
@@ -20816,6 +21059,32 @@
       "path": "jobs/hiring/employer-review-site-monitor.yaml"
     },
     {
+      "id": "employment-verification-request-sla-tracker",
+      "version": 1,
+      "name": "Employment Verification Request SLA Tracker",
+      "description": "Tracks incoming third-party employment or income verification requests (mortgage lenders, landlords, government benefit agencies) against your internal response SLA and flags any nearing or past due. Use this if a verification-of-employment request has ever sat unanswered long enough that an employee's mortgage closing, lease application, or benefits case was delayed because HR didn't know a request was still open.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "employment-verification",
+        "voe",
+        "sla"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/employment-verification-request-sla-tracker.yaml"
+    },
+    {
       "id": "empty-mile-deadhead-percentage-watch",
       "version": 1,
       "name": "Empty-Mile (Deadhead) Percentage Watch",
@@ -22224,6 +22493,32 @@
       ],
       "verified": true,
       "path": "jobs/utilities/ev-charging-station-uptime-monitor.yaml"
+    },
+    {
+      "id": "evacuation-go-bag-supply-expiry-check",
+      "version": 1,
+      "name": "Evacuation Go-Bag Supply Expiry Check",
+      "description": "Checks the expiration dates of perishable items packed in each classroom's emergency evacuation go-bag (water, snacks, any stored medication, batteries) and flags anything expired or expiring soon. Use this if a go-bag has ever been grabbed during a real evacuation only to discover the water was years past its date or the flashlight batteries were dead.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "emergency",
+        "evacuation",
+        "safety"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/evacuation-go-bag-supply-expiry-check.yaml"
     },
     {
       "id": "event-accessibility-accommodation-tracker",
@@ -24702,6 +24997,60 @@
       ],
       "verified": true,
       "path": "jobs/fieldservice/fleet-vehicle-maintenance-due-check.yaml"
+    },
+    {
+      "id": "fleet-vehicle-personal-use-tax-reporting-check",
+      "version": 1,
+      "name": "Fleet Vehicle Personal-Use Tax Reporting Check",
+      "description": "Reviews logged personal-vs-business mileage splits for employees assigned a company vehicle and flags anyone missing a required personal-use submission for the period. Use this if a company vehicle's personal-use value has ever been left out of payroll's fringe-benefit reporting because nobody chased down the mileage split before the tax filing deadline.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "tax",
+        "personal-use",
+        "payroll",
+        "compliance"
+      ],
+      "schedule": "0 8 25 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/fleet-vehicle-personal-use-tax-reporting-check.yaml"
+    },
+    {
+      "id": "fleet-windshield-chip-repair-tracker",
+      "version": 1,
+      "name": "Fleet Windshield Chip Repair Tracker",
+      "description": "Tracks reported windshield chips/cracks against a repair-by deadline and flags any vehicle still unresolved past it. Use this if a small windshield chip on a fleet vehicle has ever been left alone until it spread into a full crack, turning a cheap resin repair into a full glass replacement (or an inspection failure).",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "glass",
+        "windshield",
+        "maintenance",
+        "cost-control"
+      ],
+      "schedule": "0 7 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/fleet-windshield-chip-repair-tracker.yaml"
     },
     {
       "id": "flight-checkin-reminder",
@@ -29344,6 +29693,35 @@
       "path": "jobs/restaurant/hourly-employee-overtime-threshold-watch.yaml"
     },
     {
+      "id": "hours-of-service-eld-violation-check",
+      "version": 1,
+      "name": "Hours-of-Service ELD Violation Check",
+      "description": "Reviews electronic logging device (ELD) records for drivers who exceeded daily driving limits, weekly on-duty limits, or required rest breaks. Use this if a driver has ever run over their legal hours-of-service limit and it only surfaced during a roadside inspection or after-the-fact audit, instead of the day it happened.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "drivers",
+        "hours-of-service",
+        "eld",
+        "compliance"
+      ],
+      "schedule": "0 6 * * *",
+      "timezone": "UTC",
+      "runner": "agent-prompt",
+      "modes": [
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": false,
+      "path": "jobs/fleet/hours-of-service-eld-violation-check.yaml"
+    },
+    {
       "id": "housekeeping-inspection-failure-rate-check",
       "version": 1,
       "name": "Housekeeping Inspection Failure Rate Check",
@@ -31354,6 +31732,59 @@
       "path": "jobs/content/internal-search-zero-results-report.yaml"
     },
     {
+      "id": "internal-transfer-pay-rate-lag-check",
+      "version": 1,
+      "name": "Internal Transfer Pay Rate Lag Check",
+      "description": "Compares each employee's payroll-system pay rate against the rate approved for their most recent internal transfer or promotion and flags anyone still paid at the old rate past a grace period. Use this if a promotion or transfer has ever been approved and announced while the person kept getting paid at their prior rate for one or more pay cycles because the payroll update lagged behind the HR system change.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "payroll",
+        "promotion",
+        "transfer",
+        "data-quality"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/internal-transfer-pay-rate-lag-check.yaml"
+    },
+    {
+      "id": "internal-transfer-request-staleness-check",
+      "version": 1,
+      "name": "Internal Transfer Request Staleness Check",
+      "description": "Warns you when an employee's internal transfer or mobility request has sat open too long without a decision or next step. Use this if someone has ever quietly asked to move teams, heard nothing back for two months, and started interviewing externally instead because the request fell through the cracks.",
+      "category": "team",
+      "tags": [
+        "team",
+        "internal-mobility",
+        "hiring",
+        "retention"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/internal-transfer-request-staleness-check.yaml"
+    },
+    {
       "id": "international-driving-permit-expiry-check",
       "version": 1,
       "name": "International Driving Permit Expiry Check",
@@ -32057,6 +32488,33 @@
       ],
       "verified": false,
       "path": "jobs/telecom/ipv4-block-lease-market-watch.yaml"
+    },
+    {
+      "id": "irp-apportioned-registration-renewal-check",
+      "version": 1,
+      "name": "IRP Apportioned Registration Renewal Check",
+      "description": "Checks each interstate fleet vehicle's International Registration Plan (IRP) apportioned registration renewal date and warns before it lapses. Use this if a truck has ever been pulled at a state line, or blocked at a weigh station, because its apportioned cab card expired separately from its base-state vehicle registration and nobody tracked the two on different calendars.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "irp",
+        "registration",
+        "compliance",
+        "interstate"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/irp-apportioned-registration-renewal-check.yaml"
     },
     {
       "id": "irrigation-inspection-scheduling-check",
@@ -33713,6 +34171,34 @@
       ],
       "verified": true,
       "path": "jobs/waste-management/leachate-monitoring-report-due-check.yaml"
+    },
+    {
+      "id": "lead-apron-shielding-integrity-inspection-tracker",
+      "version": 1,
+      "name": "Lead Apron & Shielding Integrity Inspection Tracker",
+      "description": "Checks each lead apron and thyroid collar's last fluoroscopic or visual integrity inspection date against a required re-inspection interval and flags anything overdue or previously found cracked/degraded with no replacement logged. Use this if a lead apron has ever kept getting handed to patients for radiographs without anyone re-checking it for the cracks and pinholes that develop with age and folding.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "radiation-safety",
+        "lead-apron",
+        "shielding",
+        "compliance",
+        "x-ray"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/lead-apron-shielding-integrity-inspection-tracker.yaml"
     },
     {
       "id": "lead-duplicate-account-collision-check",
@@ -35879,6 +36365,36 @@
       "path": "jobs/legal/ma-due-diligence-checklist-completion-tracker.yaml"
     },
     {
+      "id": "mac-reimbursement-below-cost-alert",
+      "version": 1,
+      "name": "MAC Reimbursement Below-Cost Alert",
+      "description": "Compares a drug's PBM Maximum Allowable Cost (MAC) reimbursement rate plus dispensing fee against your actual wholesaler acquisition cost and flags any NDC where you're now being paid less than what you paid to buy it. Use this if you've ever kept dispensing a generic for weeks before realizing the MAC rate had quietly dropped below your cost on every single fill.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "pbm",
+        "mac",
+        "reimbursement",
+        "billing"
+      ],
+      "schedule": "0 9 * * 3",
+      "timezone": "America/New_York",
+      "runner": "hybrid",
+      "modes": [
+        "script",
+        "agent-prompt"
+      ],
+      "compatible_agents": [
+        "claude",
+        "codex",
+        "hermes",
+        "openclaw",
+        "generic"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/mac-reimbursement-below-cost-alert.yaml"
+    },
+    {
       "id": "macro-effectiveness-resolution-rate-check",
       "version": 1,
       "name": "Macro Effectiveness Resolution Rate Check",
@@ -36220,6 +36736,33 @@
       ],
       "verified": true,
       "path": "jobs/law-firm/malpractice-insurance-renewal-check.yaml"
+    },
+    {
+      "id": "malpractice-liability-insurance-expiry-tracker",
+      "version": 1,
+      "name": "Malpractice & Liability Insurance Expiry Tracker",
+      "description": "Checks each provider's malpractice/professional-liability insurance policy expiration date and flags anyone lapsed or expiring soon. Use this if a provider has ever kept treating patients on a malpractice policy that quietly lapsed, which is both an uninsured-practice risk and grounds for a payer to retroactively deny every claim billed during the gap.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "malpractice",
+        "liability-insurance",
+        "compliance",
+        "credentialing"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/malpractice-liability-insurance-expiry-tracker.yaml"
     },
     {
       "id": "manufacturer-recall-notice-check",
@@ -36989,6 +37532,33 @@
       ],
       "verified": true,
       "path": "jobs/pharmacy/medication-sync-capacity-forecast.yaml"
+    },
+    {
+      "id": "medication-takeback-kiosk-collection-tracker",
+      "version": 1,
+      "name": "Medication Take-Back Kiosk Collection Tracker",
+      "description": "Checks your in-store DEA-authorized medication take-back kiosk's last emptied date and reported fill level against your collection schedule, flagging when it's due for pickup before it overflows. Use this if a take-back kiosk has ever been discovered stuffed past capacity because no one was actively tracking when it was last emptied.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "controlled-substances",
+        "dea",
+        "take-back",
+        "disposal"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/medication-takeback-kiosk-collection-tracker.yaml"
     },
     {
       "id": "medication-therapy-management-outreach",
@@ -39435,6 +40005,33 @@
       "path": "jobs/investing/mutual-fund-redemption-fee-window-check.yaml"
     },
     {
+      "id": "naloxone-co-dispense-compliance-check",
+      "version": 1,
+      "name": "Naloxone Co-Dispensing Compliance Check",
+      "description": "Scans a day's opioid dispensing log for fills that cross your state's naloxone co-dispensing trigger — a high morphine milligram equivalent (MME) daily dose, a benzodiazepine overlap, or another qualifying condition — and flags any without a naloxone offer documented. Use this if a state-mandated naloxone offer has ever been skipped on a qualifying opioid fill simply because nothing at the register flagged it as required.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "opioids",
+        "naloxone",
+        "harm-reduction",
+        "compliance"
+      ],
+      "schedule": "0 20 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/naloxone-co-dispense-compliance-check.yaml"
+    },
+    {
       "id": "nap-mat-sanitation-check",
       "version": 1,
       "name": "Nap Mat Sanitation Check",
@@ -40424,6 +41021,34 @@
       "path": "jobs/crypto/nft-royalty-enforcement-watch.yaml"
     },
     {
+      "id": "nitrous-oxide-oxygen-tank-level-check",
+      "version": 1,
+      "name": "Nitrous Oxide / Oxygen Tank Level Check",
+      "description": "Checks logged tank pressure readings for nitrous oxide and backup oxygen cylinders against a reorder threshold and flags any tank running low. Use this if a sedation case has ever been at risk of losing gas supply mid-procedure because nobody was watching the pressure gauge between supplier deliveries — a safety event, not just a restocking one.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "sedation",
+        "nitrous-oxide",
+        "oxygen",
+        "safety",
+        "inventory"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/nitrous-oxide-oxygen-tank-level-check.yaml"
+    },
+    {
       "id": "no-agenda-meeting-flag",
       "version": 1,
       "name": "No-Agenda Meeting Flag",
@@ -41329,6 +41954,32 @@
       "path": "jobs/support/onboarding-ticket-response-time-check.yaml"
     },
     {
+      "id": "oncall-comp-time-expiry-check",
+      "version": 1,
+      "name": "On-Call Comp Time Expiry Check",
+      "description": "Scans a log of earned on-call compensatory time off and flags balances that will expire before they're used. Use this if someone on your team has ever earned comp time for a rough on-call week and then lost it because the use-by window quietly closed while they were heads-down.",
+      "category": "team",
+      "tags": [
+        "team",
+        "oncall",
+        "comp-time",
+        "pto"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/oncall-comp-time-expiry-check.yaml"
+    },
+    {
       "id": "oncall-escalation-contact-staleness-check",
       "version": 1,
       "name": "On-Call Escalation Contact Staleness Check",
@@ -42067,6 +42718,33 @@
       ],
       "verified": true,
       "path": "jobs/logistics/osd-claim-intake-tracking-check.yaml"
+    },
+    {
+      "id": "osha-300a-annual-posting-reminder",
+      "version": 1,
+      "name": "OSHA 300A Annual Summary Posting Reminder",
+      "description": "Checks each work site's OSHA Form 300A annual summary posting status against the required U.S. posting window (February 1 through April 30) and flags any site that hasn't marked its posting complete as the window approaches or after it window_close_ts. Use this if the annual OSHA 300A summary has ever gone unposted past April 30 at a site because it fell through the cracks between the safety team and HR.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "osha",
+        "compliance",
+        "workplace-safety",
+        "posting"
+      ],
+      "schedule": "0 8 15 1,2,3,4 *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/osha-300a-annual-posting-reminder.yaml"
     },
     {
       "id": "osha-jobsite-inspection-readiness-check",
@@ -43701,6 +44379,33 @@
       "path": "jobs/hr/pay-equity-band-outlier-check.yaml"
     },
     {
+      "id": "pay-transparency-job-posting-range-check",
+      "version": 1,
+      "name": "Pay Transparency Job Posting Range Check",
+      "description": "Scans currently open job postings for a missing salary range on any posting flagged as subject to a pay-transparency disclosure requirement, and lists them for immediate correction. Use this if a job posting has ever gone live without a salary range in a jurisdiction where that's legally required, exposing the company to a pay-transparency violation on every day the posting stays up non-compliant.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "pay-transparency",
+        "job-postings",
+        "compliance",
+        "compensation"
+      ],
+      "schedule": "0 7 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/pay-transparency-job-posting-range-check.yaml"
+    },
+    {
       "id": "payer-desk-audit-response-tracker",
       "version": 1,
       "name": "Payer Desk Audit Response Tracker",
@@ -44384,6 +45089,32 @@
       ],
       "verified": false,
       "path": "jobs/hr/performance-review-cycle-reminder.yaml"
+    },
+    {
+      "id": "performance-review-writing-deadline-check",
+      "version": 1,
+      "name": "Performance Review Writing Deadline Check",
+      "description": "Scans a roster of direct reports and flags anyone whose formal performance review narrative hasn't been submitted with the cycle deadline approaching. Use this if you've ever realized the night before HR's cutoff that you still had three reviews left unwritten because the deadline snuck up during a busy sprint.",
+      "category": "team",
+      "tags": [
+        "team",
+        "performance-review",
+        "deadlines",
+        "management"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/performance-review-writing-deadline-check.yaml"
     },
     {
       "id": "periodontal-maintenance-interval-check",
@@ -45318,6 +46049,32 @@
       ],
       "verified": true,
       "path": "jobs/photography/photo-backup-verification-check.yaml"
+    },
+    {
+      "id": "photo-media-consent-mismatch-check",
+      "version": 1,
+      "name": "Photo/Media Posting Consent Mismatch Check",
+      "description": "Cross-checks today's log of photos or videos shared to the parent app, newsletter, or social media against each child's on-file photo/media release status and flags any child who appears in shared media without consent. Use this if a child has ever shown up in a posted photo despite the family never signing — or having revoked — the photo release, because whoever posted it never actually checked the consent list.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "photo-consent",
+        "privacy",
+        "compliance"
+      ],
+      "schedule": "0 18 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/photo-media-consent-mismatch-check.yaml"
     },
     {
       "id": "photography-invoice-aging-check",
@@ -47204,6 +47961,33 @@
       "path": "jobs/restaurant/prep-list-usage-variance-check.yaml"
     },
     {
+      "id": "prepared-bottle-discard-time-check",
+      "version": 1,
+      "name": "Prepared Bottle Discard Time Check",
+      "description": "Checks each logged prepared or opened infant bottle's prep timestamp against the maximum safe hold time and flags any bottle still marked in-use that should have been discarded. Use this if a prepared formula or breast-milk bottle has ever sat out past the safe window because a busy room meant nobody was tracking prep times against the clock.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "infant",
+        "bottle",
+        "food-safety",
+        "health"
+      ],
+      "schedule": "0,30 6-18 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/prepared-bottle-discard-time-check.yaml"
+    },
+    {
       "id": "prescriber-dea-number-validation-check",
       "version": 1,
       "name": "Prescriber DEA Number Validation Check",
@@ -47282,6 +48066,32 @@
       ],
       "verified": true,
       "path": "jobs/healthcare/prescription-refill-request-backlog-check.yaml"
+    },
+    {
+      "id": "prescription-transfer-request-aging-check",
+      "version": 1,
+      "name": "Prescription Transfer Request Aging Check",
+      "description": "Scans pending prescription transfer requests — a patient asking to move a script in from, or out to, another pharmacy — and flags any that have sat unresolved longer than your target turnaround. Use this if a patient has ever called back frustrated because a transfer request from days earlier was still sitting untouched.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "prescription-transfer",
+        "workflow",
+        "patient-service"
+      ],
+      "schedule": "0 9-19 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/prescription-transfer-request-aging-check.yaml"
     },
     {
       "id": "press-release-media-pitch-drafter",
@@ -51028,6 +51838,33 @@
       "path": "jobs/banking/regulatory-exam-finding-remediation-check.yaml"
     },
     {
+      "id": "rehire-do-not-rehire-conflict-check",
+      "version": 1,
+      "name": "Rehire Do-Not-Rehire Conflict Check",
+      "description": "Cross-references active rehire or internal-transfer candidates against the company's do-not-rehire list and flags any match before an offer goes out. Use this if a former employee flagged ineligible for rehire (terminated for cause, policy violation, etc.) has ever been re-extended an offer because nobody checked the internal flag before the paperwork started.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "rehire",
+        "do-not-rehire",
+        "offboarding",
+        "risk"
+      ],
+      "schedule": "0 8 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/rehire-do-not-rehire-conflict-check.yaml"
+    },
+    {
       "id": "reinsurance-treaty-renewal-tracker",
       "version": 1,
       "name": "Reinsurance Treaty Renewal Tracker",
@@ -52436,6 +53273,32 @@
       "path": "jobs/retail/return-fraud-pattern-check.yaml"
     },
     {
+      "id": "return-from-leave-reboarding-check",
+      "version": 1,
+      "name": "Return-From-Leave Reboarding Check",
+      "description": "Checks a roster of employees returning from extended leave (parental, medical, sabbatical) and flags anyone approaching their return date who has no reboarding check-in scheduled yet. Use this if someone has ever come back from months of leave and just been dropped back into their old backlog with no catch-up conversation about what changed while they were out.",
+      "category": "team",
+      "tags": [
+        "team",
+        "leave",
+        "onboarding",
+        "management"
+      ],
+      "schedule": "0 9 * * 1",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/return-from-leave-reboarding-check.yaml"
+    },
+    {
       "id": "return-rate-quality-signal-watch",
       "version": 1,
       "name": "Return Rate Quality Signal Watch",
@@ -53465,6 +54328,32 @@
       "path": "jobs/spa/safety-inspection-due-reminder.yaml"
     },
     {
+      "id": "safety-sensitive-recurring-background-recheck-tracker",
+      "version": 1,
+      "name": "Safety-Sensitive Role Recurring Background Recheck Tracker",
+      "description": "Checks current employees in safety-sensitive or compliance-flagged roles (drivers, cash handlers, anyone with fiduciary or vulnerable- population access) against your policy's periodic re-screening interval and flags anyone whose last background check has aged past it. Use this if a role requiring recurring re-screening has ever gone years without a recheck because the original pre-hire check was treated as a one-time, permanent clearance.",
+      "category": "hr",
+      "tags": [
+        "hr",
+        "background-check",
+        "compliance",
+        "safety-sensitive"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/hr/safety-sensitive-recurring-background-recheck-tracker.yaml"
+    },
+    {
       "id": "safety-stock-buffer-erosion-check",
       "version": 1,
       "name": "Safety Stock Buffer Erosion Check",
@@ -53916,6 +54805,33 @@
       ],
       "verified": true,
       "path": "jobs/waste-management/scale-ticket-reconciliation-check.yaml"
+    },
+    {
+      "id": "schedule-ii-prescription-validity-window-check",
+      "version": 1,
+      "name": "Schedule II Prescription Validity Window Check",
+      "description": "Scans on-file Schedule II prescriptions that haven't been fully dispensed yet and flags any approaching the date after which they can no longer be legally filled (commonly six months from the date written, though states set their own limits). Use this if an unfilled or partially-filled Schedule II script has ever gone stale in a drawer and only been discovered unfillable when the patient finally came back for the rest of it.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "controlled-substances",
+        "schedule-ii",
+        "dea",
+        "compliance"
+      ],
+      "schedule": "0 8 * * *",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/schedule-ii-prescription-validity-window-check.yaml"
     },
     {
       "id": "schema-markup-validation-check",
@@ -54860,6 +55776,34 @@
       "path": "jobs/security/security-log-retention-gap-check.yaml"
     },
     {
+      "id": "sedation-anesthesia-permit-renewal-tracker",
+      "version": 1,
+      "name": "Sedation/Anesthesia Permit Renewal Tracker",
+      "description": "Checks each provider's state-issued moderate-sedation, deep-sedation, or general-anesthesia permit expiration date and flags anyone lapsed or expiring soon. Use this if a sedation case has ever been scheduled without anyone double-checking the treating doctor's state anesthesia permit was still active, which is a practice-halting compliance problem the day of the appointment, not just a billing one.",
+      "category": "dental",
+      "tags": [
+        "dental",
+        "sedation",
+        "anesthesia",
+        "permit",
+        "compliance",
+        "credentialing"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/dental/sedation-anesthesia-permit-renewal-tracker.yaml"
+    },
+    {
       "id": "sedation-consent-form-completeness-check",
       "version": 1,
       "name": "Sedation Consent Form Completeness Check",
@@ -54994,6 +55938,32 @@
       ],
       "verified": false,
       "path": "jobs/veterinary/senior-pet-wellness-recall-tracker.yaml"
+    },
+    {
+      "id": "sensory-water-table-change-log-check",
+      "version": 1,
+      "name": "Sensory/Water Table Change Log Check",
+      "description": "Checks each classroom's sensory or water table change log against the required daily drain-and-refill and flags any table not marked changed today. Use this if a water or sensory table has ever gone a full day without being refreshed between groups because the general cleaning log looked complete while the table — tracked separately under most health codes — was overlooked.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "sensory-table",
+        "sanitation",
+        "health"
+      ],
+      "schedule": "0 17 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/sensory-water-table-change-log-check.yaml"
     },
     {
       "id": "seo-meta-check",
@@ -59714,6 +60684,32 @@
       "path": "jobs/home/sump-pump-test-reminder.yaml"
     },
     {
+      "id": "sunscreen-consent-application-mismatch-check",
+      "version": 1,
+      "name": "Sunscreen Consent-to-Application Mismatch Check",
+      "description": "Cross-checks today's sunscreen application log against each child's on-file sunscreen consent status and flags any child sunscreened without consent on file, and optionally any child with consent who wasn't logged as sunscreened. Use this if a child has ever been sunscreened without a signed parental consent, or gone without it despite having consent, because the application log and the consent list were never actually cross-checked against each other.",
+      "category": "childcare",
+      "tags": [
+        "childcare",
+        "sunscreen",
+        "consent",
+        "safety"
+      ],
+      "schedule": "0 12 * * 1-5",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/childcare/sunscreen-consent-application-mismatch-check.yaml"
+    },
+    {
       "id": "supplier-compliance-chargeback-tracker",
       "version": 1,
       "name": "Supplier Compliance Chargeback Tracker",
@@ -60495,6 +61491,32 @@
       "path": "jobs/team/team-anniversary-reminder.yaml"
     },
     {
+      "id": "team-certification-renewal-deadline-check",
+      "version": 1,
+      "name": "Team Certification Renewal Deadline Check",
+      "description": "Scans a roster of employer-sponsored professional or technical certifications (e.g. cloud, security, project management) and flags any expiring soon so renewal exams or continuing-education credits get scheduled in time. Use this if a certification the company relies on for a role, contract, or client requirement has ever lapsed because nobody was watching the renewal date until a client audit asked for it.",
+      "category": "team",
+      "tags": [
+        "team",
+        "certifications",
+        "compliance",
+        "learning"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/team-certification-renewal-deadline-check.yaml"
+    },
+    {
       "id": "team-conference-cfp-deadline-reminder",
       "version": 1,
       "name": "Team Conference CFP Deadline Reminder",
@@ -60546,6 +61568,32 @@
       ],
       "verified": true,
       "path": "jobs/team/team-decision-log-followup-check.yaml"
+    },
+    {
+      "id": "team-hardware-refresh-cycle-check",
+      "version": 1,
+      "name": "Team Hardware Refresh Cycle Check",
+      "description": "Scans an equipment inventory export and flags team members whose laptop or primary device has passed the company's refresh age policy. Use this if someone has ever been quietly grinding through builds on a five-year-old laptop because nobody was tracking device age against the refresh policy until it became a support ticket.",
+      "category": "team",
+      "tags": [
+        "team",
+        "equipment",
+        "hardware",
+        "budget"
+      ],
+      "schedule": "0 8 1 * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/team/team-hardware-refresh-cycle-check.yaml"
     },
     {
       "id": "team-holiday-coverage-check",
@@ -61475,6 +62523,33 @@
       ],
       "verified": true,
       "path": "jobs/payments/terminal-batch-close-failure-check.yaml"
+    },
+    {
+      "id": "terminated-driver-fuel-card-deactivation-check",
+      "version": 1,
+      "name": "Terminated Driver Fuel Card Deactivation Check",
+      "description": "Cross-checks the fuel card roster against the driver termination/offboard list and flags any card still marked active for someone no longer employed. Use this if a departed driver's fuel card has ever stayed live for weeks after their last day because deactivation depended on someone remembering to call the fuel card provider separately from the HR offboarding checklist.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "fuel-card",
+        "offboarding",
+        "fraud",
+        "cost-control"
+      ],
+      "schedule": "0 7 * * *",
+      "timezone": "UTC",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/fleet/terminated-driver-fuel-card-deactivation-check.yaml"
     },
     {
       "id": "terminated-employee-record-retention-check",
@@ -65886,6 +66961,33 @@
       ],
       "verified": false,
       "path": "jobs/veterinary/vet-staff-ce-credit-tracking.yaml"
+    },
+    {
+      "id": "vfc-vaccine-stock-segregation-check",
+      "version": 1,
+      "name": "VFC Vaccine Stock Segregation Check",
+      "description": "Compares each vaccine lot's Vaccines for Children (VFC) accountability numbers — doses received, doses administered, and doses reported on hand — against each other and flags any lot where the math doesn't add up, a sign the VFC-funded pool and your privately-purchased stock may have been mixed. Use this if a VFC compliance site visit has ever turned up a dose-count discrepancy that nobody caught first.",
+      "category": "pharmacy",
+      "tags": [
+        "pharmacy",
+        "immunizations",
+        "vfc",
+        "vaccines",
+        "compliance"
+      ],
+      "schedule": "0 8 * * 1",
+      "timezone": "America/New_York",
+      "runner": "shell",
+      "modes": [
+        "script"
+      ],
+      "compatible_agents": [
+        "generic",
+        "claude",
+        "codex"
+      ],
+      "verified": true,
+      "path": "jobs/pharmacy/vfc-vaccine-stock-segregation-check.yaml"
     },
     {
       "id": "video-ad-completion-rate-watch",

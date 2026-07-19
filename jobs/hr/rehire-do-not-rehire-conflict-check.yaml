@@ -1,0 +1,38 @@
+id: rehire-do-not-rehire-conflict-check
+version: 1
+name: Rehire Do-Not-Rehire Conflict Check
+description: >
+  Cross-references active rehire or internal-transfer candidates against
+  the company's do-not-rehire list and flags any match before an offer
+  goes out. Use this if a former employee flagged ineligible for rehire
+  (terminated for cause, policy violation, etc.) has ever been
+  re-extended an offer because nobody checked the internal flag before
+  the paperwork started.
+category: hr
+tags: [hr, rehire, do-not-rehire, offboarding, risk]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR { if (FNR>1) dnr[$1]=$2; next }
+    FNR==1 {next}
+    ($1 in dnr) {
+      printf "DO-NOT-REHIRE MATCH: %s — candidate for \"%s\", on file: \"%s\"\n", $1, $2, dnr[$1];
+    }
+  ' "{{do_not_rehire_csv_path}}" "{{rehire_candidates_csv_path}}"
+variables:
+  do_not_rehire_csv_path:
+    default: "./do-not-rehire-list.csv"
+    description: "Path to a CSV with columns: employee_name,flag_reason."
+  rehire_candidates_csv_path:
+    default: "./active-rehire-candidates.csv"
+    description: "Path to a CSV with columns: employee_name,role_applied_for. Include anyone in an active hiring or internal-transfer pipeline who was previously employed."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Matches purely on employee_name strings — dedupe/normalize names, or
+  swap in employee IDs, before relying on this for a large or
+  name-collision-prone list. A match is a prompt for HR/legal review, not
+  an automatic disqualification: some do-not-rehire flags are eligible
+  for override depending on the original reason and time elapsed. Never
+  auto-rejects a candidate or auto-notifies a hiring manager.

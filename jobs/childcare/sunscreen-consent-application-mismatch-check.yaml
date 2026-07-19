@@ -1,0 +1,42 @@
+id: sunscreen-consent-application-mismatch-check
+version: 1
+name: Sunscreen Consent-to-Application Mismatch Check
+description: >
+  Cross-checks today's sunscreen application log against each child's
+  on-file sunscreen consent status and flags any child sunscreened without
+  consent on file, and optionally any child with consent who wasn't logged
+  as sunscreened. Use this if a child has ever been sunscreened without a
+  signed parental consent, or gone without it despite having consent,
+  because the application log and the consent list were never actually
+  cross-checked against each other.
+category: childcare
+tags: [childcare, sunscreen, consent, safety]
+schedule: "0 12 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v flag_missed="{{flag_missed_application}}" '
+    NR==FNR { if (FNR>1) consent[$1]=tolower($2); next }
+    FNR==1 { next }
+    {
+      applied = tolower($2);
+      c = consent[$1];
+      if (applied == "yes" && c != "yes") {
+        printf "NO CONSENT ON FILE: %s — sunscreen applied today without consent\n", $1;
+      } else if (flag_missed == "true" && applied != "yes" && c == "yes") {
+        printf "MISSED APPLICATION: %s — has consent but not logged as sunscreened today\n", $1;
+      }
+    }
+  ' "{{sunscreen_consent_csv_path}}" "{{sunscreen_application_log_csv_path}}"
+variables:
+  sunscreen_consent_csv_path:
+    default: "./sunscreen-consent.csv"
+    description: "Path to a CSV with columns: child_id,consent (yes/no)."
+  sunscreen_application_log_csv_path:
+    default: "./sunscreen-application-log.csv"
+    description: "Path to a CSV with columns: child_id,applied_today (yes/no). One row per child per day."
+  flag_missed_application:
+    default: "true"
+    description: Set to false to only flag consent violations (sunscreen applied without consent) and skip flagging children who have consent but simply weren't sunscreened.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from parent-consent-form-renewal-check, which only tracks whether the sunscreen consent form itself is within its renewal date — this checks whether day-to-day application actually matches what's on file.

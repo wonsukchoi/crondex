@@ -1,0 +1,43 @@
+id: prescription-transfer-request-aging-check
+version: 1
+name: Prescription Transfer Request Aging Check
+description: >
+  Scans pending prescription transfer requests — a patient asking to move a
+  script in from, or out to, another pharmacy — and flags any that have sat
+  unresolved longer than your target turnaround. Use this if a patient has
+  ever called back frustrated because a transfer request from days earlier
+  was still sitting untouched.
+category: pharmacy
+tags: [pharmacy, prescription-transfer, workflow, patient-service]
+schedule: "0 9-19 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  now_epoch=$(date +%s);
+  awk -F',' -v now="$now_epoch" -v hours="{{escalate_after_hours}}" '
+    NR==1 {next}
+    $5 == "pending" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline requested_epoch; close(cmd);
+      age_hours = (now - requested_epoch) / 3600;
+      if (age_hours >= hours) {
+        printf "TRANSFER AGING: request #%s (%s, %s pharmacy: %s) requested %s — waiting %.1f hr(s)\n", $1, $2, $3, $6, $4, age_hours;
+      }
+    }
+  ' "{{transfer_request_csv_path}}"
+variables:
+  transfer_request_csv_path:
+    default: "./prescription-transfer-requests.csv"
+    description: "Path to a CSV export with columns: request_id,patient_name,direction (incoming/outgoing),requested_at (YYYY-MM-DD HH:MM),status (pending/completed),other_pharmacy_name."
+  escalate_after_hours:
+    default: 4
+    description: Hours a transfer request can sit pending before it's flagged for someone to follow up on.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only triage of an already-exported queue; it does not contact the
+  other pharmacy or complete any transfer itself. Distinct from
+  jobs/pharmacy/script-queue-aging-check.yaml (the in-house fill queue) and
+  jobs/pharmacy/curbside-delivery-queue-aging-check.yaml (ready-order
+  pickup) — completing a controlled-substance transfer generally requires
+  a direct pharmacist-to-pharmacist verbal exchange, not just a technician
+  updating a status field.

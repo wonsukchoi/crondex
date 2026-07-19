@@ -1,0 +1,42 @@
+id: team-certification-renewal-deadline-check
+version: 1
+name: Team Certification Renewal Deadline Check
+description: >
+  Scans a roster of employer-sponsored professional or technical
+  certifications (e.g. cloud, security, project management) and flags
+  any expiring soon so renewal exams or continuing-education credits
+  get scheduled in time. Use this if a certification the company relies
+  on for a role, contract, or client requirement has ever lapsed because
+  nobody was watching the renewal date until a client audit asked for it.
+category: team
+tags: [team, certifications, compliance, learning]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v warn_days="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= warn_days && days_left >= 0) {
+        printf "EXPIRING: %s — \"%s\" expires %s (%d day(s) left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{certifications_csv_path}}"
+variables:
+  certifications_csv_path:
+    default: "./team-certifications.csv"
+    description: "Path to a CSV with columns: person_name,certification_name,expiry_date (YYYY-MM-DD) — one row per employer-sponsored certification."
+  warn_days_before_expiry:
+    default: 45
+    description: Start warning this many days before a certification's expiry date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from learning-budget-utilization-check (whether
+  learning stipend money is being spent) — this tracks specific
+  certification expiry dates that carry role or contract requirements,
+  not general learning spend. Not intended for regulated professional
+  licensure (e.g. medical, legal) — use a domain-specific job for those.

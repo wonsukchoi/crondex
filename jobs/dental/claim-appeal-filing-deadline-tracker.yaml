@@ -1,0 +1,45 @@
+id: claim-appeal-filing-deadline-tracker
+version: 1
+name: Insurance Claim Appeal Filing Deadline Tracker
+description: >
+  Checks denied dental insurance claims against each payer's appeal
+  filing deadline and flags any unfiled appeal that's due soon or
+  already past the window. Use this if a denied claim has ever gone
+  unappealed until the payer's timely-appeal window closed, turning a
+  winnable denial into a permanently written-off balance.
+category: dental
+tags: [dental, insurance, claims, appeals, billing, deadlines]
+schedule: "0 7 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $6 == "yes" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      diff_days = (deadline_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "APPEAL WINDOW CLOSED: %s — claim %s (%s) denial appeal deadline %s passed %d day(s) ago, never filed\n", $1, $2, $3, $5, -diff_days;
+      } else if (diff_days <= warn+0) {
+        printf "APPEAL DUE SOON: %s — claim %s (%s) appeal deadline %s in %d day(s), not yet filed\n", $1, $2, $3, $5, diff_days;
+      }
+    }
+  ' "{{claim_appeals_csv_path}}"
+variables:
+  claim_appeals_csv_path:
+    default: "./claim_appeals.csv"
+    description: "Path to a CSV with columns: patient_name,claim_id,payer_name,denial_date (YYYY-MM-DD),appeal_deadline_date (YYYY-MM-DD),appeal_filed (yes/no)."
+  warn_days_before_deadline:
+    default: 10
+    description: Days before the payer's appeal filing deadline to start flagging unfiled appeals.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only deadline tracker — distinct from
+  dental-insurance-claim-denial-by-cdt-code-check.yaml, which analyzes
+  denial patterns by procedure code, and claim-attachment-missing-check.yaml,
+  which catches missing attachments before initial submission. This one
+  watches the clock on claims already denied. Does not draft or submit the
+  appeal itself.

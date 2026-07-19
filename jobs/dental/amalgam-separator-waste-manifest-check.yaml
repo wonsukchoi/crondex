@@ -1,0 +1,47 @@
+id: amalgam-separator-waste-manifest-check
+version: 1
+name: Amalgam Separator & Waste Manifest Check
+description: >
+  Checks each installed amalgam separator's replacement/inspection due
+  date and each operatory's last mercury/amalgam waste pickup manifest
+  date, flagging anything overdue. Use this if an amalgam separator has
+  ever run past its rated capacity unnoticed, or a waste hauler pickup
+  has lapsed long enough that the practice can't produce a current
+  manifest if an EPA or state environmental inspector asks for one.
+category: dental
+tags: [dental, amalgam, epa, hazardous-waste, compliance, environmental]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v manifest_max="{{max_days_since_manifest}}" '
+    NR==1 {next}
+    {
+      cmd1 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd1 | getline replace_due_epoch; close(cmd1);
+      if (replace_due_epoch > 0 && replace_due_epoch < today) {
+        printf "SEPARATOR OVERDUE: %s (%s) was due for replacement/inspection %s\n", $1, $2, $3;
+      }
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline manifest_epoch; close(cmd2);
+      manifest_age_days = (today - manifest_epoch) / 86400;
+      if (manifest_age_days > manifest_max+0) {
+        printf "MANIFEST STALE: %s (%s) last mercury/amalgam waste manifest dated %s (%d days ago)\n", $1, $2, $4, manifest_age_days;
+      }
+    }
+  ' "{{amalgam_waste_log_csv_path}}"
+variables:
+  amalgam_waste_log_csv_path:
+    default: "./amalgam_waste_log.csv"
+    description: "Path to a CSV with columns: separator_id,location,replacement_due_date (YYYY-MM-DD),last_waste_manifest_date (YYYY-MM-DD)."
+  max_days_since_manifest:
+    default: 365
+    description: Maximum days allowed since the last documented mercury/amalgam waste hauler manifest before it's flagged stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only compliance backstop for the EPA dental effluent guidelines
+  (amalgam separator capacity/replacement and hazardous waste
+  recordkeeping) — distinct from dental-equipment-calibration-due-check.yaml,
+  which tracks active clinical equipment, not waste-stream compliance
+  hardware. Does not replace the separator or contact the waste hauler.

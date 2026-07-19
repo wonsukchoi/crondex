@@ -1,0 +1,39 @@
+id: oncall-comp-time-expiry-check
+version: 1
+name: On-Call Comp Time Expiry Check
+description: >
+  Scans a log of earned on-call compensatory time off and flags balances
+  that will expire before they're used. Use this if someone on your team
+  has ever earned comp time for a rough on-call week and then lost it
+  because the use-by window quietly closed while they were heads-down.
+category: team
+tags: [team, oncall, comp-time, pto]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v warn_days="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = (expiry_epoch - today) / 86400;
+      if (days_left <= warn_days && days_left >= 0 && $2 > 0) {
+        printf "EXPIRING: %s has %s hour(s) of on-call comp time expiring %s (%d day(s) left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{comp_time_log_csv_path}}"
+variables:
+  comp_time_log_csv_path:
+    default: "./oncall-comp-time-log.csv"
+    description: "Path to a CSV with columns: person_name,hours_remaining,expiry_date (YYYY-MM-DD) — one row per person's unused comp-time balance."
+  warn_days_before_expiry:
+    default: 14
+    description: Start warning this many days before a comp-time balance expires.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from oncall-stipend-payout-check (cash payment)
+  and on-call-fatigue-check (rotation share) — this tracks earned
+  time-off-in-lieu balances against their use-by date so people don't
+  forfeit hours they earned. You maintain the log yourself.

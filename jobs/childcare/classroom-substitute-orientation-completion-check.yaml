@@ -1,0 +1,41 @@
+id: classroom-substitute-orientation-completion-check
+version: 1
+name: Substitute Teacher Orientation Completion Check
+description: >
+  Reviews today's substitute or temporary staff assignments against the
+  substitute orientation log (allergy list reviewed, evacuation route
+  walked, emergency procedures briefed) for that specific classroom and
+  flags any substitute placed without a completed orientation on file. Use
+  this if a substitute has ever been left alone with a classroom of
+  children without ever being walked through that room's allergy list or
+  evacuation route, because new-hire onboarding checks only cover
+  permanent staff.
+category: childcare
+tags: [childcare, substitute, orientation, safety]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review today's substitute staff assignment list at
+  {{substitute_assignments_csv_path}} (columns: substitute_name,
+  classroom, date) against the substitute orientation log at
+  {{orientation_log_csv_path}} (columns: substitute_name, classroom,
+  allergy_list_reviewed, evacuation_route_reviewed,
+  emergency_procedures_reviewed, date_completed).
+  1. For each substitute assigned to a classroom today, confirm all three
+     orientation items are marked complete for that specific classroom —
+     orientation is classroom-specific since allergy lists and evacuation
+     routes differ by room.
+  2. Flag any substitute assigned today with no completed orientation
+     record for that classroom, or with any of the three items unchecked.
+  3. List flagged substitutes by classroom so a lead teacher can walk them
+     through the missing item before the room opens.
+variables:
+  substitute_assignments_csv_path:
+    default: "./substitute-assignments.csv"
+    description: "Path to a CSV with columns: substitute_name,classroom,date (YYYY-MM-DD)."
+  orientation_log_csv_path:
+    default: "./substitute-orientation-log.csv"
+    description: "Path to a CSV with columns: substitute_name,classroom,allergy_list_reviewed (yes/no),evacuation_route_reviewed (yes/no),emergency_procedures_reviewed (yes/no),date_completed (YYYY-MM-DD)."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from new-hire-onboarding-checklist-completion-check, which covers a permanent new hire's full onboarding, and from staff-shift-schedule-coverage-check, which checks that a shift is filled at all rather than whether whoever fills it has been oriented to that specific room.

@@ -1,0 +1,46 @@
+id: performance-review-writing-deadline-check
+version: 1
+name: Performance Review Writing Deadline Check
+description: >
+  Scans a roster of direct reports and flags anyone whose formal
+  performance review narrative hasn't been submitted with the cycle
+  deadline approaching. Use this if you've ever realized the night
+  before HR's cutoff that you still had three reviews left unwritten
+  because the deadline snuck up during a busy sprint.
+category: team
+tags: [team, performance-review, deadlines, management]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  deadline_epoch=$(date -j -f %Y-%m-%d "{{cycle_deadline_date}}" +%s 2>/dev/null || date -d "{{cycle_deadline_date}}" +%s);
+  days_left=$(( (deadline_epoch-today_epoch)/86400 ));
+  if [ "$days_left" -le {{warn_days_before}} ] && [ "$days_left" -ge 0 ]; then
+    awk -F',' '
+      NR==1 {next}
+      $2 == "no" { printf "NOT SUBMITTED: %s — review not yet written\n", $1 }
+    ' "{{review_status_csv_path}}";
+    echo "Cycle deadline in $days_left day(s) ({{cycle_deadline_date}}).";
+  elif [ "$days_left" -lt 0 ]; then
+    echo "PAST DEADLINE: cycle deadline {{cycle_deadline_date}} has passed.";
+  else
+    echo "OK: $days_left day(s) until deadline, not yet in warning window.";
+  fi
+variables:
+  review_status_csv_path:
+    default: "./performance-review-status.csv"
+    description: "Path to a CSV with columns: person_name,submitted (yes/no) — one row per direct report for the current review cycle."
+  cycle_deadline_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) the performance review narratives are due to HR/HRIS.
+  warn_days_before:
+    default: 5
+    description: Start warning about unsubmitted reviews this many days before the deadline.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from compensation-review-cycle-reminder (pay/comp
+  decisions) and probation-review-deadline-reminder (new-hire probation
+  only) — this covers the written narrative/rating deliverable of a
+  standard performance review cycle for your whole roster. You maintain
+  the status CSV yourself; this doesn't integrate with an HRIS.

@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-07-19
+
+### Added
+
+- 41 new jobs deepening 6 categories further past baseline (childcare,
+  fleet, dental, hr, pharmacy, team), 6-7 per category depending on how
+  many genuinely distinct ideas each agent found (pharmacy stopped at
+  6, deliberately avoiding a near-duplicate of an existing job). Fifth
+  batch toward a much larger, evenly-spread catalog (see ROADMAP.md
+  §4).
+
+### Fixed
+
+- Fixed the same awk `close`-builtin name collision (see 0.79.0) in a
+  new hr job (`osha-300a-annual-posting-reminder`) — renamed the
+  variable to `window_close_t`. Caught by `npm run smoke-test`.
+
 ## [0.80.0] - 2026-07-19
 
 ### Added

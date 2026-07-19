@@ -1,0 +1,42 @@
+id: naloxone-co-dispense-compliance-check
+version: 1
+name: Naloxone Co-Dispensing Compliance Check
+description: >
+  Scans a day's opioid dispensing log for fills that cross your state's
+  naloxone co-dispensing trigger — a high morphine milligram equivalent
+  (MME) daily dose, a benzodiazepine overlap, or another qualifying
+  condition — and flags any without a naloxone offer documented. Use this
+  if a state-mandated naloxone offer has ever been skipped on a qualifying
+  opioid fill simply because nothing at the register flagged it as
+  required.
+category: pharmacy
+tags: [pharmacy, opioids, naloxone, harm-reduction, compliance]
+schedule: "0 20 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v mme_threshold="{{mme_threshold_per_day}}" '
+    NR==1 {next}
+    {
+      rx=$1; drug=$2; mme=$3; benzo_overlap=$4; naloxone_offered=$5;
+      qualifies = (mme+0 >= mme_threshold+0) || (benzo_overlap == "yes");
+      if (qualifies && naloxone_offered != "yes") {
+        printf "NALOXONE OFFER MISSING: Rx #%s — %s (%.0f MME/day%s), no naloxone offer documented.\n", rx, drug, mme, (benzo_overlap=="yes" ? ", benzo overlap" : "");
+      }
+    }
+  ' "{{opioid_dispensing_log_csv_path}}"
+variables:
+  opioid_dispensing_log_csv_path:
+    default: "./opioid-dispensing-log.csv"
+    description: "Path to today's CSV export of opioid fills with columns: rx_number,drug_name,mme_per_day,benzo_overlap_flag (yes/no),naloxone_offered (yes/no/blank)."
+  mme_threshold_per_day:
+    default: 90
+    description: Morphine milligram equivalent per day above which a naloxone offer is required under many state standing orders — confirm your state's exact threshold before relying on this default.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only flag list on an already-exported dispensing log; it does not
+  dispense naloxone, bill for it, or contact the patient automatically.
+  Distinct from jobs/pharmacy/counseling-offer-documentation-check.yaml
+  (general OBRA '90 offer-to-counsel on any new fill) — this checks a
+  separate, opioid-risk-specific co-dispensing law or standing order that
+  many states layer on top of routine counseling requirements.

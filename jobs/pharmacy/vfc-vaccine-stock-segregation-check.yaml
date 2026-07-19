@@ -1,0 +1,44 @@
+id: vfc-vaccine-stock-segregation-check
+version: 1
+name: VFC Vaccine Stock Segregation Check
+description: >
+  Compares each vaccine lot's Vaccines for Children (VFC) accountability
+  numbers — doses received, doses administered, and doses reported on hand
+  — against each other and flags any lot where the math doesn't add up,
+  a sign the VFC-funded pool and your privately-purchased stock may have
+  been mixed. Use this if a VFC compliance site visit has ever turned up a
+  dose-count discrepancy that nobody caught first.
+category: pharmacy
+tags: [pharmacy, immunizations, vfc, vaccines, compliance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v tol="{{allowed_dose_tolerance}}" '
+    NR==1 {next}
+    {
+      lot=$1; program=$2; received=$3; administered=$4; on_hand=$5;
+      expected = received - administered;
+      diff = expected - on_hand; if (diff < 0) diff = -diff;
+      if (diff > tol+0) {
+        printf "SEGREGATION MISMATCH: lot %s (%s pool) — expected %d on hand (received %d - administered %d), reported %d (off by %d).\n", lot, program, expected, received, administered, on_hand, diff;
+      }
+    }
+  ' "{{vfc_accountability_csv_path}}"
+variables:
+  vfc_accountability_csv_path:
+    default: "./vfc-vaccine-accountability.csv"
+    description: "Path to a CSV with columns: lot_number,program (vfc/private),doses_received,doses_administered,doses_on_hand_reported — kept separately per program pool for the same product."
+  allowed_dose_tolerance:
+    default: 1
+    description: Number of doses a lot's expected-vs-reported count can differ by before it's flagged (allows for rounding/spoilage documented elsewhere).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reconciliation of an already-exported accountability log; it
+  does not correct any count or file anything with your VFC coordinator
+  automatically. Distinct from jobs/pharmacy/immunization-inventory-check.yaml
+  (which only watches stock levels and expiry generically, not
+  funding-source segregation) — VFC-funded doses must stay logically and
+  physically separate from privately-purchased stock and only be
+  administered to VFC-eligible patients, and this checks that the two
+  pools' numbers still reconcile.

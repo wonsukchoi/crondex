@@ -1,0 +1,44 @@
+id: internal-transfer-pay-rate-lag-check
+version: 1
+name: Internal Transfer Pay Rate Lag Check
+description: >
+  Compares each employee's payroll-system pay rate against the rate
+  approved for their most recent internal transfer or promotion and
+  flags anyone still paid at the old rate past a grace period. Use this
+  if a promotion or transfer has ever been approved and announced while
+  the person kept getting paid at their prior rate for one or more pay
+  cycles because the payroll update lagged behind the HR system change.
+category: hr
+tags: [hr, payroll, promotion, transfer, data-quality]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_period_days}}" '
+    NR==1 {next}
+    $3 == $4 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline effective_epoch; close(cmd);
+      days_since = (today - effective_epoch) / 86400;
+      if (days_since >= grace) {
+        printf "PAY RATE LAG: %s — transfer/promotion effective %s, approved rate $%s, payroll still shows $%s (%d day(s) since effective date)\n", $1, $2, $3, $4, days_since;
+      }
+    }
+  ' "{{transfer_pay_tracking_csv_path}}"
+variables:
+  transfer_pay_tracking_csv_path:
+    default: "./internal-transfer-pay-tracking.csv"
+    description: "Path to a CSV with columns: employee_name,transfer_effective_date (YYYY-MM-DD),approved_new_rate,payroll_current_rate."
+  grace_period_days:
+    default: 14
+    description: Days after the transfer's effective date before a still-unmatched payroll rate is flagged (covers one normal payroll processing cycle).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from pay-equity-band-outlier-check (pay vs. role band) and
+  salary-band-compression-check (pay ordering by tenure) — this is a
+  process/data-lag check tied to a specific transfer event, not a
+  compensation-fairness analysis. Assumes an already-maintained tracking
+  export reconciling HRIS transfer approvals against payroll; it does
+  not read either system directly.

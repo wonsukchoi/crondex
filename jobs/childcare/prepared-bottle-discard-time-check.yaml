@@ -1,0 +1,40 @@
+id: prepared-bottle-discard-time-check
+version: 1
+name: Prepared Bottle Discard Time Check
+description: >
+  Checks each logged prepared or opened infant bottle's prep timestamp
+  against the maximum safe hold time and flags any bottle still marked
+  in-use that should have been discarded. Use this if a prepared formula
+  or breast-milk bottle has ever sat out past the safe window because a
+  busy room meant nobody was tracking prep times against the clock.
+category: childcare
+tags: [childcare, infant, bottle, food-safety, health]
+schedule: "0,30 6-18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  now_hm=$(date +%H:%M);
+  awk -F',' -v now="$now_hm" -v max_hold="{{max_hold_minutes}}" '
+    function to_minutes(t,   parts) {
+      split(t, parts, ":");
+      return (parts[1] * 60) + parts[2];
+    }
+    NR==1 {next}
+    tolower($4) != "discarded" {
+      now_m = to_minutes(now);
+      prep_m = to_minutes($3);
+      age = now_m - prep_m;
+      if (age >= max_hold) {
+        printf "DISCARD: %s — %s bottle prepped at %s (%d min ago, max %d)\n", $1, $2, $3, age, max_hold;
+      }
+    }
+  ' "{{bottle_log_csv_path}}"
+variables:
+  bottle_log_csv_path:
+    default: "./prepared-bottle-log.csv"
+    description: "Path to a CSV with columns: child_id,bottle_type (formula/breast-milk),prep_time (HH:MM),status (in-use/discarded). Add a row each time a bottle is prepared or opened; mark it discarded once thrown out."
+  max_hold_minutes:
+    default: 240
+    description: Minutes a prepared bottle can safely sit before discard — commonly around 4 hours for powdered formula at room temperature and much less for breast milk; confirm your health department and formula manufacturer guidance.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from diaper-change-log-frequency-check (diapering cadence) and cacfp-meal-claim-deadline-check (nutrition program reimbursement paperwork) — this tracks food-safety hold time on individual prepared bottles, not billing or diapering.

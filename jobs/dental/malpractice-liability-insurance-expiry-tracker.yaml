@@ -1,0 +1,43 @@
+id: malpractice-liability-insurance-expiry-tracker
+version: 1
+name: Malpractice & Liability Insurance Expiry Tracker
+description: >
+  Checks each provider's malpractice/professional-liability insurance
+  policy expiration date and flags anyone lapsed or expiring soon. Use
+  this if a provider has ever kept treating patients on a malpractice
+  policy that quietly lapsed, which is both an uninsured-practice risk
+  and grounds for a payer to retroactively deny every claim billed
+  during the gap.
+category: dental
+tags: [dental, malpractice, liability-insurance, compliance, credentialing]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      diff_days = (expiry_epoch - today) / 86400;
+      if (diff_days < 0) {
+        printf "LAPSED: %s — %s policy %s expired %d day(s) ago\n", $1, $4, $2, -diff_days;
+      } else if (diff_days <= warn+0) {
+        printf "EXPIRING SOON: %s — %s policy %s expires in %d day(s)\n", $1, $4, $2, diff_days;
+      }
+    }
+  ' "{{malpractice_policy_csv_path}}"
+variables:
+  malpractice_policy_csv_path:
+    default: "./malpractice_policies.csv"
+    description: "Path to a CSV with columns: provider_name,policy_number,expiry_date (YYYY-MM-DD),coverage_type (e.g. malpractice/general-liability)."
+  warn_days_before_expiry:
+    default: 45
+    description: Days before policy expiry to start flagging, in addition to already-lapsed policies.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only reminder — distinct from license-cde-credit-expiry-tracker.yaml
+  (professional license/CE credits) and payer-recredentialing-deadline-check.yaml
+  (insurance panel status); this tracks the practice's own liability coverage,
+  not licensure or payer enrollment. Does not renew or bind coverage itself.

@@ -1,0 +1,44 @@
+id: lead-apron-shielding-integrity-inspection-tracker
+version: 1
+name: Lead Apron & Shielding Integrity Inspection Tracker
+description: >
+  Checks each lead apron and thyroid collar's last fluoroscopic or visual
+  integrity inspection date against a required re-inspection interval and
+  flags anything overdue or previously found cracked/degraded with no
+  replacement logged. Use this if a lead apron has ever kept getting
+  handed to patients for radiographs without anyone re-checking it for
+  the cracks and pinholes that develop with age and folding.
+category: dental
+tags: [dental, radiation-safety, lead-apron, shielding, compliance, x-ray]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{inspection_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline inspected_epoch; close(cmd);
+      age_days = (today - inspected_epoch) / 86400;
+      if ($4 == "fail" && $5 != "yes") {
+        printf "FAILED, NOT REPLACED: %s (%s) failed inspection on %s, no replacement logged\n", $1, $2, $3;
+      } else if (age_days > interval+0) {
+        printf "INSPECTION OVERDUE: %s (%s) last inspected %s (%d days ago, interval %s)\n", $1, $2, $3, age_days, interval;
+      }
+    }
+  ' "{{shielding_inspection_csv_path}}"
+variables:
+  shielding_inspection_csv_path:
+    default: "./shielding_inspection_log.csv"
+    description: "Path to a CSV with columns: apron_id,location,last_inspection_date (YYYY-MM-DD),inspection_result (pass/fail),replacement_logged (yes/no, only relevant if result is fail)."
+  inspection_interval_days:
+    default: 365
+    description: Maximum days allowed between lead apron/thyroid collar integrity inspections before it's flagged overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check — distinct from dental-equipment-calibration-due-check.yaml,
+  which tracks active imaging/clinical equipment calibration, not passive
+  shielding integrity, and from radiograph-exposure-log-audit.yaml, which
+  audits patient exposure records rather than the apron itself. Does not
+  perform the inspection or order a replacement apron.

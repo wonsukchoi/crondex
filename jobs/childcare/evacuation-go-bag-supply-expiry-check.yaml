@@ -1,0 +1,37 @@
+id: evacuation-go-bag-supply-expiry-check
+version: 1
+name: Evacuation Go-Bag Supply Expiry Check
+description: >
+  Checks the expiration dates of perishable items packed in each
+  classroom's emergency evacuation go-bag (water, snacks, any stored
+  medication, batteries) and flags anything expired or expiring soon. Use
+  this if a go-bag has ever been grabbed during a real evacuation only to
+  discover the water was years past its date or the flashlight batteries
+  were dead.
+category: childcare
+tags: [childcare, emergency, evacuation, safety]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (expiry_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "EXPIRING: %s — %s expires %s (%d days)\n", $1, $2, $3, diff_days;
+      }
+    }
+  ' "{{go_bag_inventory_csv_path}}"
+variables:
+  go_bag_inventory_csv_path:
+    default: "./evacuation-go-bag-inventory.csv"
+    description: "Path to a CSV with columns: classroom,item_name (e.g. water bottle, snack, stored medication, batteries),expiry_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before an item expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from fire-drill-schedule-compliance-check (drill frequency/practice) and staff-certification-expiry-check (CPR/first-aid credentials) — this tracks the physical, perishable supplies inside each classroom's evacuation kit, not the drill or the people.

@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2564 jobs across 66 categories (2181 smoke-tested clean):
+2605 jobs across 66 categories (2221 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -198,14 +198,14 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `agriculture` | 41 | 34 | Farm operations — weather risk, irrigation, equipment, market prices. |
 | `automotive` | 35 | 29 | Dealership and repair shop ops — repair orders, parts, loaners, recalls, F&I, used inventory, CSI. |
 | `banking` | 35 | 35 | Retail/community bank and credit union ops — KYC/AML, dormant accounts, teller variance, reg reporting. |
-| `childcare` | 36 | 32 | Daycare compliance and ops — ratios, immunizations, tuition. |
+| `childcare` | 43 | 38 | Daycare compliance and ops — ratios, immunizations, tuition. |
 | `cleaning-services` | 35 | 28 | Commercial/residential cleaning and janitorial business ops — crew hours, background checks, missed cleans, damage claims, chemical safety. |
 | `construction` | 41 | 34 | Job site ops — permits, RFIs, submittals, safety, payments, budget vs. actual. |
 | `content` | 35 | 18 | Site/content health — SEO, broken links, freshness, repurposing. |
 | `coworking` | 35 | 31 | Shared-workspace membership ops — desks, room booking, community, amenities. |
 | `creator` | 35 | 24 | Influencer/creator ops — content calendar, cross-posting, sponsorships. |
-| `crypto` | 42 | 20 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
-| `dental` | 44 | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
+| `crypto` | 42 | 21 | Wallets, gas prices, DeFi risk, and token unlock schedules. |
+| `dental` | 51 | 51 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
 | `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 35 | 27 | Storefront ops — carts, stock, returns, reviews. |
 | `education` | 37 | 28 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
@@ -213,7 +213,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `fieldservice` | 37 | 35 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
 | `fitness` | 37 | 33 | Gym/studio ops — memberships, class utilization, equipment. |
-| `fleet` | 41 | 33 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
+| `fleet` | 48 | 39 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
 | `gaming` | 37 | 27 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 43 | 40 | Public-sector ops — records requests, permits, constituent casework. |
 | `growth` | 37 | 30 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
@@ -221,7 +221,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `hiring` | 37 | 25 | Recruiting pipeline — candidates, offers, interviews, reqs. |
 | `home` | 37 | 34 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 42 | 35 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
-| `hr` | 44 | 38 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
+| `hr` | 51 | 45 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
 | `insurance` | 37 | 29 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
 | `inventory` | 37 | 34 | Stock accuracy — counts, shrinkage, expiry, overstock. |
 | `investing` | 37 | 30 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
@@ -237,7 +237,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `payments` | 32 | 29 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
 | `personal` | 37 | 33 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 37 | 33 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
-| `pharmacy` | 44 | 36 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
+| `pharmacy` | 50 | 42 | Retail/independent pharmacy ops — script queue, controlled substances, refills, PBM claims. |
 | `photography` | 37 | 35 | Photo/video studio ops — gallery delivery, releases, backups, licensing, retainers. |
 | `podcast` | 37 | 27 | Show ops — publish cadence, guests, sponsors, ratings. |
 | `productivity` | 37 | 27 | Work habits — inbox, standups, focus, meetings, reports. |
@@ -253,7 +253,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `spa` | 37 | 35 | Salon/spa/wellness ops — no-shows, inventory, license renewals, membership churn. |
 | `staffing` | 41 | 35 | Temp-staffing/PEO agency ops — placements, timesheets, client contracts, worker's comp. |
 | `support` | 45 | 33 | Helpdesk ops — SLA, backlog, CSAT, agent workload. |
-| `team` | 44 | 43 | Team ops — 1:1s, on-call, PTO, anniversaries. |
+| `team` | 51 | 50 | Team ops — 1:1s, on-call, PTO, anniversaries. |
 | `telecom` | 37 | 32 | ISP/telecom ops — outages, SLA uptime, circuit provisioning, churn. |
 | `travel` | 37 | 32 | Trip logistics — flights, passports, visas, insurance, miles. |
 | `utilities` | 37 | 33 | Electric/water/gas utility company ops — outages, meters, regulatory compliance, grid/network assets. |

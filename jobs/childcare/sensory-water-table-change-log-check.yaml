@@ -1,0 +1,31 @@
+id: sensory-water-table-change-log-check
+version: 1
+name: Sensory/Water Table Change Log Check
+description: >
+  Checks each classroom's sensory or water table change log against the
+  required daily drain-and-refill and flags any table not marked changed
+  today. Use this if a water or sensory table has ever gone a full day
+  without being refreshed between groups because the general cleaning log
+  looked complete while the table — tracked separately under most health
+  codes — was overlooked.
+category: childcare
+tags: [childcare, sensory-table, sanitation, health]
+schedule: "0 17 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      changed = tolower($2);
+      if (changed != "yes" && changed != "true") {
+        printf "SENSORY/WATER TABLE NOT CHANGED TODAY: classroom %s\n", $1;
+      }
+    }
+  ' "{{sensory_table_log_csv_path}}"
+variables:
+  sensory_table_log_csv_path:
+    default: "./sensory-table-change-log.csv"
+    description: "Path to a CSV with columns: classroom,changed_today (yes/no). One row per classroom per day."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from classroom-sanitation-log-compliance-check (toys/tables/high-touch surfaces) and nap-mat-sanitation-check (nap mats) — water/sensory tables typically require their own daily drain-and-refill record, separate from general surface cleaning.

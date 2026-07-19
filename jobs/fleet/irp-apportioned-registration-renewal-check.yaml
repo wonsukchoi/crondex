@@ -1,0 +1,36 @@
+id: irp-apportioned-registration-renewal-check
+version: 1
+name: IRP Apportioned Registration Renewal Check
+description: >
+  Checks each interstate fleet vehicle's International Registration Plan
+  (IRP) apportioned registration renewal date and warns before it lapses.
+  Use this if a truck has ever been pulled at a state line, or blocked at a
+  weigh station, because its apportioned cab card expired separately from
+  its base-state vehicle registration and nobody tracked the two on
+  different calendars.
+category: fleet
+tags: [fleet, irp, registration, compliance, interstate]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      days_left = int((expiry_epoch - today) / 86400);
+      if (days_left <= warn_days)
+        printf "IRP RENEWAL DUE: vehicle %s — cab card expires %s (%d days)\n", $1, $2, days_left;
+    }
+  ' "{{irp_registration_csv_path}}"
+variables:
+  irp_registration_csv_path:
+    default: "./fleet-irp-registrations.csv"
+    description: "Path to a CSV with columns: vehicle_id,irp_expiry_date(YYYY-MM-DD)."
+  warn_days_before:
+    default: 60
+    description: Days before the IRP cab card expiry to start warning — IRP renewals often need lead time for mileage reporting and fee calculation across jurisdictions.
+compatible_agents: [generic, claude, codex]
+notes: IRP apportioned registration is a separate annual renewal from the vehicle's base-state plate/registration tracked in `vehicle-registration-expiry-check` — only applies to vehicles that travel across IRP member jurisdictions. Also distinct from `ifta-fuel-tax-report-deadline-check` (fuel tax filing, not registration renewal).

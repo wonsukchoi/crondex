@@ -1,0 +1,45 @@
+id: osha-300a-annual-posting-reminder
+version: 1
+name: OSHA 300A Annual Summary Posting Reminder
+description: >
+  Checks each work site's OSHA Form 300A annual summary posting status
+  against the required U.S. posting window (February 1 through April
+  30) and flags any site that hasn't marked its posting complete as the
+  window approaches or after it window_close_ts. Use this if the annual OSHA 300A
+  summary has ever gone unposted past April 30 at a site because it fell
+  through the cracks between the safety team and HR.
+category: hr
+tags: [hr, osha, compliance, workplace-safety, posting]
+schedule: "0 8 15 1,2,3,4 *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  window_close_t=$(date -d "{{current_year}}-04-30" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{current_year}}-04-30" +%s);
+  awk -F',' -v today="$today" -v window_close_t="$window_close_t" -v year="{{current_year}}" '
+    NR==1 {next}
+    $2 != year {next}
+    $3 != "" {next}
+    {
+      if (today > window_close_t) {
+        printf "OSHA 300A POSTING OVERDUE: site %s — no posting_completed_date on file for %s, past the Apr 30 deadline\n", $1, year;
+      } else {
+        printf "OSHA 300A POSTING NOT YET MARKED COMPLETE: site %s — still open for %s (window closes Apr 30)\n", $1, year;
+      }
+    }
+  ' "{{osha_posting_tracker_csv_path}}"
+variables:
+  osha_posting_tracker_csv_path:
+    default: "./osha-300a-posting-tracker.csv"
+    description: "Path to a CSV with columns: site_name,posting_year,posting_completed_date (blank if not yet posted for that year)."
+  current_year:
+    default: "2026"
+    description: The calendar year whose Feb 1–Apr 30 posting window is being checked; update each year.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Confirm applicability and any state-plan variations (some states extend
+  or modify the federal window) before relying on the Apr 30 default.
+  Distinct from manufacturing/osha-recordable-incident-audit, which
+  audits incident logging itself, and from state-compliance-poster-expiry-check,
+  which covers general labor-law posters rather than this specific
+  annual OSHA summary posting obligation.

@@ -1,0 +1,36 @@
+id: pay-transparency-job-posting-range-check
+version: 1
+name: Pay Transparency Job Posting Range Check
+description: >
+  Scans currently open job postings for a missing salary range on any
+  posting flagged as subject to a pay-transparency disclosure
+  requirement, and lists them for immediate correction. Use this if a
+  job posting has ever gone live without a salary range in a
+  jurisdiction where that's legally required, exposing the company to a
+  pay-transparency violation on every day the posting stays up
+  non-compliant.
+category: hr
+tags: [hr, pay-transparency, job-postings, compliance, compensation]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $2 != "open" {next}
+    $3 == "yes" && ($4 == "" || $5 == "") {
+      printf "MISSING PAY RANGE: %s — posting live, disclosure required for its location, range_min=\"%s\" range_max=\"%s\"\n", $1, $4, $5;
+    }
+  ' "{{job_postings_csv_path}}"
+variables:
+  job_postings_csv_path:
+    default: "./open-job-postings.csv"
+    description: "Path to a CSV with columns: posting_title,status (open/closed),disclosure_required (yes/no — you or legal maintain this per the posting's work location/remote-eligibility per current pay-transparency laws),range_min,range_max."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Does not determine which jurisdictions currently require pay-range
+  disclosure — that list changes and must be maintained in the
+  disclosure_required column by HR/legal. Distinct from
+  hiring/job-posting-expiry-check (posting staleness) and
+  hiring/job-posting-inclusive-language-check (wording review) — this is
+  a compliance field check on the salary range itself.

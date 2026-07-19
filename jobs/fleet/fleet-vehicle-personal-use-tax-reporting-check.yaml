@@ -1,0 +1,27 @@
+id: fleet-vehicle-personal-use-tax-reporting-check
+version: 1
+name: Fleet Vehicle Personal-Use Tax Reporting Check
+description: >
+  Reviews logged personal-vs-business mileage splits for employees assigned
+  a company vehicle and flags anyone missing a required personal-use
+  submission for the period. Use this if a company vehicle's personal-use
+  value has ever been left out of payroll's fringe-benefit reporting because
+  nobody chased down the mileage split before the tax filing deadline.
+category: fleet
+tags: [fleet, tax, personal-use, payroll, compliance]
+schedule: "0 8 25 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    tolower($4) != "submitted" {
+      printf "PERSONAL-USE LOG MISSING: %s — vehicle %s, period %s, status %s\n", $1, $2, $3, $4;
+    }
+  ' "{{personal_use_log_csv_path}}"
+variables:
+  personal_use_log_csv_path:
+    default: "./fleet-personal-use-mileage.csv"
+    description: "Path to a CSV with columns: driver_name,vehicle_id,reporting_period,status(submitted/missing)."
+compatible_agents: [generic, claude, codex]
+notes: This flags missing submissions only — it does not calculate the taxable fringe-benefit value itself; hand flagged rows to payroll/accounting for the actual IRS valuation method (cents-per-mile, lease value, etc.). Distinct from `driver-mileage-log-compliance-check` (general trip-log filing cadence) and `ifta-fuel-tax-report-deadline-check` (fuel tax, not income tax fringe-benefit reporting).

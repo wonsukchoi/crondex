@@ -1,0 +1,35 @@
+id: terminated-driver-fuel-card-deactivation-check
+version: 1
+name: Terminated Driver Fuel Card Deactivation Check
+description: >
+  Cross-checks the fuel card roster against the driver termination/offboard
+  list and flags any card still marked active for someone no longer
+  employed. Use this if a departed driver's fuel card has ever stayed live
+  for weeks after their last day because deactivation depended on someone
+  remembering to call the fuel card provider separately from the HR
+  offboarding checklist.
+category: fleet
+tags: [fleet, fuel-card, offboarding, fraud, cost-control]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR>1) terminated[$1]=$2;
+      next
+    }
+    FNR==1 {next}
+    ($1 in terminated) && tolower($3)=="active" {
+      printf "ACTIVE CARD FOR TERMINATED DRIVER: %s — terminated %s, card %s still active\n", $1, terminated[$1], $2;
+    }
+  ' "{{terminated_drivers_csv_path}}" "{{fuel_card_roster_csv_path}}"
+variables:
+  terminated_drivers_csv_path:
+    default: "./terminated-drivers.csv"
+    description: "Path to a CSV with columns: driver_name,termination_date(YYYY-MM-DD)."
+  fuel_card_roster_csv_path:
+    default: "./fuel-card-roster.csv"
+    description: "Path to a CSV with columns: driver_name,card_id,status(active/inactive)."
+compatible_agents: [generic, claude, codex]
+notes: Only as current as terminated-drivers.csv — feed it from HR's offboarding export, not just fleet's own records, since the fuel card provider rarely knows about a termination on its own. Distinct from `fuel-card-anomaly-check` (unusual transaction patterns on cards assumed to be validly assigned).

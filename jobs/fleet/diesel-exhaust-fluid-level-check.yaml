@@ -1,0 +1,32 @@
+id: diesel-exhaust-fluid-level-check
+version: 1
+name: Diesel Exhaust Fluid (DEF) Level Check
+description: >
+  Checks logged diesel exhaust fluid tank levels for diesel fleet vehicles
+  and flags any running low. Use this if a truck has ever gone into
+  engine-derate (forced reduced power, or a total no-start) mid-route
+  because its DEF tank ran dry and nobody was watching the level between
+  fuel stops.
+category: fleet
+tags: [fleet, diesel, def, maintenance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min_pct="{{min_def_level_pct}}" '
+    NR==1 {next}
+    {
+      level = $2 + 0;
+      if (level <= min_pct)
+        printf "DEF LOW: vehicle %s — %s%% remaining (minimum %s%%)\n", $1, level, min_pct;
+    }
+  ' "{{def_level_csv_path}}"
+variables:
+  def_level_csv_path:
+    default: "./fleet-def-levels.csv"
+    description: "Path to a CSV with columns: vehicle_id,def_level_pct."
+  min_def_level_pct:
+    default: 15
+    description: DEF tank percentage at or below which a vehicle is flagged before it hits derate thresholds.
+compatible_agents: [generic, claude, codex]
+notes: Assumes fleet-def-levels.csv is refreshed from telematics DEF-level PIDs or a manual dipstick/gauge check at fuel stops — this job only evaluates the logged reading against a threshold. Distinct from `fuel-efficiency-trend-monitor` (fuel consumption trends, not a separate fluid system).

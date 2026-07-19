@@ -1,0 +1,35 @@
+id: fleet-windshield-chip-repair-tracker
+version: 1
+name: Fleet Windshield Chip Repair Tracker
+description: >
+  Tracks reported windshield chips/cracks against a repair-by deadline and
+  flags any vehicle still unresolved past it. Use this if a small windshield
+  chip on a fleet vehicle has ever been left alone until it spread into a
+  full crack, turning a cheap resin repair into a full glass replacement (or
+  an inspection failure).
+category: fleet
+tags: [fleet, glass, windshield, maintenance, cost-control]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_open}}" '
+    NR==1 {next}
+    $3 == "unresolved" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      days_open = int((today - reported_epoch) / 86400);
+      if (days_open >= max_days)
+        printf "WINDSHIELD REPAIR OVERDUE: vehicle %s — reported %s (%d days open)\n", $1, $2, days_open;
+    }
+  ' "{{windshield_damage_csv_path}}"
+variables:
+  windshield_damage_csv_path:
+    default: "./fleet-windshield-damage.csv"
+    description: "Path to a CSV with columns: vehicle_id,reported_date(YYYY-MM-DD),status(unresolved/resolved)."
+  max_days_open:
+    default: 7
+    description: Days a reported chip/crack can stay unresolved before this flags it — chips left unrepaired spread faster in temperature swings, so keep this short.
+compatible_agents: [generic, claude, codex]
+notes: Relies on drivers actually reporting chips when spotted — pair with a quick pre-trip inspection prompt if reports are consistently low. Distinct from `vehicle-inspection-due-check` (scheduled safety inspection cadence, not ad hoc glass damage).

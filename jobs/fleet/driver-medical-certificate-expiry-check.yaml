@@ -1,0 +1,35 @@
+id: driver-medical-certificate-expiry-check
+version: 1
+name: Driver DOT Medical Certificate Expiry Check
+description: >
+  Checks each safety-sensitive driver's DOT medical examiner's certificate
+  expiry date and warns before it lapses. Use this if a driver has ever kept
+  driving past the point their medical card expired because the certificate
+  is renewed on its own 1-2 year cycle, separate from license, CDL, or
+  drug-testing renewals, and nobody was tracking it on its own timeline.
+category: fleet
+tags: [fleet, drivers, medical-certificate, compliance, safety]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expiry_epoch; close(cmd);
+      diff_days = int((expiry_epoch - today) / 86400);
+      if (diff_days <= days)
+        printf "MEDICAL CERT EXPIRING: %s — expires %s (%d days)\n", $1, $2, diff_days;
+    }
+  ' "{{medical_cert_csv_path}}"
+variables:
+  medical_cert_csv_path:
+    default: "./driver-medical-certificates.csv"
+    description: "Path to a CSV with columns: driver_name,medical_cert_expiry_date(YYYY-MM-DD)."
+  warn_days_before:
+    default: 45
+    description: How many days before the medical certificate expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Tracks the DOT medical examiner's certificate cycle specifically — distinct from `driver-license-cdl-expiry-check` (license/CDL renewal) and `driver-drug-alcohol-testing-schedule-check` (testing cadence), which run on different clocks for the same driver.

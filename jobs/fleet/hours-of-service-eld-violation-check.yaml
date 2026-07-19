@@ -1,0 +1,41 @@
+id: hours-of-service-eld-violation-check
+version: 1
+name: Hours-of-Service ELD Violation Check
+description: >
+  Reviews electronic logging device (ELD) records for drivers who exceeded
+  daily driving limits, weekly on-duty limits, or required rest breaks. Use
+  this if a driver has ever run over their legal hours-of-service limit and
+  it only surfaced during a roadside inspection or after-the-fact audit,
+  instead of the day it happened.
+category: fleet
+tags: [fleet, drivers, hours-of-service, eld, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review ELD/hours-of-service records from {{eld_provider_hint}} for the
+  last 24 hours.
+  1. Flag any driver who exceeded {{max_daily_driving_hours}} hours of
+     driving in a single duty day.
+  2. Flag any driver who exceeded {{max_weekly_on_duty_hours}} hours
+     on-duty in the rolling week.
+  3. Flag any driver missing a required rest break of at least
+     {{min_rest_break_hours}} consecutive hours between duty periods.
+  4. Report flagged drivers with the specific rule violated, the shift date,
+     and hours logged, so dispatch can address the pattern before the next
+     shift is scheduled.
+variables:
+  eld_provider_hint:
+    default: "your ELD provider (Samsara, Motive, Omnitracs, etc.)"
+    description: Name of the ELD system hours-of-service records come from.
+  max_daily_driving_hours:
+    default: 11
+    description: Maximum daily driving hours before a violation is flagged (default matches common FMCSA property-carrying limit; adjust for your jurisdiction/vehicle class).
+  max_weekly_on_duty_hours:
+    default: 60
+    description: Maximum on-duty hours in a rolling week before a violation is flagged.
+  min_rest_break_hours:
+    default: 10
+    description: Minimum required consecutive off-duty hours between shifts.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: No generic script mode — HOS rules vary by jurisdiction, exemption status, and duty-cycle type, and interpreting ELD edit logs/malfunctions needs judgment rather than a fixed threshold script. Distinct from `driver-mileage-log-compliance-check` (whether a log was filed at all, not what it says) and `driver-safety-score-monitor` (driving behavior, not duty-hour limits).

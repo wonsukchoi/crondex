@@ -1,0 +1,41 @@
+id: return-from-leave-reboarding-check
+version: 1
+name: Return-From-Leave Reboarding Check
+description: >
+  Checks a roster of employees returning from extended leave (parental,
+  medical, sabbatical) and flags anyone approaching their return date
+  who has no reboarding check-in scheduled yet. Use this if someone has
+  ever come back from months of leave and just been dropped back into
+  their old backlog with no catch-up conversation about what changed
+  while they were out.
+category: team
+tags: [team, leave, onboarding, management]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v warn_days="{{warn_days_before_return}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline return_epoch; close(cmd);
+      days_until = (return_epoch - today) / 86400;
+      if (days_until <= warn_days && days_until >= 0 && $3 == "no") {
+        printf "NEEDS REBOARDING CHECK-IN: %s returns %s (%d day(s) away), no check-in scheduled\n", $1, $2, days_until;
+      }
+    }
+  ' "{{return_roster_csv_path}}"
+variables:
+  return_roster_csv_path:
+    default: "./return-from-leave-roster.csv"
+    description: "Path to a CSV with columns: person_name,return_date (YYYY-MM-DD),checkin_scheduled (yes/no)."
+  warn_days_before_return:
+    default: 10
+    description: Start flagging missing reboarding check-ins this many days before the person's return date.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from new-hire-onboarding-task-check (brand-new
+  hires) and new-manager-30-60-90-check (new people managers) — this is
+  for existing team members re-entering after extended leave, who need
+  a lighter-touch catch-up rather than full onboarding.

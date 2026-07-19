@@ -1,0 +1,36 @@
+id: photo-media-consent-mismatch-check
+version: 1
+name: Photo/Media Posting Consent Mismatch Check
+description: >
+  Cross-checks today's log of photos or videos shared to the parent app,
+  newsletter, or social media against each child's on-file photo/media
+  release status and flags any child who appears in shared media without
+  consent. Use this if a child has ever shown up in a posted photo despite
+  the family never signing — or having revoked — the photo release,
+  because whoever posted it never actually checked the consent list.
+category: childcare
+tags: [childcare, photo-consent, privacy, compliance]
+schedule: "0 18 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR { if (FNR>1) consent[$1]=tolower($2); next }
+    FNR==1 { next }
+    {
+      posted = tolower($2);
+      c = consent[$1];
+      if (posted == "yes" && c != "yes") {
+        printf "NO PHOTO CONSENT ON FILE: %s — appeared in media posted today\n", $1;
+      }
+    }
+  ' "{{photo_consent_csv_path}}" "{{media_post_log_csv_path}}"
+variables:
+  photo_consent_csv_path:
+    default: "./photo-media-consent.csv"
+    description: "Path to a CSV with columns: child_id,consent (yes/no)."
+  media_post_log_csv_path:
+    default: "./media-post-log.csv"
+    description: "Path to a CSV with columns: child_id,posted_today (yes/no). One row per child per day a photo/video batch is shared."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from parent-consent-form-renewal-check, which tracks whether the photo-release form itself is still within its renewal window — this checks whether a specific day's posted photos actually match who currently has consent.

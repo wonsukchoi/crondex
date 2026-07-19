@@ -1,0 +1,51 @@
+id: schedule-ii-prescription-validity-window-check
+version: 1
+name: Schedule II Prescription Validity Window Check
+description: >
+  Scans on-file Schedule II prescriptions that haven't been fully dispensed
+  yet and flags any approaching the date after which they can no longer be
+  legally filled (commonly six months from the date written, though states
+  set their own limits). Use this if an unfilled or partially-filled
+  Schedule II script has ever gone stale in a drawer and only been
+  discovered unfillable when the patient finally came back for the rest of
+  it.
+category: pharmacy
+tags: [pharmacy, controlled-substances, schedule-ii, dea, compliance]
+schedule: "0 8 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v warn="{{warn_days_before}}" -v window="{{validity_window_days}}" '
+    NR==1 {next}
+    ($4 == "unfilled" || $4 == "partial") {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline written_epoch; close(cmd);
+      expires_epoch = written_epoch + (window * 86400);
+      days_left = (expires_epoch - today) / 86400;
+      if (days_left < 0) {
+        printf "EXPIRED: Rx #%s — %s written %s, no longer fillable (%d day(s) past window).\n", $1, $2, $3, -days_left;
+      } else if (days_left <= warn) {
+        printf "EXPIRING SOON: Rx #%s — %s written %s, %d day(s) left to fill.\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{controlled_rx_on_file_csv_path}}"
+variables:
+  controlled_rx_on_file_csv_path:
+    default: "./schedule-ii-on-file.csv"
+    description: "Path to a CSV of on-file Schedule II prescriptions with columns: rx_number,drug_name,date_written (YYYY-MM-DD),status (unfilled/partial/filled)."
+  validity_window_days:
+    default: 180
+    description: Days from the written date after which a Schedule II prescription can no longer be filled — 180 (six months) is the common default; confirm your state's exact rule, since some are shorter.
+  warn_days_before:
+    default: 14
+    description: How many days before the validity window closes to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only flag list against a locally maintained on-file export — it does
+  not fill or void anything itself. Distinct from
+  jobs/pharmacy/will-call-bin-aging-check.yaml (already-filled prescriptions
+  waiting for pickup) and jobs/pharmacy/script-queue-aging-check.yaml
+  (today's in-house fill turnaround); this tracks the legal fill-by
+  deadline for written but not-yet-completed Schedule II orders sitting on
+  file.

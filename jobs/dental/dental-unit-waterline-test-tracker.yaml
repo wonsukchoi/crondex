@@ -1,0 +1,50 @@
+id: dental-unit-waterline-test-tracker
+version: 1
+name: Dental Unit Waterline Test Tracker
+description: >
+  Checks logged dental unit waterline bacteria test results (heterotrophic
+  plate counts from in-office test strips/kits) against a testing interval
+  and CFU/mL safety threshold, flagging overdue tests and failed results
+  with no recorded shock-treatment follow-up. Use this if waterline testing
+  is done by whoever remembers on a slow afternoon and a failed result has
+  ever gone untreated because nobody circled back to confirm the shock
+  disinfection was done and re-tested.
+category: dental
+tags: [dental, waterline, infection-control, water-quality, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{test_interval_days}}" -v cfu_max="{{cfu_threshold}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline test_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - test_epoch) / 86400;
+      if (age_days > interval+0) {
+        printf "OVERDUE TEST: unit %s last tested %s (%d days ago, interval %s)\n", $1, $2, age_days, interval;
+      }
+      cfu = $3 + 0;
+      if (cfu > cfu_max+0 && $4 != "yes") {
+        printf "UNRESOLVED FAIL: unit %s tested %s at %d CFU/mL (limit %s), no shock treatment recorded\n", $1, $2, cfu, cfu_max;
+      }
+    }
+  ' "{{waterline_test_log_csv_path}}"
+variables:
+  waterline_test_log_csv_path:
+    default: "./waterline_test_log.csv"
+    description: "Path to a CSV with columns: unit_id,test_date (YYYY-MM-DD),cfu_per_ml,shock_treatment_done (yes/no, only relevant if the result failed)."
+  test_interval_days:
+    default: 30
+    description: Maximum days allowed between waterline tests for a given unit before it's flagged overdue.
+  cfu_threshold:
+    default: 500
+    description: "Heterotrophic bacteria count (CFU/mL) above which a waterline test is considered a fail, per common dental-water-quality guidance."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check on logged test-strip/lab results — distinct from
+  autoclave-sterilization-log-compliance-check.yaml and
+  instrument-tray-turnaround-check.yaml, which cover instrument sterilization,
+  not the water supplied through the handpiece and air/water syringe lines.
+  Does not perform the test or the shock disinfection itself.

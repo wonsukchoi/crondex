@@ -1,0 +1,55 @@
+id: dependent-eligibility-age-out-check
+version: 1
+name: Benefits Dependent Eligibility Age-Out Check
+description: >
+  Scans enrolled health-plan dependents for adult children approaching
+  or past the plan's age-off limit, and separately flags dependents with
+  a logged life event (e.g. divorce finalized) that should already have
+  ended their eligibility. Use this if a dependent has ever stayed on
+  the health plan past their eligibility date because nobody
+  cross-checked dependent birthdates and life events against the plan
+  rules.
+category: hr
+tags: [hr, benefits, dependents, eligibility, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v age_limit="{{age_off_limit}}" -v lookahead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      if ($5 != "") {
+        printf "INELIGIBLE LIFE EVENT: %s dependent %s (%s) — ineligibility event on %s, still shown enrolled\n", $1, $2, $3, $5;
+        next;
+      }
+      if ($3 != "child") next;
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline dob_epoch; close(cmd);
+      age_years = (today - dob_epoch) / 86400 / 365.25;
+      days_to_ageoff = (age_limit - age_years) * 365.25;
+      if (days_to_ageoff < 0) {
+        printf "AGED OUT: %s dependent %s — now %.1f years old, past the %d-year age-off limit, still shown enrolled\n", $1, $2, age_years, age_limit;
+      } else if (days_to_ageoff <= lookahead) {
+        printf "AGING OUT SOON: %s dependent %s — turns %d in %d day(s)\n", $1, $2, age_limit, days_to_ageoff;
+      }
+    }
+  ' "{{dependent_roster_csv_path}}"
+variables:
+  dependent_roster_csv_path:
+    default: "./benefits-dependent-roster.csv"
+    description: "Path to a CSV with columns: employee_name,dependent_name,relationship (child/spouse/domestic-partner),dependent_dob (YYYY-MM-DD),ineligibility_event_date (blank unless a life event like divorce has already ended eligibility)."
+  age_off_limit:
+    default: 26
+    description: Age at which a dependent child ages off the plan under your plan rules (26 is the common ACA-era default; confirm your plan document).
+  lookahead_days:
+    default: 60
+    description: Days before an age-out date to start flagging it as upcoming.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a roster cross-check, not a qualifying-event determination —
+  route every flagged row to benefits administration to confirm before
+  removing anyone's coverage, since some age-limit extensions (e.g.
+  disabled dependents) legitimately apply. Assumes a maintained dependent
+  export; distinct from open-enrollment-exception-tracker, which handles
+  enrollment-window exceptions rather than ongoing dependent eligibility.

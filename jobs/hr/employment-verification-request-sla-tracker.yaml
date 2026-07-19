@@ -1,0 +1,50 @@
+id: employment-verification-request-sla-tracker
+version: 1
+name: Employment Verification Request SLA Tracker
+description: >
+  Tracks incoming third-party employment or income verification requests
+  (mortgage lenders, landlords, government benefit agencies) against your
+  internal response SLA and flags any nearing or past due. Use this if a
+  verification-of-employment request has ever sat unanswered long enough
+  that an employee's mortgage closing, lease application, or benefits
+  case was delayed because HR didn't know a request was still open.
+category: hr
+tags: [hr, employment-verification, voe, sla]
+schedule: "0 8 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{response_sla_days}}" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    $5 == "completed" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      days_open = (today - received_epoch) / 86400;
+      days_left = sla - days_open;
+      if (days_left < 0) {
+        printf "VOE OVERDUE: request %s for %s from %s — received %s, %d day(s) past the %d-day SLA, still open\n", $1, $2, $3, $4, -days_left, sla;
+      } else if (days_left <= warn) {
+        printf "VOE DUE SOON: request %s for %s from %s — received %s, %d day(s) left\n", $1, $2, $3, $4, days_left;
+      }
+    }
+  ' "{{voe_request_log_csv_path}}"
+variables:
+  voe_request_log_csv_path:
+    default: "./voe-request-log.csv"
+    description: "Path to a CSV with columns: request_id,employee_name,requestor_name,received_date (YYYY-MM-DD),status (open/completed)."
+  response_sla_days:
+    default: 5
+    description: Internal target number of business days to respond to a verification request.
+  warn_days_before:
+    default: 1
+    description: Days before the SLA deadline to start flagging a still-open request as due soon.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Reports staleness only — it never drafts, sends, or discloses any
+  employment or salary information itself. Verifying the requestor's
+  identity and the employee's consent (or using a designated
+  verification service) is a manual step that must happen before any
+  response goes out; this job exists purely so a pending request is
+  never forgotten.

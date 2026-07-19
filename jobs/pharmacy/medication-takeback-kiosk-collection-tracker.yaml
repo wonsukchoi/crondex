@@ -1,0 +1,49 @@
+id: medication-takeback-kiosk-collection-tracker
+version: 1
+name: Medication Take-Back Kiosk Collection Tracker
+description: >
+  Checks your in-store DEA-authorized medication take-back kiosk's last
+  emptied date and reported fill level against your collection schedule,
+  flagging when it's due for pickup before it overflows. Use this if a
+  take-back kiosk has ever been discovered stuffed past capacity because no
+  one was actively tracking when it was last emptied.
+category: pharmacy
+tags: [pharmacy, controlled-substances, dea, take-back, disposal]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  today_epoch=$(date +%s);
+  awk -F',' -v today="$today_epoch" -v max_days="{{max_days_between_collections}}" -v max_fill="{{max_fill_percent}}" '
+    NR==1 {next}
+    {
+      kiosk=$1; last_emptied=$2; fill_pct=$3;
+      cmd = "date -d \"" last_emptied "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d\" \"" last_emptied "\" +%s 2>/dev/null";
+      cmd | getline emptied_epoch; close(cmd);
+      days_since = (today - emptied_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "COLLECTION OVERDUE: kiosk %s — last emptied %s (%d day(s) ago).\n", kiosk, last_emptied, days_since;
+      } else if (fill_pct+0 >= max_fill+0) {
+        printf "NEAR FULL: kiosk %s — reported %s%% full, last emptied %s.\n", kiosk, fill_pct, last_emptied;
+      }
+    }
+  ' "{{kiosk_log_csv_path}}"
+variables:
+  kiosk_log_csv_path:
+    default: "./takeback-kiosk-log.csv"
+    description: "Path to a CSV with columns: kiosk_id,last_emptied_date (YYYY-MM-DD),fill_level_percent (a manual visual estimate or sensor reading)."
+  max_days_between_collections:
+    default: 90
+    description: Maximum days allowed between kiosk collections regardless of reported fill level.
+  max_fill_percent:
+    default: 80
+    description: Reported fill level percentage at which the kiosk should be scheduled for collection even if the day-count hasn't been reached.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only scheduling flag — it does not empty the kiosk or contact your
+  reverse-distributor/law-enforcement collection partner automatically.
+  Distinct from jobs/pharmacy/expired-medication-disposal-tracker.yaml
+  (the pharmacy's own expired shelf stock); the take-back kiosk holds
+  patient-returned unused or unwanted medication under a separate DEA
+  authorization and must go through your registered collection partner,
+  not routine expired-stock disposal.

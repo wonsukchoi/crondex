@@ -1,0 +1,42 @@
+id: forward-contract-delivery-window-tracker
+version: 1
+name: Forward Contract Delivery Window Tracker
+description: >
+  Checks your signed grain forward/delivery contracts against bushels
+  already delivered and flags any contract falling behind schedule as
+  its delivery window closes. Use this if you've ever gotten a call from
+  the elevator asking where the rest of a contracted load was because
+  the delivery deadline snuck up while grain sat in the bin.
+category: agriculture
+tags: [agriculture, grain, contracts, delivery, marketing]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline window_close_ts; close(cmd);
+      days_left = (window_close_ts - today) / 86400;
+      contracted = $3+0;
+      delivered = $4+0;
+      remaining = contracted - delivered;
+      if (remaining <= 0) {next}
+      if (days_left <= 0) {
+        printf "CONTRACT PAST DUE: %s — window closed %s, %d bu still owed\n", $1, $2, remaining;
+      } else if (days_left <= warn) {
+        printf "DELIVERY WINDOW CLOSING: %s — closes %s (%d days left), %d bu still owed\n", $1, $2, days_left, remaining;
+      }
+    }
+  ' "{{forward_contracts_csv_path}}"
+variables:
+  forward_contracts_csv_path:
+    default: "./grain-forward-contracts.csv"
+    description: "Path to a CSV with columns: contract_id_or_buyer,delivery_window_close_date (YYYY-MM-DD),contracted_bushels,delivered_bushels."
+  warn_days_before:
+    default: 14
+    description: Days before a contract's delivery window closes to start warning if bushels are still owed.
+compatible_agents: [generic, claude, codex]
+notes: Late or short delivery on a forward contract can carry buyer penalties per the contract's own terms — confirm those terms with your buyer, this only tracks the schedule. Distinct from `grain-futures-hedge-position-check` (paper hedge ratio, not physical delivery obligations) and `grain-elevator-price-comparison` (shopping current cash prices, not contract fulfillment).

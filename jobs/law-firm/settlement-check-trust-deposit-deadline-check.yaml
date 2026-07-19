@@ -1,0 +1,49 @@
+id: settlement-check-trust-deposit-deadline-check
+version: 1
+name: Settlement Check Trust Deposit Deadline Check
+description: >
+  Scans a log of settlement or judgment checks received on behalf of
+  clients and flags any not yet deposited into the trust/IOLTA account
+  within the firm's required prompt-deposit window. Use this if a
+  settlement check has ever sat in a drawer or an attorney's inbox for
+  days after arriving instead of going straight into trust, which is a
+  distinct and separate failure point from disbursing funds back out.
+category: law-firm
+tags: [law-firm, trust-accounting, settlements, client-funds, compliance]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_to_deposit}}" '
+    NR==1 {next}
+    tolower($6)!="yes" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline recv_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - recv_epoch) / 86400;
+      if (age_days > max_days) {
+        printf "CHECK NOT YET DEPOSITED: check %s for %s (matter %s) — $%.2f received %s, %d day(s) undeposited (limit %d)\n", $1, $3, $2, $5+0, $4, age_days, max_days;
+        flagged++;
+        total_amt += $5+0;
+      }
+    }
+    END {
+      if (flagged+0 == 0) { print "OK: no settlement checks are past the prompt-deposit window."; }
+      else { printf "%d settlement check(s) totaling $%.2f are past the prompt-deposit window.\n", flagged, total_amt; }
+    }
+  ' "{{settlement_checks_csv_path}}"
+variables:
+  settlement_checks_csv_path:
+    default: "./settlement_checks_received.csv"
+    description: "Path to a CSV with columns: check_id,matter_id,client_name,received_date (YYYY-MM-DD),amount,deposited_to_trust (yes/no)."
+  max_days_to_deposit:
+    default: 3
+    description: Maximum number of business days a received settlement/judgment check can go undeposited into trust before it is flagged; align with your jurisdiction's prompt-deposit rule.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a check-receipt log your intake or accounting
+  staff maintain; it does not deposit the check or contact the bank.
+  Distinct from `client-funds-disbursement-approval-tracker` (delays
+  releasing funds already in trust) and `trust-to-operating-transfer-audit`
+  (earned-fee transfers out); this catches the earlier gap between a check
+  arriving and it actually reaching the trust account.

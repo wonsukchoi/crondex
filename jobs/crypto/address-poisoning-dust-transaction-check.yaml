@@ -1,0 +1,45 @@
+id: address-poisoning-dust-transaction-check
+version: 1
+name: Address Poisoning / Dust Transaction Check
+description: >
+  Reviews a wallet's recent incoming transaction history for zero-value
+  or dust transfers sent from lookalike addresses designed to trick you
+  into copy-pasting the wrong recipient from your history. Use this if
+  you've ever copied a "recent address" from your wallet or explorer
+  history without double-checking every character, which is exactly how
+  address-poisoning scams get someone to send funds to an attacker.
+category: crypto
+tags: [crypto, wallet, security, scam]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check wallet {{wallet_address}} on {{chain_name}} (via a block explorer
+  such as Etherscan or the chain's native explorer) for incoming
+  transactions in the last {{lookback_days}} days.
+  1. List any incoming transfer with zero or near-zero value (dust).
+  2. For each dust transfer, compare the sending address to addresses in
+     {{frequently_used_addresses}} — flag any sender address that shares
+     the same first and last few characters as one you actually use,
+     since that similarity is the whole point of the scam.
+  3. Warn explicitly: never copy a "send to" address from transaction
+     history without verifying it character-for-character against a
+     trusted source first.
+  4. This is a read-only report — do not send, approve, or interact with
+     any of the flagged addresses.
+  5. If no dust transfers are found, say so in one line.
+variables:
+  wallet_address:
+    default: "0x0000000000000000000000000000000000000000"
+    description: Wallet address to check incoming transaction history for.
+  chain_name:
+    default: "Ethereum"
+    description: Chain the wallet lives on.
+  lookback_days:
+    default: 7
+    description: How many days of incoming transaction history to review.
+  frequently_used_addresses:
+    default: "list the addresses you regularly send funds to"
+    description: Comma-separated list of your own frequently used recipient addresses, used to detect lookalike dust senders.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only explorer lookup — never sends a transaction or interacts with any flagged address. Distinct from whale-transaction-watch, which tracks large market-moving transfers rather than scam-pattern dust transfers into your own wallet.

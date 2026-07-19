@@ -1,0 +1,36 @@
+id: inventory-expiration-date-check
+version: 1
+name: Inventory Expiration Date Check
+description: >
+  Scans logged use-by/expiration dates for items in dry storage, walk-in
+  cooler, and freezer, and flags any lot that's expired or expiring soon.
+  Use this if product has ever gone bad sitting on a shelf behind newer
+  stock because nobody was rotating by date, and it only surfaced as
+  waste (or worse, got used) after the fact.
+category: restaurant
+tags: [restaurant, inventory, food-safety, expiration, storage]
+schedule: "0 6 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      daysleft = (expsec - nowsec) / 86400;
+      if (daysleft < 0) printf "EXPIRED: %s (lot %s) expired %s, %d day(s) ago\n", $1, $3, $2, -daysleft;
+      else if (daysleft <= warndays) printf "EXPIRING SOON: %s (lot %s) expires %s, %d day(s) left\n", $1, $3, $2, daysleft;
+    }
+  ' "{{inventory_expiration_csv}}"
+variables:
+  inventory_expiration_csv:
+    default: "./inventory-expiration-dates.csv"
+    description: "CSV with header row, columns: item_name,use_by_date,lot_or_batch_id."
+  warn_days_before_expiry:
+    default: 3
+    description: How many days before an item's use-by date to start flagging it for priority use.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `inventory-waste-log-review` (which reviews waste already thrown out) and `walk-in-cooler-temp-log-check`/`hot-holding-temperature-log-check` (which watch temperature, not shelf life) — this catches product that's still in storage but running out of usable time before it becomes waste or a food-safety risk.

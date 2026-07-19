@@ -1,0 +1,38 @@
+id: seed-phrase-backup-verification-reminder
+version: 1
+name: Seed Phrase Backup Verification Reminder
+description: >
+  Reminds you on a recurring cadence to physically verify that your seed
+  phrase / recovery backups (paper, metal plate, or secondary copies) are
+  still legible, complete, and stored in their intended locations, and
+  logs the date you last confirmed this. Use this if you've ever written
+  down a recovery phrase once, years ago, and have no idea anymore
+  whether that paper survived a move, a flood, or just faded ink.
+category: crypto
+tags: [crypto, wallet, backup, security]
+schedule: "0 9 1 */6 *"
+timezone: "UTC"
+runner: shell
+command: >
+  log="{{verification_log_file}}";
+  mkdir -p "$(dirname "$log")" 2>/dev/null;
+  echo "Seed phrase / recovery backup verification checklist:";
+  echo "1. Confirm each backup location in your list is still accessible: {{backup_locations}}";
+  echo "2. Confirm the phrase/words are still legible (no fading, corrosion, or damage).";
+  echo "3. Confirm the backup matches the wallet it's supposed to restore — do NOT type it into any device or website to check.";
+  echo "4. If you keep a decoy or passphrase-protected wallet, confirm that detail is documented somewhere only you can find.";
+  if [ -f "$log" ]; then
+    echo "Last verified: $(cat "$log")";
+  else
+    echo "No prior verification on record — this looks like the first run.";
+  fi;
+  date +%Y-%m-%d > "$log"
+variables:
+  verification_log_file:
+    default: "$HOME/.crondex/seed-phrase-backup-verification-reminder/last-verified.txt"
+    description: Where to persist the date you last confirmed your backups, purely for display continuity.
+  backup_locations:
+    default: "home safe, safety deposit box"
+    description: Comma-separated plain-language list of where your backup copies are stored (do not put actual addresses or access codes here).
+compatible_agents: [generic, claude, codex]
+notes: This is a checklist/reminder only — it never asks you to enter, display, or transmit a seed phrase anywhere, and the log file stores only a date, never key material. Distinct from cold-wallet-firmware-update-check, which tracks device firmware versions rather than the physical recovery backup itself.

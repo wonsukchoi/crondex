@@ -1,0 +1,40 @@
+id: compounded-medication-beyond-use-date-check
+version: 1
+name: Compounded Medication Beyond-Use-Date Check
+description: >
+  Scans the log of in-house or outsourced compounded preparations (e.g.
+  flavored liquid suspensions, transdermal gels) and flags any past its
+  assigned beyond-use date (BUD). Use this if a compounded medication
+  has ever still been dispensed or sitting on the shelf weeks after its
+  much-shorter BUD passed — compounded preparations degrade far faster
+  than commercially manufactured drugs and don't carry a manufacturer
+  expiry date.
+category: veterinary
+tags: [veterinary, compounding, pharmacy, expiry, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today_epoch=$(date +%s); warn_days={{warn_days_before_bud}};
+  { read -r header; while IFS=',' read -r prep lot bud; do
+      [ -z "$prep" ] && continue;
+      bud_epoch=$(date -j -f %Y-%m-%d "$bud" +%s 2>/dev/null || date -d "$bud" +%s);
+      days_left=$(( (bud_epoch-today_epoch)/86400 ));
+      if [ "$days_left" -lt 0 ]; then echo "PAST BUD: $prep (lot $lot) beyond-use date was $bud — pull from shelf and destroy per protocol.";
+      elif [ "$days_left" -le "$warn_days" ]; then echo "BUD APPROACHING: $prep (lot $lot), $days_left day(s) left ($bud)."; fi
+    done; } < "{{compounded_log_csv_path}}"
+variables:
+  compounded_log_csv_path:
+    default: "./compounded-preparations.csv"
+    description: "Path to a CSV with columns: preparation_name,lot_number,beyond_use_date (YYYY-MM-DD)."
+  warn_days_before_bud:
+    default: 5
+    description: Flag preparations reaching their beyond-use date within this many days.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from medication-inventory-expiry-check.yaml, which tracks
+  manufacturer expiry dates on commercial stock — compounded
+  preparations use a much shorter, formulation-specific BUD (often days
+  to weeks under USP 795/797-style guidance) instead of a printed expiry
+  date. Read-only check; always visually inspect a preparation before
+  dispensing or discarding it.

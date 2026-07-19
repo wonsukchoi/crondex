@@ -1,0 +1,47 @@
+id: kitchen-refrigeration-temperature-log-check
+version: 1
+name: Kitchen Refrigeration Temperature Log Check
+description: >
+  Scans logged refrigerator and freezer temperature readings from the
+  dietary kitchen and flags any reading outside the safe holding range.
+  Use this if a walk-in cooler has ever drifted out of safe range
+  overnight and nobody noticed until the next log entry was already
+  logged as "in range" from habit rather than an actual read.
+category: senior-living
+tags: [senior-living, food-safety, dietary, kitchen, compliance]
+schedule: "0 6,14,22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min="{{min_safe_temp_f}}" -v max="{{max_safe_temp_f}}" '
+    NR==1 {next}
+    {
+      temp = $3 + 0;
+      if (temp < min || temp > max) {
+        printf "OUT OF RANGE: unit %s — %s reading %.1fF (safe range %s-%sF)\n", $1, $2, temp, min, max;
+      }
+    }
+  ' "{{fridge_temp_log_csv_path}}"
+variables:
+  fridge_temp_log_csv_path:
+    default: "./kitchen-refrigeration-temp-log.csv"
+    description: >
+      Path to a CSV with columns: unit_id,reading_time,temperature_f, one
+      row per logged refrigerator/freezer temperature check.
+  min_safe_temp_f:
+    default: 33
+    description: Minimum acceptable temperature in Fahrenheit for refrigerated units (set separately per unit if freezers are logged in the same file).
+  max_safe_temp_f:
+    default: 40
+    description: Maximum acceptable temperature in Fahrenheit before a unit is flagged as unsafe for food storage.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from dietary-restriction-menu-compliance-check, which checks
+  that planned meals match residents' diet orders, not food storage
+  temperatures — this is a food-safety cold-chain check, a separate
+  survey area from diet-order compliance. Read-only: it only flags out-
+  of-range readings for a dietary manager to investigate and correct, it
+  never discards food, adjusts a thermostat, or logs a corrective action
+  itself. Run it against the same log used for your facility's own
+  temperature-monitoring policy, and log actual readings, not rounded
+  guesses, or the check becomes meaningless.

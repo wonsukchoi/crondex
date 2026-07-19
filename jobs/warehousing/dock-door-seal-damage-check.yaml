@@ -1,0 +1,39 @@
+id: dock-door-seal-damage-check
+version: 1
+name: Dock Door Seal Damage Check
+description: >
+  Reads the dock door seal/shelter inspection log and flags any door whose
+  most recently logged condition isn't "ok" — torn, damaged, or missing
+  seal material. Use this if a torn dock seal has ever gone unrepaired for
+  weeks, quietly letting in weather, pests, or energy loss until the
+  utility bill or a pest sighting finally flagged it.
+category: warehousing
+tags: [warehousing, dock-doors, facility-maintenance, energy-loss]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v ok_status="{{ok_status_value}}" '
+    NR==1 {next}
+    { condition[$1]=$3; last_date[$1]=$2 }
+    END {
+      for (d in condition) {
+        if (condition[d] != ok_status) {
+          printf "SEAL DAMAGE: dock door %s — condition \"%s\" as of %s\n", d, condition[d], last_date[d];
+        }
+      }
+    }
+  ' "{{dock_seal_inspection_csv_path}}"
+variables:
+  dock_seal_inspection_csv_path:
+    default: "./dock-seal-inspection-log.csv"
+    description: "Path to a CSV with columns: door_id,inspection_date,condition (ok/damaged/torn) — one row per inspection, appended chronologically so the last row per door is treated as most recent."
+  ok_status_value:
+    default: "ok"
+    description: The condition value that means no action needed; any other value is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the physical condition of dock door seals/shelters only — distinct
+  from dock-leveler-inspection-check (the leveler ramp mechanism) and
+  dock-schedule-conflict-check (appointment scheduling). This is about
+  weatherproofing and pest exclusion at the door itself.

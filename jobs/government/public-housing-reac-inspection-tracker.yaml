@@ -1,0 +1,51 @@
+id: public-housing-reac-inspection-tracker
+version: 1
+name: Public Housing REAC Inspection Tracker
+description: >
+  Checks a public housing authority's properties against their next HUD
+  Real Estate Assessment Center (REAC) inspection due date and flags any
+  coming up or overdue. Use this if a property has ever missed its REAC
+  inspection window and put federal operating subsidy or a low physical
+  condition score at risk because the inspection cycle wasn't tracked
+  centrally across the authority's portfolio.
+category: government
+tags: [government, public-housing, hud, reac, inspection, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "OVERDUE REAC INSPECTION: %s (%s) — was due %s, %d day(s) ago, last score %s\n", $1, $2, $3, -diff_days, $4;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "REAC INSPECTION DUE SOON: %s (%s) — due %s, in %d day(s), last score %s\n", $1, $2, $3, diff_days, $4;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d propert(ies) tracked, %d overdue, %d due within %d days\n", total, overdue, due_soon, days;
+    }
+  ' "{{properties_csv_path}}"
+variables:
+  properties_csv_path:
+    default: "./public-housing-reac-schedule.csv"
+    description: "Path to a CSV with columns: property_id,property_name,next_reac_inspection_due (YYYY-MM-DD),last_reac_score."
+  warn_days_before:
+    default: 30
+    description: How many days before the next REAC inspection due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  REAC inspection cycles are typically 1-3 years depending on a
+  property's prior score and HUD's current scheduling — confirm each
+  property's next_reac_inspection_due against your actual HUD-issued
+  schedule rather than assuming a fixed interval. Distinct from
+  infrastructure-asset-inspection-due-tracker.yaml (general municipal
+  capital assets like bridges/culverts, not HUD-scored housing units).

@@ -1,0 +1,38 @@
+id: operator-backup-coverage-gap-check
+version: 1
+name: Operator Backup Coverage Gap Check
+description: >
+  Counts how many currently-certified operators exist per equipment type
+  and flags any equipment type with fewer than the minimum number of
+  backups. Use this if a machine has ever sat idle because the one
+  operator certified to run it called in sick, and nobody had realized
+  there was no backup until that morning.
+category: manufacturing
+tags: [manufacturing, training, certification, staffing, workforce-planning]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v min_backup={{min_certified_backups}} '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      if (exp_ts >= today) count[$2]++;
+    }
+    END {
+      for (equip in count) {
+        if (count[equip] < min_backup) printf "COVERAGE GAP: equipment type \"%s\" has only %d operator(s) with current certification (minimum %d)\n", equip, count[equip], min_backup;
+      }
+    }
+  ' "{{operator_certs_csv}}"
+variables:
+  operator_certs_csv:
+    default: "./operator-certifications.csv"
+    description: "CSV with header row, columns: operator_id,equipment_type,cert_expiry_date(YYYY-MM-DD)."
+  min_certified_backups:
+    default: 2
+    description: Minimum number of currently-certified operators required per equipment type before it's flagged as a single-point-of-failure coverage gap.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from operator-certification-equipment-match-check (checks one specific shift assignment against one operator's cert) and safety-certification-expiry-check (tracks individual cert expiry dates) — this counts total certified bench strength per equipment type to catch stations where only one person can run a machine, a staffing risk if that operator is out.

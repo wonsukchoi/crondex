@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-07-19
+
+### Added
+
+- 82 new jobs deepening 13 categories that were already past baseline
+  (agriculture, construction, crypto, government, hospitality,
+  landscaping, law-firm, manufacturing, restaurant, senior-living,
+  staffing, veterinary, warehousing) — 6-8 per category depending on
+  how many genuinely distinct narrow ideas each agent found, each
+  checked against every existing filename in its category. Fourth
+  batch toward a much larger, evenly-spread catalog (see ROADMAP.md
+  §4).
+
 ## [0.79.0] - 2026-07-19
 
 ### Added

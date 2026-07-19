@@ -1,0 +1,53 @@
+id: benefits-eligibility-determination-deadline-check
+version: 1
+name: Benefits Eligibility Determination Deadline Check
+description: >
+  Checks open public assistance applications (SNAP, TANF, Medicaid, etc.)
+  against their federally or state-mandated determination deadline and
+  flags any approaching or past due. Use this if an eligibility
+  determination has ever blown past its mandated timeliness standard
+  (e.g. 30 days for SNAP) because it sat in a caseworker's queue with no
+  centralized deadline tracking.
+category: government
+tags: [government, benefits, eligibility, social-services, deadline]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "PAST DETERMINATION DEADLINE: application %s (%s) — due %s, %d day(s) ago\n", $1, $2, $3, -diff_days;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "DETERMINATION DUE SOON: application %s (%s) — due %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d pending application(s), %d past deadline, %d due within %d days\n", total, overdue, due_soon, days;
+    }
+  ' "{{applications_csv_path}}"
+variables:
+  applications_csv_path:
+    default: "./benefits-applications.csv"
+    description: "Path to a CSV with columns: application_id,program (e.g. SNAP/TANF/Medicaid),determination_due_date (YYYY-MM-DD),status (pending/determined/withdrawn)."
+  warn_days_before:
+    default: 5
+    description: How many days before the mandated determination deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Determination timeliness standards (e.g. 30 days for SNAP, 45 days for
+  most Medicaid applications, 60 days for disability-based Medicaid) are
+  set by federal or state program rules — compute determination_due_date
+  per the applicable standard before loading it into the CSV. This tracks
+  paperwork deadline exposure only; it does not make or override any
+  eligibility decision. Distinct from constituent-casework-followup-check.yaml,
+  which tracks general constituent service requests, not statutory
+  benefits-determination timeliness.

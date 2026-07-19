@@ -1,0 +1,40 @@
+id: trench-manhole-confined-space-permit-tracker
+version: 1
+name: Trench & Manhole Confined Space Permit Tracker
+description: >
+  Checks open confined-space entry permits for manholes, vaults, and
+  deep trench boxes against their stated maximum entry duration and
+  required atmospheric re-testing interval, flagging any permit that's
+  run long or whose last gas-test reading is stale. Use this if a crew
+  has ever stayed in a manhole or vault past the permit's authorized
+  window because nobody was tracking entry duration against the
+  atmosphere re-test clock once work got underway.
+category: construction
+tags: [construction, confined-space, trench, osha, safety]
+schedule: "*/30 6-18 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v retest_minutes="{{atmo_retest_interval_minutes}}" '
+    NR==1 {next}
+    $5 == "open" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline entry_ts; close(cmd);
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline last_test_ts; close(cmd2);
+      duration_hours = (today - entry_ts) / 3600;
+      minutes_since_test = (today - last_test_ts) / 60;
+      if (duration_hours > $6) printf "PERMIT DURATION EXCEEDED: %s — space %s open %.1f hrs (max %s hrs), attendant %s\n", $1, $2, duration_hours, $6, $7;
+      if (minutes_since_test >= retest_minutes) printf "ATMOSPHERIC TEST STALE: %s — space %s last tested %s (%d min ago), attendant %s\n", $1, $2, $4, minutes_since_test, $7;
+    }
+  ' "{{confined_space_permit_log_csv}}"
+variables:
+  confined_space_permit_log_csv:
+    default: "./confined-space-permit-log.csv"
+    description: "Path to a CSV with columns: permit_id,space_id (manhole/vault/trench-box),entry_datetime (YYYY-MM-DD HH:MM),last_atmo_test_datetime (YYYY-MM-DD HH:MM),permit_status (open/closed),max_duration_hours,attendant_name."
+  atmo_retest_interval_minutes:
+    default: 60
+    description: Maximum minutes allowed since the last atmospheric test reading before this flags the permit for immediate re-testing.
+compatible_agents: [generic, claude, codex]
+notes: Scoped to jobsite manholes, vaults, and trench/shoring boxes classified as permit-required confined spaces — pair with trench-excavation-daily-inspection-check for the trench's protective-system inspection, which is a separate requirement from the entry permit itself.

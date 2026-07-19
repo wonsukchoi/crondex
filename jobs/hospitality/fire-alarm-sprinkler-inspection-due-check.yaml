@@ -1,0 +1,38 @@
+id: fire-alarm-sprinkler-inspection-due-check
+version: 1
+name: Fire Alarm and Sprinkler Inspection Due Check
+description: >
+  Checks your fire/life-safety asset log (alarm panels, sprinkler risers,
+  extinguishers, kitchen hood suppression) against each asset's inspection
+  interval and flags anything overdue or due soon. Use this if a fire
+  extinguisher or sprinkler riser has ever gone past its required
+  inspection date without anyone noticing until an auditor or the fire
+  marshal asked for the paperwork.
+category: hospitality
+tags: [hospitality, fire-safety, compliance, life-safety, inspections]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warning_days_before}}" '
+    NR==1 {next}
+    {
+      asset=$1; type=$2; last=$3; interval=$4+0;
+      cmd = "date -d \"" last "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" last "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      due_epoch = last_epoch + (interval*86400);
+      days_to_due = (due_epoch - today) / 86400;
+      if (days_to_due < 0) printf "OVERDUE: %s (%s) — inspection was due %d days ago\n", asset, type, -days_to_due;
+      else if (days_to_due <= warn) printf "DUE SOON: %s (%s) — inspection due in %d days\n", asset, type, days_to_due;
+    }
+  ' "{{fire_life_safety_log_csv}}"
+variables:
+  fire_life_safety_log_csv:
+    default: "./fire-life-safety-inspections.csv"
+    description: "CSV with header row, columns: asset_id,asset_type (fire-alarm-panel/sprinkler-riser/fire-extinguisher/kitchen-hood-suppression/other),last_inspection_date (YYYY-MM-DD),inspection_interval_days."
+  warning_days_before:
+    default: 14
+    description: Days before an inspection's due date to start flagging it as due soon.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from elevator-inspection-compliance-check (elevators/conveyances) — this covers fire alarm panels, sprinkler risers, extinguishers, and kitchen hood suppression systems. Required inspection intervals are set by your local fire marshal/AHJ, not by this job — confirm actual intervals before relying on the defaults.

@@ -1,0 +1,33 @@
+id: incoming-material-coa-missing-check
+version: 1
+name: Incoming Material Certificate of Analysis Missing Check
+description: >
+  Cross-checks received raw material lots against the certificate of
+  analysis (CoA) log and flags any lot that reached receiving without a
+  CoA on file. Use this if a raw material lot has ever been released to
+  production before its CoA showed up, because receiving and the QMS
+  paperwork were tracked separately and nobody cross-checked them.
+category: manufacturing
+tags: [manufacturing, receiving, quality, coa, compliance]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    FNR==NR { if (FNR>1) coa[$1]=tolower($2); next }
+    FNR==1 { next }
+    {
+      lot=$2;
+      status = (lot in coa) ? coa[lot] : "missing";
+      if (status != "yes" && status != "true") printf "MISSING CoA: receipt %s, lot %s from supplier %s (received %s)\n", $1, lot, $3, $4;
+    }
+  ' "{{coa_log_csv}}" "{{receiving_log_csv}}"
+variables:
+  coa_log_csv:
+    default: "./coa-log.csv"
+    description: "CSV with header row, columns: material_lot,coa_on_file(yes/no) — updated as CoAs arrive from suppliers."
+  receiving_log_csv:
+    default: "./receiving-log.csv"
+    description: "CSV with header row, columns: receipt_id,material_lot,supplier,received_date(YYYY-MM-DD)."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from lot-traceability-audit (a periodic spot-check of finished-goods genealogy after production) and supplier-quality-ppm-watch (defect rate trends) — this catches missing paperwork at the receiving dock, before material is ever released to the line. Export both CSVs from your receiving/QMS systems before each run.

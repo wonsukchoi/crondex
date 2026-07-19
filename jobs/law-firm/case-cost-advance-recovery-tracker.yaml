@@ -1,0 +1,40 @@
+id: case-cost-advance-recovery-tracker
+version: 1
+name: Case Cost Advance Recovery Tracker
+description: >
+  Scans a log of litigation costs the firm advanced on a client's behalf
+  (filing fees, expert fees, deposition transcripts, court reporters) and
+  flags advances still unrecovered on matters marked settled or closed.
+  Use this if your firm has ever fronted hard costs on a contingency or
+  hybrid-fee matter and let some of them go unrecovered because nobody
+  cross-checked the cost ledger against the case's closing status.
+category: law-firm
+tags: [law-firm, billing, case-costs, cost-advances, contingency-fee]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    (tolower($7)=="settled" || tolower($7)=="closed") && tolower($6)!="yes" {
+      printf "UNRECOVERED COST ADVANCE: matter %s (%s) — %s advance of $%.2f dated %s, matter status is %s but cost not marked recovered\n", $1, $2, $3, $4+0, $5, $7;
+      flagged++;
+      total_amt += $4+0;
+    }
+    END {
+      if (flagged+0 == 0) { print "OK: no unrecovered cost advances found on settled or closed matters."; }
+      else { printf "%d cost advance(s) totaling $%.2f are unrecovered on settled/closed matters.\n", flagged, total_amt; }
+    }
+  ' "{{cost_advances_csv_path}}"
+variables:
+  cost_advances_csv_path:
+    default: "./case_cost_advances.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,cost_type,amount,advanced_date (YYYY-MM-DD),recovered (yes/no),matter_status (open/settled/closed)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a cost-advance ledger your practice management or
+  accounting system exports; it does not itself invoice the client, deduct
+  costs from settlement proceeds, or judge whether a cost is contractually
+  recoverable under the fee agreement. Distinct from `unbilled-time-aging-check`
+  and `accounts-receivable-aging-check`, which track attorney fees rather
+  than hard-cost advances.

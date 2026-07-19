@@ -1,0 +1,53 @@
+id: concurrent-assignment-double-booking-check
+version: 1
+name: Concurrent Assignment Double-Booking Check
+description: >
+  Scans scheduled shifts across all client assignments and finds any
+  worker booked into overlapping shifts at two different client sites,
+  usually because two recruiters placed the same worker without checking
+  each other's calendar. Use this if a worker has ever shown up at one
+  client site only to get a call that they were also expected at another
+  client's site at the same time.
+category: staffing
+tags: [staffing, scheduling, double-booking, multi-client]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  sort -t',' -k1,1 -k2,2 "{{scheduled_shifts_csv_path}}" | awk -F',' '
+    NR==1 {next}
+    {
+      worker=$1; client=$2; shift_start=$3; shift_end=$4;
+      cmd1 = "date -d \"" shift_start "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" shift_start "\" +%s 2>/dev/null";
+      cmd1 | getline start_epoch; close(cmd1);
+      cmd2 = "date -d \"" shift_end "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" shift_end "\" +%s 2>/dev/null";
+      cmd2 | getline end_epoch; close(cmd2);
+      if (worker == prev_worker && start_epoch < prev_end_epoch) {
+        printf "DOUBLE-BOOKED: %s — %s (%s to %s) overlaps %s (%s to %s)\n", worker, prev_client, prev_start, prev_end, client, shift_start, shift_end;
+      }
+      prev_worker=worker; prev_client=client; prev_start=shift_start; prev_end=shift_end; prev_end_epoch=end_epoch;
+    }
+  '
+prompt: |
+  Take the overlap list produced by the sort/awk pass over
+  {{scheduled_shifts_csv_path}} and, for each flagged pair, judge whether
+  it's a genuine double-booking (two different recruiters placed the
+  same worker without knowing about the other assignment) versus a
+  harmless data artifact (e.g. a shift that was rescheduled but the old
+  row wasn't deleted, or a short authorized overlap for a shift-change
+  handoff). Report only the ones that look like a real scheduling
+  conflict, grouped by worker.
+script_note: >
+  The command finds every worker whose sorted shifts overlap in time.
+  The prompt filters out stale/rescheduled rows and authorized handoff
+  overlaps, which requires judgment the raw overlap list can't provide.
+variables:
+  scheduled_shifts_csv_path:
+    default: "./scheduled-shifts.csv"
+    description: "Path to a CSV with columns: worker_name,client_name,shift_start (YYYY-MM-DD HH:MM),shift_end (YYYY-MM-DD HH:MM)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check. Reassigning one of the two conflicting shifts is a
+  manual dispatcher/recruiter decision. Distinct from
+  `unfilled-order-aging-check` (orders with zero candidates, the opposite
+  problem of too few placements rather than one worker booked twice).

@@ -1,0 +1,51 @@
+id: weights-measures-device-calibration-tracker
+version: 1
+name: Weights and Measures Device Calibration Tracker
+description: >
+  Checks commercial scales, fuel pumps, and other regulated
+  weights-and-measures devices against their required periodic
+  inspection/calibration due date and flags any coming due or overdue.
+  Use this if a business has ever kept an uncalibrated scale or pump in
+  commercial use past its required inspection date because the
+  county/state weights and measures office's device roll wasn't checked
+  against a single tracked schedule.
+category: government
+tags: [government, weights-measures, calibration, inspection, consumer-protection]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "OVERDUE CALIBRATION: device %s (%s, %s) — was due %s, %d day(s) ago\n", $1, $2, $3, $4, -diff_days;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "CALIBRATION DUE SOON: device %s (%s, %s) — due %s, in %d day(s)\n", $1, $2, $3, $4, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d device(s) tracked, %d overdue, %d due within %d days\n", total, overdue, due_soon, days;
+    }
+  ' "{{devices_csv_path}}"
+variables:
+  devices_csv_path:
+    default: "./weights-measures-devices.csv"
+    description: "Path to a CSV with columns: device_id,business_name,device_type (e.g. scale/fuel-pump/taximeter),next_inspection_due (YYYY-MM-DD)."
+  warn_days_before:
+    default: 14
+    description: How many days before a device's next inspection due date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Required inspection frequency varies by device type and state weights
+  and measures code (commonly annual for retail scales and fuel
+  dispensers) — set next_inspection_due per device type before relying
+  on this. Read-only tracking check; it does not seal a device, issue a
+  citation, or schedule the inspector visit on its own.

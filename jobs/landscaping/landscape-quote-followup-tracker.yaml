@@ -1,0 +1,32 @@
+id: landscape-quote-followup-tracker
+version: 1
+name: Landscape Quote Follow-Up Tracker
+description: >
+  Reads your sent-quotes log for prospects who haven't been followed up
+  with since receiving a written estimate, and drafts a short check-in
+  message for each one past your follow-up window. Use this if a
+  landscape estimate has ever gone unanswered for weeks with nobody
+  circling back, and the prospect quietly hired a competitor instead.
+category: landscaping
+tags: [landscaping, sales, quotes, leads, follow-up]
+schedule: "0 9 * * *"
+timezone: "America/Chicago"
+runner: agent-prompt
+prompt: >
+  Read the sent-quotes log at {{quotes_log_csv_path}} (columns:
+  prospect_name, quote_sent_date, quote_amount, followup_status
+  (followed-up/pending)). For every row where followup_status is
+  "pending" and quote_sent_date is more than {{followup_days}} days ago,
+  draft a brief, friendly follow-up message checking whether the prospect
+  has questions about the estimate and offering to schedule the work, and
+  list all flagged prospects with how many days their quote has gone
+  unanswered.
+variables:
+  quotes_log_csv_path:
+    default: "./landscape-quotes-log.csv"
+    description: "Path to a CSV with columns: prospect_name,quote_sent_date (YYYY-MM-DD),quote_amount,followup_status (followed-up/pending)."
+  followup_days:
+    default: 5
+    description: Days after a quote is sent with no follow-up logged before flagging the prospect for outreach.
+compatible_agents: [claude, codex, generic]
+notes: Draft-only — a salesperson should personalize and send each follow-up, not send it automatically. Distinct from design-proposal-site-visit-scheduling-check, which tracks scheduling the initial site walk-through rather than following up after a quote has already been sent.

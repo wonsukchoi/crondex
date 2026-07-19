@@ -1,0 +1,44 @@
+id: nurse-call-light-response-time-check
+version: 1
+name: Nurse Call Light Response Time Check
+description: >
+  Reviews logged call-light response times from the nurse call system
+  and flags any call that took longer than the facility's target to
+  answer. Use this if a resident has ever waited an unacceptably long
+  time for staff to respond to a call light and nobody noticed until a
+  complaint came in, rather than catching the slow-response pattern
+  from the system's own logs.
+category: senior-living
+tags: [senior-living, call-light, response-time, resident-safety, quality]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{max_response_seconds}}" '
+    NR==1 {next}
+    {
+      response = $4 + 0;
+      if (response > threshold) {
+        printf "SLOW RESPONSE: unit %s, resident %s — call at %s took %d sec to answer (threshold %d sec)\n", $2, $1, $3, response, threshold;
+      }
+    }
+  ' "{{call_light_log_csv_path}}"
+variables:
+  call_light_log_csv_path:
+    default: "./nurse-call-light-log.csv"
+    description: >
+      Path to a CSV export from the nurse call system with columns:
+      resident_id,unit_id,call_time,response_time_seconds, one row per
+      call-light activation.
+  max_response_seconds:
+    default: 300
+    description: Maximum acceptable seconds between a call-light activation and staff response before it's flagged as slow (adjust to your facility's own target).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from staff-to-resident-ratio-compliance-check and
+  licensed-nurse-coverage-gap-check, which look at scheduled staffing
+  levels rather than actual measured response performance — a unit can
+  be fully staffed on paper and still have a slow-response pattern this
+  job would catch. Read-only: it only flags individual slow responses
+  from the existing call-light log for a supervisor to review, it never
+  contacts a resident, disciplines staff, or changes staffing itself.

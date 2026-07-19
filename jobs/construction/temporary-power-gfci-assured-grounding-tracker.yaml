@@ -1,0 +1,42 @@
+id: temporary-power-gfci-assured-grounding-tracker
+version: 1
+name: Temporary Power GFCI & Assured Grounding Tracker
+description: >
+  Checks logged test results for jobsite temporary power — GFCI trip
+  tests on portable outlets and cord sets, or assured equipment
+  grounding conductor program (AEGCP) checks — against the required
+  testing interval and flags any circuit or cord overdue for retest or
+  already logged as a failed trip/ground test. Use this if a jobsite has
+  ever kept a temporary power cord or panel in service after it failed a
+  GFCI trip test because the failure got noted on a clipboard but never
+  actually pulled the equipment from service.
+category: construction
+tags: [construction, electrical, gfci, temporary-power, osha]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{retest_interval_days}}" '
+    NR==1 {next}
+    {
+      result = tolower($4);
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_tested_ts; close(cmd);
+      age_days = (today - last_tested_ts) / 86400;
+      if (result == "fail") {
+        printf "TEST FAILED — REMOVE FROM SERVICE: %s (%s) at %s — failed %s test on %s\n", $1, $5, $2, $6, $3;
+      } else if (age_days >= days) {
+        printf "RETEST OVERDUE: %s (%s) at %s — last %s test %s (%d days ago)\n", $1, $5, $2, $6, $3, age_days;
+      }
+    }
+  ' "{{temp_power_test_log_csv}}"
+variables:
+  temp_power_test_log_csv:
+    default: "./temporary-power-test-log.csv"
+    description: "Path to a CSV with columns: circuit_or_cord_id,location,last_tested_date (YYYY-MM-DD),result (pass/fail),equipment_type (panel/cord-set/outlet),test_type (GFCI-trip/AEGCP-continuity)."
+  retest_interval_days:
+    default: 90
+    description: Maximum days a circuit, cord, or panel can go between required GFCI or AEGCP tests before this flags it as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Applies to temporary construction power distribution specifically (panels, extension cords, portable outlets) — distinct from heavy-equipment-inspection-compliance-check, which covers owned mechanical/powered equipment rather than the temporary electrical distribution system feeding the site.

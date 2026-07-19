@@ -1,0 +1,36 @@
+id: utility-locate-ticket-expiry-tracker
+version: 1
+name: Utility Locate Ticket Expiry Tracker
+description: >
+  Checks open 811/call-before-you-dig locate tickets against their
+  validity window and flags any scheduled excavation whose ticket has
+  expired or is about to, since digging on a lapsed ticket voids the
+  legal protection it provides. Use this if a crew has ever hit a
+  buried utility line because excavation ran past the locate ticket's
+  valid-until date and nobody re-requested a refresh.
+category: construction
+tags: [construction, utility-locate, excavation, safety, compliance]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_expiry}}" '
+    NR==1 {next}
+    $5 != "expired" {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline valid_until_ts; close(cmd);
+      days_left = (valid_until_ts - today) / 86400;
+      if (days_left < 0) printf "LOCATE TICKET EXPIRED: %s — dig site %s, valid until %s (excavation scheduled %s)\n", $1, $2, $4, $6;
+      else if (days_left <= warn) printf "LOCATE TICKET EXPIRING SOON: %s — dig site %s, valid until %s (%d days left)\n", $1, $2, $4, days_left;
+    }
+  ' "{{locate_ticket_log_csv}}"
+variables:
+  locate_ticket_log_csv:
+    default: "./utility-locate-ticket-log.csv"
+    description: "Path to a CSV with columns: ticket_number,dig_site,request_date (YYYY-MM-DD),valid_until_date (YYYY-MM-DD),status (active/expired/renewed),excavation_scheduled_date."
+  warn_days_before_expiry:
+    default: 2
+    description: How many days before a locate ticket's valid-until date to start warning so it can be renewed before excavation.
+compatible_agents: [generic, claude, codex]
+notes: Locate ticket validity windows vary by state one-call center (commonly 10-21 working days) — set warn_days_before_expiry to match your local requirement. Distinct from trench-excavation-daily-inspection-check, which covers the protective system inspection of an already-open trench, not the legal locate-request paperwork required before breaking ground.

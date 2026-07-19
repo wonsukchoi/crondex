@@ -1,0 +1,50 @@
+id: staff-tb-test-annual-health-screening-check
+version: 1
+name: Staff TB Test & Annual Health Screening Check
+description: >
+  Checks required staff health screenings (TB test/symptom screen,
+  annual physical, and similar pre-employment or annual health
+  clearance items) and flags any staff member whose screening is
+  expiring soon or already lapsed. Use this if a staff member has ever
+  kept working a shift past the point their required TB screening or
+  annual health clearance expired, a common infection-control survey
+  focus separate from any clinical training certification.
+category: senior-living
+tags: [senior-living, staff-health-screening, tb-testing, infection-control, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      days_left = (exp_epoch - today) / 86400;
+      if (days_left <= lead) {
+        printf "EXPIRING: %s — %s expires %s (%d days)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{staff_health_screenings_csv_path}}"
+variables:
+  staff_health_screenings_csv_path:
+    default: "./staff-health-screenings.csv"
+    description: >
+      Path to a CSV with columns: staff_id,screening_type,expiration_date
+      (YYYY-MM-DD), scoped to health/infection-control screenings (TB
+      test or symptom screen, annual physical, immunization titer), not
+      clinical skills training certificates.
+  lookahead_days:
+    default: 30
+    description: How many days ahead of expiration to start flagging a screening.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from staff-certification-cpr-first-aid-expiry-check and
+  dementia-care-staff-certification-renewal-check, both of which track
+  clinical skills/training credentials — this job tracks employee health
+  clearances, an infection-control requirement with its own renewal
+  cadence and often a different record-keeper (occupational health, not
+  training coordinator). Read-only: this only flags staff for an HR or
+  infection-preventionist reviewer to re-screen, it does not reassign
+  anyone off a shift or clear anyone to return to work itself.

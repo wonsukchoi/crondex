@@ -1,0 +1,38 @@
+id: hardscape-installation-warranty-inspection-reminder
+version: 1
+name: Hardscape Installation Warranty Inspection Reminder
+description: >
+  Checks your hardscape installation log (paver patios, retaining walls,
+  walkways) for jobs whose warranty inspection is coming due and hasn't
+  been completed, and flags them. Use this if a paver patio has ever
+  started heaving or a retaining wall has ever started leaning within its
+  warranty period, but nobody scheduled the inspection that would have
+  caught it while it was still covered.
+category: landscaping
+tags: [landscaping, hardscape, warranty, installation, inspection]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_days="{{warn_days}}" '
+    NR==1 {next}
+    tolower($5) != "yes" {
+      cmd = "date -d \"" $3 " +" $4 " months\" +%s 2>/dev/null || date -j -v+" $4 "m -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline warranty_end_epoch; close(cmd);
+      days_left = (warranty_end_epoch - today) / 86400;
+      if (days_left <= warn_days) {
+        if (days_left < 0) printf "WARRANTY EXPIRED: %s (%s) — installed %s, warranty lapsed %d day(s) ago, no inspection logged\n", $1, $2, $3, -days_left;
+        else printf "INSPECTION DUE: %s (%s) — installed %s, warranty ends in %d day(s), no inspection logged\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{hardscape_install_csv_path}}"
+variables:
+  hardscape_install_csv_path:
+    default: "./hardscape-installations.csv"
+    description: "Path to a CSV with columns: client_name,install_type (patio/retaining-wall/walkway),install_date (YYYY-MM-DD),warranty_months,inspection_completed (yes/no)."
+  warn_days:
+    default: 30
+    description: Days before a hardscape installation's warranty window closes to start flagging it if no inspection has been logged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from job-site-photo-documentation-compliance-check (routine visit photo proof) — this tracks a one-time structural warranty inspection on hardscape builds, not day-to-day maintenance visits.

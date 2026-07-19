@@ -1,0 +1,44 @@
+id: post-surgical-suture-staple-removal-followup-check
+version: 1
+name: Post-Surgical Suture/Staple Removal Follow-Up Check
+description: >
+  Checks all non-spay/neuter surgical patients (mass removals, fracture
+  repairs, laceration closures, etc.) whose incision was closed with
+  non-absorbable sutures or staples, and flags any past their expected
+  removal date with no removal logged. Use this if a patient has ever
+  gone weeks past their staple-out date because nobody scheduled or
+  confirmed the appointment, risking skin irritation or a suture
+  reaction at the site.
+category: veterinary
+tags: [veterinary, surgery, post-op, follow-up, patients]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{removal_overdue_grace_days}}" '
+    NR==1 {next}
+    $5 == "non-absorbable" && $4 != "removed" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      overdue_days = (today - due_epoch) / 86400;
+      if (overdue_days >= grace) {
+        printf "SUTURES/STAPLES NOT REMOVED: %s (%s) — %s procedure, due %s, %d day(s) overdue\n", $1, $2, $6, $3, overdue_days;
+      }
+    }
+  ' "{{surgical_closure_csv_path}}"
+variables:
+  surgical_closure_csv_path:
+    default: "./surgical-closures.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,removal_due_date (YYYY-MM-DD),removal_status (scheduled/removed/none),closure_type (absorbable/non-absorbable),procedure_type."
+  removal_overdue_grace_days:
+    default: 3
+    description: Days past the expected removal date before an unremoved non-absorbable closure is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from spay-neuter-followup-compliance-check.yaml, which is
+  specific to the spay/neuter post-op recheck — this covers any other
+  surgical procedure (mass removal, orthopedic, laceration repair) whose
+  closure material actually requires an in-clinic removal appointment.
+  Only applies to non-absorbable closures; absorbable sutures are
+  excluded by design.

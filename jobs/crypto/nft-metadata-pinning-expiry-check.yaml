@@ -1,0 +1,47 @@
+id: nft-metadata-pinning-expiry-check
+version: 1
+name: NFT Metadata Pinning Expiry Check
+description: >
+  Reviews a locally maintained inventory of IPFS pinning service
+  subscriptions for NFT collections you own or manage, and flags
+  upcoming renewal dates before a lapsed subscription lets the images
+  and metadata go unpinned and stop resolving. Use this if you've ever
+  paid for a pinning service once at mint time and never thought about
+  it again until the art in your wallet quietly turned into a broken
+  image icon.
+category: crypto
+tags: [crypto, nft, ipfs, metadata]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  inv="{{pinning_inventory_file}}";
+  if [ ! -f "$inv" ]; then
+    echo "No pinning inventory found at $inv — create a CSV with columns: collection,pinning_service,renewal_date.";
+  else
+    today=$(date +%s);
+    while IFS=, read -r collection service renewal; do
+      [ "$collection" = "collection" ] && continue;
+      [ -z "$collection" ] && continue;
+      renewal_ts=$(date -d "$renewal" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$renewal" +%s 2>/dev/null || echo "");
+      if [ -n "$renewal_ts" ]; then
+        days_left=$(( (renewal_ts - today) / 86400 ));
+        if [ "$days_left" -le "{{expiry_warn_days}}" ]; then
+          echo "PINNING EXPIRING: $collection on $service renews in $days_left days — renew or the metadata/images may stop resolving.";
+        else
+          echo "OK: $collection on $service — renews in $days_left days.";
+        fi
+      else
+        echo "Could not parse renewal date for $collection: '$renewal'.";
+      fi
+    done < "$inv";
+  fi
+variables:
+  pinning_inventory_file:
+    default: "$HOME/.crondex/nft-metadata-pinning-expiry-check/pinning.csv"
+    description: Path to a CSV with columns collection,pinning_service,renewal_date — maintained by you.
+  expiry_warn_days:
+    default: 21
+    description: Days before a pinning subscription's renewal date to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: This only reviews your own locally maintained renewal-date record — it does not query IPFS gateways or pinning service APIs directly. Distinct from nft-floor-price-watch and nft-royalty-enforcement-watch, which track market price and royalty compliance rather than whether the asset's own data stays retrievable.

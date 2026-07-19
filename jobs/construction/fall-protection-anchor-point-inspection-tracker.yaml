@@ -1,0 +1,41 @@
+id: fall-protection-anchor-point-inspection-tracker
+version: 1
+name: Fall Protection Anchor Point Inspection Tracker
+description: >
+  Checks logged fall-protection anchor points (roof anchors, horizontal
+  lifelines, tie-off points) against their required periodic inspection
+  interval and flags any anchor overdue for re-inspection or already
+  tagged as failed. Use this if a crew has ever tied off to an anchor
+  point whose last competent-person inspection was months earlier
+  because anchor inspections weren't tracked separately from general
+  jobsite safety checks.
+category: construction
+tags: [construction, fall-protection, osha, safety, compliance]
+schedule: "0 6 * * 1-6"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{reinspection_interval_days}}" '
+    NR==1 {next}
+    {
+      status = tolower($5);
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_inspected_ts; close(cmd);
+      age_days = (today - last_inspected_ts) / 86400;
+      if (status == "fail" || status == "tag-out") {
+        printf "ANCHOR TAGGED OUT: %s at %s — do not use until re-certified\n", $1, $2;
+      } else if (age_days >= days) {
+        printf "ANCHOR RE-INSPECTION OVERDUE: %s at %s — last inspected %s (%d days ago, rated %s lbs)\n", $1, $2, $3, age_days, $4;
+      }
+    }
+  ' "{{anchor_point_log_csv}}"
+variables:
+  anchor_point_log_csv:
+    default: "./fall-protection-anchor-log.csv"
+    description: "Path to a CSV with columns: anchor_id,location,last_inspected_date (YYYY-MM-DD),rated_capacity_lbs,status (pass/fail/tag-out)."
+  reinspection_interval_days:
+    default: 90
+    description: Maximum days an anchor point can go between competent-person inspections before this flags it as overdue.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from scaffold-inspection-tag-check (scaffold structure and access) and heavy-equipment-inspection-compliance-check (owned mechanical equipment) — this tracks fixed and portable tie-off anchor hardware specifically used for personal fall arrest systems.

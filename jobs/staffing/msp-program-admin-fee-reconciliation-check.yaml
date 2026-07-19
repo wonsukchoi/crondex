@@ -1,0 +1,44 @@
+id: msp-program-admin-fee-reconciliation-check
+version: 1
+name: MSP Program Admin Fee Reconciliation Check
+description: >
+  Reviews placements billed through a client's vendor-management-system
+  (VMS) or managed-service-provider (MSP) program and confirms the admin
+  fee percentage actually deducted from the bill rate matches what the
+  program agreement specifies. Use this if the MSP has ever quietly
+  applied last year's admin fee tier, or the wrong tier for your
+  agency's current spend level, and it went unnoticed until a quarterly
+  reconciliation turned up a shortfall.
+category: staffing
+tags: [staffing, msp, vms, admin-fee, billing]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Read {{msp_billing_csv_path}} (columns: client_name, worker_name,
+  bill_rate, contracted_admin_fee_pct, invoiced_admin_fee_amount) for the
+  last {{lookback_days}} days.
+  1. For each placement, compute the expected admin fee as
+     bill_rate * contracted_admin_fee_pct / 100 and compare it to the
+     invoiced_admin_fee_amount actually deducted.
+  2. Flag any placement where the two don't match within a small
+     rounding tolerance, and note whether the discrepancy looks like a
+     stale fee tier, a rate-card version mismatch, or a one-off manual
+     billing error.
+  3. Group flagged discrepancies by client/MSP program so the account
+     team can raise one consolidated reconciliation request instead of
+     disputing each placement separately.
+variables:
+  msp_billing_csv_path:
+    default: "./msp-billing.csv"
+    description: "Path to a CSV with columns: client_name,worker_name,bill_rate,contracted_admin_fee_pct,invoiced_admin_fee_amount."
+  lookback_days:
+    default: 30
+    description: How many days of MSP-billed placements to review for admin-fee discrepancies.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Read-only reconciliation. Disputing a fee with the MSP program manager
+  is a manual account-management step. Distinct from
+  `bill-pay-rate-margin-drift-check` (worker pay vs. client bill margin)
+  — this job checks a specific program admin-fee line item, not overall
+  placement margin.

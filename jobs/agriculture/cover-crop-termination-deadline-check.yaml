@@ -1,0 +1,39 @@
+id: cover-crop-termination-deadline-check
+version: 1
+name: Cover Crop Termination Deadline Check
+description: >
+  Checks each field's planned cover crop termination date (herbicide or
+  tillage burn-down) against your crop insurance policy's required
+  termination window relative to cash-crop planting, and flags any
+  field at risk of missing it. Use this if you've ever terminated a
+  cover crop late and had to worry whether it would jeopardize crop
+  insurance coverage on the field.
+category: agriculture
+tags: [agriculture, cover-crop, crop-insurance, compliance, planting]
+schedule: "0 7 * * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline term_due_ts; close(cmd);
+      days_left = (term_due_ts - today) / 86400;
+      if (days_left < 0 && $3 != "yes" && $3 != "true") {
+        printf "MISSED TERMINATION WINDOW: %s — required by %s, not yet terminated (%d days past)\n", $1, $2, -days_left;
+      } else if (days_left <= warn && ($3 != "yes" && $3 != "true")) {
+        printf "TERMINATE SOON: %s — required by %s (%d days left), not yet terminated\n", $1, $2, days_left;
+      }
+    }
+  ' "{{cover_crop_termination_csv_path}}"
+variables:
+  cover_crop_termination_csv_path:
+    default: "./cover-crop-termination-schedule.csv"
+    description: "Path to a CSV with columns: field_name,required_termination_date (YYYY-MM-DD per your RMA-approved policy),terminated (yes/no)."
+  warn_days_before:
+    default: 7
+    description: Days before the required termination date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Required termination timing relative to cash-crop planting is set by RMA cover crop termination guidelines and varies by zone — confirm your field's actual required date with your crop insurance agent before relying on defaults. Distinct from `crop-rotation-planning-reminder` (multi-year crop family sequencing) and `spray-application-window-check` (daily weather safety for spraying, not the insurance-linked termination deadline itself).

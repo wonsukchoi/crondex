@@ -1,0 +1,43 @@
+id: chronic-disease-therapeutic-diet-refill-compliance-check
+version: 1
+name: Chronic Disease Therapeutic Diet Refill Compliance Check
+description: >
+  Checks patients managed on a prescription therapeutic diet for a
+  chronic condition (renal, urinary, diabetic, cardiac) against their
+  expected refill cadence and flags anyone who has gone quiet. Use this
+  if a diabetic or renal patient has ever lapsed off their prescription
+  food without anyone noticing because there was no medication refill
+  request to trigger a check — for these conditions the diet itself is
+  the treatment, not an accessory to it.
+category: veterinary
+tags: [veterinary, therapeutic-diet, chronic-disease, patients, nutrition]
+schedule: "0 8 1,15 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_since_last_refill}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline last_refill_epoch; close(cmd);
+      days_since = (today - last_refill_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "DIET REFILL LAPSED: %s (%s) — %s for %s, last refill %s (%d days ago)\n", $1, $2, $3, $5, $4, days_since;
+      }
+    }
+  ' "{{therapeutic_diet_csv_path}}"
+variables:
+  therapeutic_diet_csv_path:
+    default: "./therapeutic-diet-patients.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,diet_name,last_refill_date (YYYY-MM-DD),condition (renal/urinary/diabetic/cardiac/other)."
+  max_days_since_last_refill:
+    default: 45
+    description: Days since the last therapeutic diet refill before a chronic-disease patient is flagged as lapsed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from pet-medication-refill-backlog-check.yaml, which flags
+  slow turnaround on pending refill requests already in the queue —
+  this instead surfaces patients who never submitted a new request at
+  all, so the disease-management lapse would otherwise go unnoticed
+  until the next scheduled recheck.

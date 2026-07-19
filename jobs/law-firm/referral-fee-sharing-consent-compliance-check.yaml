@@ -1,0 +1,41 @@
+id: referral-fee-sharing-consent-compliance-check
+version: 1
+name: Referral Fee-Sharing Client Consent Compliance Check
+description: >
+  Scans matters with a fee-sharing arrangement between the firm and a
+  referring or co-counsel attorney and flags any where a disbursement of
+  the split fee has happened, or is pending, without a signed client
+  consent on file. Use this if your firm has ever split a fee with
+  outside counsel and the disbursement went out before someone confirmed
+  the client had actually signed off on the arrangement, which most bars'
+  fee-sharing rules require regardless of how the referral was handled.
+category: law-firm
+tags: [law-firm, referral-fees, fee-sharing, ethics-compliance, disbursements]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    tolower($6)!="yes" && (tolower($5)=="pending" || tolower($5)=="disbursed") {
+      printf "MISSING CONSENT FOR FEE SPLIT: matter %s (%s) — %s%% split with %s, disbursement status: %s, client consent on file: %s\n", $1, $2, $4, $3, $5, ($6==""?"not logged":$6);
+      flagged++;
+    }
+    END {
+      if (flagged+0 == 0) { print "OK: every pending or disbursed fee-split matter has a logged client consent."; }
+      else { printf "%d fee-split matter(s) are pending or disbursed without a logged client consent.\n", flagged; }
+    }
+  ' "{{fee_sharing_log_csv_path}}"
+variables:
+  fee_sharing_log_csv_path:
+    default: "./fee_sharing_log.csv"
+    description: "Path to a CSV with columns: matter_id,client_name,referring_or_co_counsel_firm,split_percentage,disbursement_status (not-yet-due/pending/disbursed),client_consent_on_file (yes/no)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check against a fee-sharing log the billing or ethics-compliance
+  team maintains; it does not draft the consent letter, obtain the client's
+  signature, or release any funds. Distinct from
+  `client-funds-disbursement-approval-tracker` (internal approval turnaround
+  for any trust disbursement) and `write-off-approval-pending-tracker`
+  (fee write-offs); this checks specifically for missing client consent to
+  a referral/co-counsel fee split before or at disbursement.

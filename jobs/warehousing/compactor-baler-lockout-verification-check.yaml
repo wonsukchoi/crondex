@@ -1,0 +1,42 @@
+id: compactor-baler-lockout-verification-check
+version: 1
+name: Compactor and Baler Lockout Verification Check
+description: >
+  Checks that each trash compactor or baler's required per-shift
+  lockout/tagout verification was actually logged today. Use this if a
+  compactor or baler has ever been cleared of a jam without the required
+  lockout verification logged, which is exactly how amputation injuries
+  happen on these machines.
+category: warehousing
+tags: [warehousing, compactor, baler, lockout-tagout, safety]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  missing=$(awk -F',' -v today="$today" -v fleet="{{unit_ids}}" '
+    BEGIN { n = split(fleet, ids, ","); }
+    $2 == today { logged[$1] = 1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        id = ids[i];
+        gsub(/^ +| +$/, "", id);
+        if (!(id in logged)) print "NO LOCKOUT VERIFICATION TODAY: " id;
+      }
+    }
+  ' "{{lockout_log_csv_path}}");
+  if [ -n "$missing" ]; then echo "$missing"; exit 1; else echo "OK: all compactors/balers lockout-verified today"; fi
+variables:
+  lockout_log_csv_path:
+    default: "./compactor-baler-lockout-log.csv"
+    description: "Path to a CSV with columns: unit_id,check_date (YYYY-MM-DD) recording each shift's lockout/tagout verification."
+  unit_ids:
+    default: "COMP-1,BALER-1"
+    description: Comma-separated list of compactor/baler unit IDs that must each have a logged lockout verification today.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Confirms the lockout verification was logged only, not the mechanical
+  condition of the unit — pair with your equipment PM program for actual
+  repairs. Distinct from mhe-preventive-maintenance-check and
+  forklift-inspection-check, which cover different equipment classes
+  entirely.

@@ -1,0 +1,52 @@
+id: long-term-antibiotic-refill-without-recheck-check
+version: 1
+name: Long-Term Antibiotic Refill Without Recheck Check
+description: >
+  Scans prescription refill history for patients on repeated antibiotic
+  refills without a recent recheck exam or repeat culture, and flags
+  them for antimicrobial-stewardship review. Use this if a patient has
+  ever been refilled on the same antibiotic three or four times in a
+  row with no exam or susceptibility recheck in between — a pattern
+  that risks resistance and masks a case that isn't actually resolving.
+category: veterinary
+tags: [veterinary, antimicrobial-stewardship, prescriptions, pharmacy]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_refills="{{max_refills_without_recheck}}" -v stale_days="{{recheck_stale_after_days}}" '
+    NR==1 {next}
+    $5 == "antibiotic" {
+      key = $1 SUBSEP $2;
+      refill_count[key]++;
+      cmd = "date -d \"" $6 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $6 "\" +%s 2>/dev/null";
+      cmd | getline last_recheck_epoch; close(cmd);
+      recheck_age_days = (last_recheck_epoch == "" ? 999999 : (today - last_recheck_epoch) / 86400);
+      pet[key] = $1; owner[key] = $2; drug[key] = $3; last_days[key] = recheck_age_days;
+    }
+    END {
+      for (k in refill_count) {
+        if (refill_count[k] >= max_refills && last_days[k] >= stale_days) {
+          printf "STEWARDSHIP REVIEW: %s (%s) — %s refilled %d times, last recheck %d day(s) ago\n", pet[k], owner[k], drug[k], refill_count[k], last_days[k];
+        }
+      }
+    }
+  ' "{{prescription_refill_csv_path}}"
+variables:
+  prescription_refill_csv_path:
+    default: "./prescription-refills.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,drug_name,refill_date (YYYY-MM-DD),drug_class (antibiotic/other),last_recheck_date (YYYY-MM-DD)."
+  max_refills_without_recheck:
+    default: 3
+    description: Number of consecutive antibiotic refills allowed before a recheck/culture is required.
+  recheck_stale_after_days:
+    default: 30
+    description: Consider the last recheck too old to count if it happened more than this many days ago.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from pet-medication-refill-backlog-check.yaml, which flags
+  slow turnaround on any pending refill request — this is a clinical
+  stewardship pattern check on drug class and refill frequency, not
+  queue latency. Flags a case for a veterinarian's judgment; it does
+  not deny or approve any refill itself.

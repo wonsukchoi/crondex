@@ -1,0 +1,43 @@
+id: direct-deposit-enrollment-missing-check
+version: 1
+name: Direct Deposit Enrollment Missing Check
+description: >
+  Checks newly started workers against payroll's payment-method file and
+  flags anyone approaching their first payday with no direct deposit or
+  pay card enrolled. Use this if a new hire has ever gotten a delayed or
+  lost paper check on their first assignment simply because banking
+  paperwork wasn't collected during onboarding.
+category: staffing
+tags: [staffing, onboarding, payroll, direct-deposit]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warnDays="{{days_before_first_payday}}" '
+    NR==1 {next}
+    {
+      worker=$1; start_date=$2; payment_method=tolower($3);
+      if (payment_method == "none" || payment_method == "") {
+        cmd = "date -d \"" start_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" start_date "\" +%s 2>/dev/null";
+        cmd | getline start_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_since_start = (now_epoch - start_epoch) / 86400;
+        if (days_since_start >= 0 && days_since_start <= warnDays) {
+          printf "NO PAYMENT METHOD ON FILE: %s — started %s, %.0f days in, no direct deposit or pay card enrolled\n", worker, start_date, days_since_start;
+        }
+      }
+    }
+  ' "{{new_hire_payment_methods_csv_path}}"
+variables:
+  new_hire_payment_methods_csv_path:
+    default: "./new-hire-payment-methods.csv"
+    description: "Path to a CSV with columns: worker_name,assignment_start_date (YYYY-MM-DD),payment_method_on_file (direct_deposit/pay_card/none)."
+  days_before_first_payday:
+    default: 7
+    description: Days after assignment start to keep flagging a worker who still has no payment method enrolled.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check. Enrolling the worker in direct deposit or issuing a
+  pay card is a payroll/onboarding-team action. Distinct from
+  `temp-worker-onboarding-paperwork-check` (general onboarding document
+  completeness, not payment-method enrollment specifically).

@@ -1,0 +1,39 @@
+id: delivery-order-accuracy-complaint-tracker
+version: 1
+name: Delivery Order Accuracy Complaint Tracker
+description: >
+  Reviews third-party delivery complaint exports for "missing item,"
+  "wrong item," or "wrong order" style tags and summarizes which
+  dayparts, menu items, or packers keep coming up. Use this if
+  delivery ratings have ever slipped and you suspected it was mispacked
+  orders rather than late or cold food, but never had the complaint
+  text pulled apart to check.
+category: restaurant
+tags: [restaurant, delivery, order-accuracy, customer-feedback, third-party]
+schedule: "0 9 * * 1"
+timezone: "America/New_York"
+runner: agent-prompt
+prompt: >
+  Review the delivery complaint export at {{delivery_complaints_path}}
+  for the past {{lookback_days}} days. Filter to complaints tagged or
+  worded as missing item, wrong item, or wrong order (exclude wait-time
+  or temperature complaints, which are tracked separately). 1. Count
+  order-accuracy complaints as a share of total delivery orders in the
+  window, and flag if the rate exceeds {{complaint_rate_alert_pct}}%.
+  2. Break the flagged complaints down by daypart, specific menu item(s)
+  most often missing or swapped, and packing/expo shift if that data is
+  available. 3. Call out any single menu item or shift appearing in 3+
+  complaints, since that's a stronger signal than scattered one-offs.
+  Keep the summary to a few bullet points a kitchen manager could act on.
+variables:
+  delivery_complaints_path:
+    default: "./delivery-order-accuracy-complaints.csv"
+    description: Path to the delivery platform complaint export, one row per complaint with timestamp, platform, order items, and complaint text/tags.
+  lookback_days:
+    default: 7
+    description: Window of complaint history to analyze.
+  complaint_rate_alert_pct:
+    default: 2
+    description: Order-accuracy complaint rate (as a percent of total delivery orders) above which the trend should be flagged.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Distinct from `delivery-driver-wait-time-complaint-tracker` (wait time and cold-food complaints) and `delivery-platform-commission-reconciliation` (payout math, not customer feedback) — this isolates packing/order-accuracy errors specifically, which usually trace back to expo or packing station process rather than the platform or driver.

@@ -1,0 +1,33 @@
+id: deicing-salt-inventory-low-stock-check
+version: 1
+name: De-Icing Salt/Ice-Melt Inventory Low-Stock Check
+description: >
+  Checks your winter de-icing material inventory (rock salt, calcium
+  chloride, ice-melt blend) against a reorder threshold and flags anything
+  running low. Use this if a crew has ever shown up for an overnight
+  ice-melt run and found the shed already out of salt because nobody
+  checked stock before the storm hit.
+category: landscaping
+tags: [landscaping, snow-removal, inventory, deicing, seasonal]
+schedule: "0 5 * * 1,4"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v default_min="{{default_reorder_threshold}}" '
+    NR==1 {next}
+    {
+      min_qty = ($3 != "") ? $3 : default_min;
+      if ($2+0 <= min_qty+0) {
+        printf "LOW STOCK: %s — %s ton(s)/bag(s) on hand (reorder threshold %s)\n", $1, $2, min_qty;
+      }
+    }
+  ' "{{deicing_inventory_csv_path}}"
+variables:
+  deicing_inventory_csv_path:
+    default: "./deicing-inventory.csv"
+    description: "Path to a CSV with columns: material_name,quantity_on_hand,reorder_threshold (blank to use the default)."
+  default_reorder_threshold:
+    default: 5
+    description: Default reorder threshold (in whatever unit your inventory sheet uses — tons, bags, totes) applied when a material has no per-row threshold.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from mulch-inventory-low-stock-check (bulk landscape materials) and snow-removal-activation-threshold-check (whether a storm meets the contract trigger) — this only tracks de-icing material stock levels.

@@ -1,0 +1,43 @@
+id: guest-dietary-restriction-relay-check
+version: 1
+name: Guest Dietary Restriction Relay Check
+description: >
+  Checks upcoming reservations and banquet events for logged allergy or
+  dietary restrictions that haven't yet been marked as relayed to the
+  kitchen, flagging severe allergens as urgent. Use this if a guest's
+  peanut allergy was ever noted at booking but never actually made it to
+  the chef before the meal went out.
+category: hospitality
+tags: [hospitality, food-safety, allergies, guest-services, banquet]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{lookahead_days}}" -v severe="{{severe_restriction_types}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline event_epoch; close(cmd);
+      days_out = (event_epoch - today) / 86400;
+      if (days_out < 0 || days_out > days) next;
+      if ($5 == "yes") next;
+      n = split(severe, sev, ",");
+      is_severe = 0;
+      for (i=1;i<=n;i++) if ($4 == sev[i]) is_severe=1;
+      if (is_severe) printf "URGENT - NOT RELAYED: %s (%s) on %s — %s not yet communicated to kitchen\n", $1, $2, $3, $4;
+      else printf "NOT RELAYED: %s (%s) on %s — %s not yet communicated to kitchen\n", $1, $2, $3, $4;
+    }
+  ' "{{dietary_restrictions_csv}}"
+variables:
+  dietary_restrictions_csv:
+    default: "./guest-dietary-restrictions.csv"
+    description: "CSV with header row, columns: reservation_or_event_id,guest_or_client_name,event_date (YYYY-MM-DD),restriction_type,relayed_to_kitchen (yes/no)."
+  lookahead_days:
+    default: 3
+    description: How many days ahead to check for logged restrictions not yet relayed to the kitchen.
+  severe_restriction_types:
+    default: "peanut-allergy,tree-nut-allergy,shellfish-allergy,severe-allergy-other"
+    description: Comma-separated restriction_type values treated as urgent life-safety allergies rather than preference-based diets.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from food-safety-temp-log-check (kitchen temperature logs) — this is a communication-gap check confirming a guest's logged allergy actually reached the kitchen/banquet chef before service. A missed severe-allergy relay is a life-safety issue, not just a service miss; escalate urgent flags directly to the chef on duty.

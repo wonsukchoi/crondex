@@ -1,0 +1,45 @@
+id: indigent-defense-caseload-cap-check
+version: 1
+name: Indigent Defense Caseload Cap Check
+description: >
+  Checks each public defender's active weighted caseload against the
+  state or agency's mandated caseload cap and flags any attorney over
+  the limit. Use this if an attorney's caseload has ever climbed past
+  the standard used to justify adequate representation (risking
+  ineffective-assistance claims and bar complaints) because caseloads
+  were tracked per-attorney with no office-wide cap check.
+category: government
+tags: [government, public-defender, indigent-defense, caseload, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cap="{{caseload_cap}}" '
+    NR==1 {next}
+    {
+      attorney=$1; name=$2; weighted_count=$3;
+      total++;
+      if (weighted_count > cap) {
+        printf "OVER CASELOAD CAP: %s (%s) — weighted caseload %.1f exceeds cap of %.1f\n", attorney, name, weighted_count, cap;
+        over++;
+      }
+    }
+    END {
+      printf "%d attorney(s) checked, %d over the %.1f weighted-case cap\n", total, over, cap;
+    }
+  ' "{{caseloads_csv_path}}"
+variables:
+  caseloads_csv_path:
+    default: "./indigent-defense-caseloads.csv"
+    description: "Path to a CSV with columns: attorney_id,attorney_name,weighted_active_case_count — one row per assigned public defender, refreshed each reporting period."
+  caseload_cap:
+    default: 150
+    description: Maximum weighted active case count allowed per attorney under your state/agency caseload standard (case-type weighting, e.g. felony vs. misdemeanor, varies by jurisdiction).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Caseload caps and case-weighting formulas (e.g. NAC guidelines,
+  state-specific numeric standards, or a local workload study) vary
+  widely by jurisdiction — compute weighted_active_case_count per your
+  adopted standard before relying on the default cap. A flagged
+  over-cap attorney is a trigger for supervisor reassignment review, not
+  something this job resolves on its own.

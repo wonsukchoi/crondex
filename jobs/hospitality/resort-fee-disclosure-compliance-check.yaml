@@ -1,0 +1,47 @@
+id: resort-fee-disclosure-compliance-check
+version: 1
+name: Resort Fee Disclosure Compliance Check
+description: >
+  Reviews how and where your resort/amenity fee is displayed across your
+  direct booking site and listed OTA channels, checking whether it's
+  shown in the initial price or only revealed at checkout. Use this if
+  regulators or a guest have ever called out a "junk fee" that only
+  appeared after the guest had already committed to a rate, exposing the
+  property to disclosure-law complaints.
+category: hospitality
+tags: [hospitality, compliance, legal, revenue-management, ota]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check how the mandatory resort/amenity fee of {{resort_fee_usd}} per
+  night is disclosed across these channels: {{booking_channels}}, using
+  the direct booking page at {{hotel_booking_url}} as the baseline.
+  1. For each channel, note the exact step in the booking funnel where
+     the resort fee first becomes visible to the guest (initial search
+     results, room selection, or only at final checkout/payment).
+  2. Flag any channel where the fee is not shown until checkout, or is
+     only visible via a separate "resort fee info" link/tooltip rather
+     than in the headline price.
+  3. Flag any language that bundles or obscures the fee (e.g. a "resort
+     credit" that nets to the same charge, or vague wording like
+     "additional fees may apply" with no dollar amount).
+  4. Note the applicable disclosure standard for {{jurisdiction}} and
+     whether each channel appears consistent with it.
+  5. Summarize per-channel compliance risk as low/medium/high with the
+     specific reason.
+variables:
+  hotel_booking_url:
+    default: "https://example-hotel.com/book"
+    description: Direct booking page URL to use as the disclosure baseline.
+  booking_channels:
+    default: "Direct website, Booking.com, Expedia"
+    description: Comma-separated list of channels to check for resort fee disclosure placement.
+  resort_fee_usd:
+    default: 35
+    description: Nightly resort/amenity fee amount that must be disclosed.
+  jurisdiction:
+    default: "US-FTC"
+    description: Applicable disclosure rule set to check against (e.g. US-FTC junk-fee rule, a specific state law).
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only review, not a pricing change — junk-fee disclosure guidance is evolving at both federal and state levels, so confirm current requirements with legal/compliance before acting on findings. Distinct from ota-rate-parity-check (compares rate amounts across channels) — this checks fee-disclosure placement and timing, a legal-compliance concern rather than a pricing-parity one.

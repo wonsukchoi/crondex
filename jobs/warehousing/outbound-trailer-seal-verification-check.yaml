@@ -1,0 +1,47 @@
+id: outbound-trailer-seal-verification-check
+version: 1
+name: Outbound Trailer Seal Verification Check
+description: >
+  Cross-checks the security seal number applied to each outbound trailer
+  against the seal number recorded on its bill of lading or manifest, and
+  flags any mismatch or trailer dispatched with no seal number logged.
+  Use this if a trailer has ever left the yard with a seal number that
+  doesn't match what was recorded — or with no seal at all — which is
+  exactly the gap that turns into an unexplained shortage claim later.
+category: warehousing
+tags: [warehousing, trailer-seals, security, loss-prevention, outbound]
+schedule: "0 20 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR { if (FNR>1) manifest_seal[$1]=$2; next }
+    FNR==1 { next }
+    {
+      trailer=$1; applied=$2;
+      if (!(trailer in manifest_seal)) {
+        printf "NO MANIFEST RECORD: trailer %s applied seal %s\n", trailer, applied;
+        next;
+      }
+      if (applied == "") {
+        printf "MISSING SEAL: trailer %s — no seal number logged at dispatch\n", trailer;
+        next;
+      }
+      if (applied != manifest_seal[trailer]) {
+        printf "SEAL MISMATCH: trailer %s — manifest %s vs applied %s\n", trailer, manifest_seal[trailer], applied;
+      }
+    }
+  ' "{{manifest_seal_csv_path}}" "{{dispatch_seal_log_csv_path}}"
+variables:
+  manifest_seal_csv_path:
+    default: "./trailer-manifest-seals.csv"
+    description: "Path to a CSV with columns: trailer_id,manifest_seal_number — the seal number recorded on the bill of lading/manifest for each outbound trailer."
+  dispatch_seal_log_csv_path:
+    default: "./trailer-dispatch-seal-log.csv"
+    description: "Path to a CSV with columns: trailer_id,applied_seal_number — the seal number actually applied and logged at dispatch (blank if none applied)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Verifies seal number reconciliation for loss-prevention purposes only,
+  distinct from outbound-load-audit-accuracy-check (which audits load
+  contents accuracy) and yard-trailer-detention-watch (which tracks yard
+  dwell time) — this is a security control on the physical seal itself.

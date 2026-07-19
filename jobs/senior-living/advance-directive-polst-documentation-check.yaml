@@ -1,0 +1,54 @@
+id: advance-directive-polst-documentation-check
+version: 1
+name: Advance Directive & POLST Documentation Check
+description: >
+  Scans the resident roster for anyone missing a completed advance
+  directive or POLST/MOLST form on file, or whose form on file is older
+  than a set review window, and flags them for follow-up. Use this if a
+  resident's code status has ever been unclear during an emergency
+  because the advance directive paperwork was never collected at
+  move-in or had gone stale since the last care plan update.
+category: senior-living
+tags: [senior-living, advance-directive, polst, resident-rights, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v stale="{{stale_after_days}}" '
+    NR==1 {next}
+    {
+      if ($2 != "yes") {
+        printf "MISSING: %s — no advance directive/POLST on file\n", $1;
+        next;
+      }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      if (days_since > stale) {
+        printf "STALE: %s — advance directive/POLST last reviewed %s (%d days ago)\n", $1, $3, days_since;
+      }
+    }
+  ' "{{directives_csv_path}}"
+variables:
+  directives_csv_path:
+    default: "./resident-advance-directives.csv"
+    description: >
+      Path to a CSV with columns: resident_id,directive_on_file (yes/no),
+      last_reviewed_date (YYYY-MM-DD), one row per resident. Use
+      resident_id, not a resident's full name.
+  stale_after_days:
+    default: 365
+    description: >
+      Age, in days, after which an advance directive/POLST on file should
+      be flagged as stale and worth re-confirming with the resident or
+      their representative, even though it's still technically on file.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers the whole census, not just hospice enrollees — distinct from
+  hospice-transition-coordination-tracker, which checks code-status and
+  care-plan updates only for residents newly enrolled in hospice. This
+  job touches sensitive end-of-life documentation; restrict access to
+  the underlying CSV to staff who need it for care planning. Read-only:
+  it only flags who needs a directive collected or re-confirmed, it
+  never completes, signs, or interprets a directive itself.

@@ -1,0 +1,45 @@
+id: assignment-extension-request-pending-check
+version: 1
+name: Assignment Extension Request Pending Check
+description: >
+  Checks assignments where a client has already asked to extend a
+  worker past the original end date and flags any extension that still
+  hasn't been signed or entered into the system as the original end date
+  closes in. Use this if a client has ever verbally agreed to keep a
+  worker on, but the paperwork lagged and the worker's original end date
+  arrived with no signed extension on file, cutting them off the schedule.
+category: staffing
+tags: [staffing, assignment-extension, contracts, client-requests]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warnDays="{{alert_within_days}}" '
+    NR==1 {next}
+    {
+      worker=$1; client=$2; current_end_date=$3; extension_requested=tolower($4); extension_signed=tolower($5);
+      if (extension_requested ~ /yes|true/ && extension_signed !~ /yes|true/) {
+        cmd = "date -d \"" current_end_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" current_end_date "\" +%s 2>/dev/null";
+        cmd | getline end_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_left = (end_epoch - now_epoch) / 86400;
+        if (days_left <= warnDays) {
+          printf "EXTENSION NOT SIGNED: %s at %s — current end date %s (%.0f days out), extension requested but not signed\n", worker, client, current_end_date, days_left;
+        }
+      }
+    }
+  ' "{{assignment_extensions_csv_path}}"
+variables:
+  assignment_extensions_csv_path:
+    default: "./assignment-extensions.csv"
+    description: "Path to a CSV with columns: worker_name,client_name,current_end_date (YYYY-MM-DD),extension_requested (yes/no),extension_signed (yes/no)."
+  alert_within_days:
+    default: 5
+    description: Days before the original end date at which an unsigned extension request gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check. Getting the extension signed and updating the
+  assignment record is a manual account-management step. Distinct from
+  `assignment-end-date-redeployment-check` (finding a new placement for a
+  worker whose assignment is genuinely ending), since this job only
+  covers extensions that were already requested but not yet formalized.

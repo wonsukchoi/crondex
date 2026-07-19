@@ -1,0 +1,39 @@
+id: liquid-staking-token-depeg-watch
+version: 1
+name: Liquid Staking Token Depeg Watch
+description: >
+  Checks the market exchange rate of a liquid staking or wrapped asset
+  token (e.g. stETH, rETH, wBTC) against its underlying asset and flags
+  a deviation beyond a set threshold. Use this if you've ever held a
+  "1:1" liquid staking token through a market panic and only found out
+  after the fact how far it had actually traded below its underlying
+  asset while you weren't watching.
+category: crypto
+tags: [crypto, liquid-staking, depeg, defi]
+schedule: "0 */4 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the current market exchange rate of {{ls_token_symbol}} against
+  {{underlying_asset_symbol}} (via a DEX aggregator, on-chain oracle, or
+  a reputable price tracker) and compare it to the token's intended 1:1
+  or protocol-reported redemption rate.
+  1. Report the current market rate and the deviation from the intended
+     redemption rate as a percentage.
+  2. Flag it as a depeg event if the deviation exceeds
+     {{depeg_threshold_pct}}% in either direction.
+  3. Note whether the deviation looks like a temporary liquidity gap
+     (thin DEX pool, one venue only) versus a broader, multi-venue move.
+  4. This is informational only — do not execute any swap or trade.
+variables:
+  ls_token_symbol:
+    default: "stETH"
+    description: Ticker/symbol of the liquid staking or wrapped token to check.
+  underlying_asset_symbol:
+    default: "ETH"
+    description: Ticker/symbol of the underlying asset it's meant to track.
+  depeg_threshold_pct:
+    default: 1.5
+    description: Percentage deviation from the intended redemption rate that counts as a depeg worth flagging.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Informational only — never executes a swap, trade, or unstake. Distinct from stablecoin-peg-deviation-watch, which covers fiat-pegged stablecoins, and from impermanent-loss-threshold-watch, which covers LP position exposure rather than a single token's redemption rate.

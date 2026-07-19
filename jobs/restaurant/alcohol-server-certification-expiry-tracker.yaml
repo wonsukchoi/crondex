@@ -1,0 +1,35 @@
+id: alcohol-server-certification-expiry-tracker
+version: 1
+name: Alcohol Server Certification Expiry Tracker
+description: >
+  Checks each individual employee's responsible alcohol service
+  certification (e.g. TIPS, ServSafe Alcohol, or your state's equivalent)
+  and flags anyone whose card is expired or about to expire. Use this if
+  a bartender or server has ever poured a drink on a lapsed alcohol
+  certification and you only found out during a liquor board audit.
+category: restaurant
+tags: [restaurant, alcohol-service, certification, employees, compliance]
+schedule: "0 8 * * 1"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v warndays="{{warn_days_before_expiry}}" -v today="$(date +%Y-%m-%d)" '
+    NR==1 { next }
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline expsec; close(cmd);
+      cmd2 = "date -d \"" today "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" today "\" +%s 2>/dev/null";
+      cmd2 | getline nowsec; close(cmd2);
+      daysleft = (expsec - nowsec) / 86400;
+      if (daysleft <= warndays) printf "ALCOHOL CERT EXPIRING: %s cert expires %s, %d day(s) left\n", $1, $2, daysleft;
+    }
+  ' "{{alcohol_server_cert_csv}}"
+variables:
+  alcohol_server_cert_csv:
+    default: "./alcohol-server-certs.csv"
+    description: "CSV with header row, columns: employee_name,cert_expiry_date."
+  warn_days_before_expiry:
+    default: 21
+    description: Start warning this many days before an employee's alcohol server certification expires.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `employee-food-handler-certification-tracker` (a different regulatory card entirely) and `liquor-license-renewal-deadline-tracker` (the business's liquor license, not an individual employee's serving credential) — many jurisdictions require both to be current independently.

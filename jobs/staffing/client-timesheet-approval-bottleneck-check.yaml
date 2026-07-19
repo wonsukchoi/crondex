@@ -1,0 +1,45 @@
+id: client-timesheet-approval-bottleneck-check
+version: 1
+name: Client Timesheet Approval Bottleneck Check
+description: >
+  Checks timesheets that workers have already submitted and flags any
+  still waiting on the client-side manager's approval past a set number
+  of days, since an unapproved timesheet blocks payroll funding no matter
+  how promptly the worker turned it in. Use this if payroll has ever
+  scrambled at the funding deadline because a client approver was on
+  vacation and nobody chased the outstanding sign-off in time.
+category: staffing
+tags: [staffing, timesheets, client-approval, payroll]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v alertDays="{{alert_after_days}}" '
+    NR==1 {next}
+    {
+      client=$1; worker=$2; week_ending=$3; submitted_date=$4; approved=tolower($5);
+      if (approved != "yes" && approved != "true") {
+        cmd = "date -d \"" submitted_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" submitted_date "\" +%s 2>/dev/null";
+        cmd | getline sub_epoch; close(cmd);
+        "date +%s" | getline now_epoch; close("date +%s");
+        days_waiting = (now_epoch - sub_epoch) / 86400;
+        if (days_waiting >= alertDays) {
+          printf "APPROVAL BOTTLENECK: %s at %s — week %s submitted %s, still unapproved after %.0f days\n", worker, client, week_ending, submitted_date, days_waiting;
+        }
+      }
+    }
+  ' "{{client_timesheet_approvals_csv_path}}"
+variables:
+  client_timesheet_approvals_csv_path:
+    default: "./client-timesheet-approvals.csv"
+    description: "Path to a CSV with columns: client_name,worker_name,week_ending (YYYY-MM-DD),submitted_date (YYYY-MM-DD),client_approved (yes/no)."
+  alert_after_days:
+    default: 3
+    description: Days a submitted timesheet can wait on client approval before it gets flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check. Escalating to the client contact for a missing
+  approval is a manual account-management step. Distinct from
+  `candidate-timesheet-submission-overdue-check` (worker never submitted)
+  — this job only tracks timesheets stuck waiting on the client's own
+  sign-off.

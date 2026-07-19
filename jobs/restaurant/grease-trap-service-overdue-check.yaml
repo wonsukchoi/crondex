@@ -1,0 +1,36 @@
+id: grease-trap-service-overdue-check
+version: 1
+name: Grease Trap Service Overdue Check
+description: >
+  Checks the grease trap/interceptor pumping schedule and flags any unit
+  coming due or overdue for its next scheduled service. Use this if a
+  grease trap has ever backed up or triggered a city sewer violation
+  notice because pumping was tracked on a sticky note instead of a real
+  schedule.
+category: restaurant
+tags: [restaurant, grease-trap, facilities, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        printf "GREASE TRAP SERVICE DUE: %s — due %s (%d days)\n", $1, $2, diff_days;
+      }
+    }
+  ' "{{grease_trap_schedule_csv_path}}"
+variables:
+  grease_trap_schedule_csv_path:
+    default: "./grease-trap-schedule.csv"
+    description: "Path to a CSV with columns: trap_location,next_service_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 7
+    description: How many days before the next scheduled pumping to start warning.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `pest-control-service-due-check` and `hood-suppression-inspection-due-check` — those track pest and fire-suppression vendor contracts, this tracks the grease interceptor pumping contract most municipal sewer authorities require documented on a fixed interval to avoid fines or line backups.

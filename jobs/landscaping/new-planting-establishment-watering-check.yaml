@@ -1,0 +1,43 @@
+id: new-planting-establishment-watering-check
+version: 1
+name: New Planting Establishment Watering Check
+description: >
+  Checks your recent tree/shrub planting log for installs still inside
+  their establishment period whose last supplemental watering check-in is
+  older than your interval, and flags them. Use this if a newly planted
+  tree has ever died in its first summer because the crew assumed the
+  client's irrigation would cover it and nobody scheduled a manual
+  watering check during establishment.
+category: landscaping
+tags: [landscaping, planting, watering, establishment, trees]
+schedule: "0 6 * * 2,5"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v check_interval="{{check_interval_days}}" '
+    NR==1 {next}
+    {
+      cmd_i = "date -d \"" $3 " +" $4 " days\" +%s 2>/dev/null || date -j -v+" $4 "d -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd_i | getline estab_end_epoch; close(cmd_i);
+      if (today > estab_end_epoch) next;
+      if ($5 == "") { last_check_days = check_interval + 1; }
+      else {
+        cmd_c = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+        cmd_c | getline last_check_epoch; close(cmd_c);
+        last_check_days = (today - last_check_epoch) / 86400;
+      }
+      if (last_check_days >= check_interval) {
+        printf "WATERING CHECK NEEDED: %s — %s planted %s, last check %s (%d day(s) ago, interval %d)\n", $1, $2, $3, ($5 == "" ? "never" : $5), last_check_days, check_interval;
+      }
+    }
+  ' "{{new_plantings_csv_path}}"
+variables:
+  new_plantings_csv_path:
+    default: "./new-plantings.csv"
+    description: "Path to a CSV with columns: client_name,plant_type,install_date (YYYY-MM-DD),establishment_period_days,last_watering_check_date (YYYY-MM-DD, blank if never checked)."
+  check_interval_days:
+    default: 10
+    description: Maximum days between supplemental watering check-ins during a planting's establishment period before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from drought-watering-restriction-compliance-check (municipal restriction compliance) and irrigation-inspection-scheduling-check (system inspections) — this tracks manual watering follow-through on newly installed plants during their establishment period, not irrigation system upkeep.

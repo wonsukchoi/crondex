@@ -1,0 +1,66 @@
+id: insurance-defense-billing-guideline-compliance-check
+version: 1
+name: Insurance Defense Billing Guideline Compliance Check
+description: >
+  Flags invoice line items on insurance-defense matters that trip a
+  carrier's billing guidelines — rates above the approved cap, block-billed
+  entries, or task codes outside the approved set — before the invoice is
+  submitted to the claims examiner. Use this if your firm handles insurance
+  defense work and has ever had a bill reduced or bounced back because a
+  timekeeper billed above the panel rate or block-billed a task the carrier's
+  guidelines require itemized.
+category: law-firm
+tags: [law-firm, insurance-defense, billing, guideline-compliance, invoicing]
+schedule: "0 7 * * 3"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v rate_cap="{{approved_rate_cap}}" '
+    NR==1 {next}
+    {
+      rate = $5+0;
+      block = tolower($6);
+      if (rate > rate_cap) {
+        printf "RATE ABOVE CAP: invoice %s matter %s — %s billed $%.2f/hr, exceeds approved cap $%.2f\n", $1, $2, $3, rate, rate_cap;
+        flagged++;
+      }
+      if (block=="yes" || block=="true") {
+        printf "BLOCK-BILLED ENTRY: invoice %s matter %s — %s task %s is block-billed\n", $1, $2, $3, $4;
+        flagged++;
+      }
+    }
+    END {
+      if (flagged+0 == 0) { print "OK: no rate-cap or block-billing violations found in this invoice batch."; }
+      else { printf "%d line item(s) flagged for possible carrier billing guideline violations.\n", flagged; }
+    }
+  ' "{{defense_invoice_lines_csv_path}}"
+prompt: |
+  Review the flagged line items from {{defense_invoice_lines_csv_path}}
+  against the carrier's actual outside-counsel billing guidelines for this
+  matter (rate caps, approved task/activity codes, staffing limits, and
+  block-billing rules), if a copy of those guidelines is available. For
+  each flagged item, judge whether it is a genuine guideline violation
+  likely to draw a reduction, a defensible exception (e.g. pre-approved
+  rate increase, emergency staffing), or a false positive from the script's
+  simple rate/block checks. Produce a short list of line items to correct
+  or annotate before the invoice is submitted to the claims examiner.
+script_note: >
+  The shell command only checks for a numeric rate above the configured cap
+  and a naive block-billed flag; it cannot read the carrier's actual
+  guideline document or judge context like pre-approved exceptions, which
+  is what the LLM pass adds.
+variables:
+  defense_invoice_lines_csv_path:
+    default: "./insurance_defense_invoice_lines.csv"
+    description: "Path to a CSV with columns: invoice_id,matter_id,timekeeper_name,task_code,billed_rate,block_billed (yes/no)."
+  approved_rate_cap:
+    default: 350
+    description: The carrier-approved hourly rate cap (in the firm's base currency) for this matter; adjust per panel counsel agreement.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Carrier billing guidelines vary widely by insurer and panel counsel
+  agreement — treat the script's rate-cap and block-billing checks as a
+  rough first pass, and the LLM review as advisory, not a substitute for
+  the actual guideline document. Distinct from `accounts-receivable-aging-check`
+  and `unbilled-time-aging-check`, which track payment timing rather than
+  guideline compliance of the bill itself.

@@ -1,0 +1,37 @@
+id: banquet-event-deposit-collection-check
+version: 1
+name: Banquet Event Deposit Collection Check
+description: >
+  Compares upcoming banquet/event bookings against deposits actually
+  received and flags any event within your lookahead window still short
+  of its required deposit. Use this if a wedding or conference has ever
+  gotten within two weeks of its date with only a partial deposit on
+  file, leaving catering exposed if the client cancels or walks.
+category: hospitality
+tags: [hospitality, banquet, events, revenue-assurance, catering]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v days="{{days_before_event}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline event_epoch; close(cmd);
+      days_out = (event_epoch - today) / 86400;
+      required = $4+0; paid = $5+0;
+      if (days_out >= 0 && days_out <= days && paid < required) {
+        printf "DEPOSIT SHORTFALL: event %s (%s) on %s — %d days out, paid $%.2f of $%.2f required\n", $1, $3, $2, days_out, paid, required;
+      }
+    }
+  ' "{{banquet_events_csv}}"
+variables:
+  banquet_events_csv:
+    default: "./banquet-events.csv"
+    description: "CSV with header row, columns: event_id,event_date (YYYY-MM-DD),client_name,deposit_required_usd,deposit_paid_usd."
+  days_before_event:
+    default: 14
+    description: Flag events this many days out or fewer that still have an outstanding deposit balance.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from banquet-event-order-change-check (tracks BEO detail/order changes) — this tracks deposit and payment collection risk ahead of the event date, a sales/catering revenue-assurance concern, not event-detail accuracy.

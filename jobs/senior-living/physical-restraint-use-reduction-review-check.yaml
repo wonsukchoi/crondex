@@ -1,0 +1,55 @@
+id: physical-restraint-use-reduction-review-check
+version: 1
+name: Physical Restraint Use Reduction Review Check
+description: >
+  Checks residents with an active physical restraint order (bed rail,
+  lap belt, geri-chair tray, or similar) for the required periodic
+  restraint-reduction or continued-necessity review and flags anyone
+  whose review is due or overdue. Use this if a physical restraint has
+  ever stayed in place past its required re-evaluation point simply
+  because nobody re-checked whether it was still clinically necessary.
+category: senior-living
+tags: [senior-living, restraint, resident-safety, clinical-review, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v interval="{{review_interval_days}}" -v lead="{{lookahead_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      days_since = (today - last_epoch) / 86400;
+      days_until_due = interval - days_since;
+      if (days_until_due <= lead) {
+        printf "DUE: %s — %s restraint, last reduction/necessity review %s (%d days ago, %d days until next due)\n", $1, $2, $3, days_since, days_until_due;
+      }
+    }
+  ' "{{restraint_reviews_csv_path}}"
+variables:
+  restraint_reviews_csv_path:
+    default: "./physical-restraint-reviews.csv"
+    description: >
+      Path to a CSV with columns: resident_id,restraint_type,
+      last_review_date (YYYY-MM-DD), one row per resident's active
+      physical restraint order. Use resident_id, not a resident's full name.
+  review_interval_days:
+    default: 30
+    description: >
+      Maximum number of days allowed between required restraint-reduction
+      or continued-necessity reviews — adjust to your facility's policy
+      and applicable state/federal requirement.
+  lookahead_days:
+    default: 7
+    description: How many days before a review is due to start flagging it.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from psychotropic-medication-gradual-dose-reduction-review-check,
+  which tracks required reviews for psychotropic drug orders rather than
+  physical restraint devices — both are unnecessary-restriction reduction
+  reviews but cover separate regulatory requirements and separate logs.
+  Read-only: this only flags which residents' restraint orders are due
+  for review by the attending physician and care team, it does not itself
+  remove, loosen, or continue any restraint — that remains a clinical
+  judgment call for licensed staff.

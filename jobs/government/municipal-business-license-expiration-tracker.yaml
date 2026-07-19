@@ -1,0 +1,51 @@
+id: municipal-business-license-expiration-tracker
+version: 1
+name: Municipal Business License Expiration Tracker
+description: >
+  Checks locally issued business licenses (general business, home
+  occupation, peddler, etc.) against their expiration date and flags any
+  coming up soon, from the issuing office's side. Use this if a business
+  has ever kept operating on a lapsed license — or the office kept
+  chasing a renewal months after it expired — because no one was
+  watching expiration dates across the full license roll.
+category: government
+tags: [government, business-license, licensing, renewal, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "active" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      diff_days = (exp_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "LAPSED LICENSE: %s (%s) — expired %s, %d day(s) ago\n", $1, $2, $3, -diff_days;
+        lapsed++;
+      } else if (diff_days <= days) {
+        printf "RENEWAL DUE SOON: %s (%s) — expires %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d active license(s) checked, %d lapsed, %d due within %d days\n", total, lapsed, due_soon, days;
+    }
+  ' "{{licenses_csv_path}}"
+variables:
+  licenses_csv_path:
+    default: "./business-licenses.csv"
+    description: "Path to a CSV with columns: license_id,business_name,expiration_date (YYYY-MM-DD),status (active/expired/renewed/revoked)."
+  warn_days_before:
+    default: 30
+    description: How many days before expiration to start flagging a license for renewal outreach.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only tracking check; it does not renew a license, collect a fee,
+  or issue an enforcement notice on its own — flagged renewals still go
+  through your licensing office's normal process. Distinct from
+  franchise-agreement-renewal-tracker.yaml (long-term utility/cable
+  franchise agreements) and code-enforcement-violation-followup-tracker.yaml
+  (property nuisance violations, not license status).

@@ -1,0 +1,33 @@
+id: injection-mold-cavity-yield-check
+version: 1
+name: Injection Mold Cavity Yield Check
+description: >
+  Compares actual good-part output per mold against the theoretical max
+  (cavity count times cycles run) and flags molds producing well below
+  that ceiling. Use this if a single clogged or damaged cavity in a
+  multi-cavity mold has ever quietly dragged down output for weeks
+  because the line's overall yield number looked fine on average.
+category: manufacturing
+tags: [manufacturing, tooling, molding, quality, yield]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{cavity_yield_target_pct}} '
+    NR==1 {next}
+    {
+      expected = $2 * $3;
+      if (expected <= 0) next;
+      yield = ($4 / expected) * 100;
+      if (yield < target) printf "LOW CAVITY YIELD: mold %s — %.1f%% (%d good parts of %d expected from %d cavities x %d cycles), check for clogged or damaged cavities\n", $1, yield, $4, expected, $2, $3;
+    }
+  ' "{{mold_cycle_log_csv}}"
+variables:
+  mold_cycle_log_csv:
+    default: "./mold-cycle-log.csv"
+    description: "CSV with header row, columns: mold_id,cavity_count,cycles_run,good_parts_produced — one row per mold per shift/day."
+  cavity_yield_target_pct:
+    default: 97
+    description: Minimum acceptable percentage of good parts vs. theoretical max (cavities x cycles) before flagging a mold for cavity inspection.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from tooling-die-wear-check (cycle count vs. rated tool life) and first-pass-yield-report (line-level yield across all molds) — this isolates yield per individual mold to catch a single bad cavity that a line-level average would mask.

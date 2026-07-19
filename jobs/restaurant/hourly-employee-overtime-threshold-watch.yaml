@@ -1,0 +1,35 @@
+id: hourly-employee-overtime-threshold-watch
+version: 1
+name: Hourly Employee Overtime Threshold Watch
+description: >
+  Scans this week's logged or scheduled hours per hourly employee and
+  flags anyone approaching or over the overtime threshold before the
+  week closes out. Use this if a schedule swap or extra covered shift
+  has ever pushed someone into unplanned overtime and nobody caught it
+  until payroll ran.
+category: restaurant
+tags: [restaurant, labor-cost, overtime, payroll, scheduling]
+schedule: "0 14 * * 3,5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{overtime_threshold_hours}}" -v warn="{{warn_hours_before_threshold}}" '
+    NR==1 {next}
+    {
+      remaining = threshold - $2;
+      if ($2 >= threshold) printf "OVER THRESHOLD: %s logged %.1f hrs (threshold %s)\n", $1, $2, threshold;
+      else if (remaining <= warn) printf "APPROACHING THRESHOLD: %s logged %.1f hrs, %.1f hrs from threshold\n", $1, $2, remaining;
+    }
+  ' "{{weekly_hours_csv}}"
+variables:
+  weekly_hours_csv:
+    default: "./weekly-hours-by-employee.csv"
+    description: "CSV with header row, columns: employee_name,hours_logged_this_week."
+  overtime_threshold_hours:
+    default: 40
+    description: Weekly hours at which overtime pay kicks in under your local labor law.
+  warn_hours_before_threshold:
+    default: 4
+    description: How many hours below the overtime threshold to start warning that an employee is approaching it.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from `labor-cost-percentage-watch` (an aggregate labor-cost-to-sales ratio checked after the fact) — this flags individual employees mid-week while there's still time to adjust the schedule and avoid the overtime cost entirely.

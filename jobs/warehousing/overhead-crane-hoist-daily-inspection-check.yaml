@@ -1,0 +1,42 @@
+id: overhead-crane-hoist-daily-inspection-check
+version: 1
+name: Overhead Crane and Hoist Daily Inspection Check
+description: >
+  Checks that each overhead crane or hoist's required daily pre-use
+  inspection was actually logged today. Use this if a crane or hoist has
+  ever been operated on a shift with no inspection logged, which is
+  exactly what an OSHA 1910.179 records request will ask to see.
+category: warehousing
+tags: [warehousing, overhead-crane, hoist, safety, compliance]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%Y-%m-%d);
+  missing=$(awk -F',' -v today="$today" -v fleet="{{crane_ids}}" '
+    BEGIN { n = split(fleet, ids, ","); }
+    $2 == today { logged[$1] = 1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        id = ids[i];
+        gsub(/^ +| +$/, "", id);
+        if (!(id in logged)) print "NOT INSPECTED TODAY: " id;
+      }
+    }
+  ' "{{inspection_log_csv_path}}");
+  if [ -n "$missing" ]; then echo "$missing"; exit 1; else echo "OK: all cranes/hoists inspected today"; fi
+variables:
+  inspection_log_csv_path:
+    default: "./crane-hoist-inspection-log.csv"
+    description: "Path to a CSV with columns: crane_id,inspection_date (YYYY-MM-DD)."
+  crane_ids:
+    default: "OHC-1,OHC-2"
+    description: Comma-separated list of overhead crane/hoist IDs that must each have a logged inspection today.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Checks that the inspection was logged only, not what it found — a
+  crane or hoist that fails inspection should be pulled from service
+  immediately. Distinct from mhe-preventive-maintenance-check (scheduled
+  PM service intervals across material handling equipment generally) and
+  from forklift-inspection-check/pallet-jack-battery-charge-check, which
+  cover different equipment classes.

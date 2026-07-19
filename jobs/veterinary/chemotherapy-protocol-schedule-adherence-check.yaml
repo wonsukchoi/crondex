@@ -1,0 +1,47 @@
+id: chemotherapy-protocol-schedule-adherence-check
+version: 1
+name: Chemotherapy Protocol Schedule Adherence Check
+description: >
+  Reviews active oncology patients against their prescribed chemotherapy
+  protocol calendar and flags any dose that is overdue, plus any
+  bloodwork recheck required before the next dose that hasn't been
+  logged. Use this if a chemo patient's next treatment has ever slipped
+  because the multi-week protocol calendar lived only in one
+  technician's head instead of being checked against day by day.
+category: veterinary
+tags: [veterinary, oncology, chemotherapy, protocol, patients]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the oncology treatment tracker from {{oncology_tracker_source}}
+  for all patients currently on an active chemotherapy protocol.
+  1. For each patient, compare today's date against the next scheduled
+     dose date in their protocol. Flag any dose that is due today or
+     already overdue.
+  2. For any dose due within {{prebloodwork_window_days}} day(s), check
+     whether the required pre-treatment bloodwork (CBC at minimum) has
+     already been logged for this cycle — flag if it's missing so it can
+     be drawn before the appointment.
+  3. Note any patient whose protocol has gone quiet (no dose logged and
+     none scheduled) for longer than expected given their specific
+     protocol, since this may mean the patient dropped off the
+     tracker rather than legitimately finished treatment.
+  4. Do not suggest dose amounts, drug substitutions, or protocol
+     changes — this is a scheduling and paperwork check only, not a
+     clinical dosing decision.
+variables:
+  oncology_tracker_source:
+    default: "your oncology/chemotherapy tracking spreadsheet or practice management export"
+    description: Where active chemotherapy protocols, dose dates, and pre-treatment bloodwork status are recorded.
+  prebloodwork_window_days:
+    default: 2
+    description: How many days before a scheduled dose to confirm required pre-treatment bloodwork is on file.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from surgical-schedule-utilization-check.yaml and
+  lab-result-turnaround-check.yaml — this is specific to keeping a
+  multi-week chemotherapy protocol calendar and its per-cycle bloodwork
+  prerequisite on track. Chemo protocols vary widely by drug and
+  diagnosis, so treat any flagged gap as a prompt to have the
+  oncology-lead veterinarian review, never as an automatic reschedule.

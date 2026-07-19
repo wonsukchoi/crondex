@@ -1,0 +1,42 @@
+id: certified-livestock-scale-calibration-renewal-check
+version: 1
+name: Certified Livestock Scale Calibration Renewal Check
+description: >
+  Checks each certified livestock (or grain) scale's last calibration
+  date against your state weights-and-measures required re-certification
+  interval and flags any scale coming due. Use this if you've ever sold
+  livestock or grain by weight on a scale that turned out to be past its
+  certification date, putting the sale's weight in dispute.
+category: agriculture
+tags: [agriculture, livestock, scales, calibration, compliance]
+schedule: "0 7 1 * *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_cal_ts; close(cmd);
+      next_due_ts = last_cal_ts + ("{{recert_interval_days}}" * 86400);
+      days_left = (next_due_ts - today) / 86400;
+      if (days_left <= 0) {
+        printf "SCALE OUT OF CERTIFICATION: %s — last calibrated %s, recert was due %d days ago\n", $1, $2, -days_left;
+      } else if (days_left <= warn) {
+        printf "RECERT DUE SOON: %s — last calibrated %s, due in %d days\n", $1, $2, days_left;
+      }
+    }
+  ' "{{scale_calibration_csv_path}}"
+variables:
+  scale_calibration_csv_path:
+    default: "./livestock-scale-calibrations.csv"
+    description: "Path to a CSV with columns: scale_id_or_location,last_calibration_date (YYYY-MM-DD)."
+  recert_interval_days:
+    default: 365
+    description: Required interval in days between certified scale re-calibrations per your state weights-and-measures agency.
+  warn_days_before:
+    default: 30
+    description: Days before the next required recalibration to start warning, since scheduling a certified technician takes lead time.
+compatible_agents: [generic, claude, codex]
+notes: Recertification intervals and enforcement are set by your state's weights-and-measures authority and can vary by scale type — confirm your actual required interval. Distinct from `equipment-maintenance-due-reminder` (general equipment upkeep, not third-party legal-for-trade weight certification).

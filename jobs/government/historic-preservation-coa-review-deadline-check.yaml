@@ -1,0 +1,53 @@
+id: historic-preservation-coa-review-deadline-check
+version: 1
+name: Historic Preservation COA Review Deadline Check
+description: >
+  Checks Certificate of Appropriateness (COA) applications filed with a
+  historic preservation or landmarks commission against the statutory
+  or ordinance-set review deadline and flags any at risk of a
+  deemed-approved default. Use this if an exterior alteration application
+  has ever been automatically approved by default because the commission
+  ran out of its statutory review window without holding a hearing.
+category: government
+tags: [government, historic-preservation, landmarks, permits, deadline]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "DEEMED-APPROVED RISK: COA %s (%s) — review deadline %s passed %d day(s) ago with no decision\n", $1, $2, $3, -diff_days;
+        overdue++;
+      } else if (diff_days <= days) {
+        printf "REVIEW DEADLINE APPROACHING: COA %s (%s) — decide by %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        due_soon++;
+      }
+    }
+    END {
+      printf "%d pending COA application(s), %d past deadline, %d due within %d days\n", total, overdue, due_soon, days;
+    }
+  ' "{{coa_applications_csv_path}}"
+variables:
+  coa_applications_csv_path:
+    default: "./historic-preservation-coa-applications.csv"
+    description: "Path to a CSV with columns: application_id,property_address,statutory_decision_deadline (YYYY-MM-DD),status (pending/approved/denied/deemed-approved)."
+  warn_days_before:
+    default: 15
+    description: How many days before the statutory decision deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Review windows and whether a missed deadline results in deemed
+  approval or simply an overdue hearing depend on your state enabling
+  statute and local landmarks ordinance — confirm the applicable rule
+  before relying on the default. Distinct from
+  property-tax-assessment-appeal-deadline-tracker.yaml (assessor board
+  hearing deadlines) and permit-application-backlog-check.yaml (general
+  building permit review queue, not commission-level exterior alteration
+  review).

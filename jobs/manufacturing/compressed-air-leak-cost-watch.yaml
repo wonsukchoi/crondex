@@ -1,0 +1,43 @@
+id: compressed-air-leak-cost-watch
+version: 1
+name: Compressed Air Leak Cost Watch
+description: >
+  Totals the estimated CFM loss from open, unrepaired compressed-air leak
+  tags and projects the annual dollar cost, flagging it when the total
+  crosses your alert threshold. Use this if leak tags from an ultrasonic
+  air survey have ever piled up unrepaired for months because each one
+  looked minor on its own and nobody added up what they were costing
+  together.
+category: manufacturing
+tags: [manufacturing, compressed-air, energy, maintenance, cost]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cost_per_cfm={{annual_cost_per_cfm}} -v threshold={{cost_alert_threshold}} '
+    NR==1 {next}
+    {
+      repaired = tolower($5);
+      if (repaired != "yes" && repaired != "true") {
+        total_cfm += $3;
+        count++;
+      }
+    }
+    END {
+      annual_cost = total_cfm * cost_per_cfm;
+      printf "Open leak tags: %d, estimated total loss %.1f CFM, projected annual cost $%.0f\n", count+0, total_cfm+0, annual_cost;
+      if (annual_cost > threshold) printf "ALERT: projected annual compressed air leak cost $%.0f exceeds $%.0f threshold — schedule repairs\n", annual_cost, threshold;
+    }
+  ' "{{leak_tag_log_csv}}"
+variables:
+  leak_tag_log_csv:
+    default: "./leak-tag-log.csv"
+    description: "CSV with header row, columns: tag_id,location,estimated_cfm_loss,tag_date(YYYY-MM-DD),repaired(yes/no) — one row per tagged leak from the air audit."
+  annual_cost_per_cfm:
+    default: 250
+    description: "Estimated annual dollar cost per CFM of compressed-air leakage (typical range $150-400/CFM/year depending on utility rate and compressor efficiency — adjust to your facility)."
+  cost_alert_threshold:
+    default: 5000
+    description: Projected annual leak cost in dollars above which to alert for repair scheduling.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from energy-consumption-spike-check (whole-facility kWh anomaly detection) — this tracks specifically tagged, unrepaired compressed-air leaks found during an ultrasonic leak survey. Log tags from your air audit or CMMS before each run.

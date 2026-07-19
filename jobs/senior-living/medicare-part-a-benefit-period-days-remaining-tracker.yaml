@@ -1,0 +1,39 @@
+id: medicare-part-a-benefit-period-days-remaining-tracker
+version: 1
+name: Medicare Part A Benefit Period Days Remaining Tracker
+description: >
+  Tracks each Medicare Part A skilled-nursing resident's used benefit
+  days against the 100-day benefit period and flags anyone approaching
+  the point where coverage shifts from full to coinsurance, or runs out
+  entirely. Use this if a resident or family has ever been blindsided by
+  a sudden bill because nobody flagged that Part A skilled days were
+  about to be exhausted until the remittance already showed it.
+category: senior-living
+tags: [senior-living, medicare, billing, benefit-period, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select resident_id, benefit_period_start, days_used, ({{benefit_period_total_days}} - days_used) as days_remaining from medicare_part_a_benefit_tracking where payer = 'medicare_part_a' and ({{benefit_period_total_days}} - days_used) <= {{warning_days_remaining}} order by days_remaining asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database holding the Medicare Part A benefit-day tracking table.
+  benefit_period_total_days:
+    default: "100"
+    description: Total skilled-nursing days in a Medicare Part A benefit period (100 under standard Medicare rules; adjust only if your billing system tracks it differently).
+  warning_days_remaining:
+    default: "20"
+    description: How many benefit days remaining should trigger a warning, giving the business office time to notify the resident/family and plan the coinsurance or private-pay transition.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `medicare_part_a_benefit_tracking` table (resident_id,
+  benefit_period_start, days_used) fed from your billing system's
+  Medicare Part A utilization data — adjust the query to your actual
+  schema. Distinct from bed-hold-billing-reminder (tracks a leave-of-
+  absence bed-hold billing window) and medicaid-recertification-deadline-check
+  (tracks a different payer's recertification date) — this job is
+  specifically about Medicare Part A's 100-day skilled benefit period.
+  Read-only: it only flags residents approaching or past the coinsurance
+  threshold for the business office to notify and plan around, it never
+  submits a claim or changes billing itself.

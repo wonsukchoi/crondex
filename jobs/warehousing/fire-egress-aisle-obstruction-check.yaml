@@ -1,0 +1,33 @@
+id: fire-egress-aisle-obstruction-check
+version: 1
+name: Fire Egress Aisle Obstruction Check
+description: >
+  Reviews today's facility walkthrough notes covering marked fire exits,
+  egress aisles, and fire lanes, and flags any reported obstruction or any
+  route that wasn't checked at all. Use this if a stack of overflow
+  pallets has ever ended up parked in front of a marked exit door because
+  nobody flagged it before an inspector — or an actual emergency — did.
+category: warehousing
+tags: [warehousing, fire-safety, egress, aisle-obstruction, walkthrough]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review today's facility walkthrough notes from {{walkthrough_log_source}}
+  covering marked fire exits, egress aisles, and fire lanes.
+  1. Flag any entry reporting an obstruction (pallets, equipment, trash,
+     product) blocking a marked exit door, egress aisle, or fire lane.
+  2. Flag any egress route on the required list that has no walkthrough
+     entry for today at all.
+  3. If everything is clear and every route was checked, say so in one line.
+variables:
+  walkthrough_log_source:
+    default: "your daily fire-egress walkthrough log or shift notes"
+    description: Where today's egress walkthrough observations are recorded.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Checks same-day physical obstruction of egress routes reported in
+  walkthroughs, distinct from warehouse-fire-suppression-inspection-check
+  (sprinkler/extinguisher hardware inspection) and
+  warehouse-near-miss-incident-rate-watch (incident rate trend) — this is
+  a life-safety egress clearance check, not an incident or equipment log.

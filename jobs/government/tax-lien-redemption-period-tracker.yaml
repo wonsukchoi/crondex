@@ -1,0 +1,53 @@
+id: tax-lien-redemption-period-tracker
+version: 1
+name: Tax Lien Redemption Period Tracker
+description: >
+  From the county treasurer's side, checks sold property tax lien
+  certificates against their statutory redemption period expiration and
+  flags any approaching the deadline so a tax deed application can be
+  filed, or the owner notified, before the redemption window quietly
+  closes. Use this if a lien has ever sat past its redemption deadline
+  with no deed application filed because the certificate's expiration
+  date wasn't on anyone's calendar.
+category: government
+tags: [government, tax-lien, treasurer, redemption, deadline]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v days="{{warn_days_before}}" -v today="$today" '
+    NR==1 {next}
+    $4 == "redeemable" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      diff_days = (due_epoch - today) / 86400;
+      total++;
+      if (diff_days < 0) {
+        printf "REDEMPTION PERIOD EXPIRED: lien %s (parcel %s) — expired %s, %d day(s) ago, ready for deed application\n", $1, $2, $3, -diff_days;
+        expired++;
+      } else if (diff_days <= days) {
+        printf "REDEMPTION EXPIRING SOON: lien %s (parcel %s) — expires %s, in %d day(s)\n", $1, $2, $3, diff_days;
+        expiring++;
+      }
+    }
+    END {
+      printf "%d redeemable lien(s) checked, %d expired, %d expiring within %d days\n", total, expired, expiring, days;
+    }
+  ' "{{liens_csv_path}}"
+variables:
+  liens_csv_path:
+    default: "./tax-lien-certificates.csv"
+    description: "Path to a CSV with columns: lien_id,parcel_id,redemption_deadline (YYYY-MM-DD),status (redeemable/redeemed/deed-issued)."
+  warn_days_before:
+    default: 45
+    description: How many days before the redemption deadline expires to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Redemption periods (commonly 1-3 years depending on state and lien
+  type) and required owner notice steps before a deed application are
+  set by state tax lien statute — confirm your jurisdiction's rule
+  before relying on the default warning window. This flags status only;
+  it does not file a deed application or notify the owner on its own.
+  Distinct from property-tax-assessment-appeal-deadline-tracker.yaml
+  (assessment appeal hearing deadlines, not lien sale redemption).

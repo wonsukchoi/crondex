@@ -1,0 +1,42 @@
+id: high-bay-lighting-outage-check
+version: 1
+name: High-Bay Lighting Outage Aging Check
+description: >
+  Checks reported high-bay light outages by zone against how long they've
+  been open and flags any outage sitting unresolved past the allowed
+  window. Use this if a dim aisle from a burned-out high-bay fixture has
+  ever gone unfixed for weeks because the outage report sat in a ticket
+  queue nobody watched, quietly becoming both a safety and a pick-accuracy
+  problem.
+category: warehousing
+tags: [warehousing, facility-maintenance, lighting, safety]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v max_days="{{max_open_days}}" -v today="$today" '
+    NR==1 {next}
+    $3 == "open" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_epoch; close(cmd);
+      age_days = (today - reported_epoch) / 86400;
+      if (age_days >= max_days) {
+        printf "OUTAGE OPEN TOO LONG: zone %s — reported %s (%d days ago)\n", $1, $2, age_days;
+      }
+    }
+  ' "{{lighting_outage_log_csv_path}}"
+variables:
+  lighting_outage_log_csv_path:
+    default: "./lighting-outage-log.csv"
+    description: "Path to a CSV with columns: zone,reported_date (YYYY-MM-DD),status (open/resolved)."
+  max_open_days:
+    default: 7
+    description: Maximum days a lighting outage can stay open before it is flagged as overdue for repair.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks facility lighting outage aging only — pair with your electrical
+  or facilities maintenance ticketing system to actually dispatch a
+  repair. Distinct from warehouse-near-miss-incident-rate-watch and the
+  category's equipment-inspection jobs, since this is about ambient
+  facility lighting reliability, not equipment or incident records.

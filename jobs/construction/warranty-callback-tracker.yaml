@@ -1,0 +1,40 @@
+id: warranty-callback-tracker
+version: 1
+name: Warranty Callback Tracker
+description: >
+  Checks open post-completion warranty callback items against their
+  reported date and the project's warranty expiration date, flagging
+  callbacks that are aging without a scheduled fix and any item at risk
+  of falling outside the warranty window before it's resolved. Use this
+  if a client has ever called back weeks after occupancy about a leak or
+  defect and the request sat in someone's inbox until it was uncomfortably
+  close to (or past) the one-year warranty deadline.
+category: construction
+tags: [construction, warranty, callback, closeout, client-relations]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v age_warn="{{open_days_warn}}" '
+    NR==1 {next}
+    $4 != "resolved" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline reported_ts; close(cmd);
+      cmd2 = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd2 | getline warranty_exp_ts; close(cmd2);
+      days_open = (today - reported_ts) / 86400;
+      days_to_expiry = (warranty_exp_ts - today) / 86400;
+      if (days_to_expiry <= 30 && days_to_expiry >= 0) printf "WARRANTY EXPIRING SOON WITH OPEN ITEM: %s — %s reported %s, warranty ends %s (%d days left)\n", $1, $3, $2, $5, days_to_expiry;
+      else if (days_open >= age_warn) printf "WARRANTY CALLBACK AGING: %s — %s reported %s, %d days open, status %s\n", $1, $3, $2, days_open, $4;
+    }
+  ' "{{warranty_callback_log_csv}}"
+variables:
+  warranty_callback_log_csv:
+    default: "./warranty-callback-log.csv"
+    description: "Path to a CSV with columns: project_name,reported_date (YYYY-MM-DD),item_description,status (open/scheduled/resolved),warranty_expiration_date (YYYY-MM-DD)."
+  open_days_warn:
+    default: 14
+    description: How many days a warranty callback can stay unresolved before this flags it for follow-up scheduling.
+compatible_agents: [generic, claude, codex]
+notes: Covers the post-occupancy warranty period only — distinct from punch-list-completion-tracker (pre-closeout deficiencies) and project-closeout-document-collection-tracker (closeout paperwork), which both apply before turnover rather than during the warranty year after it.

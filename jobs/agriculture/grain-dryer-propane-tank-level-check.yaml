@@ -1,0 +1,36 @@
+id: grain-dryer-propane-tank-level-check
+version: 1
+name: Grain Dryer Propane Tank Level Check
+description: >
+  Checks on-farm LP/propane tank levels feeding your grain dryers against
+  a reorder threshold during active harvest drying. Use this if a dryer
+  has ever shut down mid-run during a wet harvest because the propane
+  tank ran low and nobody was watching the gauge while everyone was busy
+  in the field.
+category: agriculture
+tags: [agriculture, grain-drying, propane, harvest, inventory]
+schedule: "0 * * 9-11 *"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v reorder="{{reorder_threshold_pct}}" '
+    NR==1 {next}
+    {
+      capacity = $2+0;
+      current = $3+0;
+      if (capacity <= 0) {next}
+      pct_full = (current / capacity) * 100;
+      if (pct_full <= reorder) {
+        printf "REORDER PROPANE: %s — %.1f%% full (%d of %d gal)\n", $1, pct_full, current, capacity;
+      }
+    }
+  ' "{{propane_tanks_csv_path}}"
+variables:
+  propane_tanks_csv_path:
+    default: "./grain-dryer-propane-levels.csv"
+    description: "Path to a CSV with columns: dryer_or_tank_name,capacity_gallons,current_gallons."
+  reorder_threshold_pct:
+    default: 25
+    description: Percent-full level at or below which a propane reorder should be flagged, since delivery during peak harvest can take days.
+compatible_agents: [generic, claude, codex]
+notes: Runs hourly only during the September-November harvest/drying window (adjust months to your region's harvest season) since propane draw is negligible the rest of the year — tank levels must be logged manually or from a telemetry export. Distinct from `equipment-fuel-def-inventory-check` (diesel/DEF for field equipment, not dryer LP gas).

@@ -1,0 +1,47 @@
+id: cross-assignment-overtime-threshold-check
+version: 1
+name: Cross-Assignment Overtime Threshold Check
+description: >
+  Sums a worker's hours across every concurrent client assignment for the
+  same pay week and flags anyone whose combined hours cross the overtime
+  threshold, even though no single assignment alone would trigger it. Use
+  this if a worker has ever split a week across two client sites and each
+  timesheet looked fine on its own, but the agency still owed overtime
+  because the worker is one employee, not two.
+category: staffing
+tags: [staffing, overtime, multi-assignment, payroll-compliance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v otThreshold="{{weekly_ot_threshold_hours}}" '
+    NR==1 {next}
+    {
+      key = $1 "|" $2;
+      hours[key] += $4+0;
+      if (!(key in seen)) { worker[key]=$1; week[key]=$2; seen[key]=1 }
+      clients[key] = clients[key] (clients[key]=="" ? "" : "+") $3;
+    }
+    END {
+      for (k in hours) {
+        if (hours[k] > otThreshold) {
+          printf "CROSS-ASSIGNMENT OT: %s week %s — %.1f combined hours across %s (threshold %s)\n", worker[k], week[k], hours[k], clients[k], otThreshold;
+        }
+      }
+    }
+  ' "{{multi_assignment_hours_csv_path}}"
+variables:
+  multi_assignment_hours_csv_path:
+    default: "./multi-assignment-hours.csv"
+    description: "Path to a CSV with columns: worker_name,week_ending (YYYY-MM-DD),client_name,hours_worked. One row per worker per client per week."
+  weekly_ot_threshold_hours:
+    default: 40
+    description: Combined weekly hours across all concurrent assignments above which overtime is owed under your jurisdiction's rules.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only aggregation. Actually calculating and paying the overtime
+  premium, and confirming which state's joint-employer OT rules apply, is
+  a payroll decision. Distinct from `multi-state-payroll-tax-setup-check`
+  (withholding registration, not hours aggregation) and
+  `predictive-scheduling-notice-compliance-check` (advance-notice timing,
+  not overtime math).

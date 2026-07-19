@@ -1,0 +1,50 @@
+id: trust-account-bank-fee-reimbursement-tracker
+version: 1
+name: Trust Account Bank Fee Reimbursement Tracker
+description: >
+  Scans a log of bank-imposed charges (wire fees, monthly service charges,
+  returned-item fees) debited directly from the client trust/IOLTA account
+  and flags any that the firm has not yet reimbursed from operating funds.
+  Use this if your bank has ever taken its fees straight out of the trust
+  account and the firm didn't notice for a statement cycle or two, which
+  quietly shifts the bank's cost onto client funds.
+category: law-firm
+tags: [law-firm, trust-accounting, iolta, bank-fees, compliance]
+schedule: "0 8 3 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_days="{{max_days_unreimbursed}}" '
+    NR==1 {next}
+    tolower($5)!="yes" {
+      cmd = "date -d \"" $1 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $1 "\" +%s 2>/dev/null";
+      cmd | getline fee_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - fee_epoch) / 86400;
+      if (age_days > max_days) {
+        printf "UNREIMBURSED TRUST BANK FEE: %s charged $%.2f on %s (%s), %d day(s) unreimbursed (limit %d)\n", $2, $3+0, $1, $4, age_days, max_days;
+        flagged++;
+        total_amt += $3+0;
+      }
+    }
+    END {
+      if (flagged+0 == 0) { print "OK: no bank fees charged to the trust account are past due for operating-fund reimbursement."; }
+      else { printf "%d bank fee(s) totaling $%.2f charged to trust are past the reimbursement window.\n", flagged, total_amt; }
+    }
+  ' "{{trust_bank_fees_csv_path}}"
+variables:
+  trust_bank_fees_csv_path:
+    default: "./trust_account_bank_fees.csv"
+    description: "Path to a CSV with columns: fee_date (YYYY-MM-DD),fee_type (wire/service-charge/returned-item/etc),amount,matter_or_general,reimbursed_from_operating (yes/no)."
+  max_days_unreimbursed:
+    default: 5
+    description: Maximum number of days a bank fee charged to the trust account can go without an operating-fund reimbursement transfer before it is flagged.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Most jurisdictions' trust accounting rules require the firm, not clients,
+  to absorb the bank's own fees on the IOLTA/trust account — this job only
+  flags unreimbursed charges from a bank statement export, it does not move
+  money. Distinct from `iolta-trust-account-reconciliation-check` (three-way
+  balance match) and `trust-account-negative-balance-alert` (balance going
+  negative); this looks specifically at bank-imposed charges hitting the
+  trust ledger.

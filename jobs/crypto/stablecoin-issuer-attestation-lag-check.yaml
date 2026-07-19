@@ -1,0 +1,51 @@
+id: stablecoin-issuer-attestation-lag-check
+version: 1
+name: Stablecoin Issuer Attestation Lag Check
+description: >
+  Compares the expected publishing cadence of a stablecoin issuer's
+  reserve attestation report against the date of the last one you
+  recorded, and flags it once the issuer is running late. Use this if
+  you hold a large stablecoin balance and want early warning when an
+  issuer that usually publishes monthly goes quiet for two months
+  before anyone starts asking questions publicly.
+category: crypto
+tags: [crypto, stablecoin, attestation, transparency]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  issuer="{{issuer_name}}";
+  last="{{last_attestation_date}}";
+  expected_days="{{expected_cadence_days}}";
+  warn_days="{{overdue_warn_days}}";
+  if [ -z "$last" ]; then
+    echo "Set last_attestation_date to the publish date of $issuer's most recent reserve attestation report.";
+  else
+    today=$(date +%s);
+    last_ts=$(date -d "$last" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$last" +%s 2>/dev/null || echo "");
+    if [ -z "$last_ts" ]; then
+      echo "Could not parse last_attestation_date '$last' — expected format YYYY-MM-DD.";
+    else
+      age_days=$(( (today - last_ts) / 86400 ));
+      overdue_days=$(( age_days - expected_days ));
+      echo "$issuer's last attestation: $last ($age_days days ago). Expected cadence: every $expected_days days.";
+      if [ "$overdue_days" -ge "$warn_days" ]; then
+        echo "OVERDUE: attestation is $overdue_days days past the expected cadence — check $issuer's transparency page for an explanation before assuming it's fine.";
+      fi
+    fi
+  fi
+variables:
+  issuer_name:
+    default: "the stablecoin issuer you're tracking"
+    description: Name of the stablecoin issuer whose attestation cadence to track.
+  last_attestation_date:
+    default: ""
+    description: "Publish date (YYYY-MM-DD) of the issuer's most recent reserve attestation report — update this yourself from the issuer's transparency page after each new report."
+  expected_cadence_days:
+    default: 30
+    description: How many days normally pass between this issuer's attestation reports.
+  overdue_warn_days:
+    default: 15
+    description: How many days past the expected cadence before flagging it as overdue.
+compatible_agents: [generic, claude, codex]
+notes: A calculator over a date you maintain yourself, not a live feed of attestation reports — update last_attestation_date whenever a new report is published. Distinct from exchange-proof-of-reserves-check, which is about a trading venue's own reserves, and from stablecoin-peg-deviation-watch, which tracks market price rather than reporting cadence.

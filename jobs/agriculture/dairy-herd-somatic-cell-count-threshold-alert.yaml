@@ -1,0 +1,39 @@
+id: dairy-herd-somatic-cell-count-threshold-alert
+version: 1
+name: Dairy Herd Somatic Cell Count Threshold Alert
+description: >
+  Checks each cow's (or the bulk tank's) most recent somatic cell count
+  test result against your processor's quality-premium and regulatory
+  limits, and flags any result that's high or trending up. Use this if
+  you've ever lost a milk quality premium — or come close to a
+  regulatory penalty — because a rising SCC trend wasn't caught until
+  the next official test.
+category: agriculture
+tags: [agriculture, dairy, livestock, milk-quality, herd-health]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  awk -F',' -v warn="{{scc_warn_threshold}}" -v limit="{{scc_regulatory_limit}}" '
+    NR==1 {next}
+    {
+      scc = $2+0;
+      if (scc >= limit) {
+        printf "REGULATORY RISK: %s — SCC %d (limit %s), tested %s\n", $1, scc, limit, $3;
+      } else if (scc >= warn) {
+        printf "QUALITY PREMIUM RISK: %s — SCC %d (warn threshold %s), tested %s\n", $1, scc, warn, $3;
+      }
+    }
+  ' "{{scc_test_results_csv_path}}"
+variables:
+  scc_test_results_csv_path:
+    default: "./dairy-scc-test-results.csv"
+    description: "Path to a CSV with columns: cow_id_or_bulk_tank,somatic_cell_count,test_date (YYYY-MM-DD)."
+  scc_warn_threshold:
+    default: 200000
+    description: SCC (cells/mL) at or above which a quality premium is typically at risk — confirm with your processor's contract.
+  scc_regulatory_limit:
+    default: 750000
+    description: SCC (cells/mL) at or above which Grade A regulatory limits are typically at risk — confirm your state's actual limit.
+compatible_agents: [generic, claude, codex]
+notes: Actual premium and regulatory thresholds vary by processor contract and state Grade A rules — confirm exact numbers before relying on this. Distinct from `livestock-vaccination-schedule-reminder` (herd health scheduling, not milk quality lab results) and `livestock-feed-stock-check` (feed inventory, not milk test outcomes).

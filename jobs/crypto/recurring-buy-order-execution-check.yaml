@@ -1,0 +1,48 @@
+id: recurring-buy-order-execution-check
+version: 1
+name: Recurring Buy Order Execution Check
+description: >
+  Checks an exchange's order history to confirm that a scheduled
+  recurring buy (dollar-cost-average purchase) actually executed as
+  expected, rather than silently failing or partially filling due to
+  insufficient funds. Use this if you've ever set up a weekly recurring
+  buy and assumed it was running fine for months, only to discover a
+  linked card expired or a balance ran dry weeks earlier and nothing
+  had actually been purchased since.
+category: crypto
+tags: [crypto, dca, exchange, recurring]
+schedule: "0 12 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the order/transaction history on {{exchange_name}} for account
+  associated with recurring buy plan "{{plan_label}}" over the last
+  {{lookback_days}} days.
+  1. Confirm whether each expected recurring purchase of
+     {{expected_asset}} actually executed at its scheduled interval.
+  2. Flag any missed, partially filled, or failed execution, and note
+     the likely cause if the exchange surfaces one (e.g. insufficient
+     funds, expired payment method, paused plan).
+  3. Report the total amount actually purchased in the window versus
+     what {{expected_amount_per_period}} per period would imply.
+  4. This is a status check only — do not create, modify, or cancel any
+     recurring buy plan.
+  5. If everything executed as expected, say so in one line.
+variables:
+  exchange_name:
+    default: "your exchange"
+    description: Exchange where the recurring buy plan is set up.
+  plan_label:
+    default: "weekly BTC buy"
+    description: Your own label for the recurring buy plan being checked.
+  expected_asset:
+    default: "BTC"
+    description: Asset the recurring buy is supposed to purchase.
+  expected_amount_per_period:
+    default: "$50"
+    description: Expected purchase amount per scheduled period, for comparison against actual executions.
+  lookback_days:
+    default: 30
+    description: How many days of order history to review for missed or failed executions.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Read-only status check — never creates, modifies, cancels, or funds a recurring buy plan. Distinct from wallet-balance-watch, which tracks on-chain wallet balances rather than whether an exchange's own scheduled purchase actually executed.

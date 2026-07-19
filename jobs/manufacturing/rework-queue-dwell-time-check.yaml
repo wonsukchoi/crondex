@@ -1,0 +1,33 @@
+id: rework-queue-dwell-time-check
+version: 1
+name: Rework Queue Dwell Time Check
+description: >
+  Flags parts sitting in the physical rework/repair loop longer than a
+  target number of hours. Use this if a part has ever gotten set aside
+  for rework and then quietly sat on a bench for days because it fell
+  off the radar between the line and the repair station.
+category: manufacturing
+tags: [manufacturing, rework, quality, production, wip]
+schedule: "0 6,14,22 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v now="$today" -v target={{max_dwell_hours}} '
+    NR==1 {next}
+    {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s";
+      cmd | getline entered_ts; close(cmd);
+      dwell_hours = (now - entered_ts) / 3600;
+      if (dwell_hours > target) printf "STUCK IN REWORK: part %s (work order %s) has been in rework %.1f hours (target %d hrs), reason: %s\n", $1, $2, dwell_hours, target, $4;
+    }
+  ' "{{rework_queue_csv}}"
+variables:
+  rework_queue_csv:
+    default: "./rework-queue-log.csv"
+    description: "CSV with header row, columns: part_id,work_order_id,entered_rework_at(YYYY-MM-DD HH:MM),reason — one row per part currently sitting in the rework/repair loop."
+  max_dwell_hours:
+    default: 24
+    description: Maximum hours a part should sit in the rework queue before it's flagged as stuck.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from non-conformance-report-backlog-check (tracks the paperwork/disposition clock on NCRs) and work-order-backlog-check (tracks whole production work orders against planned completion) — this tracks physical parts stuck in the rework/repair loop itself, which can lag even when the NCR paperwork is current.

@@ -1,0 +1,49 @@
+id: crypto-card-staking-lock-expiry-watch
+version: 1
+name: Crypto Card Staking Lock Expiry Watch
+description: >
+  Tracks the expiry date of a locked token stake that maintains your
+  crypto debit/credit card's reward tier, and warns before it lapses so
+  you can re-lock in time. Use this if you've ever locked tokens for a
+  card's top cash-back tier and quietly dropped to the base tier for a
+  billing cycle because the lock silently expired and nobody re-locked
+  it for you.
+category: crypto
+tags: [crypto, card, staking, rewards]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  provider="{{card_provider}}";
+  tier="{{reward_tier}}";
+  expires="{{lock_expiry_date}}";
+  if [ -z "$expires" ]; then
+    echo "Set lock_expiry_date to the current lock's expiry date for the $provider card tier.";
+  else
+    today=$(date +%s);
+    expires_ts=$(date -d "$expires" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$expires" +%s 2>/dev/null || echo "");
+    if [ -n "$expires_ts" ]; then
+      days_left=$(( (expires_ts - today) / 86400 ));
+      echo "$provider staking lock for tier '$tier' expires in $days_left days ($expires).";
+      if [ "$days_left" -le "{{renew_warn_days}}" ]; then
+        echo "ACTION NEEDED: re-lock tokens before expiry to keep the $tier tier — check $provider's app for the re-lock flow.";
+      fi
+    else
+      echo "Could not parse lock_expiry_date '$expires' — expected format YYYY-MM-DD.";
+    fi
+  fi
+variables:
+  card_provider:
+    default: "your card provider"
+    description: Name of the crypto card program (e.g. a specific exchange's card product).
+  reward_tier:
+    default: "top cash-back tier"
+    description: Name of the reward tier the lock maintains.
+  lock_expiry_date:
+    default: ""
+    description: Expiry date (YYYY-MM-DD) of the current staking lock — update from the card provider's app after each lock/re-lock.
+  renew_warn_days:
+    default: 10
+    description: Days before lock expiry to start flagging the need to re-lock.
+compatible_agents: [generic, claude, codex]
+notes: A calculator/reminder over a date you maintain yourself — it never touches the actual staking or card platform. Distinct from staking-reward-claim-reminder, which is about claiming earned validator/protocol staking rewards rather than maintaining a card's tier-qualifying lock.

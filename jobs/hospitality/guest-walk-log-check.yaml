@@ -1,0 +1,35 @@
+id: guest-walk-log-check
+version: 1
+name: Guest Walk Log Check
+description: >
+  Scans the log of guests walked to another property due to an oversell
+  and flags any where promised compensation hasn't been confirmed, plus
+  an alert if the number of walks in the log exceeds your threshold. Use
+  this if a walked guest has ever been promised a comped night or
+  transportation reimbursement at the desk that nobody ever followed up
+  to actually confirm or pay.
+category: hospitality
+tags: [hospitality, overbooking, guest-recovery, revenue-management]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{walks_per_period_alert_threshold}}" '
+    NR==1 {next}
+    {
+      total++;
+      if ($5 != "yes") printf "UNRESOLVED COMPENSATION: %s — reservation %s walked to %s (%s), compensation not confirmed\n", $1, $2, $3, $4;
+    }
+    END {
+      if (total >= threshold) printf "VOLUME ALERT: %d guests walked in this log (threshold %s) — review overbooking practices\n", total, threshold;
+    }
+  ' "{{walk_log_csv}}"
+variables:
+  walk_log_csv:
+    default: "./guest-walk-log.csv"
+    description: "CSV with header row, columns: date (YYYY-MM-DD),room_or_reservation_id,walked_to_hotel,compensation_type,compensation_confirmed (yes/no) — one row per guest walked due to an oversell."
+  walks_per_period_alert_threshold:
+    default: 3
+    description: Number of walks appearing in the log that triggers a volume alert worth escalating to revenue management.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from overbooking-risk-alert (forecasts oversell risk before it happens) and reservation-noshow-check (tracks no-shows) — this tracks guests already walked to another property, making sure the compensation promised at the desk (rate difference, transportation, a comped night) actually got confirmed rather than just verbally promised.

@@ -1,0 +1,41 @@
+id: certified-payroll-submission-tracker
+version: 1
+name: Certified Payroll Submission Tracker
+description: >
+  Reviews weekly certified payroll submissions (WH-347 style) from the
+  GC and each subcontractor on a prevailing-wage or Davis-Bacon covered
+  project, checking that a report was filed for every worked week and
+  that reported classifications and rates align with the project's wage
+  determination. Use this if a public-funded project has ever faced a
+  withheld payment or audit finding because a subcontractor's certified
+  payroll was late, missing a week, or paid a laborer classification
+  below the determination rate.
+category: construction
+tags: [construction, certified-payroll, davis-bacon, compliance, prevailing-wage]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review certified payroll submission records ({{certified_payroll_log_path}})
+  against the project's wage determination ({{wage_determination_path}}) for
+  project {{project_name}}, covering the prior work week.
+  1. Confirm every subcontractor active on site that week has a certified
+     payroll report on file; list any missing submissions.
+  2. For each submitted report, spot-check listed job classifications and
+     hourly rates against the wage determination's minimum rates for those
+     classifications, flagging any rate paid below the determination.
+  3. Flag any report missing a required statement of compliance signature.
+  4. Summarize as: subcontractor, issue found (missing report / rate below
+     determination / missing signature), and the specific week affected.
+variables:
+  certified_payroll_log_path:
+    default: "./certified-payroll-log.csv"
+    description: Path to the log of certified payroll submissions, expected to include subcontractor, week_ending_date, classifications, rates_paid, and signature_status.
+  wage_determination_path:
+    default: "./wage-determination.csv"
+    description: Path to the project's applicable wage determination listing classifications and minimum rates.
+  project_name:
+    default: "the project"
+    description: Name of the prevailing-wage project being reviewed.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: This is a compliance-monitoring aid, not a substitute for legal review — a flagged rate discrepancy should go to whoever administers Davis-Bacon compliance on the project before any withholding action is taken. Distinct from subcontractor-pay-application-approval-tracker, which tracks progress payment approvals rather than prevailing-wage reporting compliance.

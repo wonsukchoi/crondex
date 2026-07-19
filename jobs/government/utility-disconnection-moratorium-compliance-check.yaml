@@ -1,0 +1,51 @@
+id: utility-disconnection-moratorium-compliance-check
+version: 1
+name: Municipal Utility Disconnection Moratorium Compliance Check
+description: >
+  Checks scheduled municipal utility (water/electric) disconnections
+  against an active shutoff moratorium window — a cold-weather rule,
+  public health emergency order, or similar protected period — and
+  flags any scheduled disconnect that would fall inside it. Use this if
+  a shutoff has ever gone out during a moratorium period because the
+  disconnection queue and the moratorium calendar were tracked in two
+  places that never got compared.
+category: government
+tags: [government, utility, disconnection, moratorium, compliance]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  mstart=$(date -d "{{moratorium_start_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{moratorium_start_date}}" +%s 2>/dev/null);
+  mend=$(date -d "{{moratorium_end_date}}" +%s 2>/dev/null || date -j -f %Y-%m-%d "{{moratorium_end_date}}" +%s 2>/dev/null);
+  awk -F',' -v mstart="$mstart" -v mend="$mend" '
+    NR==1 {next}
+    $4 == "scheduled" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sched_epoch; close(cmd);
+      total++;
+      if (sched_epoch >= mstart && sched_epoch <= mend) {
+        printf "MORATORIUM VIOLATION RISK: account %s (%s) — disconnect scheduled %s falls inside the active moratorium window\n", $1, $2, $3;
+        violation++;
+      }
+    }
+    END {
+      printf "%d scheduled disconnect(s) checked, %d fall inside the moratorium window\n", total, violation;
+    }
+  ' "{{disconnects_csv_path}}"
+variables:
+  disconnects_csv_path:
+    default: "./utility-disconnections.csv"
+    description: "Path to a CSV with columns: account_id,customer_name,scheduled_disconnect_date (YYYY-MM-DD),status (scheduled/completed/cancelled)."
+  moratorium_start_date:
+    default: "2026-11-15"
+    description: Start date (YYYY-MM-DD) of the currently active disconnection moratorium (e.g. winter cold-weather rule).
+  moratorium_end_date:
+    default: "2027-03-15"
+    description: End date (YYYY-MM-DD) of the currently active disconnection moratorium.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Moratorium dates and eligibility rules (income-qualified only, weather
+  trigger, declared emergency) vary by state and utility commission —
+  update moratorium_start_date/moratorium_end_date to match your actual
+  order before relying on this. This flags scheduling conflicts only; it
+  does not cancel or reschedule a disconnection on its own.

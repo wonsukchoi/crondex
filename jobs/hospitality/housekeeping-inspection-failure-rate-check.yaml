@@ -1,0 +1,44 @@
+id: housekeeping-inspection-failure-rate-check
+version: 1
+name: Housekeeping Inspection Failure Rate Check
+description: >
+  Tallies today's room-inspection QA results and flags when the overall
+  or per-attendant fail rate meets or exceeds your threshold. Use this if
+  a run of rooms has ever failed supervisor inspection and gotten
+  re-cleaned without anyone noticing the pattern until guest complaints
+  started piling up.
+category: hospitality
+tags: [hospitality, housekeeping, quality-assurance, guest-experience]
+schedule: "0 12 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{fail_rate_threshold_pct}}" '
+    NR==1 {next}
+    {
+      total++;
+      attendant=$3;
+      total_by[attendant]++;
+      if ($4=="fail") { fails++; fail_by[attendant]++; }
+    }
+    END {
+      if (total>0) {
+        rate = (fails/total)*100;
+        printf "OVERALL: %d/%d rooms failed inspection (%.1f%%)\n", fails, total, rate;
+        if (rate >= threshold) printf "ALERT: overall fail rate %.1f%% meets or exceeds threshold %s%%\n", rate, threshold;
+      }
+      for (a in total_by) {
+        r = (fail_by[a]+0)/total_by[a]*100;
+        if (r >= threshold) printf "ALERT: attendant %s fail rate %.1f%% (%d/%d) meets or exceeds threshold\n", a, r, fail_by[a]+0, total_by[a];
+      }
+    }
+  ' "{{inspection_log_csv}}"
+variables:
+  inspection_log_csv:
+    default: "./housekeeping-inspection-log.csv"
+    description: "CSV with header row, columns: room_number,cleaned_date,inspected_by,inspection_result (pass/fail),fail_reason — one row per room inspected today."
+  fail_rate_threshold_pct:
+    default: 10
+    description: Percentage fail rate, overall or for any single attendant, that triggers an alert.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from housekeeping-turnover-time-check (how fast a room gets cleaned) — this tracks cleaning quality via supervisor QA pass/fail, which is the leading indicator of guest complaints and re-clean labor cost, not turnaround speed.

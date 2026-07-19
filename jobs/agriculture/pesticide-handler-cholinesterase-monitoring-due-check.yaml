@@ -1,0 +1,47 @@
+id: pesticide-handler-cholinesterase-monitoring-due-check
+version: 1
+name: Pesticide Handler Cholinesterase Monitoring Due Check
+description: >
+  Checks your organophosphate/carbamate pesticide handler roster against
+  required baseline and periodic cholinesterase blood test dates and
+  flags anyone coming due or overdue. Use this if a handler has ever
+  kept mixing/loading these products past their required medical
+  monitoring window because the testing date lived only in someone's
+  memory, not a tracked schedule.
+category: agriculture
+tags: [agriculture, pesticide, worker-safety, health-monitoring, compliance]
+schedule: "0 6 * * 1"
+timezone: "America/Chicago"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      if ($2 == "") {
+        printf "MISSING BASELINE: %s has no recorded cholinesterase test\n", $1;
+        next;
+      }
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_test_ts; close(cmd);
+      next_due_ts = last_test_ts + ("{{retest_interval_days}}" * 86400);
+      days_left = (next_due_ts - today) / 86400;
+      if (days_left <= 0) {
+        printf "OVERDUE: %s — last tested %s, retest was due %d days ago\n", $1, $2, -days_left;
+      } else if (days_left <= warn) {
+        printf "DUE SOON: %s — last tested %s, retest due in %d days\n", $1, $2, days_left;
+      }
+    }
+  ' "{{handler_monitoring_csv_path}}"
+variables:
+  handler_monitoring_csv_path:
+    default: "./pesticide-handler-cholinesterase-tests.csv"
+    description: "Path to a CSV with columns: handler_name_or_id,last_test_date (YYYY-MM-DD, blank if no baseline on file)."
+  retest_interval_days:
+    default: 30
+    description: Days between required periodic cholinesterase tests for handlers of monitored organophosphate/carbamate products.
+  warn_days_before:
+    default: 7
+    description: Days before a retest is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: This medical monitoring requirement (and its interval) applies only to certain organophosphate/carbamate products and specific states — confirm which handlers and products it covers with your state pesticide regulatory agency before relying on defaults. Distinct from `pesticide-applicator-license-renewal-check` (license credential expiry) and `restricted-use-pesticide-record-retention-check` (application record completeness) — this tracks handler medical test scheduling.

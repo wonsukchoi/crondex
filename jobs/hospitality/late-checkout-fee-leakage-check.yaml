@@ -1,0 +1,28 @@
+id: late-checkout-fee-leakage-check
+version: 1
+name: Late Checkout Fee Leakage Check
+description: >
+  Compares granted late checkouts against the late-checkout fee actually
+  posted to the folio and flags any shortfall. Use this if front desk
+  has ever waved a guest into a 2pm checkout without the corresponding
+  fee ever making it onto the bill, quietly costing the hotel revenue
+  every time it happens.
+category: hospitality
+tags: [hospitality, front-desk, revenue-assurance, billing]
+schedule: "0 16 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $3 == "yes" {
+      required = $4+0; charged = $5+0;
+      if (charged < required) printf "FEE LEAKAGE: room %s (checkout %s) — late checkout granted, charged $%.2f of $%.2f required\n", $1, $2, charged, required;
+    }
+  ' "{{late_checkout_log_csv}}"
+variables:
+  late_checkout_log_csv:
+    default: "./late-checkout-log.csv"
+    description: "CSV with header row, columns: room_number,checkout_date (YYYY-MM-DD),late_checkout_granted (yes/no),late_checkout_fee_required_usd,late_checkout_fee_charged_usd."
+compatible_agents: [generic, claude, codex]
+notes: Distinct from minibar-charge-reconciliation-check (minibar restocks vs folio charges) — this reconciles a different front-desk-granted courtesy (late checkout) against its fee, a common revenue leak when the desk waives the room block verbally without notifying billing or the PMS.

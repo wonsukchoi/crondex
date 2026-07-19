@@ -1,0 +1,43 @@
+id: teleradiology-overread-turnaround-check
+version: 1
+name: Teleradiology Overread Turnaround Check
+description: >
+  Checks imaging studies sent out to a teleradiology service for
+  board-certified radiologist overread and flags any still without a
+  final report past the expected turnaround. Use this if a radiograph
+  or ultrasound has ever been sent for an official overread and quietly
+  fallen out of tracking, leaving the case open on a preliminary
+  in-house read when a formal report was supposed to follow.
+category: veterinary
+tags: [veterinary, imaging, teleradiology, turnaround, patients]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn_hours="{{overdue_after_hours}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\ %H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sent_epoch; close(cmd);
+      age_hours = (today - sent_epoch) / 3600;
+      if (age_hours >= warn_hours) {
+        printf "OVERREAD OVERDUE: %s (%s) — %s study sent %s (%d hr(s) ago, still pending)\n", $1, $2, $5, $3, age_hours;
+      }
+    }
+  ' "{{teleradiology_orders_csv_path}}"
+variables:
+  teleradiology_orders_csv_path:
+    default: "./teleradiology-orders.csv"
+    description: "Path to a CSV with columns: pet_name,owner_name,sent_datetime (YYYY-MM-DD HH:MM),status (pending/resulted),study_type (radiograph/ultrasound/other)."
+  overdue_after_hours:
+    default: 24
+    description: Hours since a study was sent to the teleradiology service before a still-pending overread report counts as overdue for follow-up.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from lab-result-turnaround-check.yaml (bloodwork/reference-lab
+  diagnostics) and necropsy-pathology-sample-turnaround-check.yaml
+  (post-mortem/histopathology send-outs) — this tracks the
+  radiologist overread on live-patient imaging studies specifically,
+  which typically has a much tighter same-day-to-24-hour turnaround
+  expectation than either.

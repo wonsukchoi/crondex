@@ -1,0 +1,52 @@
+id: destination-access-restriction-check
+version: 1
+name: Destination Access Restriction Check
+description: >
+  Scans upcoming moves for origin or destination addresses flagged with
+  access restrictions (walk-up stairs, no freight elevator, long carry
+  distance, or street parking permit required) and drafts what needs to
+  be arranged before move day. Use this if a crew has ever arrived at a
+  building only to discover there's no service elevator reservation or
+  no parking permit for the truck, turning a routine move into hours of
+  delay and surprise long-carry or shuttle fees.
+category: moving-relocation
+tags: [moving-relocation, dispatch, site-access, scheduling, customer-service]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      move=$1; address=$2; restriction=$3; arranged=tolower($4);
+      if (restriction != "" && arranged != "yes") {
+        printf "ACCESS RESTRICTION UNRESOLVED: %s — %s: %s\n", move, address, restriction;
+      }
+    }
+  ' "{{upcoming_moves_access_csv_path}}"
+prompt: >
+  Read the flagged rows from the command output above, sourced from
+  {{upcoming_moves_access_csv_path}} (columns: move_id, address,
+  access_restriction, arrangement_confirmed). For each unresolved
+  restriction, draft a short internal note for dispatch listing the
+  specific accommodation needed (e.g. book freight elevator window,
+  obtain street parking permit, add a shuttle truck for long carry,
+  add extra crew time for stairs) and a one-line customer-facing note
+  confirming what the customer needs to arrange on their end (e.g.
+  reserving the elevator with building management). Do not send
+  anything — these are drafts only, for dispatch to review and act on.
+script_note: >
+  The command gives a zero-token list of moves with an unresolved access
+  restriction; only the prompt turns each restriction into concrete
+  dispatch and customer-facing actions.
+variables:
+  upcoming_moves_access_csv_path:
+    default: "./upcoming-moves-access.csv"
+    description: "Path to a CSV with columns: move_id,address,access_restriction (e.g. 'walk-up, 3rd floor', 'no freight elevator', 'long carry 150ft', 'parking permit required' — blank if none),arrangement_confirmed (yes/no)."
+compatible_agents: [claude, codex, generic]
+notes: >
+  Draft-only — it does not book elevators, permits, or shuttle trucks
+  itself, only surfaces what's unresolved and drafts the follow-up
+  actions. This is distinct from moving-day-weather-risk-check, which
+  covers weather along the route rather than physical site-access
+  logistics at the address itself.

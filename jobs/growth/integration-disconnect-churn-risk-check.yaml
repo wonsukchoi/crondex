@@ -1,0 +1,47 @@
+id: integration-disconnect-churn-risk-check
+version: 1
+name: Integration Disconnect Churn Risk Check
+description: >
+  Scans a log of third-party integration connection events (Slack,
+  Salesforce, Zapier, SSO, etc.) and flags accounts whose key integration
+  disconnected and has stayed disconnected past a grace window. Use this
+  if an account's Slack or SSO connection silently breaks, nobody
+  notices because the core product still loads fine, and the account
+  quietly stops getting value until it churns.
+category: growth
+tags: [growth, integrations, churn, retention]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{integration_events_csv_path}}; grace_days={{grace_period_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  flagged=0;
+  tail -n +2 "$file" | sort -t',' -k1,1 -k2,2 -k4,4 | awk -F',' '
+    { key=$1","$2; conn_status[key]=$3; ts[key]=$4 }
+    END { for (k in conn_status) print k","conn_status[k]","ts[k] }
+  ' | while IFS=',' read -r account integration conn_status event_at; do
+    [ "$conn_status" = "disconnected" ] || continue;
+    e_epoch=$(date -d "$event_at" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$event_at" +%s 2>/dev/null);
+    [ -z "$e_epoch" ] && continue;
+    days=$(( (today-e_epoch)/86400 ));
+    if [ "$days" -ge "$grace_days" ]; then
+      echo "DISCONNECTED: $account — $integration has been disconnected $days day(s) (since $event_at)";
+    fi;
+  done
+variables:
+  integration_events_csv_path:
+    default: "./integration-connection-events.csv"
+    description: "Path to a CSV with header: account_id,integration_name,status,event_at (status is 'connected' or 'disconnected'; event_at is the most recent event for that account+integration pair, YYYY-MM-DD)."
+  grace_period_days:
+    default: 5
+    description: Days an integration can stay disconnected before the account is flagged as at risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Feed this from your integration platform's webhook/audit
+  log (export connection state changes per account+integration). Distinct
+  from api-rate-limit-churn-correlation-check (which correlates being
+  throttled with later churn) — this catches a broken data pipeline into
+  or out of the product, which silently kills value delivery even though
+  the account can still log in.

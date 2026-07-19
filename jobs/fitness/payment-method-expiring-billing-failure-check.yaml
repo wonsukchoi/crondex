@@ -1,0 +1,45 @@
+id: payment-method-expiring-billing-failure-check
+version: 1
+name: Payment Method Expiring Billing Failure Check
+description: >
+  Scans the payment methods on file for members with recurring auto-billing
+  and flags any card whose expiration month/year falls within the warning
+  window, before the next billing cycle tries to charge it. Use this if
+  a member has ever gone to involuntary churn or an awkward front-desk
+  collections conversation because their card quietly expired and nobody
+  updated it before the automatic charge failed.
+category: fitness
+tags: [fitness, billing, payments, membership]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v warn_months="{{warn_months_before}}" '
+    NR==1 {next}
+    {
+      "date +%Y" | getline cur_year; close("date +%Y");
+      "date +%m" | getline cur_month; close("date +%m");
+      cur_index = cur_year * 12 + (cur_month + 0);
+      card_index = $4 * 12 + $3;
+      diff = card_index - cur_index;
+      if ($5 == "active" && diff <= warn_months) {
+        status = (diff < 0) ? "ALREADY EXPIRED" : "EXPIRING SOON";
+        printf "%s: %s — card ending %s expires %02d/%d (autopay %s)\n", status, $1, $2, $3, $4, $5;
+      }
+    }
+  ' "{{payment_methods_csv_path}}"
+variables:
+  payment_methods_csv_path:
+    default: "./member-payment-methods.csv"
+    description: "Path to a CSV with columns: member_name,card_last4,card_exp_month,card_exp_year,autopay_status (active/paused)."
+  warn_months_before:
+    default: 1
+    description: How many months before card expiration to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is distinct from gym-membership-renewal-reminder, which tracks the
+  membership term end date — this job tracks the payment instrument itself,
+  since a card can expire mid-term and silently break autopay long before
+  the membership is due for renewal. Never auto-charge or auto-update a
+  card from this job; it should only produce a list for outreach to update
+  billing info.

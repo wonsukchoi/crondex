@@ -1,0 +1,42 @@
+id: cohort-course-enrollment-window-reminder
+version: 1
+name: Cohort-Based Course Enrollment Window Reminder
+description: >
+  Warns you before enrollment closes for a cohort-based course (the kind
+  that only opens a few times a year and starts everyone together), since
+  missing the cutoff means waiting months for the next cohort instead of
+  just signing up late. Use this if you've ever meant to join one of
+  these cohort courses and found out the enrollment window shut a week
+  before you got around to it.
+category: learning
+tags: [learning, cohort, enrollment, deadline, course]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{enrollment_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{enrollment_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "OK: enrollment window for {{cohort_name}} has closed ({{enrollment_deadline}}) — next cohort starts {{next_cohort_date}}.";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: enrollment for {{cohort_name}} closes in $days_left day(s) ({{enrollment_deadline}}) — miss it and the next cohort isn't until {{next_cohort_date}}"; exit 1;
+  else echo "OK: enrollment for {{cohort_name}} closes in $days_left day(s)."; fi
+variables:
+  cohort_name:
+    default: "the cohort course"
+    description: Name of the cohort-based course or program.
+  enrollment_deadline:
+    default: "2026-08-20"
+    description: Last date (YYYY-MM-DD) to enroll before this cohort's roster closes.
+  next_cohort_date:
+    default: "unknown — check the provider's site"
+    description: Start date of the following cohort, shown so you know the real cost of missing this window.
+  warn_days:
+    default: 7
+    description: Days before enrollment_deadline to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Manual enrollment_deadline and next_cohort_date input per
+  program — this job doesn't check any provider's site for schedule
+  changes. Distinct from exam-registration-deadline-reminder (registering
+  for a test, not enrolling in a class) and mooc-assignment-deadline-reminder
+  (deadlines within a course you're already enrolled in).

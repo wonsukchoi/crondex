@@ -1,0 +1,41 @@
+id: usda-meal-count-claim-reconciliation-check
+version: 1
+name: USDA Meal Count Claim Reconciliation Check
+description: >
+  Compares the reimbursable meal counts claimed for federal reimbursement
+  against the point-of-sale served-meal counts for the same day and flags
+  any day where the claimed count exceeds served counts beyond a small
+  tolerance. Use this if a cafeteria has ever over-claimed meal
+  reimbursement for weeks before a state review caught the mismatch and
+  forced a repayment.
+category: education
+tags: [education, food-service, finance, compliance]
+schedule: "0 9 * * 2"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{tolerance_meals}}" '
+    NR==1 {next}
+    {
+      school=$1; date=$2; claimed=$3; served=$4;
+      overclaim = claimed - served;
+      if (overclaim > tolerance) {
+        printf "OVERCLAIM: %s on %s — claimed %d, served %d (%d over)\n", school, date, claimed, served, overclaim;
+      }
+    }
+  ' "{{meal_counts_csv_path}}"
+variables:
+  meal_counts_csv_path:
+    default: "./meal-counts.csv"
+    description: "Path to a CSV with columns: school,date,claimed_reimbursable_meals,pos_served_meals."
+  tolerance_meals:
+    default: 2
+    description: Number of meals a claim can exceed the served count by before it's flagged (accounts for minor rounding/timing gaps).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from free-reduced-lunch-eligibility-renewal-check and
+  meal-benefit-application-backlog-check, which are about family
+  eligibility paperwork — this checks the daily claiming process itself
+  against actual point-of-sale data, which is what USDA administrative
+  reviews audit. Investigate flagged days before resubmitting claims;
+  this job never files or amends a claim itself.

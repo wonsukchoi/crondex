@@ -1,0 +1,38 @@
+id: duplicate-candidate-application-check
+version: 1
+name: Duplicate Candidate Application Check
+description: >
+  Flags candidates who are actively in the pipeline for two or more open
+  reqs at the same time, using email as the match key. Use this if a
+  candidate has ever ended up quietly running two parallel interview
+  processes with different recruiters, each unaware of the other, until
+  it surfaced awkwardly at the offer stage.
+category: hiring
+tags: [hiring, recruiting, candidates, pipeline, dedup]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v min="{{min_concurrent_reqs}}" '
+    NR==1 {next}
+    $5 != "rejected" && $5 != "withdrawn" && $5 != "hired" {
+      key = tolower($1);
+      slot = key SUBSEP $3;
+      if (!(slot in seen)) { seen[slot]=1; reqs[key] = reqs[key] $3 "; "; count[key]++ }
+      name[key] = $2;
+    }
+    END {
+      for (key in count) {
+        if (count[key] >= min) printf "DUPLICATE APPLICATION: %s (%s) active in %d concurrent reqs: %s\n", name[key], key, count[key], reqs[key];
+      }
+    }
+  ' "{{applicants_csv_path}}"
+variables:
+  applicants_csv_path:
+    default: "./applicants.csv"
+    description: "Path to a CSV with columns: candidate_email,candidate_name,req_title,applied_date (YYYY-MM-DD),status (active/rejected/withdrawn/hired)."
+  min_concurrent_reqs:
+    default: 2
+    description: Number of distinct open reqs the same candidate must be actively in at once before it's flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from internal-mobility-application-tracker, which handles manager-notification for internal transfers, and from application-first-response-sla-check, which measures response time rather than cross-req overlap — this exists so recruiters coordinate before a candidate gets two competing offers or two conflicting interview loops.

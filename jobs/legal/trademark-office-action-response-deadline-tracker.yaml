@@ -1,0 +1,41 @@
+id: trademark-office-action-response-deadline-tracker
+version: 1
+name: Trademark Office Action Response Deadline Tracker
+description: >
+  Checks open trademark office actions (examiner refusals, oppositions,
+  or non-final actions from a trademark office) against their response
+  deadline and flags ones approaching that date. Use this if a trademark
+  application has ever gone abandoned because an office action's response
+  window passed unnoticed while everyone assumed outside counsel had it
+  covered.
+category: legal
+tags: [legal, trademarks, ip, uspto, office-action, deadlines]
+schedule: "0 8 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $5 != "responded" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "OFFICE ACTION DUE: mark=\"" $1 "\" serial#=" $2 " type=" $3 " respond_by=" $4 " (" days_left " days) status=" $5;
+    }
+  ' "{{office_actions_csv}}"
+variables:
+  office_actions_csv:
+    default: "./trademark-office-actions.csv"
+    description: "CSV with header row, columns: mark_name,serial_or_application_number,action_type (e.g. non-final-refusal, final-refusal, opposition, extension-request),response_due_date(YYYY-MM-DD),status (open/responded/abandoned)."
+  warn_days:
+    default: 30
+    description: Days before an office action's response deadline to start warning if it's still unresponded.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `trademark-renewal-reminder` (post-registration renewal
+  fees) and `trademark-infringement-watch` (monitoring third-party use) —
+  this tracks the prosecution-stage response clock on pending
+  applications, where missing a deadline abandons the application rather
+  than lapsing an existing registration. Response periods vary by
+  jurisdiction and action type; confirm the actual deadline with
+  trademark counsel before relying on this list.

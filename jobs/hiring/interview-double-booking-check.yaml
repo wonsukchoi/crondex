@@ -1,0 +1,37 @@
+id: interview-double-booking-check
+version: 1
+name: Interview Double-Booking Check
+description: >
+  Sorts the upcoming interview schedule by interviewer and flags any
+  interviewer whose back-to-back interview slots actually overlap in
+  time. Use this if an interviewer has ever shown up to find two
+  candidates on the calendar for the same half hour because two
+  recruiters booked the same person without seeing each other's invite.
+category: hiring
+tags: [hiring, interviews, scheduling, calendar]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  sort -t',' -k2,2 -k3,3 "{{interview_schedule_csv_path}}" | awk -F',' -v buf="{{buffer_minutes}}" '
+    NR==1 { next }
+    {
+      cmd1 = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $3 "\" +%s 2>/dev/null";
+      cmd1 | getline start_epoch; close(cmd1);
+      cmd2 = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $4 "\" +%s 2>/dev/null";
+      cmd2 | getline end_epoch; close(cmd2);
+      if ($2 == prev_interviewer && start_epoch < (prev_end + buf*60)) {
+        printf "DOUBLE-BOOKED: %s has overlapping interviews with %s and %s starting %s\n", $2, prev_candidate, $1, $3;
+      }
+      prev_interviewer = $2; prev_end = end_epoch; prev_candidate = $1;
+    }
+  '
+variables:
+  interview_schedule_csv_path:
+    default: "./interview-schedule.csv"
+    description: "Path to a CSV with columns: candidate_name,interviewer_name,start_datetime (YYYY-MM-DD HH:MM),end_datetime (YYYY-MM-DD HH:MM)."
+  buffer_minutes:
+    default: 0
+    description: Minutes of required gap between an interviewer's slots — a positive value also catches back-to-back bookings with no breathing room, not just literal overlaps.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from interviewer-load-balance-check, which counts total interview volume rather than time conflicts, and from interview-no-show-pattern-check, which tracks attendance after the fact — this catches the scheduling conflict before either interview happens. Assumes interview start/end times are exported consistently as local wall-clock strings; normalize time zones before running if interviews span multiple offices.

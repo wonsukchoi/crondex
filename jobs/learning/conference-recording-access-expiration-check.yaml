@@ -1,0 +1,45 @@
+id: conference-recording-access-expiration-check
+version: 1
+name: Conference Recording Access Expiration Check
+description: >
+  Warns you before your on-demand access to a conference's recorded talks
+  closes, and counts how many sessions on your watchlist you still
+  haven't watched. Use this if a virtual conference has ever given you
+  60-90 days of session-recording access and you only remembered on day
+  91, after it was pulled behind a paywall or deleted.
+category: learning
+tags: [learning, conference, recordings, deadline, access]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry_ts=$(date -d "{{access_expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{access_expiry_date}}" +%s);
+  days_left=$(( (expiry_ts - today) / 86400 ));
+  file={{watchlist_path}};
+  unwatched=0;
+  [ -f "$file" ] && unwatched=$(grep -cve '^\s*$' "$file");
+  if [ "$days_left" -lt 0 ]; then echo "OK: access window for {{conference_name}} recordings already closed ({{access_expiry_date}}).";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{conference_name}} recording access closes in $days_left day(s) ({{access_expiry_date}}) with $unwatched session(s) still unwatched on {{watchlist_path}}"; exit 1;
+  else echo "OK: {{conference_name}} recording access closes in $days_left day(s), $unwatched session(s) unwatched."; fi
+variables:
+  conference_name:
+    default: "the conference"
+    description: Name of the conference whose recordings you have time-limited access to.
+  access_expiry_date:
+    default: "2026-10-01"
+    description: Date (YYYY-MM-DD) the platform revokes or paywalls on-demand session recordings.
+  watchlist_path:
+    default: "./conference-watchlist.txt"
+    description: Plain text file, one session/talk title per line, that you haven't watched yet.
+  warn_days:
+    default: 10
+    description: Days before access_expiry_date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Manual access_expiry_date input per conference — this job
+  doesn't scrape the event platform, and doesn't know which sessions in
+  watchlist_path you've since watched unless you remove the line
+  yourself. Distinct from podcast-lecture-backlog-check (an open-ended
+  personal queue with no external deadline) and conference-cfp-deadline-reminder
+  (submitting a talk proposal, not consuming recorded sessions).

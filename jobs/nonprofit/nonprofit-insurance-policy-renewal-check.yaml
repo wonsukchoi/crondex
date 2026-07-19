@@ -1,0 +1,41 @@
+id: nonprofit-insurance-policy-renewal-check
+version: 1
+name: Nonprofit Insurance Policy Renewal Check
+description: >
+  Checks your organization's insurance policies (D&O, general liability,
+  property, cyber, etc.) against each one's renewal date and flags any
+  about to lapse. Use this if a policy has ever lapsed unnoticed between
+  renewal notices from the broker, leaving the board or an event
+  uninsured for a gap nobody realized existed until a claim needed to be
+  filed.
+category: nonprofit
+tags: [nonprofit, compliance, operations, insurance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days_before}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline expiry_ts; close(cmd);
+      days_left = int((expiry_ts - today) / 86400);
+      if (days_left <= warn && days_left >= 0) print "POLICY EXPIRING: " $1 " (" $2 ") — expires " $3 " (" days_left " days left)";
+      else if (days_left < 0) print "POLICY EXPIRED: " $1 " (" $2 ") — expired " $3 " (" (-days_left) " days ago)";
+    }
+  ' "{{insurance_policies_csv}}"
+variables:
+  insurance_policies_csv:
+    default: "insurance-policies.csv"
+    description: "CSV with header row, columns: policy_type,carrier,renewal_date(YYYY-MM-DD) — one row per policy (D&O, general liability, property, cyber, event coverage, etc.)."
+  warn_days_before:
+    default: 30
+    description: Days before a policy's renewal date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `charitable-solicitation-registration-renewal-check` and
+  `annual-audit-deadline-reminder`, which track state fundraising
+  registrations and audit deadlines — this tracks your own insurance
+  coverage lapsing, which a broker's renewal notice sometimes arrives
+  late for, or gets missed if it lands with the wrong staff member.
+  Update the CSV whenever a policy is bound or renewed.

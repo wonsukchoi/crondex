@@ -1,0 +1,37 @@
+id: toilet-tank-leak-dye-test-reminder
+version: 1
+name: Toilet Tank Leak Dye Test Reminder
+description: >
+  Walks you through a dye-tablet (or food coloring) test to catch a silent
+  toilet tank leak before it shows up as a mysteriously high water bill.
+  Use this if you've ever paid for months of a slowly leaking flapper or
+  fill valve because the leak never puddled on the floor and made no
+  sound.
+category: home
+tags: [home, plumbing, water-conservation, maintenance]
+schedule: "0 9 1 */6 *"
+timezone: "America/Los_Angeles"
+runner: agent-prompt
+prompt: |
+  Walk me through testing my toilet(s) for a silent tank leak right now:
+  1. Add a {{dye_test_material}} to each toilet tank (not the bowl) and
+     wait 10-15 minutes without flushing.
+  2. Check the bowl for any trace of color. If color appears in the bowl
+     without flushing, the flapper (or fill valve) is leaking and wasting
+     water continuously.
+  3. If a leak is found, tell me whether it's more likely the flapper
+     (most common, cheap fix) or the fill valve, based on where the color
+     shows up and how quickly, and what a reasonable replacement part
+     costs versus calling a plumber.
+  Remind me to flush right after the test so the dye doesn't stain the
+  tank or bowl.
+variables:
+  dye_test_material:
+    default: "toilet leak detection dye tablet"
+    description: What to use for the test, e.g. "toilet leak detection dye tablet" or "a few drops of food coloring".
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No destructive action — just a diagnostic test. Distinct from
+  utility-bill-anomaly-check (which flags a spike only after the bill
+  already arrived) — this catches the leak proactively at the fixture
+  before it ever shows up on a bill.

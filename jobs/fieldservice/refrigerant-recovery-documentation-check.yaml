@@ -1,0 +1,38 @@
+id: refrigerant-recovery-documentation-check
+version: 1
+name: Refrigerant Recovery Documentation Check
+description: >
+  Cross-references completed jobs tagged as involving refrigerant work
+  (AC service, replacement, or disposal) against your refrigerant
+  recovery log and flags any job missing a recorded recovery amount,
+  which EPA Section 608 recordkeeping requires. Use this if a tech has
+  ever finished an AC replacement and the refrigerant recovery log was
+  never filled out, leaving you unable to prove compliance if audited.
+category: fieldservice
+tags: [fieldservice, epa-compliance, refrigerant, hvac]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1) { logged[$1] = $2 }
+      next
+    }
+    FNR == 1 { next }
+    {
+      job_id = $1; customer = $2; job_date = $3; refrigerant = $4;
+      if (!(job_id in logged) || logged[job_id] == "" || logged[job_id] + 0 == 0) {
+        printf "MISSING RECOVERY LOG: job %s for %s on %s — %s work, no recovered lbs recorded\n", job_id, customer, job_date, refrigerant;
+      }
+    }
+  ' "{{refrigerant_log_csv_path}}" "{{refrigerant_jobs_csv_path}}"
+variables:
+  refrigerant_log_csv_path:
+    default: "./refrigerant-recovery-log.csv"
+    description: "Path to a CSV with columns: job_id,recovered_lbs."
+  refrigerant_jobs_csv_path:
+    default: "./refrigerant-jobs.csv"
+    description: "Path to a CSV with columns: job_id,customer_name,job_date,refrigerant_type."
+compatible_agents: [generic, claude, codex]
+notes: File the recovered amount with your official EPA 608 recordkeeping immediately once flagged — this job is a catch, not a system of record. Differs from permit-required-job-missing-permit-check, which tracks building permits rather than refrigerant handling documentation.

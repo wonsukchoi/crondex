@@ -1,0 +1,39 @@
+id: operating-reserve-below-target-check
+version: 1
+name: Operating Reserve Below Target Check
+description: >
+  Calculates how many months of unrestricted operating expenses your
+  current cash reserve would cover, and flags it if that's below your
+  board's reserve policy target. Use this if unrestricted cash has ever
+  quietly drifted below a safe cushion — say, after a lean fundraising
+  quarter — with nobody noticing until a funding gap forced a scramble
+  for a bridge loan or a program cut.
+category: nonprofit
+tags: [nonprofit, finance, reserves, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v target={{target_reserve_months}} '
+    NR>1 {
+      months = ($2+0) > 0 ? $1 / $2 : 0;
+      printf "%.1f", months;
+      if (months < target) print " -- BELOW TARGET: " months " months on hand (target " target ")";
+      else print " -- OK: " months " months on hand (target " target ")";
+    }
+  ' "{{operating_reserves_csv}}"
+variables:
+  operating_reserves_csv:
+    default: "operating-reserves.csv"
+    description: "CSV with header row, single data row, columns: unrestricted_cash_on_hand,avg_monthly_operating_expenses."
+  target_reserve_months:
+    default: 3
+    description: Board-approved minimum months of unrestricted operating expenses the reserve should cover.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `endowment-spending-policy-compliance-check` and
+  `donor-restricted-fund-expiry-check`, which track restricted or
+  endowment balances — this looks only at unrestricted operating cash
+  against your board's own reserve policy, the buffer meant to cover
+  day-to-day expenses if revenue dips. Update the CSV from your monthly
+  financial close, not a point-in-time bank balance alone.

@@ -1,0 +1,33 @@
+id: customer-testimonial-usage-consent-expiration-check
+version: 1
+name: Customer Testimonial Usage Consent Expiration Check
+description: >
+  Checks the tracker of customer testimonials, quotes, logos, and case
+  studies used in active marketing materials against their signed usage
+  consent expiration dates, and flags any nearing expiry while still in
+  use. Use this if a customer logo or quote has ever kept running in ads
+  or on the website after their usage agreement quietly lapsed, because
+  nobody was watching consent expiration dates against what was actually
+  still published.
+category: marketing
+tags: [marketing, testimonials, legal, consent, brand]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select customer_name, asset_type, consent_expiration, in_use from testimonial_consents where in_use = true and consent_expiration <= now() + interval '{{warning_window_days}} days' order by consent_expiration asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or spreadsheet export tracking testimonial/case-study usage rights and expiration dates.
+  warning_window_days:
+    default: 30
+    description: Number of days before a usage consent expires to start flagging still-in-use assets.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `testimonial_consents` table with `customer_name`,
+  `asset_type` (quote, logo, case study, video), `consent_expiration`,
+  and `in_use` columns, typically maintained by legal or customer
+  marketing alongside the signed agreements. Read-only query; a flagged
+  row means someone should renew consent or pull the asset, not that
+  this job removes it automatically.

@@ -1,0 +1,44 @@
+id: cancellation-notice-deadline-tracker
+version: 1
+name: Cancellation & Non-Renewal Notice Deadline Tracker
+description: >
+  Scans pending cancellation and non-renewal actions and flags any where
+  the statutory notice period to the policyholder is about to be missed
+  or has already lapsed. Use this if a cancellation or non-renewal notice
+  has ever gone out late, exposing the carrier or agency to a coverage
+  dispute because the required notice window wasn't met.
+category: insurance
+tags: [insurance, cancellation, non-renewal, compliance, notice]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v buffer="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline notice_deadline_epoch; close(cmd);
+      days_left = (notice_deadline_epoch - today) / 86400;
+      if (days_left < 0) {
+        printf "MISSED: %s (%s) — notice deadline %s already passed\n", $1, $2, $3;
+      } else if (days_left <= buffer) {
+        printf "AT RISK: %s (%s) — notice must go out by %s (%d days left)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{pending_actions_csv_path}}"
+variables:
+  pending_actions_csv_path:
+    default: "./pending-cancellations.csv"
+    description: "Path to a CSV with columns: policy_number,action_type (cancellation/non-renewal),required_notice_deadline (YYYY-MM-DD)."
+  warn_days_before_deadline:
+    default: 5
+    description: How many days before the statutory notice deadline to start flagging as at risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the outbound statutory notice deadline for actions already
+  decided (cancel or don't renew), distinct from policy-renewal-reminder
+  (which reminds about upcoming renewals to shop/review coverage) and
+  policy-lapse-rate-monitor (which reports a portfolio-level lapse
+  metric, not individual notice deadlines). State notice-period rules
+  vary — set the deadline column per your state's requirement.

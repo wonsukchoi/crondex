@@ -1,0 +1,39 @@
+id: moving-truck-preventive-maintenance-due-check
+version: 1
+name: Moving Truck Preventive Maintenance Due Check
+description: >
+  Compares each truck's current odometer reading and engine hours against
+  its last-serviced mileage/hours and flags any vehicle that's past its
+  preventive maintenance interval (oil change, brake inspection, tire
+  rotation). Use this if a truck has ever broken down mid-route on a
+  long-haul job because routine maintenance quietly slipped past its
+  due mileage and nobody caught it between annual DOT inspections.
+category: moving-relocation
+tags: [moving-relocation, fleet, maintenance, trucks, safety]
+schedule: "0 6 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v interval="{{maintenance_interval_miles}}" '
+    NR==1 {next}
+    {
+      vehicle=$1; odometer=$2+0; last_service_odometer=$3+0; last_service_date=$4;
+      miles_since_service = odometer - last_service_odometer;
+      if (miles_since_service >= interval) {
+        printf "MAINTENANCE DUE: %s — %d miles since last service on %s (interval %s miles)\n", vehicle, miles_since_service, last_service_date, interval;
+      }
+    }
+  ' "{{fleet_odometer_csv_path}}"
+variables:
+  fleet_odometer_csv_path:
+    default: "./fleet-odometer-log.csv"
+    description: "Path to a CSV with columns: vehicle_id,current_odometer_miles,last_service_odometer_miles,last_service_date (YYYY-MM-DD)."
+  maintenance_interval_miles:
+    default: 5000
+    description: Miles a truck can travel since its last service before it's flagged as due for preventive maintenance.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check; it does not schedule the service appointment or take the
+  vehicle out of dispatch rotation itself. This is separate from
+  dot-vehicle-annual-inspection-check, which tracks the regulatory annual
+  inspection date rather than mileage-based routine service intervals.

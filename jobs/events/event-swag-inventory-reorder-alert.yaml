@@ -1,0 +1,54 @@
+id: event-swag-inventory-reorder-alert
+version: 1
+name: Event Swag Inventory Reorder Alert
+description: >
+  Compares on-hand swag/merchandise stock against a reorder point
+  calculated from expected daily distribution and supplier lead time, and
+  flags it before you run out mid-event. Use this if branded giveaways,
+  attendee kits, or booth merchandise have ever sold out or run dry on
+  day two of a multi-day event because nobody was tracking the burn rate.
+category: events
+tags: [events, swag, inventory, logistics]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  on_hand="{{units_on_hand}}";
+  daily_use="{{expected_daily_distribution}}";
+  days_left="{{event_days_remaining}}";
+  lead_time="{{supplier_lead_time_days}}";
+  buffer="{{reorder_buffer_units}}";
+  projected_need=$(awk -v d="$daily_use" -v n="$days_left" 'BEGIN{printf "%.0f", d*n}');
+  reorder_point=$(awk -v d="$daily_use" -v l="$lead_time" -v b="$buffer" 'BEGIN{printf "%.0f", (d*l)+b}');
+  if [ "$on_hand" -lt "$reorder_point" ]; then
+    echo "REORDER NOW: {{swag_item_name}} has $on_hand units on hand, below the reorder point of $reorder_point (covers a $lead_time-day supplier lead time plus buffer) — projected need for the remaining event days is $projected_need";
+  elif [ "$on_hand" -lt "$projected_need" ]; then
+    echo "WATCH: {{swag_item_name}} has $on_hand units on hand, which may not cover the projected need of $projected_need over the remaining event days — not below the reorder point yet but trending tight";
+  else
+    echo "OK: {{swag_item_name}} has $on_hand units on hand, above both the reorder point ($reorder_point) and the projected need ($projected_need)";
+  fi
+variables:
+  swag_item_name:
+    default: "attendee tote bags"
+    description: Name of the swag/merchandise item being tracked, for the output message.
+  units_on_hand:
+    default: 500
+    description: Current stock count (pull this from your inventory sheet or fulfillment system before each run).
+  expected_daily_distribution:
+    default: 150
+    description: How many units you expect to hand out per remaining event day.
+  event_days_remaining:
+    default: 3
+    description: Number of event days left, including today.
+  supplier_lead_time_days:
+    default: 5
+    description: Business days your supplier needs to fulfill a reorder for this item.
+  reorder_buffer_units:
+    default: 50
+    description: Extra units to keep as a safety margin on top of lead-time coverage.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is separate from av-equipment-rental-return-reminder, which tracks
+  returning rented gear rather than restocking a consumable item — swag
+  is bought/printed ahead of time and cannot be "returned" once
+  distributed, so the risk here is running out, not late return fees.

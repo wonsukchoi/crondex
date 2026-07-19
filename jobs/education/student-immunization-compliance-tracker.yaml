@@ -1,0 +1,58 @@
+id: student-immunization-compliance-tracker
+version: 1
+name: Student Immunization Compliance Tracker
+description: >
+  Flags students whose immunization record is missing a state-required
+  dose for their grade level, then has an agent sort the flagged list into
+  students who likely just need a records follow-up versus ones close to
+  an exclusion deadline. Use this if a school has ever hit a state
+  compliance deadline and had to exclude students from class because
+  incomplete immunization records were only reviewed at the last minute.
+category: education
+tags: [education, health, immunization, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $3 != "complete" && $4 != "exempt" {
+      printf "INCOMPLETE: %s (grade %s) — status: %s\n", $1, $2, $3;
+    }
+  ' "{{immunization_records_csv_path}}"
+prompt: |
+  Below is the list of students flagged as having an incomplete
+  immunization record (not marked complete or exempt) from
+  {{immunization_records_csv_path}}, covering required doses for grade
+  level per {{state_requirement_hint}}.
+  1. Group flagged students by how many days remain until
+     {{exclusion_deadline_hint}}, if that date is available.
+  2. Separate students who appear to just be missing paperwork (e.g. a
+     record likely exists elsewhere, such as a recent transfer) from ones
+     with no exemption filed and no indication a dose is scheduled.
+  3. Summarize which students' families need contacting soonest, given the
+     exclusion deadline, so the school nurse or registrar can follow up
+     with the highest-risk cases first.
+  Do not draft or send any communication to families — just prioritize the
+  follow-up list.
+variables:
+  immunization_records_csv_path:
+    default: "./immunization-records.csv"
+    description: "Path to a CSV with columns: student_name,grade,dose_status (complete/incomplete),exemption_status (exempt/none)."
+  state_requirement_hint:
+    default: "your state's required immunization schedule by grade"
+    description: Where the grade-by-grade required dose schedule is defined for this state.
+  exclusion_deadline_hint:
+    default: "your state or district's school-exclusion deadline for incomplete records"
+    description: The deadline after which students with incomplete, non-exempt records may be excluded from school.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from school-nurse-medication-log-check, which tracks daily
+  medication administration rather than immunization dose compliance.
+  Never excludes or contacts a family automatically — this only prioritizes
+  the follow-up list for the nurse or registrar.
+script_note: >
+  The `command` alone gives a zero-token list of everyone missing a
+  complete or exempt status. It can't tell you which of those are
+  genuinely at risk of exclusion soon versus a likely paperwork gap for a
+  new transfer — that triage is what the `prompt` pass adds.

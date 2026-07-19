@@ -1,0 +1,64 @@
+id: data-breach-notification-deadline-tracker
+version: 1
+name: Data Breach Notification Deadline Tracker
+description: >
+  Checks open security incidents that may qualify as reportable data
+  breaches against each applicable regulator or state notification
+  deadline, and drafts a status summary of which clocks are closest to
+  running out. Use this if an incident has ever sat in review long
+  enough that a 72-hour regulator clock (or a state's shorter
+  consumer-notice window) nearly expired before anyone outside the
+  security team even knew the clock had started.
+category: legal
+tags: [legal, data-privacy, breach-notification, incident-response, gdpr]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    $6 != "notified" && $6 != "not-reportable" {
+      "date +%s" | getline now_epoch; close("date +%s");
+      cmd="date -d \"" $5 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      hours_left = int((due_epoch - now_epoch) / 3600);
+      printf "OPEN INCIDENT: %s jurisdiction=%s regulator=%s discovered=%s notify_by=%s hours_left=%d status=%s\n", $1, $2, $3, $4, $5, hours_left, $6;
+    }
+  ' "{{incidents_csv}}"
+prompt: |
+  Here is the raw list of open incidents with unmet breach-notification
+  deadlines (from the shell check): {{command_output}}. For each one:
+  1. Group by jurisdiction/regulator ({{jurisdiction_hint}}), since
+     notification windows differ (e.g. GDPR's 72-hour supervisory
+     authority clock vs. a state's consumer-notice window).
+  2. Flag anything with fewer than {{urgent_within_hours}} hours left as
+     needing legal/security leadership attention immediately.
+  3. Draft a short internal status update naming each open incident's
+     jurisdiction, hours remaining, and current status, suitable for a
+     breach-response coordination channel — do not draft or send the
+     actual external/regulator notification itself.
+variables:
+  incidents_csv:
+    default: "./breach-notification-incidents.csv"
+    description: "CSV with header row, columns: incident_id,jurisdiction (e.g. EU, California, New York),regulator_or_law (e.g. GDPR, CCPA, state-AG),discovered_at (YYYY-MM-DD HH:MM),notify_by (YYYY-MM-DD HH:MM),status (open/notified/not-reportable)."
+  urgent_within_hours:
+    default: 12
+    description: Hours left before a notification deadline at which an open incident becomes urgent in the drafted summary.
+  jurisdiction_hint:
+    default: "EU/GDPR, individual US states, or other applicable breach-notification law"
+    description: Short reminder of the jurisdictions/regulators your incident log tracks.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+script_note: >
+  The shell command gives a zero-token list of open incidents and hours
+  remaining on each notification clock from timestamp math alone; the
+  prompt adds jurisdiction grouping and a drafted internal coordination
+  summary — it never drafts the outbound regulator or consumer notice.
+notes: >
+  Distinct from `data-privacy-request-deadline-tracker` (individual
+  access/deletion requests) and `dpa-renewal-tracker` (vendor contract
+  renewal review) — this tracks the incident-response clock that starts
+  when a breach is discovered, which is usually measured in hours, not
+  days. Whether an incident is reportable at all, and the exact
+  notification deadline and content, depends on the specific law and
+  facts — confirm with privacy/breach counsel before this drives any
+  external notice, and never let this job auto-send anything.

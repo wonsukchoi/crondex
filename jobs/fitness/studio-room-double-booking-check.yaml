@@ -1,0 +1,39 @@
+id: studio-room-double-booking-check
+version: 1
+name: Studio Room Double-Booking Check
+description: >
+  Sorts the upcoming class schedule by room and start time and flags any
+  two classes booked into the same studio or room with overlapping time
+  windows. Use this if a spin class and a yoga class have ever been booked
+  into the same studio at overlapping times because two staff scheduled
+  sessions independently and nobody cross-checked the room calendar.
+category: fitness
+tags: [fitness, scheduling, classes, facility]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  sort -t',' -k2,2 -k3,3 -k4,4 "{{class_schedule_csv_path}}" | awk -F',' '
+    NR==1 {next}
+    {
+      room = $2; date = $3; start = $4; end = $5; name = $1;
+      key = room "|" date;
+      if (key == prev_key && start < prev_end) {
+        printf "ROOM CONFLICT: %s (%s %s-%s) overlaps %s (%s %s-%s) in room %s\n", prev_name, date, prev_start, prev_end, name, date, start, end, room;
+      }
+      prev_key = key; prev_end = end; prev_start = start; prev_name = name;
+    }
+  '
+variables:
+  class_schedule_csv_path:
+    default: "./upcoming-class-schedule.csv"
+    description: "Path to a CSV with columns: class_name,room,class_date,start_time,end_time (HH:MM, 24h) — should be pre-sorted or let the command sort it."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This checks room/time conflicts in the schedule itself, which is different
+  from class-utilization-check (attendance vs. capacity) and
+  class-waitlist-overflow-check (member demand) — neither of those would
+  catch two classes accidentally booked into the same physical space.
+  Requires start_time and end_time in a sortable HH:MM format; back-to-back
+  classes with matching boundary times (one ending exactly as the next
+  starts) are not flagged as conflicts by design.

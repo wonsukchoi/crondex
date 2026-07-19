@@ -1,0 +1,52 @@
+id: annual-contract-renewal-checkin-lead-time-check
+version: 1
+name: Annual Contract Renewal Check-in Lead Time Check
+description: >
+  Flags annual or multi-year contracts approaching their renewal date
+  that don't have a recent, logged check-in or QBR on file. Use this if
+  annual deals tend to auto-renew or lapse without anyone realizing
+  because the account team's attention is on whatever's on fire that
+  month, not on a renewal date sitting quietly in a contract PDF.
+category: growth
+tags: [growth, renewals, contracts, customer-success]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{contracts_csv_path}}; lead_days={{renewal_lead_time_days}};
+  max_checkin_age={{max_checkin_age_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=',' read -r account renewal_date last_checkin term; do
+    [ "$term" = "annual" ] || [ "$term" = "multi_year" ] || continue;
+    r_epoch=$(date -d "$renewal_date" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$renewal_date" +%s 2>/dev/null);
+    [ -z "$r_epoch" ] && continue;
+    days_to_renewal=$(( (r_epoch-today)/86400 ));
+    if [ "$days_to_renewal" -gt "$lead_days" ] || [ "$days_to_renewal" -lt 0 ]; then continue; fi;
+    if [ -z "$last_checkin" ]; then
+      echo "NO CHECK-IN: $account renews in $days_to_renewal day(s) ($renewal_date), no check-in logged";
+      continue;
+    fi;
+    c_epoch=$(date -d "$last_checkin" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$last_checkin" +%s 2>/dev/null);
+    checkin_age=$(( (today-c_epoch)/86400 ));
+    if [ "$checkin_age" -gt "$max_checkin_age" ]; then
+      echo "STALE CHECK-IN: $account renews in $days_to_renewal day(s) ($renewal_date), last check-in $checkin_age day(s) ago";
+    fi;
+  done
+variables:
+  contracts_csv_path:
+    default: "./account-contracts.csv"
+    description: "Path to a CSV with header: account_id,renewal_date,last_checkin_date,term (renewal_date/last_checkin_date as YYYY-MM-DD, last_checkin_date may be blank; term is 'annual', 'multi_year', or 'monthly')."
+  renewal_lead_time_days:
+    default: 60
+    description: How many days out from renewal an account should have a fresh check-in logged.
+  max_checkin_age_days:
+    default: 90
+    description: Maximum age of the last logged check-in before it no longer counts as "recent" for a nearing renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Monthly contracts are skipped by design (term filter) since
+  they don't carry the same silent-lapse risk. Distinct from
+  trial-expiring-nudge (pre-paid trial conversion) and churn-risk-watch
+  (usage-based signal) — this is a calendar-driven check tied to contract
+  renewal dates and account-team touchpoints, independent of product usage.

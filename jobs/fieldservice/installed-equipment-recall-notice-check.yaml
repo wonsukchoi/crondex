@@ -1,0 +1,38 @@
+id: installed-equipment-recall-notice-check
+version: 1
+name: Installed Equipment Recall Notice Check
+description: >
+  Cross-references the make/model/serial numbers of equipment your
+  company has installed at customer sites against a manufacturer safety
+  recall list, and flags any matches so the customer can be contacted
+  proactively. Use this if a manufacturer has ever issued a safety
+  recall on a water heater, furnace, or panel model and your team found
+  out from an angry customer phone call instead of getting ahead of it.
+category: fieldservice
+tags: [fieldservice, equipment, recall, safety, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==FNR {
+      if (FNR > 1) { recalls[$1] = $2; severity[$1] = $3 }
+      next
+    }
+    FNR == 1 { next }
+    {
+      equip_id = $1; customer = $2; model = $3; serial = $4;
+      if (model in recalls) {
+        printf "RECALL MATCH: equipment %s at %s — model %s (serial %s) — %s [%s]\n", equip_id, customer, model, serial, recalls[model], severity[model];
+      }
+    }
+  ' "{{recall_list_csv_path}}" "{{installed_equipment_csv_path}}"
+variables:
+  recall_list_csv_path:
+    default: "./manufacturer-recall-list.csv"
+    description: "Path to a CSV with columns: model_number,recall_notice,severity. Update periodically from manufacturer or CPSC recall bulletins."
+  installed_equipment_csv_path:
+    default: "./installed-equipment.csv"
+    description: "Path to a CSV with columns: equipment_id,customer_name,model_number,serial_number,install_date."
+compatible_agents: [generic, claude, codex]
+notes: Verify the serial number falls within the recalled range before contacting the customer — recalls are sometimes scoped to a serial range, not the whole model line. Differs from equipment-warranty-status-flagging, which tracks warranty expiration, not safety recalls.

@@ -1,0 +1,43 @@
+id: broker-of-record-transfer-tracker
+version: 1
+name: Broker of Record Letter Transfer Tracker
+description: >
+  Checks pending Broker of Record (BOR) letters against each carrier's
+  contest/processing deadline and flags any that are about to expire
+  unprocessed or unconfirmed. Use this if a BOR letter has ever sat with
+  a carrier past the window where the losing agency could contest it,
+  putting the account transfer at risk of falling through silently.
+category: insurance
+tags: [insurance, broker-of-record, bor, agency, operations]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn="{{warn_days_before_deadline}}" '
+    NR==1 {next}
+    $4 == "pending" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline deadline_epoch; close(cmd);
+      days_left = (deadline_epoch - today) / 86400;
+      if (days_left < 0) {
+        printf "EXPIRED UNCONFIRMED: %s — %s BOR deadline %s already passed with no confirmation\n", $1, $2, $3;
+      } else if (days_left <= warn) {
+        printf "AT RISK: %s — %s BOR deadline %s (%d days left, still pending)\n", $1, $2, $3, days_left;
+      }
+    }
+  ' "{{bor_letters_csv_path}}"
+variables:
+  bor_letters_csv_path:
+    default: "./bor-letters.csv"
+    description: "Path to a CSV with columns: client_name,carrier_name,carrier_deadline_date (YYYY-MM-DD),status (pending/confirmed/contested)."
+  warn_days_before_deadline:
+    default: 5
+    description: How many days before the carrier's BOR processing deadline to start flagging as at risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks BOR letter processing deadlines specific to an agency-to-agency
+  account transfer, separate from carrier-appointment-renewal-tracker
+  (which tracks the agency's own appointment status with a carrier, not
+  a client's BOR transfer) and endorsement-request-followup-check (which
+  is about routine policy change requests, not BOR transfers).

@@ -1,0 +1,51 @@
+id: fire-safety-drill-compliance-tracker
+version: 1
+name: Fire & Safety Drill Compliance Tracker
+description: >
+  Tallies completed fire, lockdown, and severe-weather drills per school
+  against the state-required count for the year to date and flags any
+  school falling behind. Use this if a school has ever gotten to a state
+  audit or a parent complaint before anyone realized the required number
+  of drills hadn't actually been run.
+category: education
+tags: [education, safety, compliance, drills]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v fireReq="{{required_fire_drills}}" -v lockdownReq="{{required_lockdown_drills}}" -v weatherReq="{{required_weather_drills}}" '
+    NR==1 {next}
+    {
+      school=$1; type=$2; completed[school","type]++;
+      seen[school]=1;
+    }
+    END {
+      for (school in seen) {
+        fire = completed[school",fire"]+0;
+        lockdown = completed[school",lockdown"]+0;
+        weather = completed[school",severe_weather"]+0;
+        if (fire < fireReq) printf "SHORTFALL: %s — fire drills %d/%d\n", school, fire, fireReq;
+        if (lockdown < lockdownReq) printf "SHORTFALL: %s — lockdown drills %d/%d\n", school, lockdown, lockdownReq;
+        if (weather < weatherReq) printf "SHORTFALL: %s — severe weather drills %d/%d\n", school, weather, weatherReq;
+      }
+    }
+  ' "{{drill_log_csv_path}}"
+variables:
+  drill_log_csv_path:
+    default: "./drill-log.csv"
+    description: "Path to a CSV with columns: school,drill_type (fire, lockdown, or severe_weather),drill_date."
+  required_fire_drills:
+    default: 6
+    description: Number of fire drills required year-to-date by this point in the school year (varies by state).
+  required_lockdown_drills:
+    default: 2
+    description: Number of lockdown drills required year-to-date by this point in the school year.
+  required_weather_drills:
+    default: 2
+    description: Number of severe-weather (tornado/earthquake) drills required year-to-date by this point in the school year.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Required counts vary widely by state — set the thresholds to match your
+  state's cumulative requirement for the point in the year this job runs,
+  not the full-year total. Distinct from facility-work-order-backlog-check,
+  which tracks physical maintenance rather than drill compliance.

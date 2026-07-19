@@ -1,0 +1,41 @@
+id: unearned-premium-refund-tracker
+version: 1
+name: Unearned Premium Refund Tracker
+description: >
+  Checks mid-term cancelled policies for an unearned premium refund that
+  hasn't been issued within the target turnaround window and flags them.
+  Use this if a policyholder has ever cancelled mid-term and waited weeks
+  past a reasonable window for their prorated refund with nobody
+  tracking whether it actually went out.
+category: insurance
+tags: [insurance, refund, cancellation, premium, operations]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{refund_sla_days}}" '
+    NR==1 {next}
+    $4 == "not_issued" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline cancel_epoch; close(cmd);
+      age_days = (today - cancel_epoch) / 86400;
+      if (age_days >= sla) {
+        printf "REFUND OVERDUE: policy %s — cancelled %s (%d days ago), $%s unearned premium still not refunded\n", $1, $2, age_days, $3;
+      }
+    }
+  ' "{{cancelled_policies_csv_path}}"
+variables:
+  cancelled_policies_csv_path:
+    default: "./cancelled-policies-refunds.csv"
+    description: "Path to a CSV with columns: policy_number,cancellation_date (YYYY-MM-DD),unearned_premium_amount,refund_status (issued/not_issued)."
+  refund_sla_days:
+    default: 15
+    description: Days after cancellation a refund can take before it's flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the refund owed to the policyholder after a mid-term
+  cancellation, the reverse of premium-payment-delinquency-tracker
+  (money owed to the carrier/agency) and distinct from
+  direct-bill-agency-bill-reconciliation-check (which reconciles billing
+  entries between agency and carrier, not refunds owed to customers).

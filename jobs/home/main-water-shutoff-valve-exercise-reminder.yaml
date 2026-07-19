@@ -1,0 +1,35 @@
+id: main-water-shutoff-valve-exercise-reminder
+version: 1
+name: Main Water Shutoff Valve Exercise Reminder
+description: >
+  Reminds you to turn the home's main water shutoff valve fully closed and
+  back open at least once, based on how long it's been since the last time
+  you did it. Use this if you've ever had a burst pipe and discovered the
+  main valve was seized solid from mineral buildup, so you couldn't stop
+  the flooding while you waited for a plumber.
+category: home
+tags: [home, plumbing, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_exercised_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: main water shutoff valve last exercised $days_since day(s) ago (every ${interval} months) — turn it fully closed then fully open, and note if it feels stiff, leaks at the stem, or won't turn.";
+  else echo "OK: exercised $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_exercised_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last exercised the main shutoff valve — update this yourself.
+  interval_months:
+    default: 12
+    description: How often to exercise the valve, in months.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You update last_exercised_date yourself after each test. Have a
+  towel and a wrench ready in case the stem weeps once turned. If the valve
+  won't budge or won't seal fully closed, get it replaced before you need it
+  in an actual emergency rather than during one.

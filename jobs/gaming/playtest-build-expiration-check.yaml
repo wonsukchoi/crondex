@@ -1,0 +1,52 @@
+id: playtest-build-expiration-check
+version: 1
+name: Playtest/Beta Build Expiration Check
+description: >
+  Reviews your active playtest or beta distribution builds (TestFlight,
+  Play Console internal/closed testing, Steam playtest branch) and warns
+  before one expires or hits its tester-count cap, locking testers out
+  mid-playtest. Use this if a TestFlight build has ever silently expired
+  after its 90-day window while a playtest was still running, cutting off
+  testers with zero warning and losing days of feedback collection.
+category: gaming
+tags: [gaming, playtest, beta, release, live-ops]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Check the status of each active playtest/beta build for {{game_name}}
+  across {{distribution_platforms}}.
+  1. For each build, find its expiration date (TestFlight builds expire
+     90 days after upload; Play Console and Steam playtest branches vary
+     by configuration) and its current tester/install count against any
+     platform cap.
+  2. Flag any build that expires within {{warn_days_before}} days, or
+     that has used more than {{tester_cap_warn_pct}}% of its allotted
+     tester slots.
+  3. For each flagged build, note what action is needed (upload a fresh
+     build before expiry, request a tester-cap increase, or wind the
+     playtest down on schedule) — do not upload, resubmit, or modify any
+     build yourself, this is a report only.
+  4. If nothing is close to expiring or capped, report that in one line.
+variables:
+  game_name:
+    default: "your game"
+    description: Name of the game/title running the playtest.
+  distribution_platforms:
+    default: "TestFlight, Play Console internal testing"
+    description: Comma-separated list of playtest/beta distribution platforms in use.
+  warn_days_before:
+    default: 14
+    description: How many days before a build's expiration to start warning.
+  tester_cap_warn_pct:
+    default: 85
+    description: Percentage of the tester/install slot cap that triggers a warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  No distribution platform exposes a single generic API for this, so the
+  agent needs read access to App Store Connect, Play Console, and/or
+  Steamworks (or an export of the same). Distinct from
+  playtest-feedback-digest (summarizing what testers said) and
+  platform-cert-deadline-tracker (store certification/age-rating
+  deadlines) — this one is purely about the build's distribution window
+  and capacity, not its content or feedback.

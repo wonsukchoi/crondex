@@ -1,0 +1,48 @@
+id: achievement-unlock-rate-anomaly-check
+version: 1
+name: Achievement/Trophy Unlock Rate Anomaly Check
+description: >
+  Scans an achievement/trophy stats export and flags any achievement whose
+  unlock rate is suspiciously low across your active player base, which
+  usually means its unlock trigger is broken rather than that it's just
+  hard. Use this if an achievement has ever sat at 0% unlocked for weeks
+  after a content update silently broke the event it listens for, and
+  nobody noticed because achievements aren't on anyone's crash dashboard.
+category: gaming
+tags: [gaming, achievements, telemetry, quality, live-ops]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v thr="{{min_unlock_pct}}" -v minplayers="{{min_active_players}}" '
+    NR==1 {next}
+    {
+      achievement_id=$1; unlocks=$2; active_players=$3;
+      if (active_players+0 < minplayers+0) { next; }
+      pct = (unlocks / active_players) * 100;
+      if (pct < thr) {
+        printf "SUSPICIOUSLY LOW: %s unlocked by %.2f%% of %d active players (threshold %s%%)\n", achievement_id, pct, active_players, thr;
+        flagged=1;
+      }
+    }
+    END { if (!flagged) print "OK: no achievements below " thr "% unlock rate" }
+  ' "{{achievement_stats_csv_path}}"
+variables:
+  achievement_stats_csv_path:
+    default: "./achievement-stats.csv"
+    description: "Path to a CSV with columns: achievement_id,unlock_count,active_player_count."
+  min_unlock_pct:
+    default: 0.5
+    description: Unlock rate percentage below which an achievement is flagged as likely broken (tune per how rare your rarest legitimate achievements are).
+  min_active_players:
+    default: 1000
+    description: Minimum active player count required before evaluating an achievement, so brand-new or low-population titles don't get false positives.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a broken-trigger detector, not a difficulty-balance tool — a
+  genuinely rare "beat the game on hardest difficulty" achievement can sit
+  under the threshold legitimately, so tune min_unlock_pct per achievement
+  tier if your title has multiple rarity bands. Distinct from
+  leaderboard-anomaly-check (competitive score integrity) and
+  loot-drop-rate-anomaly-check (drop-table RNG) — this one is about
+  achievement trigger health.

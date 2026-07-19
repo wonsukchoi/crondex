@@ -1,0 +1,34 @@
+id: referral-program-reward-payout-delay-check
+version: 1
+name: Referral Program Reward Payout Delay Check
+description: >
+  Checks the customer referral program's reward ledger for earned rewards
+  (cash, credit, or discount codes) that haven't been issued to the
+  referring customer within the promised timeframe, and flags them. Use
+  this if a referral reward has ever gone unpaid for weeks after a
+  successful referral because the payout step depended on someone
+  manually running a report that nobody ran.
+category: marketing
+tags: [marketing, referral, loyalty, payouts]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select referrer_id, reward_type, reward_amount, earned_at from referral_rewards where status = 'earned' and earned_at < now() - interval '{{payout_sla_days}} days' order by earned_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or referral platform export tracking earned and issued rewards.
+  payout_sla_days:
+    default: 7
+    description: Number of days after a reward is earned before it must be issued to comply with the program's stated SLA.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `referral_rewards` table with `referrer_id`, `reward_type`,
+  `reward_amount`, `earned_at`, and `status` (`earned` vs `issued`)
+  columns, typically synced from a referral platform (ReferralCandy,
+  Friendbuy, Talkable) or spreadsheet. Read-only query; a flagged row
+  means someone should issue the reward, not that this job pays it out
+  automatically. Distinct from co-marketing-partner-mdf-utilization-check
+  (B2B partner funds) and influencer-campaign-deliverable-tracker
+  (content obligations) — this is consumer referral cash/credit owed.

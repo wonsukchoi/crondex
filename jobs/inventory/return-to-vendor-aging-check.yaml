@@ -1,0 +1,38 @@
+id: return-to-vendor-aging-check
+version: 1
+name: Return to Vendor Aging Check
+description: >
+  Flags stock already authorized for return to a supplier (RTV) that
+  hasn't actually shipped back within a set number of days of
+  authorization. Use this if defective or excess stock has ever sat in
+  a corner marked "returning to supplier" for weeks, tying up space and
+  delaying the credit or replacement you're owed, because the decision
+  to return it had been made but nobody followed through on shipping it.
+category: inventory
+tags: [inventory, rtv, returns, suppliers, aging]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_unshipped}}" '
+    NR==1 {next}
+    $6 != "" {next}
+    {
+      cmd = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $5 "\" +%s 2>/dev/null";
+      cmd | getline authorized_epoch; close(cmd);
+      days_since = (today - authorized_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "UNSHIPPED RTV: %s — %d units of %s to %s, authorized %s (%d days, not yet shipped)\n", $1, $4, $2, $3, $5, days_since;
+      }
+    }
+  ' "{{rtv_log_csv_path}}"
+variables:
+  rtv_log_csv_path:
+    default: "./rtv-log.csv"
+    description: "Path to a CSV with columns: rtv_id,sku,supplier,quantity,authorized_date (YYYY-MM-DD),shipped_date (blank if not yet shipped)."
+  max_days_unshipped:
+    default: 10
+    description: Days since authorized_date before an unshipped RTV is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes an RTV log where authorized_date is only set once someone has already decided the stock is going back to the supplier. Distinct from `quality-hold-stock-aging-check`, which flags stock still awaiting that disposition decision — this tracks stock where the decision to return is already made but the shipment hasn't gone out.

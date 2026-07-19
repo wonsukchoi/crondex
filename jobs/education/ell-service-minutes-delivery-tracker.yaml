@@ -1,0 +1,39 @@
+id: ell-service-minutes-delivery-tracker
+version: 1
+name: English Learner Service Minutes Delivery Tracker
+description: >
+  Compares each English Learner (EL) student's required weekly language
+  support minutes against the minutes actually logged as delivered and
+  flags shortfalls. Use this if an EL student has ever gone weeks without
+  their full mandated language-support time because scheduling gaps or a
+  staff absence quietly ate into service minutes and nobody reconciled the
+  log against the requirement.
+category: education
+tags: [education, ell, esl, compliance, students]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v tolerance="{{shortfall_tolerance_minutes}}" '
+    NR==1 {next}
+    {
+      required = $2; delivered = $3;
+      shortfall = required - delivered;
+      if (shortfall > tolerance) {
+        printf "SHORTFALL: %s — required %d min/week, delivered %d min (%d min short)\n", $1, required, delivered, shortfall;
+      }
+    }
+  ' "{{ell_service_log_csv_path}}"
+variables:
+  ell_service_log_csv_path:
+    default: "./ell-service-log.csv"
+    description: "Path to a CSV with columns: student_name,required_weekly_minutes,delivered_weekly_minutes."
+  shortfall_tolerance_minutes:
+    default: 10
+    description: Minutes of shortfall tolerated before a student is flagged (accounts for minor scheduling rounding).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from iep-service-minutes-delivery-tracker — EL service minutes
+  come from Title III / state EL-program requirements, not an IEP, and a
+  student can be flagged here without any special-education plan at all.
+  A student on both an IEP and an EL plan should be checked with both jobs.

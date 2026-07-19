@@ -1,0 +1,42 @@
+id: form-1099-vendor-missing-w9-check
+version: 1
+name: Form 1099 Vendor Missing W-9 Check
+description: >
+  Scans year-to-date vendor and contractor payments for anyone paid
+  above the 1099-NEC reporting threshold who doesn't have a W-9 on
+  file, and warns as the January 31 filing deadline approaches. Use
+  this if a contractor has ever been paid all year without collecting a
+  W-9 up front, leaving finance scrambling to track down a tax ID from
+  someone who's since stopped responding, right before filings are due.
+category: nonprofit
+tags: [nonprofit, compliance, finance, vendors, tax]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  due_ts=$(date -d "{{filing_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{filing_deadline}}" +%s);
+  days_left=$(( (due_ts - today) / 86400 ));
+  echo "1099-NEC filing deadline {{filing_deadline}}: $days_left days left";
+  awk -F',' -v threshold={{reporting_threshold}} '
+    NR>1 && $2+0 >= threshold && $3 == "no" {
+      print "MISSING W-9: " $1 " — paid $" $2 " YTD, no W-9 on file";
+    }
+  ' "{{vendors_csv}}"
+variables:
+  vendors_csv:
+    default: "vendors-ytd.csv"
+    description: "CSV with header row, columns: vendor_name,total_paid_ytd,w9_on_file(yes/no)."
+  reporting_threshold:
+    default: 600
+    description: "Dollar amount at or above which a 1099-NEC is typically required for a non-employee — confirm the current IRS threshold with your accountant, this is not tax advice."
+  filing_deadline:
+    default: "2027-01-31"
+    description: Date 1099-NEC forms are due to recipients and the IRS (YYYY-MM-DD) — update each year.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `form-990-filing-deadline-reminder`, which covers the
+  organization's own annual tax return — this covers the org's
+  obligation to report payments it made to others. Not tax advice;
+  confirm the current threshold and any exceptions with your
+  accountant before filing.

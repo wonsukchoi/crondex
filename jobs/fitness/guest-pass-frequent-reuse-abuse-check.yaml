@@ -1,0 +1,41 @@
+id: guest-pass-frequent-reuse-abuse-check
+version: 1
+name: Guest Pass Frequent Reuse Abuse Check
+description: >
+  Counts how many times each guest email has redeemed a free trial or
+  guest pass within the exported window and flags anyone over the
+  allowed limit. Use this if the same non-member has ever cycled through
+  "one free trial visit" passes for months under slightly different
+  names because nobody was cross-checking redemptions by email address.
+category: fitness
+tags: [fitness, membership, sales, guest-passes]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_visits="{{max_free_visits}}" '
+    NR==1 {next}
+    { count[$2]++; name[$2] = $1; }
+    END {
+      for (email in count) {
+        if (count[email] > max_visits) {
+          printf "GUEST PASS OVERUSE: %s <%s> — %d free visits (limit %d)\n", name[email], email, count[email], max_visits;
+        }
+      }
+    }
+  ' "{{guest_pass_log_csv_path}}"
+variables:
+  guest_pass_log_csv_path:
+    default: "./guest-pass-redemptions.csv"
+    description: "Path to a CSV with columns: guest_name,guest_email,visit_date,pass_type — already filtered to the lookback window you care about (e.g. last 90 days)."
+  max_free_visits:
+    default: 3
+    description: Maximum number of free trial/guest pass redemptions allowed per email before flagging as overuse.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Different from referral-followup-reminder and new-member-onboarding-checkin,
+  which are about converting or welcoming genuine prospects — this job is a
+  sales-integrity check aimed at people repeatedly re-using free access
+  rather than converting to membership. Output is a review list only;
+  do not auto-block a guest email without a human confirming it's not a
+  data-entry duplicate.

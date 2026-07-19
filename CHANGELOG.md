@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-07-19
+
+### Added
+
+- 80 new jobs deepening 16 more categories past their 32-job baseline
+  (education, events, fieldservice, fitness, gaming, growth, hiring,
+  home, insurance, inventory, investing, learning, legal, marketing,
+  moving-relocation, nonprofit), 5 per category, each checked against
+  every existing filename in its category for real distinctness before
+  writing. First batch toward a much larger, evenly-spread catalog
+  (see ROADMAP.md §4).
+
+### Fixed
+
+- Renamed a new inventory job (`cycle-count-schedule-check` ->
+  `sku-cycle-count-overdue-check`) that collided in `id` with an
+  existing warehousing job of the same name — caught by `npm run
+  validate`.
+- Fixed a shellcheck SC1011/SC1036 failure in a new hiring job
+  (`passive-candidate-outreach-reply-lag-check`) caused by an
+  apostrophe (`%s's`) breaking out of a single-quoted awk script.
+- Fixed a real unbound-variable bug in a new investing job
+  (`margin-maintenance-call-risk-check`): the OK-branch echo referenced
+  `$warn_cushion_pct` as a shell variable, but it was only ever
+  substituted into the awk invocation via `{{warn_cushion_pct}}` — the
+  shell itself never had that variable set. Caught by `npm run
+  smoke-test` (`unbound variable`, exit 127).
+
 ## [0.77.0] - 2026-07-19
 
 ### Added

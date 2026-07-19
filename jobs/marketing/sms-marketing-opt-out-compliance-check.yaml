@@ -1,0 +1,32 @@
+id: sms-marketing-opt-out-compliance-check
+version: 1
+name: SMS Marketing Opt-Out Compliance Check
+description: >
+  Queries the SMS marketing platform's opt-out log for STOP requests that
+  are still unprocessed (still eligible to receive sends) past the
+  allowed processing window, and flags them. Use this if an SMS opt-out
+  has ever slipped through and a customer who texted STOP kept getting
+  promotional messages, risking a compliance complaint.
+category: marketing
+tags: [marketing, sms, compliance, opt-out, tcpa]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select phone_number_hash, opt_out_requested_at, processed from sms_opt_outs where processed = false and opt_out_requested_at < now() - interval '{{max_processing_hours}} hours' order by opt_out_requested_at asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database or warehouse tracking SMS opt-out requests, typically synced from your SMS/CPaaS provider (Twilio, Attentive, Klaviyo SMS).
+  max_processing_hours:
+    default: 24
+    description: Hours an opt-out request is allowed to sit before it must be marked processed and suppressed from future sends.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes an `sms_opt_outs` table with `phone_number_hash`,
+  `opt_out_requested_at`, and `processed` columns; store a hash rather
+  than the raw phone number if this query's output will be logged
+  anywhere. Read-only query — a flagged row means someone must confirm
+  the number is suppressed in the sending platform, not that this job
+  removes it automatically. Distinct from email-deliverability-check
+  (a different channel with different compliance rules).

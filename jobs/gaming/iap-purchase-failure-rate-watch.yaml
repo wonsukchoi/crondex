@@ -1,0 +1,50 @@
+id: iap-purchase-failure-rate-watch
+version: 1
+name: In-App Purchase Failure Rate Watch
+description: >
+  Checks a payment/transaction log export for the share of in-app
+  purchase attempts that errored out (declined, timed out, gateway error)
+  rather than simply not converting, and warns when the failure rate
+  spikes. Use this if a payment provider outage or a broken receipt
+  validation deploy has ever silently blocked real purchase attempts for
+  hours while the only dashboard anyone watched was overall revenue, which
+  looked "just a bit soft" instead of screaming an error.
+category: gaming
+tags: [gaming, monetization, iap, payments, reliability]
+schedule: "*/15 * * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v thr="{{max_failure_rate_pct}}" -v mintx="{{min_transaction_count}}" '
+    NR==1 { next }
+    { total++; if ($2 == "failed" || $2 == "error" || $2 == "timeout") { failed++ } }
+    END {
+      if (total < mintx) { print "OK: only " total " transactions in window, below minimum " mintx " to evaluate"; exit 0; }
+      pct = (failed / total) * 100;
+      if (pct > thr) {
+        printf "WARNING: IAP failure rate %.1f%% (%d of %d transactions) exceeds threshold %s%%\n", pct, failed, total, thr;
+        exit 1;
+      } else {
+        printf "OK: IAP failure rate %.1f%% (%d of %d transactions)\n", pct, failed, total;
+      }
+    }
+  ' "{{transaction_log_csv_path}}"
+variables:
+  transaction_log_csv_path:
+    default: "./iap-transactions.csv"
+    description: "Path to a CSV of recent purchase attempts with columns: transaction_id,status (one of completed/failed/error/timeout), covering the lookback window."
+  max_failure_rate_pct:
+    default: 8
+    description: Failure-rate percentage that triggers a warning.
+  min_transaction_count:
+    default: 20
+    description: Minimum transaction count in the window required before evaluating the rate, to avoid false alarms during low-traffic hours.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Export the transaction log from your store/payment platform (App Store
+  Connect, Google Play Console, Steamworks, or your own payment gateway)
+  on the same interval as this job runs. Distinct from
+  monetization-conversion-rate-watch (players choosing not to buy) and
+  in-game-store-price-parity-check (pricing mismatches) — this one
+  catches purchases that failed mechanically, which is a reliability bug,
+  not a merchandising problem.

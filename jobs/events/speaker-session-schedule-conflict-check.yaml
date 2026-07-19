@@ -1,0 +1,57 @@
+id: speaker-session-schedule-conflict-check
+version: 1
+name: Speaker Session Schedule Conflict Check
+description: >
+  Scans the event agenda for any speaker assigned to two sessions that
+  overlap in time on the same day and flags the double-booking. Use this
+  if a multi-track event has ever discovered on-site that a keynote
+  speaker was also scheduled to lead a breakout session at the exact
+  same hour.
+category: events
+tags: [events, speakers, scheduling, agenda]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      speaker=$1; session=$2; date=$3; st=$4; en=$5;
+      split(st,sa,":"); start_min = sa[1]*60+sa[2];
+      split(en,ea,":"); end_min = ea[1]*60+ea[2];
+      key = speaker "|" date;
+      n[key]++;
+      idx = n[key];
+      sess[key,idx] = session;
+      starts[key,idx] = start_min;
+      ends[key,idx] = end_min;
+      if (!(key in seen)) { seen[key]=1; keys[++nk]=key }
+    }
+    END {
+      for (k=1; k<=nk; k++) {
+        key = keys[k];
+        cnt = n[key];
+        for (i=1; i<=cnt; i++) {
+          for (j=i+1; j<=cnt; j++) {
+            if (starts[key,i] < ends[key,j] && starts[key,j] < ends[key,i]) {
+              split(key, parts, "|");
+              printf "CONFLICT: %s is double-booked on %s — \"%s\" overlaps \"%s\"\n", parts[1], parts[2], sess[key,i], sess[key,j];
+            }
+          }
+        }
+      }
+    }
+  ' "{{agenda_csv_path}}"
+variables:
+  agenda_csv_path:
+    default: "./event-agenda.csv"
+    description: "Path to a CSV with columns: speaker_name,session_title,session_date (YYYY-MM-DD),start_time (HH:MM 24h),end_time (HH:MM 24h). One row per session assignment."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Only compares sessions on the same calendar date for the same speaker
+  name — inconsistent spelling of a speaker's name across rows will hide
+  a real conflict, so keep the agenda's speaker_name column standardized.
+  This is different from exhibitor-booth-assignment-conflict-check (booth
+  space conflicts, not people's time) and speaker-confirmation-deadline-check
+  (whether a speaker has confirmed at all, not whether their schedule
+  overlaps).

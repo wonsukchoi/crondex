@@ -1,0 +1,51 @@
+id: event-hashtag-social-buzz-lull-check
+version: 1
+name: Event Hashtag Social Buzz Lull Check
+description: >
+  Reads a daily mention-count log for your event hashtag (exported from
+  whatever social listening or analytics tool you use) and flags when the
+  recent average has fallen below your promotional target ahead of the
+  event. Use this if a conference or festival has ever gone quiet on
+  social media for a week during the promo window and nobody noticed
+  until ticket sales also went flat.
+category: events
+tags: [events, marketing, social, promotion]
+schedule: "0 10 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  avg=$(awk -F',' -v lookback="{{lookback_days}}" '
+    NR==1 {next}
+    { n++; counts[n]=$2 }
+    END {
+      total=0; cnt=0;
+      for (i=n; i>=1 && cnt<lookback; i--) { total+=counts[i]; cnt++ }
+      if (cnt>0) printf "%.1f", total/cnt; else print "0"
+    }
+  ' "{{mentions_log_csv_path}}");
+  threshold="{{min_daily_mentions_threshold}}";
+  if awk -v a="$avg" -v t="$threshold" 'BEGIN{exit !(a < t)}'; then
+    echo "BUZZ LULL: average of $avg mentions/day over the last {{lookback_days}} days, below the {{min_daily_mentions_threshold}}/day target ahead of {{event_date}} — consider a promo push";
+  else
+    echo "OK: average of $avg mentions/day over the last {{lookback_days}} days, at or above the {{min_daily_mentions_threshold}}/day target";
+  fi
+variables:
+  mentions_log_csv_path:
+    default: "./event-hashtag-mentions.csv"
+    description: "Path to a CSV with columns: date (YYYY-MM-DD),mention_count, one row per day, sorted oldest-first, exported from your social listening tool."
+  lookback_days:
+    default: 7
+    description: How many of the most recent rows to average.
+  min_daily_mentions_threshold:
+    default: 20
+    description: Minimum acceptable average daily mentions during the promo window.
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event, used only in the output message for context.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is a leading-indicator check on promotional reach, not sales —
+  distinct from ticket-sales-pace-check, which compares actual ticket
+  conversions against a sales curve. A buzz lull can precede a sales
+  slowdown by days, so treat this as an early nudge to boost promotion,
+  not proof that sales are actually behind.

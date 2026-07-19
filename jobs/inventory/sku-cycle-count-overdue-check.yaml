@@ -1,0 +1,37 @@
+id: sku-cycle-count-overdue-check
+version: 1
+name: SKU Cycle Count Overdue Check
+description: >
+  Flags SKUs that are overdue for their required cycle count based on
+  each SKU's assigned counting frequency (typically driven by ABC class)
+  and the date it was last actually counted. Use this if a SKU has ever
+  gone months without a physical count simply because nobody was
+  tracking whether counts were happening on schedule in the first place.
+category: inventory
+tags: [inventory, cycle-count, schedule, compliance]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v grace="{{grace_days}}" '
+    NR==1 {next}
+    {
+      sku=$1; freq_days=$3+0;
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline last_counted_epoch; close(cmd);
+      days_since = (today - last_counted_epoch) / 86400;
+      if (days_since >= (freq_days + grace)) {
+        printf "OVERDUE COUNT: %s — class %s, due every %d days, last counted %s (%d days ago)\n", sku, $2, freq_days, $4, days_since;
+      }
+    }
+  ' "{{cycle_count_schedule_csv_path}}"
+variables:
+  cycle_count_schedule_csv_path:
+    default: "./cycle-count-schedule.csv"
+    description: "Path to a CSV with columns: sku,abc_class,required_count_frequency_days,last_counted_date (YYYY-MM-DD)."
+  grace_days:
+    default: 3
+    description: Extra days past the required frequency allowed before a missed count is flagged, to absorb normal scheduling slack.
+compatible_agents: [generic, claude, codex]
+notes: Assumes required_count_frequency_days is already set per SKU (commonly tighter for A-class than C-class items) — pair with `abc-classification-drift-check` to keep that frequency assignment itself accurate. Distinct from `cycle-count-accuracy-by-counter-check`, which judges whether completed counts were accurate, and `inventory-count-discrepancy-check`, which judges a single count's result — this only checks whether a count happened at all within policy.

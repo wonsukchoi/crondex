@@ -1,0 +1,47 @@
+id: tournament-prize-payout-overdue-check
+version: 1
+name: Tournament Prize Payout Overdue Check
+description: >
+  Scans a tournament prize-payout ledger and flags winners who haven't
+  been paid within your promised payout window. Use this if a tournament
+  organizer has ever gone quiet on a prize payment for weeks after an
+  event ended, souring players/teams on entering future tournaments and
+  turning into a public complaint before finance even noticed the invoice
+  was sitting unpaid.
+category: gaming
+tags: [gaming, esports, tournament, finance, payouts]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{overdue_days}}" '
+    NR==1 { next }
+    {
+      recipient=$1; amount=$2; event_end_date=$3; paid=$4;
+      if (paid == "yes" || paid == "paid") { next }
+      cmd = "date -d \"" event_end_date "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" event_end_date "\" +%s 2>/dev/null";
+      cmd | getline end_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (now_epoch - end_epoch) / 86400;
+      if (diff_days >= days) {
+        printf "OVERDUE PAYOUT: %s owed %s since event ended %s (%d days overdue)\n", recipient, amount, event_end_date, diff_days;
+        flagged=1;
+      }
+    }
+    END { if (!flagged) print "OK: no payouts overdue beyond " days " days" }
+  ' "{{payout_ledger_csv_path}}"
+variables:
+  payout_ledger_csv_path:
+    default: "./tournament-payouts.csv"
+    description: "Path to a CSV with columns: recipient_name,prize_amount,event_end_date (YYYY-MM-DD),paid_status (yes/no)."
+  overdue_days:
+    default: 14
+    description: Number of days after the event ends before an unpaid prize is flagged as overdue.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Report-only — it flags overdue rows in the ledger, it never issues a
+  payment or contacts anyone. Keep the paid_status column updated as
+  finance processes each payout, or this will re-flag the same rows every
+  run. Distinct from tournament-registration-deadline-check (getting into
+  an event) and player-contract-renewal-check (ongoing roster contracts)
+  — this one is strictly about post-event prize money owed to winners.

@@ -1,0 +1,39 @@
+id: mortgagee-loss-payee-accuracy-check
+version: 1
+name: Mortgagee / Loss Payee Accuracy Check
+description: >
+  Compares the mortgagee or loss-payee name and address on file for each
+  property policy against the lender's current records and flags any
+  mismatch. Use this if a policy has ever been flagged for lender-placed
+  (force-placed) insurance because the mortgagee clause was outdated
+  after a loan was sold or refinanced.
+category: insurance
+tags: [insurance, mortgagee, loss-payee, property, compliance]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      gsub(/^ +| +$/, "", $2); gsub(/^ +| +$/, "", $3);
+      norm_policy = tolower($2); gsub(/[^a-z0-9]/, "", norm_policy);
+      norm_lender = tolower($3); gsub(/[^a-z0-9]/, "", norm_lender);
+      if (norm_policy != norm_lender) {
+        printf "MISMATCH: policy %s — on file: \"%s\" vs lender record: \"%s\"\n", $1, $2, $3;
+      }
+    }
+  ' "{{mortgagee_comparison_csv_path}}"
+variables:
+  mortgagee_comparison_csv_path:
+    default: "./mortgagee-comparison.csv"
+    description: "Path to a CSV with columns: policy_number,mortgagee_on_policy,mortgagee_per_lender. Build the lender column from the servicer's most recent loan statement or payoff letter."
+compatible_agents: [generic, claude, codex]
+notes: >
+  Verifies the accuracy of an existing mortgagee/loss-payee clause on
+  in-force policies, which is different from
+  certificate-of-insurance-request-check (which tracks unfulfilled COI
+  requests, not clause accuracy on policies that already have a COI on
+  file). Name matching here is loose (case/punctuation-insensitive) —
+  always have a human confirm a flagged mismatch before contacting the
+  lender or policyholder.

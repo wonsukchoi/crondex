@@ -1,0 +1,52 @@
+id: registration-abandoned-checkout-recovery-reminder
+version: 1
+name: Registration Abandoned Checkout Recovery Reminder
+description: >
+  Reviews the registration/ticketing platform's abandoned-checkout log
+  and drafts short recovery emails for people who started signing up but
+  didn't finish, so they can be nudged before they forget. Use this if a
+  ticketed event has ever lost registrants who added a ticket to their
+  cart, hit a snag or got distracted, and simply never came back to
+  finish checkout.
+category: events
+tags: [events, registration, recovery, ticketing]
+schedule: "0 */6 * * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review the abandoned registration/checkout log at
+  {{abandoned_checkouts_source}} for the event on {{event_date}}.
+  1. Find people who started registration or ticket checkout but didn't
+     complete it within the last {{abandoned_within_hours}} hours.
+  2. Exclude anyone already marked as contacted, refunded, or who
+     completed registration through another channel.
+  3. For up to {{max_recipients_per_run}} of the most recent abandoners,
+     draft a short, friendly recovery message reminding them their spot
+     isn't held and offering to help if something went wrong at checkout
+     (payment error, sold-out ticket tier, confusing form, etc.) —
+     tailor the reason if the log shows one.
+  4. Save all drafts for manual review and sending. Do not send anything
+     automatically, and do not draft more than {{max_recipients_per_run}}
+     messages in one run.
+variables:
+  abandoned_checkouts_source:
+    default: "abandoned-checkouts.csv"
+    description: "Path or connector for the abandoned checkout log (columns like email, name, checkout_started_at, status)."
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event, for context in the drafted message.
+  abandoned_within_hours:
+    default: 48
+    description: Only consider checkouts abandoned within this many hours as still worth recovering.
+  max_recipients_per_run:
+    default: 25
+    description: Cap on how many recovery drafts to generate per run, to keep outreach from feeling spammy.
+compatible_agents: [claude, codex, generic]
+notes: >
+  Drafts only — a human reviews and sends every message, since a
+  premature or oddly-worded nudge can feel worse than no follow-up. This
+  targets people who started checkout and stalled mid-funnel, which is
+  different from waitlist-conversion-outreach (people who never got a
+  ticket at all and are waiting for one to open up) and
+  rsvp-followup-reminder (people who already completed an RSVP and need a
+  next-step nudge).

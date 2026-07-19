@@ -1,0 +1,38 @@
+id: customer-return-restock-backlog-check
+version: 1
+name: Customer Return Restock Backlog Check
+description: >
+  Flags customer-returned merchandise that's been sitting since receipt
+  without an inspection or restock decision logged, past a set number
+  of days. Use this if returned stock has ever been physically back in
+  the building — and effectively unsellable until someone processes it
+  — while it still showed as unavailable because nobody had gotten
+  around to inspecting and restocking it.
+category: inventory
+tags: [inventory, returns, restock, backlog]
+schedule: "0 8 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v max_days="{{max_days_unprocessed}}" '
+    NR==1 {next}
+    $5 != "" {next}
+    {
+      cmd = "date -d \"" $4 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $4 "\" +%s 2>/dev/null";
+      cmd | getline received_epoch; close(cmd);
+      days_since = (today - received_epoch) / 86400;
+      if (days_since >= max_days) {
+        printf "UNPROCESSED RETURN: %s — %d units of %s, received %s (%d days, no restock decision)\n", $1, $3, $2, $4, days_since;
+      }
+    }
+  ' "{{customer_returns_csv_path}}"
+variables:
+  customer_returns_csv_path:
+    default: "./customer-returns.csv"
+    description: "Path to a CSV with columns: return_id,sku,quantity,received_date (YYYY-MM-DD),restock_decision_date (blank if not yet inspected/restocked)."
+  max_days_unprocessed:
+    default: 5
+    description: Days since received_date before an unprocessed customer return is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Assumes a returns intake log separate from your general inventory adjustments feed. Distinct from `return-to-vendor-aging-check` (stock going back out to a supplier) and `stale-inventory-reservation-release-check` (stock locked by a stale order reservation, not a physical return awaiting inspection) — this tracks customer stock that's physically back but not yet processed back into sellable inventory.

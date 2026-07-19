@@ -1,0 +1,52 @@
+id: usage-concentration-single-user-risk-check
+version: 1
+name: Usage Concentration Single-User Risk Check
+description: >
+  Looks at per-user activity within each multi-seat account and flags
+  accounts where nearly all of the usage comes from just one person. Use
+  this if a "healthy" team account turns out to have nine dormant seats
+  and one power user, so the whole renewal is actually riding on whether
+  that one person stays at the company.
+category: growth
+tags: [growth, concentration-risk, retention, seats]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{user_activity_csv_path}}; threshold={{concentration_threshold_pct}};
+  min_seats={{min_seat_count}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  tail -n +2 "$file" | awk -F',' -v thr="$threshold" -v min_seats="$min_seats" '
+    {
+      account=$1; user=$2; count=$3+0;
+      total[account]+=count;
+      users[account]++;
+      if (count>max[account]) { max[account]=count; top_user[account]=user; }
+    }
+    END {
+      for (a in total) {
+        if (users[a] < min_seats) continue;
+        if (total[a] == 0) continue;
+        pct = (max[a]/total[a])*100;
+        if (pct >= thr) {
+          printf "CONCENTRATED: %s — %s drives %.0f%% of activity across %d seats\n", a, top_user[a], pct, users[a];
+        }
+      }
+    }
+  '
+variables:
+  user_activity_csv_path:
+    default: "./account-user-activity.csv"
+    description: "Path to a CSV with header: account_id,user_email,activity_count, one row per user summing their activity (e.g. events, logins, actions) over the evaluation window."
+  concentration_threshold_pct:
+    default: 80
+    description: Percent of an account's total activity attributable to its single most active user before flagging.
+  min_seat_count:
+    default: 3
+    description: Minimum number of distinct users on the account for concentration to be worth flagging (skips single-seat accounts by design).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Distinct from seat-utilization-upsell-check (purchased vs.
+  used seat count) and unused-seat-invite-check (invites that never got
+  accepted) — this looks at accounts where seats ARE occupied and active,
+  but usage is so lopsided that the account has a bus-factor of one.

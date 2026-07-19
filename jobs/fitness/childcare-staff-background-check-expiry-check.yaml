@@ -1,0 +1,45 @@
+id: childcare-staff-background-check-expiry-check
+version: 1
+name: Childcare Staff Background Check Expiry Check
+description: >
+  Checks background-screening records for staff who work directly with
+  minors in the childcare/kids' room against their re-screening due date
+  and warns before any lapse. Use this if a childcare-room staff member
+  has ever kept working shifts on an expired background check because
+  the renewal was tracked in the same list as certifications for the
+  rest of the gym staff and got lost in the noise.
+category: fitness
+tags: [fitness, childcare, staff, compliance, safety]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v days="{{warn_days_before}}" '
+    NR==1 {next}
+    {
+      if ($2 != "yes") { next; }
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline due_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      diff_days = (due_epoch - now_epoch) / 86400;
+      if (diff_days <= days) {
+        status = (diff_days < 0) ? "ALREADY EXPIRED" : "EXPIRING SOON";
+        printf "%s: %s — background check due %s (%d days)\n", status, $1, $3, diff_days;
+      }
+    }
+  ' "{{childcare_staff_screening_csv_path}}"
+variables:
+  childcare_staff_screening_csv_path:
+    default: "./childcare-staff-background-checks.csv"
+    description: "Path to a CSV with columns: staff_name,works_with_minors (yes/no),background_check_due_date (YYYY-MM-DD)."
+  warn_days_before:
+    default: 30
+    description: How many days before a background-check renewal is due to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This is scoped specifically to background-screening compliance for staff
+  who work with minors, which is a distinct legal/liability requirement
+  from staff-cpr-certification-renewal-check and trainer-certification-expiry-check
+  (medical/training credentials) and from childcare-room-staffing-ratio-check
+  (headcount ratio, not credential status) — pull a staff member from
+  childcare shifts immediately if their screening has already lapsed.

@@ -1,0 +1,47 @@
+id: fleet-fuel-card-anomaly-check
+version: 1
+name: Fleet Fuel Card Anomaly Check
+description: >
+  Scans fleet fuel card transactions for purchases made outside normal
+  working hours or on weekends, or that exceed a per-transaction amount
+  threshold, which can indicate a lost, stolen, or misused card. Use
+  this if a fuel card has ever been swiped on a Sunday at 2am nowhere
+  near a scheduled job and nobody noticed until the monthly statement
+  arrived weeks later.
+category: fieldservice
+tags: [fieldservice, fleet, fuel-card, fraud-prevention]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v max_amount="{{max_amount_usd}}" -v start_hr="{{work_start_hour}}" -v end_hr="{{work_end_hour}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $4 "\" +\"%u %H\" 2>/dev/null || date -j -f \"%Y-%m-%d %H:%M\" \"" $4 "\" +\"%u %H\" 2>/dev/null";
+      cmd | getline dow_hr; close(cmd);
+      split(dow_hr, parts, " ");
+      dow = parts[1] + 0; hr = parts[2] + 0;
+      flag = "";
+      if (dow == 6 || dow == 7) { flag = "weekend purchase"; }
+      if (hr < start_hr || hr >= end_hr) { flag = flag (flag=="" ? "" : "; ") "off-hours purchase"; }
+      if ($5 + 0 > max_amount) { flag = flag (flag=="" ? "" : "; ") "amount exceeds threshold"; }
+      if (flag != "") {
+        printf "FUEL ANOMALY: txn %s — van %s (%s), %s, $%.2f — %s\n", $1, $2, $3, $4, $5, flag;
+      }
+    }
+  ' "{{fuel_transactions_csv_path}}"
+variables:
+  fuel_transactions_csv_path:
+    default: "./fuel-transactions.csv"
+    description: "Path to a CSV with columns: transaction_id,van_id,tech_name,timestamp (YYYY-MM-DD HH:MM),amount_usd,gallons."
+  max_amount_usd:
+    default: 120
+    description: Dollar amount above which a single fuel purchase is flagged for review.
+  work_start_hour:
+    default: 6
+    description: Hour (24h) work normally starts; purchases before this are flagged as off-hours.
+  work_end_hour:
+    default: 19
+    description: Hour (24h) work normally ends; purchases at or after this are flagged as off-hours.
+compatible_agents: [generic, claude, codex]
+notes: Cross-check flagged transactions against the day's dispatch log before assuming misuse — a tech topping off before an early emergency call is a common false positive; this job only surfaces anomalies, it doesn't lock the card.

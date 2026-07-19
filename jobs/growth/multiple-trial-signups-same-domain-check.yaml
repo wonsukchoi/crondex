@@ -1,0 +1,53 @@
+id: multiple-trial-signups-same-domain-check
+version: 1
+name: Multiple Trial Signups Same Domain Check
+description: >
+  Groups recent free-trial signups by email domain and flags domains
+  with several separate, disconnected trial signups instead of one team
+  trial. Use this if three people from the same company each spin up
+  their own solo trial in the same week, nobody links them together, and
+  a real enterprise-sized opportunity gets treated as three tiny
+  self-serve accounts.
+category: growth
+tags: [growth, trials, enterprise, product-led-growth]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{trial_signups_csv_path}}; min_signups={{min_signups_per_domain}};
+  lookback_days={{lookback_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  cutoff=$(date -d "-${lookback_days} days" +%Y-%m-%d 2>/dev/null || date -j -v-"${lookback_days}"d +%Y-%m-%d 2>/dev/null);
+  tail -n +2 "$file" | awk -F',' -v cutoff="$cutoff" '$3 >= cutoff { print $2","$1 }' \
+  | awk -F',' -v min="$min_signups" '
+    {
+      domain=$1; email=$2;
+      count[domain]++;
+      emails[domain] = (count[domain]==1) ? email : emails[domain] ", " email;
+    }
+    END {
+      for (d in count) {
+        if (count[d] >= min) {
+          printf "CLUSTERED SIGNUPS: %s — %d separate trial signups in the last window (%s)\n", d, count[d], emails[d];
+        }
+      }
+    }
+  '
+variables:
+  trial_signups_csv_path:
+    default: "./trial-signups.csv"
+    description: "Path to a CSV with header: email,company_domain,signed_up_at (signed_up_at as YYYY-MM-DD), excluding known free-email domains like gmail.com."
+  min_signups_per_domain:
+    default: 3
+    description: Number of distinct trial signups from the same domain within the lookback window before flagging it as a clustered/enterprise opportunity.
+  lookback_days:
+    default: 30
+    description: Rolling window of signups to consider.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Filter out shared free-email providers (gmail.com,
+  outlook.com, etc.) before feeding the CSV in, or they'll dominate every
+  run. Distinct from product-qualified-lead-tracker (which scores usage
+  depth on a single account) — this looks across accounts by domain to
+  catch land-and-expand opportunities before they fragment into separate
+  self-serve trials.

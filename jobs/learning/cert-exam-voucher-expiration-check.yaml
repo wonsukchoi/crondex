@@ -1,0 +1,43 @@
+id: cert-exam-voucher-expiration-check
+version: 1
+name: Certification Exam Voucher Expiration Check
+description: >
+  Warns you before a certification exam voucher or prep credit you
+  already paid for, but haven't scheduled or used yet, expires unredeemed.
+  Use this if you've ever bought an exam voucher during a sale or as part
+  of a training bundle and then let it quietly expire without ever
+  booking the exam.
+category: learning
+tags: [learning, certification, voucher, exam, expiration]
+schedule: "0 9 1,15 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry_ts=$(date -d "{{voucher_expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{voucher_expiry_date}}" +%s);
+  days_left=$(( (expiry_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "EXPIRED: {{exam_name}} voucher ({{voucher_value}}) expired on {{voucher_expiry_date}} unused"; exit 1;
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{exam_name}} voucher ({{voucher_value}}) expires in $days_left day(s) ({{voucher_expiry_date}}) — schedule the exam now or it's wasted money"; exit 1;
+  else echo "OK: {{exam_name}} voucher expires in $days_left day(s), not yet scheduled."; fi
+variables:
+  exam_name:
+    default: "your certification exam"
+    description: Name of the certification exam the voucher is for.
+  voucher_expiry_date:
+    default: "2026-12-31"
+    description: Date (YYYY-MM-DD) the unused voucher/prep credit expires.
+  voucher_value:
+    default: "$0"
+    description: What the voucher is worth or what you paid for it, for labeling output only.
+  warn_days:
+    default: 30
+    description: Days before expiry to start warning that the voucher is still unredeemed.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Manual voucher_expiry_date input per voucher — this job
+  doesn't check any vendor's exam-scheduling system, so update this
+  yourself once you've actually booked or used the voucher (or delete the
+  job instance). Distinct from exam-registration-deadline-reminder (a
+  registration cutoff for an exam date you've already chosen) and
+  cert-renewal-reminder (an already-earned credential's expiry, not an
+  unused voucher).

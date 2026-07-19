@@ -1,0 +1,38 @@
+id: water-heater-pressure-relief-valve-test-reminder
+version: 1
+name: Water Heater Pressure Relief Valve Test Reminder
+description: >
+  Reminds you to test the water heater's temperature-and-pressure (T&P)
+  relief valve by lifting its lever and confirming it discharges water
+  freely, based on how long it's been since the last test. Use this if
+  you've never touched that little lever and have no idea whether it
+  would actually vent a dangerous pressure buildup or is just rusted
+  shut.
+category: home
+tags: [home, water-heater, safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_tested_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: T&P relief valve last tested $days_since day(s) ago (every ${interval} months) — lift the lever briefly and confirm water discharges, then check for continued dripping after.";
+  else echo "OK: tested $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_tested_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last tested the T&P relief valve — update this yourself.
+  interval_months:
+    default: 6
+    description: How often to test the valve, in months.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You update last_tested_date yourself after each test. Different
+  from water-heater-flush-reminder (sediment) and
+  water-heater-anode-rod-replacement-reminder (tank corrosion) — this checks
+  the safety valve that prevents the tank from over-pressurizing or
+  exploding. If the valve won't stop dripping after the test or won't open
+  at all, replace it; don't just leave it.

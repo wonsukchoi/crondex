@@ -1,0 +1,54 @@
+id: margin-maintenance-call-risk-check
+version: 1
+name: Margin Maintenance Call Risk Check
+description: >
+  Compares your logged account equity against your margin loan balance
+  and the broker's maintenance margin requirement to estimate how much
+  further your portfolio can drop before triggering a margin call. Use
+  this if you've ever traded on margin and only found out how close you
+  were to a forced liquidation after a bad day, instead of tracking the
+  cushion proactively.
+category: investing
+tags: [investing, margin, leverage, risk]
+schedule: "0 16 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  cushion_pct=$(awk -v equity={{account_equity_usd}} -v loan={{margin_loan_usd}} -v maint={{maintenance_margin_pct}} '
+    BEGIN {
+      market_value = equity + loan;
+      if (market_value <= 0) { print "ERR"; exit }
+      current_equity_pct = (equity / market_value) * 100;
+      printf "%.2f", current_equity_pct - maint;
+    }
+  ');
+  if [ "$cushion_pct" = "ERR" ]; then
+    echo "ERROR: account_equity_usd and margin_loan_usd sum to zero or less — check the inputs.";
+    exit 1;
+  fi;
+  if awk -v c="$cushion_pct" -v t={{warn_cushion_pct}} 'BEGIN{exit !(c<=t)}'; then
+    echo "WARNING: equity cushion above the maintenance requirement is only $cushion_pct% — a further market drop could trigger a margin call.";
+  else
+    echo "OK: equity cushion above the maintenance requirement is $cushion_pct%, above the {{warn_cushion_pct}}% warning threshold.";
+  fi
+variables:
+  account_equity_usd:
+    default: 50000
+    description: Current account equity (market value of holdings minus margin loan) — update from your brokerage.
+  margin_loan_usd:
+    default: 20000
+    description: Current outstanding margin loan balance.
+  maintenance_margin_pct:
+    default: 25
+    description: Your broker's maintenance margin requirement as a percent of market value (often 25-40%, check your margin agreement).
+  warn_cushion_pct:
+    default: 10
+    description: Warn when the equity cushion above the maintenance requirement falls to or below this percent.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Not investment advice — this is a simplified estimate based on figures
+  you supply; brokers can raise "house" maintenance requirements above
+  regulatory minimums at any time without notice, especially for
+  concentrated or volatile positions, which this job cannot see.
+  Distinct from concentration-risk-check, which flags position sizing,
+  not margin/leverage risk.

@@ -1,0 +1,35 @@
+id: range-hood-grease-filter-cleaning-reminder
+version: 1
+name: Range Hood Grease Filter Cleaning Reminder
+description: >
+  Reminds you to clean the kitchen range hood's metal grease filter based
+  on how long it's been since the last cleaning. Use this if you've ever
+  noticed the hood fan sounding weaker or smelled cooking smoke lingering
+  longer than it should, only to find the mesh filter caked solid with
+  hardened grease — a buildup that's also a stovetop fire hazard.
+category: home
+tags: [home, kitchen, fire-safety, maintenance]
+schedule: "0 9 1 * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  last={{last_cleaned_date}}; interval={{interval_months}};
+  last_epoch=$(date -j -f %Y-%m-%d "$last" +%s 2>/dev/null || date -d "$last" +%s);
+  today_epoch=$(date +%s);
+  days_since=$(( (today_epoch-last_epoch)/86400 ));
+  interval_days=$(( interval * 30 ));
+  if [ "$days_since" -ge "$interval_days" ]; then echo "REMINDER: range hood grease filter last cleaned $days_since day(s) ago (every ${interval} months) — degrease it in hot water with dish soap or a dedicated grease-cutting cleaner.";
+  else echo "OK: cleaned $days_since day(s) ago, due again around day $interval_days."; fi
+variables:
+  last_cleaned_date:
+    default: "2026-01-01"
+    description: Date (YYYY-MM-DD) you last cleaned the grease filter — update this yourself.
+  interval_months:
+    default: 2
+    description: How often to clean the filter, in months. Frequent frying or wok cooking shortens this; light cooking loads can go longer.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You update last_cleaned_date yourself each time you actually
+  clean it. Distinct from dryer-vent-cleaning-reminder (laundry exhaust lint)
+  — this is the kitchen exhaust hood's grease trap, which builds up a
+  flammable film rather than lint.

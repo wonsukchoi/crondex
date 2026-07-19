@@ -1,0 +1,48 @@
+id: champion-contact-turnover-risk-check
+version: 1
+name: Champion Contact Turnover Risk Check
+description: >
+  Checks whether each account's designated champion contact is still
+  reachable and active — flagging bounced emails or long inactivity from
+  that specific person even if the rest of the account looks fine. Use
+  this if your main advocate at a customer quietly left the company, the
+  team keeps using the product for a while on momentum, and you only find
+  out at renewal time when there's no one left who remembers why you were
+  bought in the first place.
+category: growth
+tags: [growth, champion-risk, customer-success, retention]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  file={{contacts_csv_path}}; inactive_days={{inactive_threshold_days}};
+  [ -f "$file" ] || { echo "ERROR: $file not found"; exit 1; };
+  today=$(date +%s);
+  tail -n +2 "$file" | while IFS=',' read -r account contact role last_active bounced; do
+    [ "$role" = "champion" ] || continue;
+    if [ "$bounced" = "yes" ]; then
+      echo "CHAMPION AT RISK: $account — $contact's email is bouncing (likely left the company)";
+      continue;
+    fi;
+    l_epoch=$(date -d "$last_active" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$last_active" +%s 2>/dev/null);
+    [ -z "$l_epoch" ] && continue;
+    days=$(( (today-l_epoch)/86400 ));
+    if [ "$days" -ge "$inactive_days" ]; then
+      echo "CHAMPION AT RISK: $account — $contact inactive for $days day(s)";
+    fi;
+  done
+variables:
+  contacts_csv_path:
+    default: "./account-contacts.csv"
+    description: "Path to a CSV with header: account_id,contact_email,role,last_active_at,email_bounced (role marks one contact per account as 'champion'; last_active_at is YYYY-MM-DD; email_bounced is yes/no from your email tool)."
+  inactive_threshold_days:
+    default: 45
+    description: Days of inactivity for the designated champion contact before flagging turnover risk.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. You maintain the champion designation yourself (CRM contact
+  role field works fine); email_bounced can come from your ESP's bounce
+  webhook. Distinct from dormant-account-reactivation-check (whole account
+  gone silent) and customer-health-score-monitor (composite account-level
+  score) — this tracks one named person, since an account can look
+  perfectly active on aggregate usage while its actual champion is gone.

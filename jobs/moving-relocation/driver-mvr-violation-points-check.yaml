@@ -1,0 +1,39 @@
+id: driver-mvr-violation-points-check
+version: 1
+name: Driver MVR Violation Points Check
+description: >
+  Checks each driver's most recent motor vehicle record (MVR) pull for
+  violation points or at-fault incidents and flags anyone over your
+  fleet insurance threshold. Use this if a driver has ever kept driving
+  long-haul routes with a valid, unexpired CDL while their driving
+  record quietly racked up violations that would void fleet insurance
+  coverage or trigger a premium hike nobody caught between renewal cycles.
+category: moving-relocation
+tags: [moving-relocation, drivers, safety, insurance, compliance]
+schedule: "0 7 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v threshold="{{violation_points_threshold}}" '
+    NR==1 {next}
+    {
+      driver=$1; mvr_date=$2; points=$3+0; at_fault=$4+0;
+      if (points >= threshold || at_fault > 0) {
+        printf "MVR FLAG: %s — %d points as of %s pull (%d at-fault incident(s))\n", driver, points, mvr_date, at_fault;
+      }
+    }
+  ' "{{driver_mvr_csv_path}}"
+variables:
+  driver_mvr_csv_path:
+    default: "./driver-mvr-records.csv"
+    description: "Path to a CSV with columns: driver_name,mvr_pull_date (YYYY-MM-DD),violation_points,at_fault_incidents_last_12mo — one row per driver's most recent MVR pull."
+  violation_points_threshold:
+    default: 6
+    description: Violation point total on a driver's MVR at or above which they're flagged for review, regardless of at-fault incidents.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check; it does not remove a driver from dispatch or notify
+  insurance itself, that's a manual safety-manager decision. This is
+  separate from cdl-license-expiry-check, which tracks license and
+  endorsement expiry dates rather than accumulated violation points on
+  the driving record.

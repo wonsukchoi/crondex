@@ -1,0 +1,35 @@
+id: maintenance-plan-visit-completion-gap-check
+version: 1
+name: Maintenance Plan Visit Completion Gap Check
+description: >
+  Checks active maintenance plan customers' completed visit counts
+  against the number of visits their plan entitles them to for the
+  year-to-date, and flags anyone falling behind pace. Use this if a
+  maintenance-plan customer's covered tune-up has ever been skipped for
+  months, only surfacing as a liability question after the equipment
+  fails and the missed visit comes up in a complaint.
+category: fieldservice
+tags: [fieldservice, maintenance-plan, recurring-revenue, compliance]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v today_month="$(date +%m)" -v min_pace="{{min_pace_ratio}}" '
+    NR==1 {next}
+    {
+      entitled = $3 + 0; completed = $4 + 0;
+      expected_by_now = entitled * (today_month / 12);
+      if (completed < expected_by_now * min_pace) {
+        printf "BEHIND ON VISITS: plan %s — %s, %d of %d annual visits completed (expected ~%.1f by now)\n", $1, $2, completed, entitled, expected_by_now;
+      }
+    }
+  ' "{{maintenance_plan_visits_csv_path}}"
+variables:
+  maintenance_plan_visits_csv_path:
+    default: "./maintenance-plan-visits.csv"
+    description: "Path to a CSV with columns: plan_id,customer_name,visits_entitled_per_year,visits_completed_ytd,plan_start_date."
+  min_pace_ratio:
+    default: 0.75
+    description: Fraction of the expected-by-now visit count a plan must have completed before being flagged as behind; lower it to reduce false positives on plans that just started.
+compatible_agents: [generic, claude, codex]
+notes: Differs from maintenance-contract-renewal-check (flags approaching renewal dates) and maintenance-plan-renewal-upsell-tracker (flags upsell timing) — this job flags plans that are actively falling behind mid-term on the visits they're entitled to, independent of renewal date.

@@ -1,0 +1,43 @@
+id: inherited-ira-10-year-rule-deadline-check
+version: 1
+name: Inherited IRA 10-Year Rule Deadline Check
+description: >
+  Checks how many days remain until the 10-year deadline by which a
+  non-spouse inherited IRA (subject to the SECURE Act 10-year rule) must
+  be fully depleted, and warns as that deadline approaches. Use this if
+  you've ever inherited an IRA from someone other than a spouse and lost
+  track of the hard depletion deadline while only remembering to check
+  the account owner's own RMDs.
+category: investing
+tags: [investing, retirement, inherited-ira, rmd]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{depletion_deadline_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{depletion_deadline_date}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "WARNING: the 10-year depletion deadline {{depletion_deadline_date}} for \"{{account_label}}\" has passed — confirm the account was fully distributed.";
+  elif [ "$days_left" -le {{warn_days}} ]; then
+    echo "WARNING: \"{{account_label}}\" must be fully depleted by {{depletion_deadline_date}}, only $days_left day(s) away.";
+  else
+    echo "OK: \"{{account_label}}\" has $days_left day(s) left until its {{depletion_deadline_date}} depletion deadline.";
+  fi
+variables:
+  account_label:
+    default: "inherited IRA from [decedent name]"
+    description: Short label identifying whose inherited IRA this is.
+  depletion_deadline_date:
+    default: "2033-12-31"
+    description: "Year-end of the 10th year following the original owner's death (YYYY-MM-DD) — the account must be emptied by this date."
+  warn_days:
+    default: 180
+    description: Days before the deadline to start warning (this deadline carries real tax consequences, so the lead time is long).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Not tax advice — whether annual RMDs are also required during the
+  10-year window depends on whether the original owner had started
+  RMDs; confirm with a tax professional. This is distinct from
+  rmd-deadline-reminder, which tracks an account owner's own annual
+  RMD, not a beneficiary's 10-year full-depletion deadline.

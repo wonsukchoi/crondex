@@ -1,0 +1,53 @@
+id: vendor-license-permit-expiration-check
+version: 1
+name: Vendor License/Permit Expiration Check
+description: >
+  Checks whether a vendor's own required license (food handler permit,
+  liquor license, pyrotechnics permit, contractor license) stays valid
+  through the event date, and warns before it expires. Use this if a food
+  truck, bar service, or fireworks vendor has ever shown up with a
+  license that lapsed the week before your event, putting the whole
+  booking at risk.
+category: events
+tags: [events, vendors, compliance, permits]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  exp_ts=$(date -d "{{license_expiration_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{license_expiration_date}}" +%s);
+  event_ts=$(date -d "{{event_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{event_date}}" +%s);
+  if [ "$exp_ts" -lt "$event_ts" ]; then
+    echo "EXPIRES BEFORE EVENT: {{vendor_name}}'s {{license_type}} expires {{license_expiration_date}}, before the event on {{event_date}} — this vendor cannot legally operate as booked unless it's renewed";
+  else
+    days_to_exp=$(( (exp_ts - today) / 86400 ));
+    if [ "$days_to_exp" -le "{{warn_days}}" ]; then
+      echo "RENEWAL DUE SOON: {{vendor_name}}'s {{license_type}} expires in $days_to_exp day(s) ({{license_expiration_date}}) — confirm they've renewed before the event";
+    else
+      echo "OK: {{vendor_name}}'s {{license_type}} valid through {{license_expiration_date}}, covering the {{event_date}} event";
+    fi
+  fi
+variables:
+  vendor_name:
+    default: "the vendor"
+    description: Name of the vendor whose license is being tracked, for the output message.
+  license_type:
+    default: "food handler permit"
+    description: Type of license or permit this vendor is required to hold (e.g. liquor license, pyrotechnics permit, contractor license).
+  license_expiration_date:
+    default: "2026-11-15"
+    description: Date the vendor's license/permit expires (YYYY-MM-DD).
+  event_date:
+    default: "2026-12-01"
+    description: Date of the event the vendor is booked for (YYYY-MM-DD).
+  warn_days:
+    default: 14
+    description: Days before expiration to start warning, giving time to request proof of renewal.
+compatible_agents: [generic, claude, codex]
+notes: >
+  This checks a vendor's own business license, not event-level paperwork
+  — it's different from event-insurance-certificate-deadline-check (the
+  COI the venue/city requires for the event itself) and
+  event-permit-application-deadline-tracker (the event organizer's own
+  permit application). Run one instance per vendor license that needs
+  tracking.

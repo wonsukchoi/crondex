@@ -1,0 +1,39 @@
+id: stale-quote-request-follow-up-drafts
+version: 1
+name: Stale Quote Request Follow-Up Drafts
+description: >
+  Reads incoming moving quote requests and drafts a follow-up message for
+  any lead that still hasn't received an estimate within your target
+  response window. Use this if a quote request has ever sat untouched in
+  an inbox or CRM for days while the customer quietly booked with a
+  competitor who replied faster, without anyone noticing the lead had
+  gone cold.
+category: moving-relocation
+tags: [moving-relocation, sales, leads, customer-communication, quotes]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: agent-prompt
+prompt: >
+  Read the CSV at {{quote_requests_csv_path}} (columns: lead_name,
+  request_date, move_details, estimate_sent, contact_method). Filter to
+  rows where estimate_sent is "no" and request_date is more than
+  {{response_window_days}} days ago. For each matching row, draft a short,
+  friendly follow-up message (2-3 sentences, plain language) apologizing
+  for the delay, referencing their move_details, and asking for a good
+  time to get them a quote. Output each draft clearly labeled with the
+  lead's name and preferred contact_method. Do not send anything — these
+  are drafts only, for sales staff to review and send.
+variables:
+  quote_requests_csv_path:
+    default: "./quote-requests.csv"
+    description: "Path to a CSV with columns: lead_name,request_date (YYYY-MM-DD),move_details,estimate_sent (yes/no),contact_method."
+  response_window_days:
+    default: 2
+    description: How many days after a quote request with no estimate sent before that lead is flagged as stale and gets a follow-up draft.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Draft-only — this job never sends anything, it only produces
+  follow-up drafts for sales staff to review and send. This is distinct
+  from moving-customer-satisfaction-follow-up-drafts, which follows up
+  with customers after a completed move rather than pre-booking leads
+  whose quote request has gone stale.

@@ -1,0 +1,46 @@
+id: retargeting-audience-sync-freshness-check
+version: 1
+name: Retargeting Audience Sync Freshness Check
+description: >
+  Checks how long it's been since a retargeting/custom audience list (site
+  visitors, cart abandoners, customer match) was last synced to the ad
+  platform and flags it if it's gone stale. Use this if a retargeting
+  campaign has ever kept spending against a months-old audience snapshot
+  because the sync job silently broke and nobody noticed the list stopped
+  updating.
+category: marketing
+tags: [marketing, retargeting, ads, audience, data-sync]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  stats=$(curl -s -H "Authorization: Bearer {{ad_platform_api_token}}" "{{ad_platform_audience_api_url}}");
+  last_synced_epoch=$(echo "$stats" | grep -o '"last_synced_epoch":[0-9]*' | head -n1 | cut -d: -f2);
+  audience_size=$(echo "$stats" | grep -o '"audience_size":[0-9]*' | head -n1 | cut -d: -f2);
+  if [ -z "$last_synced_epoch" ]; then echo "ERROR: could not fetch last_synced_epoch from {{ad_platform_audience_api_url}}"; exit 1; fi;
+  now_epoch=$(date +%s);
+  age_hours=$(( (now_epoch - last_synced_epoch) / 3600 ));
+  if [ "$age_hours" -gt "{{max_staleness_hours}}" ]; then
+    echo "WARNING: audience {{audience_name}} last synced ${age_hours}h ago (max {{max_staleness_hours}}h), size ${audience_size}";
+    exit 1;
+  else echo "OK: audience {{audience_name}} synced ${age_hours}h ago, size ${audience_size}"; fi
+variables:
+  ad_platform_audience_api_url:
+    default: "https://api.example-ads.com/audiences/{{audience_name}}/sync-status"
+    description: Ad platform API endpoint returning last_synced_epoch and audience_size for the custom/retargeting audience.
+  ad_platform_api_token:
+    default: "your-api-token"
+    description: API token for the ad platform.
+  audience_name:
+    default: "site-visitors-30d"
+    description: Name/ID of the retargeting or custom-match audience to check.
+  max_staleness_hours:
+    default: 48
+    description: Hours since last successful sync before the audience is considered stale.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Generic REST pattern — point at your ad platform's (Meta, Google Ads,
+  LinkedIn) audience management API for the sync/upload timestamp of a
+  specific list. Distinct from paid-social-audience-overlap-check (which
+  compares audiences against each other) — this only checks whether one
+  audience's underlying data feed is still updating.

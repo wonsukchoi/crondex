@@ -1,0 +1,42 @@
+id: customer-no-show-cancellation-fee-check
+version: 1
+name: Customer No-Show/Cancellation Fee Check
+description: >
+  Scans the appointment log for customer no-shows or late cancellations
+  inside your cancellation notice window and flags any where the
+  cancellation fee hasn't been charged yet. Use this if a customer has
+  ever cancelled twenty minutes before a tech arrived and the fee got
+  forgotten because nobody was tracking it separately from regular
+  invoicing.
+category: fieldservice
+tags: [fieldservice, billing, no-show, cancellation-fee]
+schedule: "0 18 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  now=$(date +%s);
+  awk -F',' -v now="$now" -v window_hours="{{cancellation_window_hours}}" '
+    NR==1 {next}
+    ($4 == "no-show" || $4 == "cancelled") && $6 == "no" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline sched_epoch; close(cmd);
+      hrs_notice = 0;
+      if ($5 != "") {
+        cmd2 = "date -d \"" $5 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d\\ %H:%M \"" $5 "\" +%s 2>/dev/null";
+        cmd2 | getline cancel_epoch; close(cmd2);
+        hrs_notice = (sched_epoch - cancel_epoch) / 3600;
+      }
+      if ($4 == "no-show" || hrs_notice < window_hours) {
+        printf "FEE OWED: appointment %s — %s, %s on %s, no cancellation fee charged\n", $1, $2, $4, $3;
+      }
+    }
+  ' "{{appointments_csv_path}}"
+variables:
+  appointments_csv_path:
+    default: "./appointments.csv"
+    description: "Path to a CSV with columns: appointment_id,customer_name,scheduled_at (YYYY-MM-DD HH:MM),status (no-show/cancelled/completed),cancelled_at (blank if n/a),fee_charged (yes/no)."
+  cancellation_window_hours:
+    default: 24
+    description: Hours of advance notice required to avoid the fee; cancellations inside this window (or no-shows) should be charged.
+compatible_agents: [generic, claude, codex]
+notes: Confirm the fee is in your posted policy and was disclosed to the customer before charging — this job only flags unbilled fees, it doesn't charge any card. Differs from after-hours-surcharge-billing-accuracy-check, which validates surcharge math rather than missed no-show fees.

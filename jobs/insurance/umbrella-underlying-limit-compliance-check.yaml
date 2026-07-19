@@ -1,0 +1,42 @@
+id: umbrella-underlying-limit-compliance-check
+version: 1
+name: Umbrella Underlying Limit Compliance Check
+description: >
+  Reviews each umbrella or excess policy's required underlying limits
+  against the current limits actually carried on the primary policies
+  beneath it, and flags any primary policy that has dropped below what
+  the umbrella requires. Use this if a primary auto or GL policy has
+  ever renewed with a reduced limit and silently broken the attachment
+  point on the client's umbrella, leaving a coverage gap nobody noticed
+  until a large claim hit.
+category: insurance
+tags: [insurance, umbrella, excess, underwriting, coverage]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review this schedule of umbrella/excess policies and their underlying
+  primary policies: {{umbrella_underlying_schedule}}.
+  1. For each umbrella/excess policy, list its required underlying
+     limits by line (e.g. auto liability, general liability, employers
+     liability) and the limit actually in force on the corresponding
+     primary policy.
+  2. Flag any primary policy whose current limit is below what the
+     umbrella requires, and name the specific line and shortfall.
+  3. Flag any underlying primary policy that appears to be missing
+     entirely from the schedule (referenced by the umbrella but not
+     listed).
+  4. Do not recommend a specific limit increase amount — flag the gap
+     for a licensed underwriter or agent to size and remedy.
+variables:
+  umbrella_underlying_schedule:
+    default: "paste or summarize the umbrella policy schedule of underlying limits and current primary policy limits here"
+    description: Summary or export listing each umbrella/excess policy, its required underlying limits by line, and the current limits on the matching primary policies.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Focused on whether primary limits still satisfy a specific umbrella's
+  attachment-point requirements, distinct from coverage-gap-audit (a
+  general checklist of what coverage lines are missing for a profile
+  type) and loss-ratio-by-line-monitor (a portfolio loss metric, not a
+  limits-compliance check). General-knowledge review only — not a
+  substitute for a licensed underwriter's sign-off.

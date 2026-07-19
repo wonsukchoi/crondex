@@ -1,0 +1,46 @@
+id: school-bus-fleet-inspection-due-tracker
+version: 1
+name: School Bus Fleet Inspection Due Tracker
+description: >
+  Checks each bus's last safety inspection date against the required
+  inspection interval and flags any vehicle that's overdue or due soon.
+  Use this if a bus has ever kept running routes past its mandated
+  inspection window because fleet maintenance paperwork wasn't cross-checked
+  against a calendar.
+category: education
+tags: [education, transportation, fleet, compliance]
+schedule: "0 6 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v intervalDays="{{inspection_interval_days}}" -v warnDays="{{warn_days}}" '
+    NR==1 {next}
+    {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline last_epoch; close(cmd);
+      "date +%s" | getline now_epoch; close("date +%s");
+      age_days = (now_epoch - last_epoch) / 86400;
+      due_in = intervalDays - age_days;
+      if (due_in <= 0) {
+        printf "OVERDUE: bus %s — last inspected %s (%d days overdue)\n", $1, $2, -due_in;
+      } else if (due_in <= warnDays) {
+        printf "DUE SOON: bus %s — last inspected %s (due in %d days)\n", $1, $2, due_in;
+      }
+    }
+  ' "{{fleet_inspection_csv_path}}"
+variables:
+  fleet_inspection_csv_path:
+    default: "./bus-fleet-inspections.csv"
+    description: "Path to a CSV with columns: bus_id,last_inspection_date (YYYY-MM-DD)."
+  inspection_interval_days:
+    default: 90
+    description: Required number of days between mandated safety inspections for this fleet.
+  warn_days:
+    default: 14
+    description: Days before the next inspection is due to start warning maintenance staff.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Covers vehicle mechanical/safety inspections, not driver licensing —
+  pair with bus-driver-certification-expiry-check for the credential side,
+  and with school-bus-route-ontime-check for on-road performance. A bus
+  flagged here should be pulled from routes until re-inspected.

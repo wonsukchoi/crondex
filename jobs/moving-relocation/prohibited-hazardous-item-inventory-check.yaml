@@ -1,0 +1,51 @@
+id: prohibited-hazardous-item-inventory-check
+version: 1
+name: Prohibited & Hazardous Item Inventory Check
+description: >
+  Scans each move's pre-move inventory list against a list of items
+  movers are legally prohibited or unwilling to transport (propane
+  tanks, gasoline, paint, ammunition, corrosives, and similar) and flags
+  any declared item that needs to be removed from the shipment before
+  loading. Use this if a crew has ever discovered a propane tank or can
+  of paint packed in a box on move day, after it was already loaded onto
+  the truck alongside everything else.
+category: moving-relocation
+tags: [moving-relocation, safety, compliance, inventory, hazmat]
+schedule: "0 7 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v prohibited="{{prohibited_items_list}}" '
+    BEGIN {
+      n = split(prohibited, arr, "|");
+      for (i = 1; i <= n; i++) { lower_arr[i] = tolower(arr[i]); }
+    }
+    NR==1 {next}
+    {
+      move=$1; customer=$2; n_items = split($3, items, ";");
+      for (i = 1; i <= n_items; i++) {
+        item = tolower(items[i]); gsub(/^ +| +$/, "", item);
+        for (j = 1; j <= n; j++) {
+          if (index(item, lower_arr[j]) > 0) {
+            printf "PROHIBITED ITEM DECLARED: %s (%s) — \"%s\" must be removed before loading\n", move, customer, items[i];
+          }
+        }
+      }
+    }
+  ' "{{move_inventories_csv_path}}"
+variables:
+  move_inventories_csv_path:
+    default: "./move-inventories.csv"
+    description: "Path to a CSV with columns: move_id,customer_name,declared_items (semicolon-separated free-text inventory items from the pre-move walkthrough)."
+  prohibited_items_list:
+    default: "propane|gasoline|paint|ammunition|acid|bleach|fireworks|aerosol"
+    description: Pipe-separated list of substrings (lowercase) to match against declared items; items containing any of these are flagged as prohibited or hazardous.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Read-only check; substring matching is intentionally loose so it errs
+  toward over-flagging borderline items for a human to double-check
+  rather than missing one — it does not remove items from the truck or
+  the inventory list itself. This is distinct from
+  piano-specialty-item-insurance-check, which flags high-value items
+  needing supplemental coverage rather than items that can't legally be
+  shipped at all.

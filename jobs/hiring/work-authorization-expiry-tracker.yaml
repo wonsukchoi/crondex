@@ -1,0 +1,37 @@
+id: work-authorization-expiry-tracker
+version: 1
+name: Work Authorization Expiry Tracker
+description: >
+  Checks candidates and new hires who require visa or work-permit
+  sponsorship against their authorization expiry date and flags anyone
+  approaching expiry with no renewal filed. Use this if a new hire's
+  start date, or an existing employee's continued authorization to work,
+  has ever been put at risk because a visa renewal deadline crept up
+  without immigration counsel being looped in early enough.
+category: hiring
+tags: [hiring, compliance, visa, work-authorization, onboarding]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v lead="{{renewal_lead_days}}" '
+    NR==1 {next}
+    $3 != "renewal-filed" && $3 != "not-required" {
+      cmd = "date -d \"" $2 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $2 "\" +%s 2>/dev/null";
+      cmd | getline exp_epoch; close(cmd);
+      days_left = (exp_epoch - today) / 86400;
+      if (days_left <= lead) {
+        printf "AUTH EXPIRING: %s — %s expires %s (in %d days), renewal status: %s\n", $1, $4, $2, days_left, $3;
+      }
+    }
+  ' "{{work_auth_csv_path}}"
+variables:
+  work_auth_csv_path:
+    default: "./work-authorizations.csv"
+    description: "Path to a CSV with columns: person_name,expiry_date (YYYY-MM-DD),renewal_status (not-required/pending/renewal-filed/expired),visa_type."
+  renewal_lead_days:
+    default: 90
+    description: Days before authorization expiry at which a still-unfiled renewal is flagged, giving immigration counsel enough runway to act.
+compatible_agents: [generic, claude, codex]
+notes: Read-only flag for HR/immigration counsel — this job never files or contacts anyone about a renewal, and requirements vary heavily by country and visa category, so confirm every flagged case with qualified immigration counsel before acting. Distinct from background-check-status-check, which tracks third-party screening vendors, not authorization-to-work status.

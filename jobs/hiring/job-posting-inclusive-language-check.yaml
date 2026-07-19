@@ -1,0 +1,41 @@
+id: job-posting-inclusive-language-check
+version: 1
+name: Job Posting Inclusive Language Check
+description: >
+  Reviews job postings drafted or published recently for exclusionary
+  language patterns — gendered wording, age-coded phrasing, or
+  requirements framed as mandatory that read more like a wish list — and
+  suggests neutral rewrites. Use this if a posting has ever gone live for
+  weeks with language that quietly discouraged qualified candidates from
+  applying, and nobody caught it before it started shrinking the
+  applicant pool.
+category: hiring
+tags: [hiring, recruiting, job-postings, inclusive-language, dei]
+schedule: "0 8 * * 1"
+timezone: "UTC"
+runner: agent-prompt
+prompt: |
+  Review job postings drafted or published in {{postings_source}} within
+  the last {{lookback_days}} days.
+  1. For each posting, scan for exclusionary language patterns: gendered
+     wording (e.g. "he will", "rockstar", "ninja"), age-coded phrasing
+     (e.g. "digital native", "young and energetic"), or requirements
+     framed as mandatory that function more like a wish list (e.g. "10+
+     years" attached to an entry-level title).
+  2. Flag each instance found, quoting the exact phrase and which
+     posting it appears in.
+  3. Suggest a plain, neutral rewrite for each flagged phrase.
+  4. If a single posting has {{severity_threshold}} or more flagged
+     instances, recommend it for a full rewrite rather than a spot-fix.
+variables:
+  postings_source:
+    default: "your careers page or ATS job posting export"
+    description: Where current job posting text can be read from.
+  lookback_days:
+    default: 14
+    description: How far back to check for newly drafted or published postings.
+  severity_threshold:
+    default: 3
+    description: Number of flagged phrases in a single posting before recommending a full rewrite instead of a spot-fix.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Suggestion-only — this job never edits or republishes a posting itself; a recruiter or hiring manager reviews and applies changes. Distinct from careers-page-link-check, which checks technical link health rather than posting text, and from interview-panel-diversity-check, which covers who's on the interview panel, not the language of the posting.

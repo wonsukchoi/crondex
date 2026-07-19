@@ -1,0 +1,49 @@
+id: client-version-adoption-lag-check
+version: 1
+name: Client Version Adoption Lag Check
+description: >
+  Checks a client-version distribution export and warns when too large a
+  share of your active players are still on builds older than your
+  supported-version cutoff. Use this if you've ever deprecated a
+  backend/matchmaking API for old clients on schedule, only to find out a
+  double-digit percentage of your player base hadn't updated yet and got
+  locked out.
+category: gaming
+tags: [gaming, live-ops, client, release, telemetry]
+schedule: "0 7 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v cutoff="{{min_supported_version}}" -v maxpct="{{max_stale_pct}}" '
+    NR==1 { next }
+    { total += $2; if ($1 < cutoff) { stale += $2 } }
+    END {
+      if (total <= 0) { print "ERROR: no session counts found in version export"; exit 1; }
+      pct = (stale / total) * 100;
+      if (pct > maxpct) {
+        printf "STALE CLIENT WARNING: %.1f%% of sessions are below version %s (threshold %s%%)\n", pct, cutoff, maxpct;
+        exit 1;
+      } else {
+        printf "OK: %.1f%% of sessions are below version %s\n", pct, cutoff;
+      }
+    }
+  ' "{{version_distribution_csv_path}}"
+variables:
+  version_distribution_csv_path:
+    default: "./client-version-distribution.csv"
+    description: "Path to a CSV with columns: client_version,session_count, one row per observed version string."
+  min_supported_version:
+    default: "2.5.0"
+    description: The oldest client version you consider current/supported; anything below this string-compares as stale (use a sortable version format).
+  max_stale_pct:
+    default: 10
+    description: Percentage of sessions on stale versions that triggers a warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  String comparison on version numbers only works reliably for
+  same-width, dot-separated formats (e.g. "2.5.0" < "2.10.0" fails as a
+  plain string compare) — pad or normalize versions in the export first,
+  or swap in a proper version-compare script for irregular schemes.
+  Distinct from game-patch-notes-watch (announcing a new patch) and
+  patch-rollout-crash-watch (crash spikes right after a patch) — this one
+  tracks how long players take to actually move off old clients.

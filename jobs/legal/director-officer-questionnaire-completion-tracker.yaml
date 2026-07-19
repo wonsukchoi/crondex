@@ -1,0 +1,40 @@
+id: director-officer-questionnaire-completion-tracker
+version: 1
+name: Director & Officer Questionnaire Completion Tracker
+description: >
+  Checks the annual directors-and-officers questionnaire (used for proxy
+  disclosure, D&O insurance renewal, and related-party transaction
+  review) against the roster of directors and officers, and flags anyone
+  who hasn't submitted theirs yet. Use this if an annual D&O
+  questionnaire cycle has ever dragged past its deadline because
+  reminders were sent once by email and then tracking stopped.
+category: legal
+tags: [legal, corporate-governance, dando-questionnaire, board, compliance]
+schedule: "0 9 * * 1"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $4 != "submitted" {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline due_ts; close(cmd);
+      days_left = int((due_ts - today) / 86400);
+      if (days_left <= warn) print "QUESTIONNAIRE OUTSTANDING: " $1 " (" $2 ") due " $3 " (" days_left " days), status=" $4;
+    }
+  ' "{{doq_csv}}"
+variables:
+  doq_csv:
+    default: "./director-officer-questionnaires.csv"
+    description: "CSV with header row, columns: person_name,role (director/officer),due_date(YYYY-MM-DD),status (not-started/in-progress/submitted)."
+  warn_days:
+    default: 14
+    description: Days before (or past) the questionnaire due date to start flagging an outstanding response.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `conflict-of-interest-check-tracker` (per-matter conflicts
+  clearance for new engagements) — this is the periodic, roster-wide
+  annual questionnaire covering related-party transactions, other
+  directorships, and independence facts used for proxy statements and D&O
+  underwriting. Update status as each director/officer submits; this does
+  not review questionnaire content for disclosable items itself.

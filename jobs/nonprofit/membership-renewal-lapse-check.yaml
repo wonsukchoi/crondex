@@ -1,0 +1,43 @@
+id: membership-renewal-lapse-check
+version: 1
+name: Membership Renewal Lapse Check
+description: >
+  Flags dues-paying members whose membership has expired or is about to
+  expire without a recorded renewal. Use this if a membership-based
+  organization has ever let a member's access, voting rights, or
+  benefits quietly lapse — or kept extending them for free — because
+  nobody was tracking individual renewal dates against actual payments.
+category: nonprofit
+tags: [nonprofit, membership, operations]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days_before}} -v grace={{grace_days_after}} '
+    NR>1 && $3 == "no" {
+      cmd="date -d \"" $2 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $2 "\" +%s";
+      cmd | getline expiry_ts; close(cmd);
+      days = int((expiry_ts - today) / 86400);
+      if (days >= 0 && days <= warn) print "MEMBERSHIP EXPIRING: " $1 " — expires " $2 " (" days " days left, not renewed)";
+      else if (days < 0 && -days <= grace) print "MEMBERSHIP LAPSED: " $1 " — expired " $2 " (" (-days) " days ago, not renewed)";
+    }
+  ' "{{members_csv}}"
+variables:
+  members_csv:
+    default: "members.csv"
+    description: "CSV with header row, columns: member_name,membership_expiry_date(YYYY-MM-DD),renewed(yes/no)."
+  warn_days_before:
+    default: 30
+    description: Days before a member's expiry date to start warning if not yet renewed.
+  grace_days_after:
+    default: 60
+    description: Days past expiry to keep showing a lapsed member before it's assumed handled elsewhere, so the same member isn't reported indefinitely.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Distinct from `lapsed-donor-check` — that tracks donors who gave
+  charitable gifts with no expectation of a return benefit; this tracks
+  paying members whose dues buy a defined membership term (voting
+  rights, access, discounts), which lapses on a specific date rather
+  than fading gradually. Update members.csv from your membership
+  system's renewal export before each run.

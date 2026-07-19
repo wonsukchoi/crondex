@@ -1,0 +1,58 @@
+id: kit-bom-component-shortage-check
+version: 1
+name: Kit / BOM Component Shortage Check
+description: >
+  Computes, for each kitted or assembled product, the maximum number of
+  finished units buildable from current component stock given the bill
+  of materials, and flags kits where that buildable quantity falls
+  short of a target build. Use this if a kit has ever shown as "in
+  stock" on paper while one cheap component silently ran out, so nobody
+  realized the whole assembly couldn't actually be built until an order
+  hit the floor.
+category: inventory
+tags: [inventory, kitting, bom, assembly, components]
+schedule: "0 6 * * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      kit=$1; qty_per_kit=$3+0; on_hand=$4+0; target=$5+0;
+      if (qty_per_kit <= 0) next;
+      buildable = int(on_hand / qty_per_kit);
+      if (!(kit in min_buildable) || buildable < min_buildable[kit]) {
+        min_buildable[kit] = buildable;
+        limiting_component[kit] = $2;
+      }
+      target_qty[kit] = target;
+    }
+    END {
+      for (kit in min_buildable) {
+        if (min_buildable[kit] < target_qty[kit]) {
+          printf "SHORTAGE: %s — can build %d of %d target units, limited by component %s\n", kit, min_buildable[kit], target_qty[kit], limiting_component[kit];
+        }
+      }
+    }
+  ' "{{kit_bom_csv_path}}"
+prompt: |
+  Run the buildable-quantity calculation above against
+  {{kit_bom_csv_path}}, then for each kit flagged as short of its target
+  build quantity:
+  1. Note which single component is the bottleneck and by how many units
+     it falls short.
+  2. If the kit has open sales orders or forecasted demand data
+     available, call out which shortages put a real order at risk versus
+     which only affect unallocated forecast.
+  3. Suggest whether the fix is more likely a rush purchase order for
+     the limiting component or a substitution to a compatible part.
+script_note: >
+  The command gives the raw list of kits that can't hit their build
+  target and which component is the bottleneck — the prompt adds
+  order-risk context and a recommended next action.
+variables:
+  kit_bom_csv_path:
+    default: "./kit-bom.csv"
+    description: "Path to a CSV with columns: kit_sku,component_sku,qty_per_kit,component_on_hand,target_build_qty — one row per component in each kit's bill of materials."
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: Assumes a flat BOM export where every component of every kit appears as its own row against the same target_build_qty for that kit; multi-level BOMs (kits made of sub-kits) need to be flattened before feeding this in. Distinct from `available-to-promise-oversell-check`, which checks allocation of a single SKU's own stock, not whether a kit's components can support building it.

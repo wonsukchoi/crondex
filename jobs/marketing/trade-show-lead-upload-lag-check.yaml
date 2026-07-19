@@ -1,0 +1,33 @@
+id: trade-show-lead-upload-lag-check
+version: 1
+name: Trade Show Lead Upload Lag Check
+description: >
+  Checks whether leads captured via badge scanner or lead-retrieval device
+  at a trade show have been uploaded into the CRM within a reasonable
+  window after the event ended, and flags events where leads are still
+  sitting unimported. Use this if a booth's scanned leads have ever sat
+  on a lead-retrieval device or vendor portal for weeks after the show
+  closed because uploading them wasn't anyone's explicit job.
+category: marketing
+tags: [marketing, events, trade-show, lead-capture, crm]
+schedule: "0 9 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  psql "{{database_url}}" -t -c "select event_name, event_end_date, count(*) as unuploaded_leads from trade_show_leads where uploaded_to_crm = false and event_end_date < now() - interval '{{grace_period_days}} days' group by event_name, event_end_date order by event_end_date asc;"
+variables:
+  database_url:
+    default: "postgres://user:pass@host:5432/db"
+    description: Connection string for the database tracking trade show lead capture and CRM upload status.
+  grace_period_days:
+    default: 5
+    description: Number of days after an event ends to allow for lead upload before flagging as lagging.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Assumes a `trade_show_leads` table with `event_name`, `event_end_date`,
+  and `uploaded_to_crm` columns, typically populated by exporting from a
+  badge-scanner app (Cvent, Zoominfo Chorus, iCapture) or manual entry.
+  Read-only query; a flag means someone needs to export and import the
+  device's lead list, not that leads are lost. Distinct from
+  event-sponsorship-roi-tracker (which measures pipeline ROI after leads
+  are already in the CRM) — this catches the upload step before that.

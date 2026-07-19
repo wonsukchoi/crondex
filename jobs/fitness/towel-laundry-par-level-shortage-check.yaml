@@ -1,0 +1,38 @@
+id: towel-laundry-par-level-shortage-check
+version: 1
+name: Towel & Laundry Par Level Shortage Check
+description: >
+  Compares the day's clean towel and linen counts against each item's par
+  level and flags anything below the threshold before the shortfall hits
+  the front desk. Use this if a gym has ever run out of clean towels
+  mid-afternoon because the laundry cycle fell behind and nobody checked
+  the count until members started complaining.
+category: fitness
+tags: [fitness, facility, laundry, supplies]
+schedule: "0 5 * * *"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' -v buffer_pct="{{shortage_buffer_pct}}" '
+    NR==1 {next}
+    {
+      threshold = $3 * (1 + buffer_pct / 100);
+      if ($2 < threshold) {
+        printf "LAUNDRY SHORTAGE: %s — on hand %d, par level %d (threshold %.0f)\n", $1, $2, $3, threshold;
+      }
+    }
+  ' "{{laundry_inventory_csv_path}}"
+variables:
+  laundry_inventory_csv_path:
+    default: "./laundry-inventory-count.csv"
+    description: "Path to a CSV with columns: item_name,current_clean_count,par_level (e.g. towels, bath mats, robes)."
+  shortage_buffer_pct:
+    default: 10
+    description: "Percentage above par level to require as a safety buffer before flagging (0 = flag only when strictly below par)."
+compatible_agents: [generic, claude, codex]
+notes: >
+  This tracks clean linen/laundry stock levels, which is a different concern
+  from retail-inventory-reorder-alert (member-facing retail products for
+  sale) and facility-cleaning-log-check (whether cleaning tasks were
+  logged as done) — a facility can have a perfect cleaning log and still
+  run out of towels because the laundry count was never tracked separately.

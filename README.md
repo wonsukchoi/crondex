@@ -190,7 +190,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 `jobs/<category>/` directly.
 
 <!-- BEGIN JOB SUMMARY -->
-2322 jobs across 66 categories (1962 smoke-tested clean):
+2402 jobs across 66 categories (2037 smoke-tested clean):
 
 | category | jobs | smoke-tested | description |
 |---|---|---|---|
@@ -208,32 +208,32 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `dental` | 44 | 44 | Dental practice ops — hygiene recall, claims, chart compliance, lab cases, production. |
 | `devops` | 50 | 46 | Infra health — backups, deploys, dependencies, monitoring. |
 | `ecommerce` | 35 | 27 | Storefront ops — carts, stock, returns, reviews. |
-| `education` | 32 | 23 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
-| `events` | 32 | 28 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
-| `fieldservice` | 32 | 30 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
+| `education` | 37 | 28 | School/district ops — grading, attendance, IEP compliance, staffing, facilities, budget. |
+| `events` | 37 | 32 | Event planning — budget, RSVPs, staffing, vendors, day-of check-in. |
+| `fieldservice` | 37 | 35 | Dispatch ops — tech ETAs, parts, warranty claims, maintenance contracts. |
 | `finance` | 48 | 48 | Personal/business finance — budgets, invoices, taxes, subscriptions. |
-| `fitness` | 32 | 28 | Gym/studio ops — memberships, class utilization, equipment. |
+| `fitness` | 37 | 33 | Gym/studio ops — memberships, class utilization, equipment. |
 | `fleet` | 41 | 33 | Company vehicle fleet ops — compliance, maintenance, safety, fuel, cost, scheduling. |
-| `gaming` | 32 | 23 | Streaming and community server ops — schedules, patches, tournaments. |
+| `gaming` | 37 | 27 | Streaming and community server ops — schedules, patches, tournaments. |
 | `government` | 35 | 32 | Public-sector ops — records requests, permits, constituent casework. |
-| `growth` | 32 | 25 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
+| `growth` | 37 | 30 | Lifecycle marketing — churn, trials, onboarding, activation, expansion, retention, NPS. |
 | `healthcare` | 45 | 39 | Clinic ops — appointments, recalls, licenses, lab results. |
-| `hiring` | 32 | 21 | Recruiting pipeline — candidates, offers, interviews, reqs. |
-| `home` | 32 | 30 | Household reminders — maintenance, warranties, plants, safety. |
+| `hiring` | 37 | 25 | Recruiting pipeline — candidates, offers, interviews, reqs. |
+| `home` | 37 | 34 | Household reminders — maintenance, warranties, plants, safety. |
 | `hospitality` | 35 | 29 | Hotel ops — revenue management, reservations, housekeeping, guest experience, loyalty. |
 | `hr` | 44 | 38 | People ops — payroll, onboarding, benefits, reviews, offboarding. |
-| `insurance` | 32 | 25 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
-| `inventory` | 32 | 29 | Stock accuracy — counts, shrinkage, expiry, overstock. |
-| `investing` | 32 | 25 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
+| `insurance` | 37 | 29 | Policy & carrier ops — renewals, claims, underwriting, compliance. |
+| `inventory` | 37 | 34 | Stock accuracy — counts, shrinkage, expiry, overstock. |
+| `investing` | 37 | 30 | Portfolio tracking — prices, dividends, rebalancing, taxes. |
 | `landscaping` | 35 | 32 | Lawn-care/grounds-maintenance business ops — crew routes, contracts, chemical logs, equipment. |
 | `law-firm` | 35 | 34 | Law firm practice management ops — trust accounting, conflict checks, matter deadlines, CLE, billing. |
-| `learning` | 32 | 30 | Personal learning — certs, courses, flashcards, reading. |
-| `legal` | 32 | 30 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
+| `learning` | 37 | 35 | Personal learning — certs, courses, flashcards, reading. |
+| `legal` | 37 | 35 | Contracts and deadlines — NDAs, trademarks, court, compliance filings. |
 | `logistics` | 45 | 32 | Shipping ops — customs, freight, delays, fees. |
 | `manufacturing` | 35 | 32 | Production ops — downtime, defects, maintenance, suppliers, materials. |
-| `marketing` | 32 | 22 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
-| `moving-relocation` | 32 | 30 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
-| `nonprofit` | 32 | 27 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
+| `marketing` | 37 | 27 | Campaign ops — ad spend, ROAS, SEO rank, deliverability, attribution, competitors, MQLs, PR. |
+| `moving-relocation` | 37 | 34 | Household/office moving company ops — crew dispatch, estimates, claims, DOT compliance, storage-in-transit. |
+| `nonprofit` | 37 | 32 | Fundraising ops — grants, donors, volunteers, board follow-ups. |
 | `payments` | 32 | 29 | Payment processor/merchant acquirer ops — chargebacks, disputes, settlement, PCI, KYB, funding. |
 | `personal` | 32 | 28 | Daily life reminders — bills, habits, meals, screen time. |
 | `petcare` | 32 | 28 | Non-medical pet-services ops — grooming, boarding, daycare, kennel capacity. |
@@ -246,7 +246,7 @@ tags, variables) use `crondex list`, `crondex recommend`, or browse
 | `restaurant` | 35 | 25 | Kitchen/FOH ops — food cost, labor cost, waste, inspections, POS, menu margins. |
 | `retail` | 32 | 26 | Physical store ops — till reconciliation, checklists, scheduling, merchandising, loss prevention, pricing. |
 | `sales` | 32 | 27 | Pipeline ops — leads, deals, quota, CRM sync. |
-| `security` | 45 | 38 | Security posture — keys, certs, access, scans, firewalls. |
+| `security` | 45 | 39 | Security posture — keys, certs, access, scans, firewalls. |
 | `self-storage` | 32 | 31 | Self-storage facility ops — unit rentals, delinquent accounts/lien process, gate access, climate control. |
 | `senior-living` | 35 | 34 | Assisted-living/memory-care facility ops — resident care, staffing ratios, family communication, safety. |
 | `short-term-rental` | 32 | 25 | Airbnb/VRBO/vacation-rental host ops — turnover cleaning, calendar/pricing sync, guest screening, deposits, permits, occupancy tax. |

@@ -1,0 +1,43 @@
+id: course-certificate-download-check
+version: 1
+name: Course Completion Certificate Download Check
+description: >
+  Reminds you to actually download and save your course completion
+  certificate or transcript before your access to the platform lapses.
+  Use this if you've ever finished a course, meant to grab the PDF
+  certificate later, and then lost access when a free trial ended or you
+  cancelled the subscription — with no way to get it back.
+category: learning
+tags: [learning, certificate, course, deadline, credential]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: shell
+command: >
+  today=$(date +%s);
+  expiry_ts=$(date -d "{{access_expiry_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{access_expiry_date}}" +%s);
+  days_left=$(( (expiry_ts - today) / 86400 ));
+  if [ -f "{{certificate_local_path}}" ]; then echo "OK: certificate for {{course_name}} already saved at {{certificate_local_path}}.";
+  elif [ "$days_left" -lt 0 ]; then echo "MISSED: platform access for {{course_name}} likely expired {{access_expiry_date}} and no certificate saved at {{certificate_local_path}} — check if it's still retrievable"; exit 1;
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: {{course_name}} platform access ends in $days_left day(s) ({{access_expiry_date}}) and no certificate saved yet — download it to {{certificate_local_path}} now"; exit 1;
+  else echo "OK: $days_left day(s) left to download the {{course_name}} certificate before access ends."; fi
+variables:
+  course_name:
+    default: "your completed course"
+    description: Name of the course you finished (or are about to finish).
+  access_expiry_date:
+    default: "2026-09-30"
+    description: Date (YYYY-MM-DD) you expect to lose platform access (trial end, subscription cancellation, cohort close-out).
+  certificate_local_path:
+    default: "./certificates/course-certificate.pdf"
+    description: Local path where you save the downloaded certificate/transcript — the job checks whether this file already exists.
+  warn_days:
+    default: 7
+    description: Days before access_expiry_date to start warning if the certificate hasn't been saved yet.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Zero-token. Only checks whether a local file exists at
+  certificate_local_path, not whether it's the correct or current
+  certificate — you're responsible for actually downloading it. Distinct
+  from tuition-reimbursement-deadline-reminder (submitting paperwork to
+  an employer) and course-platform-unused-seat-check (flags an idle
+  subscription's cost, not a credential you're about to lose access to).

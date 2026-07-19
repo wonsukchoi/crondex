@@ -1,0 +1,39 @@
+id: corporate-insurance-policy-renewal-tracker
+version: 1
+name: Corporate Insurance Policy Renewal Tracker
+description: >
+  Warns before one of the company's own insurance policies (D&O, E&O,
+  cyber, general liability, etc.) reaches its renewal or expiration date.
+  Use this if a corporate policy has ever lapsed for a few days between
+  renewal cycles because the broker's renewal quote came in late and
+  nobody outside finance was tracking the hard expiration date.
+category: legal
+tags: [legal, insurance, policy-renewal, corporate, risk-management]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 {
+      cmd="date -d \"" $3 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $3 "\" +%s";
+      cmd | getline exp_ts; close(cmd);
+      days_left = int((exp_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: policy \"" $1 "\" (" $2 ") expires in " days_left " days (" $3 ")";
+    }
+  ' "{{corporate_policies_csv}}"
+variables:
+  corporate_policies_csv:
+    default: "./corporate-insurance-policies.csv"
+    description: "CSV with header row, columns: policy_name,coverage_type (e.g. d-and-o, e-and-o, cyber, general-liability, umbrella),expiration_date(YYYY-MM-DD)."
+  warn_days:
+    default: 45
+    description: Days before a corporate policy's expiration/renewal date to start warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Tracks the company's own coverage — distinct from
+  `vendor-coi-expiry-tracker` (certificates other parties gave you) and
+  `claims-made-insurance-notification-deadline-tracker` (reporting a
+  specific incident to an insurer within a claims-made policy's window).
+  Update the CSV whenever a policy is bound, renewed, or replaced; this
+  only compares dates you supply and doesn't evaluate coverage adequacy.

@@ -1,0 +1,62 @@
+id: grant-cost-share-match-shortfall-check
+version: 1
+name: Grant Cost-Share Match Shortfall Check
+description: >
+  Compares the cash or in-kind matching contribution your organization
+  has documented so far against the required cost-share commitment for a
+  grant, relative to how far into the grant period you are. Use this if
+  a grant's required match has ever fallen behind — because match is
+  usually pieced together from volunteer hours, donated space, or other
+  grants — and the shortfall wasn't caught until the final report put the
+  whole award at risk of clawback.
+category: nonprofit
+tags: [nonprofit, grants, compliance, finance, matching-gifts]
+schedule: "0 8 1 * *"
+timezone: "UTC"
+runner: hybrid
+command: >
+  awk -F',' -v elapsed={{grant_period_elapsed_pct}} -v under={{underspend_alert_pct}} '
+    NR>1 {
+      pct = ($3/$2)*100;
+      printf "%s: %.0f%% of required match documented (grant period %s%% elapsed)", $1, pct, elapsed;
+      if (pct < (elapsed - under)) print " -- SHORTFALL RISK";
+      else print " -- OK";
+    }
+  ' "{{grant_match_csv}}"
+prompt: |
+  Read grant cost-share/match data from {{grant_match_csv}} (columns:
+  grant_name, required_match_amount, documented_match_amount). The
+  grant period is {{grant_period_elapsed_pct}}% elapsed.
+  1. For each grant, compute percent of required match documented so
+     far.
+  2. Flag any trailing more than {{underspend_alert_pct}} points behind
+     the elapsed-period pace as a shortfall risk.
+  3. For each flagged grant, suggest plausible untapped match sources
+     based on {{org_match_sources_hint}} (e.g. volunteer hours at a
+     standard rate, donated space, other grants counted as match) and a
+     next step to document them before the report is due.
+script_note: >
+  `command` only computes match-documented percent versus elapsed-period
+  pace. `prompt` also suggests specific untapped match sources to close
+  the gap, which needs knowledge of the org's other resources.
+variables:
+  grant_match_csv:
+    default: "grant-match.csv"
+    description: "CSV with header row, columns: grant_name,required_match_amount,documented_match_amount."
+  grant_period_elapsed_pct:
+    default: 50
+    description: Percent of the grant period elapsed so far — update manually (e.g. monthly) as the grant progresses.
+  underspend_alert_pct:
+    default: 20
+    description: How many points behind the elapsed-period pace documented match can trail before it's flagged as a shortfall risk.
+  org_match_sources_hint:
+    default: "volunteer hours, donated space, and other grants your organization can count as match"
+    description: Brief context on what the org typically counts toward match, to help suggest ways to close a gap.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Distinct from `grant-restricted-fund-spend-check`, which tracks the
+  grant's own budget line items, and `matching-gift-claim-backlog-check`,
+  which tracks individual donors' employer matching-gift programs — this
+  tracks the organization's own required cost-share commitment to the
+  funder, which is often satisfied with non-cash contributions that are
+  easy to under-document until the final report.

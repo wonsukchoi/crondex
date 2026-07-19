@@ -1,0 +1,37 @@
+id: passive-candidate-outreach-reply-lag-check
+version: 1
+name: Passive Candidate Outreach Reply Lag Check
+description: >
+  Flags passive candidates who replied to a recruiter's outbound sourcing
+  message but never got a follow-up within the target window. Use this
+  if a candidate has ever replied with genuine interest to a cold
+  outreach note and then heard nothing back because the reply landed in
+  an inbox nobody was tracking, quietly burning a sourcing lead before
+  they ever entered the pipeline.
+category: hiring
+tags: [hiring, recruiting, sourcing, outreach, follow-up]
+schedule: "0 9 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v sla="{{followup_sla_days}}" '
+    NR==1 {next}
+    $3 != "" && $4 == "" {
+      cmd = "date -d \"" $3 "\" +%s 2>/dev/null || date -j -f %Y-%m-%d \"" $3 "\" +%s 2>/dev/null";
+      cmd | getline reply_epoch; close(cmd);
+      days_waiting = (today - reply_epoch) / 86400;
+      if (days_waiting >= sla) {
+        printf "REPLY UNANSWERED: %s replied to outreach from %s on %s (%d days ago), no follow-up sent\n", $1, $2, $3, days_waiting;
+      }
+    }
+  ' "{{outreach_log_csv_path}}"
+variables:
+  outreach_log_csv_path:
+    default: "./sourcing-outreach-log.csv"
+    description: "Path to a CSV with columns: candidate_name,recruiter_name,replied_date (YYYY-MM-DD, blank if no reply yet),followup_sent_date (blank if not yet sent)."
+  followup_sla_days:
+    default: 2
+    description: Days after a candidate's reply before a still-missing recruiter follow-up is flagged.
+compatible_agents: [generic, claude, codex]
+notes: Distinct from candidate-followup-nudge, which covers candidates already past a formal interview, and application-first-response-sla-check, which covers inbound applicants through the career site — this catches passive candidates who responded to outbound sourcing before any formal pipeline stage exists for them.

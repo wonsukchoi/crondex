@@ -1,0 +1,47 @@
+id: qualified-dividend-holding-period-check
+version: 1
+name: Qualified Dividend Holding Period Check
+description: >
+  Checks whether a stock or fund has actually been held for the required
+  number of days (typically more than 60 days within the 121-day window
+  around the ex-dividend date) for its dividends to qualify for the
+  lower long-term capital gains tax rate instead of ordinary income
+  rates. Use this if you've ever bought a dividend-paying stock shortly
+  before the ex-dividend date and later assumed the dividend would be
+  "qualified" without checking the actual holding-period math.
+category: investing
+tags: [investing, dividends, tax, qualified-dividends]
+schedule: "0 9 * * 1-5"
+timezone: "America/New_York"
+runner: shell
+command: >
+  purchase_ts=$(date -d "{{purchase_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{purchase_date}}" +%s);
+  exdiv_ts=$(date -d "{{ex_dividend_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{ex_dividend_date}}" +%s);
+  today_ts=$(date +%s);
+  held_days=$(( (today_ts - purchase_ts) / 86400 ));
+  days_from_exdiv=$(( (purchase_ts - exdiv_ts) / 86400 ));
+  abs_from_exdiv=${days_from_exdiv#-};
+  if [ "$abs_from_exdiv" -gt 60 ]; then
+    echo "NOTE: {{ticker}} purchased {{purchase_date}} is more than 60 days from the ex-dividend date {{ex_dividend_date}} — confirm it falls within the required 121-day window at all.";
+  elif [ "$held_days" -gt 60 ]; then
+    echo "OK: {{ticker}} has been held $held_days day(s) since {{purchase_date}} — likely meets the >60-day holding requirement for qualified treatment.";
+  else
+    echo "WARNING: {{ticker}} has only been held $held_days day(s) since {{purchase_date}} — selling now would likely disqualify this dividend from qualified tax treatment.";
+  fi
+variables:
+  ticker:
+    default: "some-ticker"
+    description: Ticker of the dividend-paying stock or fund.
+  purchase_date:
+    default: "2026-06-01"
+    description: Date the shares were purchased (YYYY-MM-DD).
+  ex_dividend_date:
+    default: "2026-06-15"
+    description: The ex-dividend date for the dividend in question (YYYY-MM-DD).
+compatible_agents: [generic, claude, codex]
+notes: >
+  Not tax advice — the real rule uses a 121-day window centered 60 days
+  before the ex-dividend date, and preferred shares use a longer window;
+  this job gives a simplified directional check, not a substitute for
+  IRS Publication 550. Distinct from dividend-payment-tracker, which
+  only checks whether a payment landed, not tax qualification.

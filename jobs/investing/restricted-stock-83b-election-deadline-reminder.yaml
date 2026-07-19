@@ -1,0 +1,47 @@
+id: restricted-stock-83b-election-deadline-reminder
+version: 1
+name: Restricted Stock 83(b) Election Deadline Reminder
+description: >
+  Warns as the strict 30-day deadline to file an 83(b) election after
+  receiving a restricted stock grant approaches, since missing it is
+  irreversible and forecloses electing to be taxed on the low grant-date
+  value instead of the higher value at each vest. Use this if you've
+  ever received restricted stock (not RSUs) from an employer or startup
+  and only later remembered the 83(b) window is unforgiving and has
+  already closed.
+category: investing
+tags: [investing, equity-compensation, tax, 83b-election]
+schedule: "0 9 * * *"
+timezone: "America/New_York"
+runner: shell
+command: >
+  grant_ts=$(date -d "{{grant_date}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{grant_date}}" +%s);
+  today_ts=$(date +%s);
+  deadline_ts=$(( grant_ts + ({{election_window_days}} * 86400) ));
+  days_left=$(( (deadline_ts - today_ts) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then
+    echo "NOTE: the 83(b) election window for the {{grant_date}} grant has closed — nothing more to do if it was already filed (or missed).";
+  elif [ "$days_left" -le {{warn_days}} ]; then
+    echo "URGENT: only $days_left day(s) left to file the 83(b) election (with the IRS, postmarked) for the restricted stock grant dated {{grant_date}} — this deadline cannot be extended.";
+  else
+    echo "OK: $days_left day(s) remain until the 83(b) election deadline for the {{grant_date}} grant.";
+  fi
+variables:
+  grant_date:
+    default: "2026-07-01"
+    description: Date the restricted stock was granted/issued (YYYY-MM-DD) — this is when the 30-day clock starts.
+  election_window_days:
+    default: 30
+    description: Statutory election window in days (30 under current IRS rules; kept as a variable in case of future changes).
+  warn_days:
+    default: 10
+    description: Days before the deadline to escalate to an urgent warning.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Not tax advice — the 83(b) election must be mailed to the IRS (and
+  typically also given to the employer) within 30 calendar days of the
+  grant with no extensions or exceptions; confirm the exact procedure
+  with a tax professional. Distinct from rsu-vesting-schedule-reminder,
+  which tracks vest dates for RSUs (which have no 83(b) election
+  available) rather than the filing deadline for actual restricted
+  stock grants.

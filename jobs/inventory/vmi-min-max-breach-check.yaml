@@ -1,0 +1,35 @@
+id: vmi-min-max-breach-check
+version: 1
+name: VMI Min/Max Breach Check
+description: >
+  Compares current on-hand quantity for vendor-managed inventory (VMI)
+  SKUs against the min/max band the supplier is contractually
+  responsible for maintaining, and flags any SKU outside that band. Use
+  this if a VMI supplier has ever let stock drift below the agreed
+  minimum (risking a stockout) or above the agreed maximum (tying up
+  your shelf space and cash) without anyone catching it, since VMI is
+  meant to run on the supplier's own replenishment logic rather than
+  yours.
+category: inventory
+tags: [inventory, vmi, suppliers, replenishment]
+schedule: "0 7 * * 1-5"
+timezone: "UTC"
+runner: shell
+command: >
+  awk -F',' '
+    NR==1 {next}
+    {
+      sku=$1; supplier=$2; on_hand=$3+0; min_qty=$4+0; max_qty=$5+0;
+      if (on_hand < min_qty) {
+        printf "BELOW MIN: %s (VMI: %s) — on hand %d, agreed minimum %d\n", sku, supplier, on_hand, min_qty;
+      } else if (on_hand > max_qty) {
+        printf "ABOVE MAX: %s (VMI: %s) — on hand %d, agreed maximum %d\n", sku, supplier, on_hand, max_qty;
+      }
+    }
+  ' "{{vmi_stock_csv_path}}"
+variables:
+  vmi_stock_csv_path:
+    default: "./vmi-stock-levels.csv"
+    description: "Path to a CSV with columns: sku,vmi_supplier,on_hand_qty,agreed_min_qty,agreed_max_qty — an export of SKUs under a vendor-managed inventory agreement."
+compatible_agents: [generic, claude, codex]
+notes: Assumes the min/max values are the levels contractually agreed with the VMI supplier, not your own internal reorder point. Distinct from `low-stock-alert` and `reorder-point-staleness-check`, both of which assume you own the replenishment decision — this flags when the supplier who owns that decision for VMI SKUs has failed to keep stock in the agreed band.

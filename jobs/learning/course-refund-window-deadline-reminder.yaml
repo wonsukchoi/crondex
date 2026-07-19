@@ -1,0 +1,58 @@
+id: course-refund-window-deadline-reminder
+version: 1
+name: Paid Course Refund Window Deadline Reminder
+description: >
+  Warns you before a paid online course's money-back guarantee window
+  closes, and helps you decide whether to keep it or ask for a refund
+  based on your actual progress notes. Use this if you've ever bought a
+  course on impulse, barely opened it, and let the 14/30-day refund
+  window quietly expire so you were stuck paying for something you never
+  used.
+category: learning
+tags: [learning, course, refund, deadline, purchase]
+schedule: "0 9 * * *"
+timezone: "America/Los_Angeles"
+runner: hybrid
+command: >
+  today=$(date +%s);
+  deadline_ts=$(date -d "{{refund_deadline}}" +%s 2>/dev/null || date -jf "%Y-%m-%d" "{{refund_deadline}}" +%s);
+  days_left=$(( (deadline_ts - today) / 86400 ));
+  if [ "$days_left" -lt 0 ]; then echo "OK: refund window for {{course_name}} already closed ({{refund_deadline}}) — nothing to decide anymore.";
+  elif [ "$days_left" -le "{{warn_days}}" ]; then echo "WARNING: refund window for {{course_name}} ({{price_paid}}) closes in $days_left day(s) ({{refund_deadline}}) — decide keep or refund now"; exit 1;
+  else echo "OK: refund window for {{course_name}} closes in $days_left day(s)."; fi
+prompt: |
+  The refund window for the paid course "{{course_name}}" ({{price_paid}})
+  closes on {{refund_deadline}}. Here's what I've actually done with it so
+  far: {{progress_notes}}.
+  If the window is closing soon, give me a one-paragraph honest
+  recommendation: keep it and commit to finishing, or request a refund
+  before the window shuts. Base the call on whether the progress notes
+  show real engagement or not.
+script_note: >
+  `command` only checks how many days remain in the refund window.
+  `prompt` also weighs your actual progress notes to recommend keep vs.
+  refund, which needs an LLM to judge free-form text.
+variables:
+  course_name:
+    default: "the course you bought"
+    description: Name of the paid course being tracked.
+  refund_deadline:
+    default: "2026-08-15"
+    description: Last date (YYYY-MM-DD) the platform's money-back guarantee can be invoked.
+  price_paid:
+    default: "$0"
+    description: What you paid for the course, for labeling output only.
+  progress_notes:
+    default: "haven't started yet"
+    description: Free-text note on how much of the course you've actually completed — update this yourself.
+  warn_days:
+    default: 5
+    description: Days before the refund deadline to start warning.
+compatible_agents: [claude, codex, hermes, openclaw, generic]
+notes: >
+  Manual refund_deadline and progress_notes input per course — this job
+  doesn't know your purchase history or the platform's policy
+  automatically. Distinct from tuition-reimbursement-deadline-reminder
+  (submitting paperwork to an employer after finishing a course) and
+  course-platform-unused-seat-check (an ongoing subscription going idle,
+  not a one-time purchase's refund clock).

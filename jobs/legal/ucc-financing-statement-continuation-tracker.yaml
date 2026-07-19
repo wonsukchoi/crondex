@@ -1,0 +1,38 @@
+id: ucc-financing-statement-continuation-tracker
+version: 1
+name: UCC Financing Statement Continuation Tracker
+description: >
+  Warns before a UCC-1 financing statement's five-year lapse date arrives
+  so a continuation statement can be filed in time to keep the security
+  interest perfected. Use this if a UCC filing has ever lapsed silently
+  because nobody was tracking the five-year window separate from the
+  underlying loan or lease term.
+category: legal
+tags: [legal, ucc, secured-transactions, financing-statement, perfection]
+schedule: "0 9 1 * *"
+timezone: "UTC"
+runner: shell
+command: >
+  today=$(date +%s);
+  awk -F',' -v today="$today" -v warn={{warn_days}} '
+    NR>1 && $5 != "continued" && $5 != "terminated" {
+      cmd="date -d \"" $4 "\" +%s 2>/dev/null || date -jf \"%Y-%m-%d\" \"" $4 "\" +%s";
+      cmd | getline lapse_ts; close(cmd);
+      days_left = int((lapse_ts - today) / 86400);
+      if (days_left <= warn) print "WARNING: UCC-1 \"" $1 "\" (debtor: " $2 ", filing #" $3 ") lapses in " days_left " days (" $4 "), status=" $5;
+    }
+  ' "{{ucc_filings_csv}}"
+variables:
+  ucc_filings_csv:
+    default: "./ucc-financing-statements.csv"
+    description: "CSV with header row, columns: filing_name,debtor_name,filing_number,lapse_date(YYYY-MM-DD, normally 5 years from filing/last continuation),status (active/continued/terminated)."
+  warn_days:
+    default: 90
+    description: Days before the five-year lapse date to start warning — continuation statements are typically only filable within a 6-month window before lapse, so warn well ahead.
+compatible_agents: [generic, claude, codex]
+notes: >
+  Continuation statements generally must be filed within the 6 months
+  before lapse — file too early or too late and it won't count, so
+  confirm the exact window with the filing office/counsel. This tracks
+  only the dates you supply; it does not verify collateral descriptions
+  or debtor name accuracy required for the continuation itself.
